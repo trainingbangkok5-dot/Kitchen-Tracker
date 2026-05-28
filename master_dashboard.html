@@ -89,7 +89,7 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
 <!-- OVERVIEW -->
 <div class="page active" id="page-overview">
   <div class="notice">
-    ℹ️ Scores appear here automatically when staff tap <strong>Submit Day</strong> on their checklist — on the same device or same browser. For cross-device sync, host all files on Netlify.
+    ℹ️ 🔥 Firebase connected — scores sync automatically from any device worldwide when staff tap Submit Day.
   </div>
   <div class="sec-title">KPI by Role <span id="lastUpdate"></span></div>
   <div class="kpi-grid" id="kpiGrid"></div>
@@ -376,9 +376,10 @@ function setSyncStatus(hasData) {
   document.getElementById('syncText').textContent = hasData ? 'Live data' : 'No submissions yet';
 }
 
-// Auto-refresh every 30 seconds
+// Start with Firebase — real-time sync across all devices
+loadFromFirebase();
+// Also refresh local data every 30 seconds as fallback
 setInterval(loadAll, 30000);
-loadAll();
 </script>
 </body>
 </html>
