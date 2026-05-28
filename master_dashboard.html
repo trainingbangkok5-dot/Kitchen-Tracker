@@ -2,41 +2,40 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="theme-color" content="#1A3C5E">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Master Kitchen Dashboard</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;background:#F5F3EE;color:#0A0A0A;min-height:100vh;-webkit-font-smoothing:antialiased;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F3EE;color:#0A0A0A;min-height:100vh;}
 .header{background:#1A3C5E;padding:20px 24px 16px;}
 .header h1{color:#fff;font-size:20px;font-weight:700;}
 .header-sub{color:rgba(255,255,255,0.55);font-size:12px;margin-top:3px;}
-.header-row{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:10px;}
-.sync-info{font-size:12px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:6px;}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:#22C55E;}
-.refresh-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:6px 14px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
-.refresh-btn:hover{background:rgba(255,255,255,0.25);}
+.sync-bar{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#F59E0B;}
+.sync-dot.connected{background:#22C55E;}
+.sync-dot.error{background:#EF4444;}
+.sync-text{font-size:12px;color:rgba(255,255,255,0.7);}
+.refresh-btn{margin-left:auto;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
 .tabs{background:#fff;border-bottom:1px solid #E0DDD4;display:flex;overflow-x:auto;}
-.tabs::-webkit-scrollbar{display:none;}
-.tab{flex-shrink:0;padding:11px 18px;font-size:13px;font-weight:600;color:#6B6B60;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;transition:all .15s;}
+.tab{flex-shrink:0;padding:11px 18px;font-size:13px;font-weight:600;color:#6B6B60;cursor:pointer;border-bottom:2.5px solid transparent;}
 .tab.active{color:#1A3C5E;border-bottom-color:#1A3C5E;}
 .page{display:none;padding:18px 20px 40px;}
 .page.active{display:block;}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
 .kpi-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;}
-.kc-lbl{font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
-.kc-dot{width:7px;height:7px;border-radius:50%;}
-.kc-val{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+.kc-lbl{font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.kc-val{font-size:26px;font-weight:700;line-height:1;}
 .kc-bar{height:4px;background:#E0DDD4;border-radius:2px;margin:8px 0 5px;overflow:hidden;}
-.kc-fill{height:100%;border-radius:2px;transition:width .5s;}
+.kc-fill{height:100%;border-radius:2px;}
 .kc-status{font-size:11px;font-weight:600;}
 .kc-count{font-size:10px;color:#6B6B60;margin-top:2px;}
-.sec-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-.sec-title span{font-size:11px;font-weight:500;color:#6B6B60;}
+.sec-title{font-size:13px;font-weight:700;margin-bottom:10px;}
 .staff-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
-.t-head{display:grid;grid-template-columns:2fr 1fr 1.2fr 1fr 1fr 0.9fr 0.9fr;background:#1A3C5E;}
+.t-head{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;background:#1A3C5E;}
 .th{padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;}
-.t-row{display:grid;grid-template-columns:2fr 1fr 1.2fr 1fr 1fr 0.9fr 0.9fr;border-top:1px solid #E0DDD4;align-items:center;transition:background .1s;}
+.t-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
 .t-row:hover{background:#F5F3EE;}
 .td{padding:10px 12px;font-size:13px;}
 .td-sm{font-size:11px;color:#6B6B60;}
@@ -45,68 +44,50 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
 .pill-st{background:#F0FDF4;color:#15803D;}
 .pill-kic{background:#FFF7ED;color:#C2410C;}
 .pill-ac{background:#EDE9FE;color:#6D28D9;}
-.score-val{font-variant-numeric:tabular-nums;font-weight:700;}
-.sp{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;}
+.sp{display:inline-flex;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;}
 .sp-pass{background:#DCFCE7;color:#15803D;}
 .sp-fail{background:#FEE2E2;color:#B91C1C;}
 .sp-prog{background:#FEF9C3;color:#92400E;}
 .empty{padding:50px 20px;text-align:center;color:#6B6B60;}
 .empty-icon{font-size:36px;margin-bottom:10px;}
-.empty-title{font-size:15px;font-weight:700;color:#0A0A0A;margin-bottom:5px;}
-/* Filters */
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.fsel{padding:6px 11px;border-radius:8px;border:1.5px solid #E0DDD4;background:#fff;font-size:13px;color:#0A0A0A;outline:none;cursor:pointer;}
-.fsel:focus{border-color:#2E6DA4;}
-/* Monthly */
-.mo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;}
-.mo-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;}
-.mo-card h3{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.mo-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid #E0DDD4;font-size:12px;}
-.mo-row:last-child{border:none;}
-/* Notice */
-.notice{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;line-height:1.6;}
+.fsel{padding:6px 11px;border-radius:8px;border:1.5px solid #E0DDD4;background:#fff;font-size:13px;color:#0A0A0A;outline:none;}
+.feed-card{background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:12px;}
+.notice{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;}
+/* Audit table */
+.audit-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
+.at-head{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;background:#1A3C5E;}
+.at-row{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
 </style>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="header">
   <h1>🏠 Master Kitchen Dashboard</h1>
   <div class="header-sub">Training Department — Live scores from all staff checklists</div>
-  <div class="header-row">
-    <div class="sync-info"><div class="sync-dot" id="syncDot"></div><span id="syncText">Reading data...</span></div>
-    <button class="refresh-btn" onclick="loadAll()">⟳ Refresh</button>
+  <div class="sync-bar">
+    <div class="sync-dot" id="syncDot"></div>
+    <span class="sync-text" id="syncText">Connecting to Firebase...</span>
+    <button class="refresh-btn" onclick="loadData()">⟳ Refresh</button>
   </div>
 </div>
 
 <div class="tabs">
-  <div class="tab active" data-p="overview" onclick="showPage(this)">📊 Overview</div>
-  <div class="tab" data-p="staff" onclick="showPage(this)">👥 All Staff</div>
-  <div class="tab" data-p="monthly" onclick="showPage(this)">📅 Monthly</div>
-  <div class="tab" data-p="audits" onclick="showPage(this)">📋 Audit Results</div>
+  <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
+  <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
+  <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
+  <div class="tab" onclick="showTab(this,'audits')">📋 Audit Results</div>
 </div>
 
-<!-- OVERVIEW -->
 <div class="page active" id="page-overview">
-  <div class="notice">
-    ℹ️ 🔥 Firebase connected — scores sync automatically from any device worldwide when staff tap Submit Day.
-  </div>
-  <div class="sec-title">KPI by Role <span id="lastUpdate"></span></div>
+  <div class="sec-title" id="lastUpdate">KPI by Role</div>
   <div class="kpi-grid" id="kpiGrid"></div>
   <div class="sec-title">Recent Submissions</div>
   <div id="recentFeed"></div>
 </div>
 
-<!-- ALL STAFF -->
 <div class="page" id="page-staff">
   <div class="filters">
-    <select class="fsel" id="fRole" onchange="renderStaff()">
-      <option value="">All roles</option>
-      <option value="linecook">Line Cook</option>
-      <option value="steward">Steward</option>
-      <option value="kic">KIC</option>
-      <option value="areachef">Area Chef</option>
-    </select>
+    <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option></select>
     <select class="fsel" id="fWeek" onchange="renderStaff()"><option value="">All weeks</option></select>
     <select class="fsel" id="fOutlet" onchange="renderStaff()"><option value="">All outlets</option></select>
   </div>
@@ -124,33 +105,22 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
   </div>
 </div>
 
-<!-- MONTHLY -->
 <div class="page" id="page-monthly">
-  <div class="mo-grid" id="moGrid"></div>
-  <div style="margin-top:16px;" class="notice">
-    <strong>Multi-outlet staff:</strong> Staff supporting multiple outlets are shown as one entry per 6-day cycle. Verified by KIC → feeds KIC KPI. KIC verified by Area Chef → feeds Area Chef KPI.
-  </div>
+  <div id="monthlyGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;"></div>
+</div>
 
-<!-- AUDIT RESULTS PAGE -->
 <div class="page" id="page-audits">
-  <div class="sec-title">BOH & FOH Audit Results <span id="auditCount"></span></div>
-  <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;" id="auditTable">
-    <div style="display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;background:#1A3C5E;">
-      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Outlet</div>
-      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Type</div>
-      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Score</div>
-      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Points</div>
-      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Auditor</div>
-      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Date</div>
+  <div class="sec-title">BOH & FOH Audit Results</div>
+  <div class="audit-table">
+    <div class="at-head">
+      <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
+      <div class="th">Points</div><div class="th">Auditor</div><div class="th">Date</div>
     </div>
     <div id="auditBody"></div>
   </div>
 </div>
-</div>
 
 <script>
-
-
 // ══ FIREBASE CONFIG ════════════════════════════════════════════
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
@@ -164,149 +134,113 @@ const FIREBASE_CONFIG = {
 // ══════════════════════════════════════════════════════════════
 
 firebase.initializeApp(FIREBASE_CONFIG);
-const _db = firebase.database();
+const db = firebase.database();
+
+let allStaff = [];
 let allAudits = [];
 
-function loadFromFirebase() {
-  setSyncStatus('syncing');
-  // Test Firebase connection first
-  _db.ref('.info/connected').on('value', snap => {
-    if (snap.val() === true) {
-      document.getElementById('syncText').textContent = 'Firebase connected ✓';
-      document.getElementById('syncDot').style.background = '#22C55E';
-    } else {
-      document.getElementById('syncText').textContent = 'Connecting to Firebase...';
-      document.getElementById('syncDot').style.background = '#F59E0B';
-    }
-  });
-
-  _db.ref('submissions').on('value', snap => {
-    allStaff = snap.val() ? Object.values(snap.val()) : [];
-    console.log('Firebase submissions:', allStaff.length, allStaff);
-    _db.ref('audits').on('value', auditSnap => {
-      allAudits = auditSnap.val() ? Object.values(auditSnap.val()) : [];
-      populateFilterOptions();
-      renderAll();
-      if (allStaff.length > 0) {
-        setSyncStatus('ok');
-        const el = document.getElementById('lastUpdate');
-        if (el) {
-          const latest = allStaff.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
-          const d = new Date(latest.lastUpdated);
-          el.textContent = 'Live · Last: ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        }
-      }
-    });
-  }, err => {
-    console.error('Firebase read failed:', err.code, err.message);
-    document.getElementById('syncText').textContent = 'Firebase error: ' + err.message;
-    document.getElementById('syncDot').style.background = '#EF4444';
-    loadAll();
-  });
-}
-
-function populateFilterOptions() {
-  const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
-  const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
-  const wSel = document.getElementById('fWeek');
-  const oSel = document.getElementById('fOutlet');
-  if (!wSel || !oSel) return;
-  const curW = wSel.value, curO = oSel.value;
-  wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
-  oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
-  if(curW) wSel.value = curW;
-  if(curO) oSel.value = curO;
-}
-
-
-const SHARED_DB_KEY = 'KIC_SHARED_DB_V2';
 const ROLES = {
-  linecook:  {label:'Line Cook', icon:'🍳', color:'#1D4ED8', bg:'#EFF6FF', dot:'#2E6DA4'},
-  steward:   {label:'Steward',   icon:'🧹', color:'#15803D', bg:'#F0FDF4', dot:'#16A34A'},
-  kic:       {label:'KIC',       icon:'👨‍🍳', color:'#C2410C', bg:'#FFF7ED', dot:'#E87722'},
-  areachef:  {label:'Area Chef', icon:'📊', color:'#6D28D9', bg:'#EDE9FE', dot:'#7C3AED'},
+  linecook: {label:'Line Cook',icon:'🍳',dot:'#2E6DA4',cls:'pill-lc'},
+  steward:  {label:'Steward',  icon:'🧹',dot:'#16A34A',cls:'pill-st'},
+  kic:      {label:'KIC',      icon:'👨‍🍳',dot:'#E87722',cls:'pill-kic'},
+  areachef: {label:'Area Chef',icon:'📊',dot:'#7C3AED',cls:'pill-ac'},
 };
 
-function loadDB() {
-  try { const d = JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || {}; if(!d.submissions) d.submissions=[]; if(!d.audits) d.audits=[]; return d; }
-  catch(e) { return {submissions:[], audits:[]}; }
+function showTab(el, id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
 }
 
-function loadAll() {
-  const db = loadDB();
-  const subs = db.submissions || [];
-  setSyncStatus(subs.length > 0);
-
-  // Populate filters
-  const weeks   = [...new Set(subs.map(s=>s.week).filter(Boolean))];
-  const outlets = [...new Set(subs.map(s=>s.outlet).filter(Boolean))];
-  const wSel = document.getElementById('fWeek');
-  const oSel = document.getElementById('fOutlet');
-  const curW = wSel.value, curO = oSel.value;
-  wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
-  oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
-  if(curW) wSel.value = curW;
-  if(curO) oSel.value = curO;
-
-  renderKPI(subs);
-  renderRecent(subs);
-  renderStaff();
-  renderMonthly(subs);
-
-  if(subs.length > 0) {
-    const latest = subs.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
-    const d = new Date(latest.lastUpdated);
-    document.getElementById('lastUpdate').textContent = 'Last: ' + d.toLocaleDateString() + ' ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  }
+function setSyncStatus(status, msg) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot' + (status==='connected'?' connected':status==='error'?' error':'');
+  txt.textContent = msg;
 }
 
-function getFiltered() {
-  const db = loadDB();
-  if (allStaff.length > 0) { const f=getFilters(); return allStaff.filter(s => { if(f.role&&s.role!==f.role)return false; if(f.week&&s.week!==f.week)return false; if(f.outlet&&s.outlet!==f.outlet)return false; return true; }); }
-  const role   = document.getElementById('fRole')?.value || '';
-  const week   = document.getElementById('fWeek')?.value || '';
-  const outlet = document.getElementById('fOutlet')?.value || '';
-  return (db.submissions||[]).filter(s => {
-    if(role   && s.role   !== role)   return false;
-    if(week   && s.week   !== week)   return false;
-    if(outlet && s.outlet !== outlet) return false;
-    return true;
+function loadData() {
+  setSyncStatus('connecting','Connecting to Firebase...');
+  
+  // Listen for submissions - real time
+  db.ref('submissions').on('value', snap => {
+    const data = snap.val();
+    allStaff = data ? Object.values(data) : [];
+    console.log('Submissions loaded:', allStaff.length, allStaff);
+    
+    setSyncStatus('connected', '🔥 Live · ' + allStaff.length + ' submissions');
+    
+    // Update last update time
+    if (allStaff.length > 0) {
+      const el = document.getElementById('lastUpdate');
+      const latest = allStaff.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
+      el.textContent = 'KPI by Role — Last updated: ' + new Date(latest.lastUpdated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    }
+
+    // Populate filters
+    const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
+    const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
+    const wSel = document.getElementById('fWeek');
+    const oSel = document.getElementById('fOutlet');
+    wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
+    oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
+
+    renderAll();
+  }, err => {
+    setSyncStatus('error', 'Firebase error: ' + err.message);
+    console.error('Firebase error:', err);
+  });
+
+  // Listen for audits
+  db.ref('audits').on('value', snap => {
+    const data = snap.val();
+    allAudits = data ? Object.values(data) : [];
+    renderAudits();
   });
 }
 
-function renderKPI(subs) {
+function renderAll() {
+  renderKPI();
+  renderRecent();
+  renderStaff();
+  renderMonthly();
+}
+
+function renderKPI() {
   const grid = document.getElementById('kpiGrid');
   grid.innerHTML = '';
   Object.entries(ROLES).forEach(([key, role]) => {
-    const entries = subs.filter(s => s.role === key);
-    const scores  = entries.map(s => s.overallPct||0).filter(s => s > 0);
+    const entries = allStaff.filter(s => s.role === key);
+    const scores  = entries.map(s => parseFloat(s.overallPct)||0).filter(s => s > 0);
     const avg     = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
     const pass    = avg !== null && avg >= 95;
-    const card = document.createElement('div');
+    const card    = document.createElement('div');
     card.className = 'kpi-card';
     card.innerHTML = `
-      <div class="kc-lbl"><span class="kc-dot" style="background:${role.dot}"></span>${role.icon} ${role.label}</div>
+      <div class="kc-lbl" style="display:flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:${role.dot};display:inline-block;"></span>${role.icon} ${role.label}</div>
       <div class="kc-val" style="color:${avg===null?'#CBD5E1':pass?'#15803D':'#B91C1C'}">${avg!==null?avg+'%':'—'}</div>
       <div class="kc-bar"><div class="kc-fill" style="width:${avg||0}%;background:${avg===null?'#E5E7EB':avg>=95?'#22C55E':avg>=70?'#F59E0B':'#EF4444'}"></div></div>
-      <div class="kc-status" style="color:${avg===null?'#94A3B8':pass?'#15803D':'#B91C1C'}">${avg===null?'No submissions':pass?'✅ Qualified':'❌ Below 95%'}</div>
+      <div class="kc-status" style="color:${avg===null?'#9CA3AF':pass?'#15803D':'#B91C1C'}">${avg===null?'No data':pass?'✅ Qualified':'❌ Below 95%'}</div>
       <div class="kc-count">${entries.length} entr${entries.length===1?'y':'ies'}</div>`;
     grid.appendChild(card);
   });
 }
 
-function renderRecent(subs) {
+function renderRecent() {
   const el = document.getElementById('recentFeed');
-  const recent = [...subs].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).slice(0,8);
-  if(!recent.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No submissions yet</div><div>Staff scores appear here automatically when they tap Submit Day on their checklist.</div></div>`;
+  const recent = [...allStaff].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).slice(0,8);
+  if (!recent.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div style="font-size:15px;font-weight:700;color:#0A0A0A;margin-bottom:5px;">No submissions yet</div><div>Staff scores appear here when they tap Submit Day</div></div>`;
     return;
   }
   el.innerHTML = '';
   recent.forEach(s => {
     const role = ROLES[s.role]||{label:s.role,icon:'',dot:'#888'};
-    const pass = s.overallPct>=95;
+    const sc = s.overallPct||0;
+    const pass = sc >= 95;
     const div = document.createElement('div');
-    div.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:12px;';
+    div.className = 'feed-card';
     div.innerHTML = `
       <div style="font-size:22px">${role.icon}</div>
       <div style="flex:1">
@@ -315,43 +249,46 @@ function renderRecent(subs) {
         ${s.startedAt||s.submittedAt?`<div style="font-size:10px;color:#94A3B8;margin-top:2px;">${s.startedAt?'⏱ '+new Date(s.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}):''}${s.submittedAt?' → ✅ '+new Date(s.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}):''}</div>`:''}
       </div>
       <div style="text-align:right">
-        <div style="font-size:18px;font-weight:700;color:${s.overallPct>0?(pass?'#15803D':'#B91C1C'):'#94A3B8'}">${s.overallPct>0?s.overallPct+'%':'—'}</div>
-        <div style="font-size:11px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${s.overallPct>0?(pass?'✅ Pass':'❌ Fail'):''}</div>
+        <div style="font-size:18px;font-weight:700;color:${sc>0?(pass?'#15803D':'#B91C1C'):'#94A3B8'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:11px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?(pass?'✅ Pass':'❌ Fail'):''}</div>
       </div>`;
     el.appendChild(div);
   });
 }
 
-
-function fmtT(iso) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}) + '<br><span style="font-size:10px;color:#94A3B8">' + d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) + '</span>';
-  } catch(e) { return '—'; }
+function getFiltered() {
+  const role   = document.getElementById('fRole')?.value||'';
+  const week   = document.getElementById('fWeek')?.value||'';
+  const outlet = document.getElementById('fOutlet')?.value||'';
+  return allStaff.filter(s => {
+    if(role   && s.role   !== role)   return false;
+    if(week   && s.week   !== week)   return false;
+    if(outlet && s.outlet !== outlet) return false;
+    return true;
+  });
 }
 
 function renderStaff() {
   const body = document.getElementById('staffBody');
   const subs = getFiltered();
-  if(!subs.length) {
-    body.innerHTML = `<div class="empty"><div class="empty-icon">👥</div><div class="empty-title">No entries</div></div>`;
+  if (!subs.length) {
+    body.innerHTML = `<div class="empty"><div class="empty-icon">👥</div>No entries yet</div>`;
     return;
   }
   body.innerHTML = '';
   [...subs].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).forEach(s => {
     const role = ROLES[s.role]||{label:s.role,icon:'',cls:'pill-lc'};
-    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role]||'pill-lc';
-    const sc = s.overallPct||0;
-    const pass = sc>=95;
-    const updated = s.lastUpdated ? new Date(s.lastUpdated).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    const sc   = parseFloat(s.overallPct)||0;
+    const pass = sc >= 95;
+    const upd  = s.lastUpdated ? new Date(s.lastUpdated).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    function fmtT(iso) { if(!iso)return'—'; try{return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})+'<br><span style="font-size:10px;color:#94A3B8">'+new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</span>';}catch(e){return'—';}}
     const row = document.createElement('div');
     row.className = 't-row';
     row.innerHTML = `
       <div class="td"><div style="font-weight:600">${s.staffName||'—'}</div><div class="td-sm">${s.outlet||'—'}</div></div>
-      <div class="td"><span class="role-pill ${roleCls}">${role.icon} ${role.label}</span></div>
+      <div class="td"><span class="role-pill ${role.cls}">${role.icon} ${role.label}</span></div>
       <div class="td td-sm">${s.week||'—'}</div>
-      <div class="td"><span class="score-val" style="color:${sc===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</span></div>
+      <div class="td" style="font-weight:700;color:${sc===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
       <div class="td">${sc>0?`<span class="sp ${pass?'sp-pass':'sp-fail'}">${pass?'✅ Pass':'❌ Fail'}</span>`:'<span class="sp sp-prog">⏳ In progress</span>'}</div>
       <div class="td td-sm" style="line-height:1.4">${fmtT(s.startedAt)}</div>
       <div class="td td-sm" style="line-height:1.4">${fmtT(s.submittedAt)}</div>`;
@@ -359,42 +296,51 @@ function renderStaff() {
   });
 }
 
-function renderMonthly(subs) {
-  const grid = document.getElementById('moGrid');
+function renderMonthly() {
+  const grid = document.getElementById('monthlyGrid');
   grid.innerHTML = '';
   Object.entries(ROLES).forEach(([key,role]) => {
-    const entries = (subs||getFiltered()).filter(s=>s.role===key);
+    const entries = allStaff.filter(s=>s.role===key);
     const card = document.createElement('div');
-    card.className = 'mo-card';
+    card.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;';
     const rows = entries.length > 0
       ? entries.map(s => {
-          const sc = s.overallPct||0;
-          return `<div class="mo-row"><span style="font-weight:500">${s.staffName||'—'}<br><span style="font-size:10px;color:#6B6B60">${s.outlet||''}</span></span><span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'};font-variant-numeric:tabular-nums">${sc>0?sc+'%':'—'}</span></div>`;
+          const sc = parseFloat(s.overallPct)||0;
+          return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid #E0DDD4;font-size:12px;"><span style="font-weight:500">${s.staffName||'—'}<br><span style="font-size:10px;color:#6B6B60">${s.outlet||''}</span></span><span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'}">${sc>0?sc+'%':'—'}</span></div>`;
         }).join('')
       : '<div style="font-size:12px;color:#6B6B60;padding:8px 0">No entries yet</div>';
-    const q = entries.filter(s=>s.qualified).length;
-    card.innerHTML = `<h3 style="color:${role.dot}">${role.icon} ${role.label}</h3>${rows}${entries.length>0?`<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;font-size:11px;color:#6B6B60">${q}/${entries.length} qualified</div>`:''}`;
+    const q = entries.filter(s=>parseFloat(s.overallPct)>=95).length;
+    card.innerHTML = `<h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:${role.dot}">${role.icon} ${role.label}</h3>${rows}${entries.length>0?`<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;font-size:11px;color:#6B6B60">${q}/${entries.length} qualified</div>`:''}`;
     grid.appendChild(card);
   });
 }
 
-function showPage(el) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('page-'+el.dataset.p).classList.add('active');
-  loadAll();
+function renderAudits() {
+  const body = document.getElementById('auditBody');
+  if (!allAudits.length) {
+    body.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>No audits submitted yet</div>';
+    return;
+  }
+  body.innerHTML = '';
+  [...allAudits].sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
+    const pass = a.score>=80;
+    const row = document.createElement('div');
+    row.className = 'at-row';
+    row.style.background = i%2===0?'#fff':'#F5F3EE';
+    const d = a.auditDate || (a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—');
+    row.innerHTML = `
+      <div class="td" style="font-weight:600">${a.outlet||'—'}</div>
+      <div class="td"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
+      <div class="td" style="font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
+      <div class="td td-sm">${a.rawScore||'—'}/${a.maxScore||'—'}</div>
+      <div class="td td-sm">${a.auditor||'—'}</div>
+      <div class="td td-sm">${d}</div>`;
+    body.appendChild(row);
+  });
 }
 
-function setSyncStatus(hasData) {
-  document.getElementById('syncDot').style.background = hasData ? '#22C55E' : '#F59E0B';
-  document.getElementById('syncText').textContent = hasData ? 'Live data' : 'No submissions yet';
-}
-
-// Start with Firebase — real-time sync across all devices
-loadFromFirebase();
-// Also refresh local data every 30 seconds as fallback
-setInterval(loadAll, 30000);
+// Start listening
+loadData();
 </script>
 </body>
 </html>
