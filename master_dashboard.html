@@ -66,6 +66,8 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
 /* Notice */
 .notice{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;line-height:1.6;}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="header">
@@ -147,6 +149,61 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
 </div>
 
 <script>
+
+
+// ══ FIREBASE CONFIG ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+// ══════════════════════════════════════════════════════════════
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const _db = firebase.database();
+let allAudits = [];
+
+function loadFromFirebase() {
+  setSyncStatus('syncing');
+  _db.ref('submissions').on('value', snap => {
+    allStaff = snap.val() ? Object.values(snap.val()) : [];
+    _db.ref('audits').on('value', auditSnap => {
+      allAudits = auditSnap.val() ? Object.values(auditSnap.val()) : [];
+      populateFilterOptions();
+      renderAll();
+      setSyncStatus('ok');
+      const el = document.getElementById('lastUpdate');
+      if (el && allStaff.length > 0) {
+        const latest = allStaff.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
+        const d = new Date(latest.lastUpdated);
+        el.textContent = 'Live · Last: ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      }
+    });
+  }, err => {
+    console.warn('Firebase read failed:', err);
+    setSyncStatus('error');
+    loadAll();
+  });
+}
+
+function populateFilterOptions() {
+  const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
+  const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
+  const wSel = document.getElementById('fWeek');
+  const oSel = document.getElementById('fOutlet');
+  if (!wSel || !oSel) return;
+  const curW = wSel.value, curO = oSel.value;
+  wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
+  oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
+  if(curW) wSel.value = curW;
+  if(curO) oSel.value = curO;
+}
+
+
 const SHARED_DB_KEY = 'KIC_SHARED_DB_V2';
 const ROLES = {
   linecook:  {label:'Line Cook', icon:'🍳', color:'#1D4ED8', bg:'#EFF6FF', dot:'#2E6DA4'},
@@ -190,6 +247,7 @@ function loadAll() {
 
 function getFiltered() {
   const db = loadDB();
+  if (allStaff.length > 0) { const f=getFilters(); return allStaff.filter(s => { if(f.role&&s.role!==f.role)return false; if(f.week&&s.week!==f.week)return false; if(f.outlet&&s.outlet!==f.outlet)return false; return true; }); }
   const role   = document.getElementById('fRole')?.value || '';
   const week   = document.getElementById('fWeek')?.value || '';
   const outlet = document.getElementById('fOutlet')?.value || '';

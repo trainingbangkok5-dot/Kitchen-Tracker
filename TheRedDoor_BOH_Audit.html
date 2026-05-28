@@ -86,6 +86,8 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
 .btn-clear:hover{background:#fce4ec;border-color:#e53935;color:#c62828}
 .save-info{font-size:11px;color:#888;align-self:center;flex:1}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="header">
@@ -136,6 +138,52 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
   </div>
 </div>
 <script>
+
+// ══ FIREBASE CONFIG ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+// ══════════════════════════════════════════════════════════════
+
+// Init Firebase
+firebase.initializeApp(FIREBASE_CONFIG);
+const _db = firebase.database();
+
+function pushToFirebase(record) {
+  try {
+    const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.role
+              + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + Date.now();
+    _db.ref('submissions/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).then(() => {
+      showToast('✓ Synced to dashboard', 'ok');
+    }).catch(e => {
+      console.warn('Firebase write failed:', e);
+    });
+  } catch(e) { console.warn('Firebase error:', e); }
+}
+
+function pushAuditToFirebase(record) {
+  try {
+    const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.auditType
+              + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+    _db.ref('audits/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).catch(e => console.warn('Audit write failed:', e));
+  } catch(e) { console.warn('Firebase audit error:', e); }
+}
+
 const ORIG_MAX = 175;
 const SECTIONS=[
 {id:'s1',title:'General Operational Compliance',items:[
@@ -703,6 +751,7 @@ function submitAuditToDashboard() {
     });
 
     localStorage.setItem('KIC_SHARED_DB_V2', JSON.stringify(db));
+    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, shift, submittedAt:new Date().toISOString()});
     showToast('✅ Audit submitted to dashboard! Score: ' + pct + '%', '#2e7d32');
   } catch(e) {
     showToast('⚠ Could not submit to dashboard: ' + e.message, '#c62828');
