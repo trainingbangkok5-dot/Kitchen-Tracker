@@ -81,6 +81,7 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
   <div class="tab active" data-p="overview" onclick="showPage(this)">📊 Overview</div>
   <div class="tab" data-p="staff" onclick="showPage(this)">👥 All Staff</div>
   <div class="tab" data-p="monthly" onclick="showPage(this)">📅 Monthly</div>
+  <div class="tab" data-p="audits" onclick="showPage(this)">📋 Audit Results</div>
 </div>
 
 <!-- OVERVIEW -->
@@ -127,6 +128,22 @@ body{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvet
   <div style="margin-top:16px;" class="notice">
     <strong>Multi-outlet staff:</strong> Staff supporting multiple outlets are shown as one entry per 6-day cycle. Verified by KIC → feeds KIC KPI. KIC verified by Area Chef → feeds Area Chef KPI.
   </div>
+
+<!-- AUDIT RESULTS PAGE -->
+<div class="page" id="page-audits">
+  <div class="sec-title">BOH & FOH Audit Results <span id="auditCount"></span></div>
+  <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;" id="auditTable">
+    <div style="display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;background:#1A3C5E;">
+      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Outlet</div>
+      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Type</div>
+      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Score</div>
+      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Points</div>
+      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Auditor</div>
+      <div style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;">Date</div>
+    </div>
+    <div id="auditBody"></div>
+  </div>
+</div>
 </div>
 
 <script>
@@ -139,8 +156,8 @@ const ROLES = {
 };
 
 function loadDB() {
-  try { return JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || {submissions:[]}; }
-  catch(e) { return {submissions:[]}; }
+  try { const d = JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || {}; if(!d.submissions) d.submissions=[]; if(!d.audits) d.audits=[]; return d; }
+  catch(e) { return {submissions:[], audits:[]}; }
 }
 
 function loadAll() {

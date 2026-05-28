@@ -103,7 +103,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
     <div class="info-field"><label>Outlet</label><input id="fOutlet" type="text" placeholder="Outlet name..." autocorrect="off"></div>
     <div class="info-field"><label>Week Starting</label><input id="fWeek" type="date"></div>
-    <div class="info-field"><label>Verified By (GM / Training)</label><input id="fVerified" type="text" placeholder="GM name..." autocorrect="off"></div>
+    <div class="info-field"><label>Verified By (Area Chef)</label><input id="fVerified" type="text" placeholder="Area Chef name..." autocorrect="off"></div>
   </div>
 </div>
 <div class="score-bar">
@@ -231,6 +231,60 @@ function showToast(msg, type) {
   }, 2800);
 }
 
+
+
+// ── Auto-fill audit score for KIC's outlet ───────────────────────────────────
+function getLatestAuditForOutlet(outlet) {
+  if (!outlet) return null;
+  try {
+    const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{}');
+    const audits = db.audits || [];
+    const outletAudits = audits.filter(a =>
+      a.outlet && a.outlet.trim().toLowerCase() === outlet.trim().toLowerCase()
+    );
+    if (outletAudits.length === 0) return null;
+    // Get most recent
+    return outletAudits.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0];
+  } catch(e) { return null; }
+}
+
+function showAuditBanner() {
+  const outlet = document.getElementById('fOutlet')?.value?.trim();
+  const audit = getLatestAuditForOutlet(outlet);
+  let banner = document.getElementById('_auditBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = '_auditBanner';
+    banner.style.cssText = 'margin:10px 16px 0;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;';
+    const content = document.getElementById('mainContent');
+    if (content) content.parentNode.insertBefore(banner, content);
+  }
+  if (!outlet) {
+    banner.style.display = 'none';
+    return;
+  }
+  if (!audit) {
+    banner.style.cssText += 'background:#FEF9C3;border:1px solid #FDE68A;color:#92400E;display:block;';
+    banner.textContent = '⏳ ' + outlet + ' — No audit submitted yet (Pending)';
+  } else {
+    const pass = audit.score >= 80;
+    banner.style.cssText += (pass
+      ? 'background:#DCFCE7;border:1px solid #22C55E;color:#15803D;display:block;'
+      : 'background:#FEE2E2;border:1px solid #EF4444;color:#B91C1C;display:block;');
+    const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+    banner.textContent = (pass ? '✅' : '❌') + ' ' + outlet + ' ' + audit.auditType +
+      ' Audit: ' + audit.score + '% (' + audit.rawScore + '/' + audit.maxScore + ' pts)' +
+      ' — Auditor: ' + audit.auditor + ' — ' + d;
+    // Also auto-set the auditor section task yn if score >= 80
+    autoSetAuditorTask(audit.score);
+  }
+}
+
+function autoSetAuditorTask(score) {
+  // Find the aud1 task and auto-set it
+  const val = score >= 80 ? 'yes' : 'no';
+  setVal(currentDay, 'aud1', 'yn', val);
+}
 
 // ── Role config ───────────────────────────────────────────────
 const ROLE       = 'areachef';
@@ -555,6 +609,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   buildDayRail();
   renderDay();
+  showAuditBanner();
 });
 </script>
 </body>
