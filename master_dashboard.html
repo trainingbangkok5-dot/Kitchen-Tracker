@@ -169,23 +169,38 @@ let allAudits = [];
 
 function loadFromFirebase() {
   setSyncStatus('syncing');
+  // Test Firebase connection first
+  _db.ref('.info/connected').on('value', snap => {
+    if (snap.val() === true) {
+      document.getElementById('syncText').textContent = 'Firebase connected ✓';
+      document.getElementById('syncDot').style.background = '#22C55E';
+    } else {
+      document.getElementById('syncText').textContent = 'Connecting to Firebase...';
+      document.getElementById('syncDot').style.background = '#F59E0B';
+    }
+  });
+
   _db.ref('submissions').on('value', snap => {
     allStaff = snap.val() ? Object.values(snap.val()) : [];
+    console.log('Firebase submissions:', allStaff.length, allStaff);
     _db.ref('audits').on('value', auditSnap => {
       allAudits = auditSnap.val() ? Object.values(auditSnap.val()) : [];
       populateFilterOptions();
       renderAll();
-      setSyncStatus('ok');
-      const el = document.getElementById('lastUpdate');
-      if (el && allStaff.length > 0) {
-        const latest = allStaff.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
-        const d = new Date(latest.lastUpdated);
-        el.textContent = 'Live · Last: ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      if (allStaff.length > 0) {
+        setSyncStatus('ok');
+        const el = document.getElementById('lastUpdate');
+        if (el) {
+          const latest = allStaff.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
+          const d = new Date(latest.lastUpdated);
+          el.textContent = 'Live · Last: ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        }
       }
     });
   }, err => {
-    console.warn('Firebase read failed:', err);
-    setSyncStatus('error');
+    console.error('Firebase read failed:', err.code, err.message);
+    document.getElementById('syncText').textContent = 'Firebase error: ' + err.message;
+    document.getElementById('syncDot').style.background = '#EF4444';
     loadAll();
   });
 }
