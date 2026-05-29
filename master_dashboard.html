@@ -277,14 +277,21 @@ const FIREBASE_CONFIG = {
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
 
-firebase.initializeApp(FIREBASE_CONFIG);
-const db = firebase.database();
-// Load PINs from Firebase
-setTimeout(loadPins, 500);
-
+let db = null;
 let allStaff = [], allAudits = [];
 let currentRole = '', currentOutlet = '', currentName = '';
 let selectedRoleBtn = null;
+
+// Initialize Firebase after page loads
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    loadPins();
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+}
 
 const ROLES = {
   linecook:{label:'Line Cook',icon:'🍳',dot:'#2E6DA4',cls:'pill-lc'},
@@ -309,15 +316,15 @@ let ROLE_PINS = {...DEFAULT_PINS};
 
 // Load PINs from Firebase on startup
 function loadPins() {
+  if (!db) return;
   db.ref('settings/pins').once('value', snap => {
     const saved = snap.val();
-    if (saved) {
-      ROLE_PINS = {...DEFAULT_PINS, ...saved};
-    }
-  });
+    if (saved) ROLE_PINS = {...DEFAULT_PINS, ...saved};
+  }).catch(e => console.warn('loadPins error:', e));
 }
 
 function savePinToFirebase(role, newPin) {
+  if (!db) return Promise.reject('Firebase not ready');
   return db.ref('settings/pins/' + role).set(newPin);
 }
 // KIC has no PIN — open access
@@ -328,20 +335,39 @@ function selectRole(btn, role) {
   btn.classList.add('selected');
   selectedRoleBtn = btn;
   currentRole = role;
+
+  // Outlet dropdown — only for KIC
   const outletSel = document.getElementById('outletSel');
-  if (role === 'kic' || role === 'areachef') {
+  if (role === 'kic') {
     outletSel.classList.add('show');
   } else {
     outletSel.classList.remove('show');
     outletSel.value = '';
   }
+
+  // PIN field — only for management roles
+  const pinRow = document.getElementById('pinRow');
+  const pinInput = document.getElementById('loginPin');
+  if (FULL_ACCESS.includes(role)) {
+    pinRow.style.display = 'block';
+    pinInput.value = '';
+    pinInput.style.borderColor = '#1A3C5E';
+    pinInput.style.background = '#fff';
+    setTimeout(() => pinInput.focus(), 100);
+  } else {
+    pinRow.style.display = 'none';
+    if (pinInput) pinInput.value = '';
+  }
+
   checkLoginReady();
 }
 
 function checkLoginReady() {
   const name = document.getElementById('loginName').value.trim();
+  // Outlet only needed for KIC
   const outletNeeded = currentRole === 'kic';
   const outletOk = !outletNeeded || document.getElementById('outletSel').value;
+  // PIN needed for management roles
   const pinNeeded = FULL_ACCESS.includes(currentRole);
   const pinOk = !pinNeeded || (document.getElementById('loginPin')?.value||'').length > 0;
   document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk || !pinOk;
@@ -404,6 +430,7 @@ function filterByRole(staff) {
 }
 
 function loadData() {
+  if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
   setSyncStatus('syncing','Connecting...');
   db.ref('submissions').on('value', snap => {
     const raw = snap.val() ? Object.values(snap.val()) : [];
@@ -1113,7 +1140,9 @@ function openAuditDetail(a) {
   document.getElementById('detailModal').classList.add('open');
 }
 
-// Init — loadData called after login only
+// Init Firebase when page loads
+window.addEventListener('DOMContentLoaded', initFirebase);
+// loadData called after login only
 </script>
 
 <!-- CHANGE PIN MODAL -->
