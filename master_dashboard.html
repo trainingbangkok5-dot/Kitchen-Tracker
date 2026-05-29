@@ -569,7 +569,10 @@ function renderStaff() {
 }
 
 // ── STAFF DETAIL MODAL (Fix 3) ────────────────────────────────
+let _currentStaffData = null; // stores current staff for PDF export
+
 function openStaffDetail(s) {
+  _currentStaffData = s; // save for PDF
   document.getElementById('modalTitle').textContent = (s.staffName||'Staff') + ' — ' + (s.week||'') + ' Full Report';
   const body = document.getElementById('modalBody');
   const role = ROLES[s.role]||{label:s.role,icon:''};
@@ -658,151 +661,153 @@ function stripEmoji(str) {
 
 function exportDetailPDF() {
   const { jsPDF } = window.jspdf;
-  if (!jsPDF) { alert('PDF library not loaded. Please check your internet connection.'); return; }
-
-  const title = document.getElementById('modalTitle').textContent;
-  const body  = document.getElementById('modalBody');
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+  const s = _currentStaffData;
+  if (!s) { alert('No staff data found.'); return; }
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  let y = 0;
+  const role  = ROLES[s.role]||{label:s.role||'Staff'};
+  const sc    = parseFloat(s.overallPct)||0;
+  const pass  = sc >= 95;
 
-  // Header
-  doc.setFillColor(26, 60, 94);
-  doc.rect(0, 0, pageW, 22, 'F');
+  // ── Header ──────────────────────────────────────────────────
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,pageW,22,'F');
   doc.setTextColor(255,255,255);
-  doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('Kitchen Incentive Tracker', 14, 10);
-  doc.setFontSize(10); doc.setFont('helvetica','normal');
-  doc.text('Culex Hospitality — Staff Report', 14, 17);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('Kitchen Incentive Tracker', 14, 9);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality -- Staff Report', 14, 17);
   doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), pageW-14, 17, {align:'right'});
-  y = 30;
 
-  // Report title
+  let y = 28;
+
+  // ── Staff info ───────────────────────────────────────────────
   doc.setTextColor(26,60,94);
   doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text(title, 14, y); y += 8;
+  doc.text((s.staffName||'—') + ' -- ' + (s.week||'') + ' Full Report', 14, y); y += 7;
 
-  // Staff info from modal
-  const infoItems = body.querySelectorAll('[style*="F5F3EE"] span, [style*="F5F3EE"] div');
-  const infoText = body.querySelector('[style*="F5F3EE"]')?.innerText || '';
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.setTextColor(100,100,100);
-  doc.text(stripEmoji(infoText.replace(/\n+/g,' | ')).substring(0,120), 14, y); y += 6;
-
-  // Time info
-  const timeBoxes = body.querySelectorAll('[style*="F0FDF4"], [style*="EFF6FF"]');
-  timeBoxes.forEach(box => {
-    const txt = stripEmoji(box.innerText.replace(/\n+/g,' | '));
-    doc.text(txt.substring(0,100), 14, y); y += 5;
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Name', s.staffName||'—', 'Role', role.label||'—'],
+      ['Outlet', s.outlet||'—', 'Week', s.week||'—'],
+      ['Overall Score', (sc>0?sc+'%':'—'), 'Result', sc>0?(pass?'QUALIFIED':'NOT QUALIFIED'):'—'],
+      ['Started', s.startedAt?new Date(s.startedAt).toLocaleString():'—', 'Submitted', s.submittedAt?new Date(s.submittedAt).toLocaleString():'—'],
+    ],
+    styles: {fontSize:9, cellPadding:3},
+    columnStyles: {
+      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
+      1:{cellWidth:60},
+      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
+      3:{cellWidth:60, textColor: sc>0?(pass?[21,128,61]:[185,28,28]):[0,0,0], fontStyle:'bold'}
+    },
+    margin:{left:14,right:14}, theme:'grid',
   });
-  y += 3;
+  y = doc.lastAutoTable.finalY + 6;
 
-  // Task data — collect all task rows
-  const dayBlocks = body.querySelectorAll('[style*="margin-bottom:14px"]');
-  
-  if (dayBlocks.length > 0) {
-    dayBlocks.forEach(dayBlock => {
-      const dayTitle = dayBlock.querySelector('[style*="1A3C5E"]')?.innerText || '';
-      if (!dayTitle) return;
+  // ── Task data ────────────────────────────────────────────────
+  if (s.taskData && Object.keys(s.taskData).length > 0) {
+    // Group by day
+    const byDay = {};
+    Object.values(s.taskData).forEach(t => {
+      const d = t.day||1;
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(t);
+    });
+
+    Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+      const tasks = byDay[day];
+      if (y > pageH - 40) { doc.addPage(); y = 16; }
 
       // Day header
-      if (y > pageH - 30) { doc.addPage(); y = 20; }
       doc.setFillColor(26,60,94);
-      doc.rect(14, y-4, pageW-28, 8, 'F');
+      doc.rect(14, y-3, pageW-28, 7, 'F');
       doc.setTextColor(255,255,255);
-      doc.setFontSize(10); doc.setFont('helvetica','bold');
-      doc.text(stripEmoji(dayTitle), 16, y+1); y += 8;
+      doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.text('Day ' + day, 16, y+1); y += 8;
 
-      // Section and task rows
-      const sections = dayBlock.querySelectorAll('[style*="6B6B60"][style*="border-left"]');
-      const taskCards = dayBlock.querySelectorAll('[style*="display:flex;align-items:flex-start"]');
-
-      const tableRows = [];
-      let currentSection = '';
-
-      taskCards.forEach(card => {
-        // Find preceding section header
-        const owner = stripEmoji(card.querySelector('[style*="6B6B60"][style*="font-weight:600"]')?.innerText || '');
-        const taskText = stripEmoji(card.querySelector('[style*="font-weight:500"]')?.innerText || '');
-        const ynSpan = card.querySelector('[style*="border-radius:6px"]');
-        const ynRaw = ynSpan ? ynSpan.innerText : '—';
-        const yn = ynRaw.includes('YES') ? 'YES' : ynRaw.includes('NO') ? 'NO' : ynRaw.includes('N/A') ? 'N/A' : '—';
-        // Get photo if available
-        const photoImg = card.querySelector('img[src]');
-        const photoSrc = photoImg ? photoImg.src : null;
-        
-        if (taskText) {
-          tableRows.push({ owner, task: taskText, yn, photoSrc });
-        }
+      // Group by section
+      const bySec = {};
+      tasks.forEach(t => {
+        const sec = t.section||'Tasks';
+        if (!bySec[sec]) bySec[sec] = [];
+        bySec[sec].push(t);
       });
 
-      if (tableRows.length > 0) {
+      Object.entries(bySec).forEach(([sec, secTasks]) => {
+        // Build table rows — with photos
+        const rows = secTasks.map(t => {
+          const yn = (t.yn||'').toUpperCase();
+          return [t.owner||'', t.task||'', yn||'—'];
+        });
+
         doc.autoTable({
           startY: y,
-          head: [['Owner', 'Task', 'Response', 'Photo']],
-          body: tableRows.map(r => [r.owner, r.task, r.yn, '']),
-          styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8 },
-          headStyles: { fillColor: [46,109,164], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          head: [[sec, '', 'Response']],
+          body: rows,
+          styles: {fontSize:8, cellPadding:3},
+          headStyles: {fillColor:[46,109,164], textColor:255, fontStyle:'bold', fontSize:8},
           columnStyles: {
-            0: { cellWidth: 22 },
-            1: { cellWidth: 100 },
-            2: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-            3: { cellWidth: 35, halign: 'center' }
+            0:{cellWidth:26},
+            1:{cellWidth:120},
+            2:{cellWidth:24, halign:'center', fontStyle:'bold'}
           },
           didParseCell: (data) => {
             if (data.column.index === 2 && data.section === 'body') {
-              const val = data.cell.raw||'';
-              if (val === 'YES') data.cell.styles.textColor = [21,128,61];
-              else if (val === 'NO') data.cell.styles.textColor = [185,28,28];
-              else data.cell.styles.textColor = [100,100,100];
+              const v = data.cell.raw||'';
+              if (v==='YES') data.cell.styles.textColor=[21,128,61];
+              else if (v==='NO') data.cell.styles.textColor=[185,28,28];
+              else data.cell.styles.textColor=[100,100,100];
             }
           },
           didDrawCell: (data) => {
-            if (data.column.index === 3 && data.section === 'body') {
-              const row = tableRows[data.row.index];
-              if (row && row.photoSrc && (row.photoSrc.startsWith('data:image') || row.photoSrc.startsWith('http'))) {
+            // Add photo if available
+            if (data.column.index === 1 && data.section === 'body') {
+              const task = secTasks[data.row.index];
+              if (task && task.photoUrl && task.photoUrl.length > 0) {
                 try {
-                  const x = data.cell.x + 2;
-                  const y2 = data.cell.y + 2;
-                  const w = data.cell.width - 4;
-                  const h = data.cell.height - 4;
-                  doc.addImage(row.photoSrc, 'JPEG', x, y2, w, h);
-                } catch(e) { /* skip if image fails */ }
+                  const imgX = data.cell.x + data.cell.width - 22;
+                  const imgY = data.cell.y + 1;
+                  doc.addImage(task.photoUrl, 'JPEG', imgX, imgY, 18, 14);
+                } catch(e) {}
               }
             }
           },
-          margin: { left: 14, right: 14 },
-          theme: 'grid',
+          margin:{left:14, right:14},
+          theme:'grid',
         });
-        y = doc.lastAutoTable.finalY + 6;
-      }
+        y = doc.lastAutoTable.finalY + 4;
+        if (y > pageH - 30) { doc.addPage(); y = 16; }
+      });
     });
   } else {
     doc.setTextColor(150,150,150);
-    doc.setFontSize(10);
-    doc.text('Full task data not available — staff needs to resubmit with updated checklist.', 14, y);
-    y += 10;
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.text('Full task data not available for this submission.', 14, y);
+    doc.setFontSize(9);
+    doc.text('Staff needs to resubmit using the updated checklist.', 14, y+6);
+    y += 16;
   }
 
-  // Footer on each page
+  // ── Footer on every page ─────────────────────────────────────
   const totalPages = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i=1; i<=totalPages; i++) {
     doc.setPage(i);
     doc.setFillColor(245,243,238);
-    doc.rect(0, pageH-10, pageW, 10, 'F');
-    doc.setTextColor(100,100,100);
-    doc.setFontSize(8); doc.setFont('helvetica','normal');
-    doc.text('Culex Hospitality — Kitchen Incentive Tracker — Confidential', 14, pageH-3);
-    doc.text(`Page ${i} of ${totalPages}`, pageW-14, pageH-3, {align:'right'});
+    doc.rect(0,pageH-8,pageW,8,'F');
+    doc.setTextColor(120,120,120);
+    doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text('Culex Hospitality -- Kitchen Incentive Tracker -- Confidential', 14, pageH-2);
+    doc.text('Page '+i+' of '+totalPages, pageW-14, pageH-2, {align:'right'});
   }
 
-  // Save
-  const safeName = title.replace(/[^a-zA-Z0-9 _-]/g,'').replace(/\s+/g,'_');
-  doc.save(safeName + '.pdf');
-  showToast && showToast('✓ PDF downloaded!', 'ok');
+  const fname = ((s.staffName||'Staff')+'_'+(s.week||'')+'_Report').replace(/[^a-zA-Z0-9_-]/g,'_');
+  doc.save(fname+'.pdf');
 }
+
 
 function showToast(msg, type) {
   const t = document.createElement('div');
