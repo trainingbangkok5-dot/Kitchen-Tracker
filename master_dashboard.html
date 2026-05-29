@@ -129,15 +129,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="role-btn" onclick="selectRole(this,'kic')"><div class="rb-icon">👨‍🍳</div><div class="rb-name">KIC</div></div>
       <div class="role-btn" onclick="selectRole(this,'areachef')"><div class="rb-icon">📊</div><div class="rb-name">Area Chef</div></div>
       <div class="role-btn" onclick="selectRole(this,'training')"><div class="rb-icon">📚</div><div class="rb-name">Training</div></div>
-      <div class="role-btn" onclick="selectRole(this,'operations')"><div class="rb-icon">⚙️</div><div class="rb-name">Operations</div></div>
+      <div class="role-btn" onclick="selectRole(this,'operations')"><div class="rb-icon">⚙️</div><div class="rb-name">Ops Manager</div></div>
       <div class="role-btn" onclick="selectRole(this,'director')"><div class="rb-icon">🎯</div><div class="rb-name">Director</div></div>
       <div class="role-btn" onclick="selectRole(this,'ceo')"><div class="rb-icon">👑</div><div class="rb-name">CEO</div></div>
     </div>
     <select class="outlet-sel" id="outletSel">
       <option value="">Select your outlet...</option>
-      <option>Little Bangkok</option>
-      <option>Superbowl</option>
-      <option>The Red Door</option>
+      <optgroup label="🏪 Little Bangkok">
+        <option value="LB DSO">LB DSO</option>
+        <option value="LB Tower">LB Tower</option>
+        <option value="LB Hamra">LB Hamra</option>
+        <option value="LB JLT">LB JLT</option>
+        <option value="LB OM">LB OM</option>
+        <option value="LB DHE">LB DHE</option>
+        <option value="LB MTC">LB MTC</option>
+      </optgroup>
+      <optgroup label="🥣 Superbowl">
+        <option value="SB Deira">SB Deira</option>
+        <option value="SB DG">SB DG</option>
+      </optgroup>
+      <optgroup label="🚪 The Red Door">
+        <option value="The Red Door">The Red Door</option>
+      </optgroup>
     </select>
     <input type="text" id="loginName" placeholder="Enter your name..." style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:14px;outline:none;">
     <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
@@ -243,7 +256,7 @@ const ROLES = {
 };
 
 // Full-access roles
-const FULL_ACCESS = ['training','operations','director','ceo'];
+const FULL_ACCESS = ['areachef','training','operations','director','ceo'];
 
 // ── LOGIN ──────────────────────────────────────────────────────
 function selectRole(btn, role) {
@@ -263,7 +276,7 @@ function selectRole(btn, role) {
 
 function checkLoginReady() {
   const name = document.getElementById('loginName').value.trim();
-  const outletNeeded = currentRole === 'kic' || currentRole === 'areachef';
+  const outletNeeded = currentRole === 'kic';
   const outletOk = !outletNeeded || document.getElementById('outletSel').value;
   document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk;
 }
@@ -274,7 +287,7 @@ document.getElementById('outletSel').addEventListener('change', checkLoginReady)
 function doLogin() {
   currentName = document.getElementById('loginName').value.trim();
   currentOutlet = document.getElementById('outletSel').value;
-  const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Training Dept',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO'};
+  const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Training Dept',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO / GM'};
   document.getElementById('roleBadge').textContent = roleLabels[currentRole]||currentRole;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainDash').style.display = 'block';
@@ -293,9 +306,11 @@ function doLogout() {
 
 // ── DATA LOADING ──────────────────────────────────────────────
 function filterByRole(staff) {
+  // Full access roles see everything
   if (FULL_ACCESS.includes(currentRole)) return staff;
-  if (currentRole === 'areachef') return staff.filter(s => s.outlet === currentOutlet);
-  if (currentRole === 'kic') return staff.filter(s => s.outlet === currentOutlet && (s.role === 'linecook' || s.role === 'steward'));
+  // KIC sees only their outlet
+  const myOutlet = (currentOutlet||'').trim().toLowerCase();
+  if (currentRole === 'kic') return staff.filter(s => (s.outlet||'').trim().toLowerCase() === myOutlet);
   return staff;
 }
 
@@ -658,8 +673,7 @@ function openAuditDetail(a) {
   document.getElementById('detailModal').classList.add('open');
 }
 
-// Init
-loadData();
+// Init — loadData called after login only
 </script>
 </body>
 </html>
