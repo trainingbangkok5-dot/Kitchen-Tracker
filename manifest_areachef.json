@@ -1,0 +1,29 @@
+{
+  "name": "Area Chef KPI",
+  "short_name": "Area Chef",
+  "description": "Culex Hospitality \u2014 Area Chef KPI",
+  "start_url": "./checklist_areachef.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#7F1D1D",
+  "theme_color": "#7F1D1D",
+  "icons": [
+    {
+      "src": "icon_areachef_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon_areachef_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon_areachef.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

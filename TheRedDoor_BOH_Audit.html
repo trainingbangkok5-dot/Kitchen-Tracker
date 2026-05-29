@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="manifest_TheRedDoor_BOH.json">
+<link rel="apple-touch-icon" href="apple-touch-icon_TheRedDoor_BOH.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#7C2D12">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Red Door — BOH Monthly Audit</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -85,6 +90,18 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
 .btn-clear{font-size:11px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;color:#888;font-weight:600;font-family:Arial,sans-serif}
 .btn-clear:hover{background:#fce4ec;border-color:#e53935;color:#c62828}
 .save-info{font-size:11px;color:#888;align-self:center;flex:1}
+
+.corrective-row{margin-top:6px;display:flex;align-items:flex-start;gap:6px;}
+.corrective-label{font-size:11px;font-weight:700;color:#c62828;white-space:nowrap;padding-top:7px;flex-shrink:0;}
+.corrective-input{flex:1;font-size:12px;padding:6px 9px;border:1.5px solid #f44336;border-radius:6px;background:#fff9f9;color:#111;font-family:Arial,sans-serif;resize:vertical;min-height:32px;}
+.corrective-input:focus{outline:none;border-color:#c62828;background:#fff;}
+.corrective-input:not(:placeholder-shown){background:#fff3f3;border-color:#c62828;}
+.deadline-row{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;}
+.deadline-label{color:#c62828;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.deadline-input{font-size:11px;padding:4px 8px;border:1px solid #f44336;border-radius:5px;background:#fff9f9;color:#111;font-family:Arial,sans-serif;}
+.responsible-input{flex:1;font-size:11px;padding:4px 8px;border:1px solid #f44336;border-radius:5px;background:#fff9f9;color:#111;font-family:Arial,sans-serif;}
+.corrective-row.hidden{display:none;}
+
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -348,6 +365,7 @@ function setStatus(secId,n,status){
     document.getElementById('btn-'+s+'-'+k).className='status-btn'+(status===s?' active-'+s:'');
   });
   updateScoreBar();
+  showCorrectiveFields();
 }
 
 function setComment(secId,n,val){state[secId+'_'+n].comment=val;}
@@ -387,6 +405,37 @@ function showToast(msg,bg){
   t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
 }
 
+
+function setCorrectiveAction(secId,n,val){
+  const k=secId+'_'+n;
+  if(!state[k])state[k]={status:'',score:0,comment:'',correctiveAction:'',deadline:'',responsible:'',photos:[]};
+  state[k].correctiveAction=val;
+}
+function setDeadline(secId,n,val){
+  const k=secId+'_'+n;
+  if(!state[k])state[k]={status:'',score:0,comment:'',correctiveAction:'',deadline:'',responsible:'',photos:[]};
+  state[k].deadline=val;
+}
+function setResponsible(secId,n,val){
+  const k=secId+'_'+n;
+  if(!state[k])state[k]={status:'',score:0,comment:'',correctiveAction:'',deadline:'',responsible:'',photos:[]};
+  state[k].responsible=val;
+}
+
+function showCorrectiveFields(){
+  // Show corrective fields only for FAIL items
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.n;
+    const cr=document.getElementById('corrective-row-'+k);
+    const dr=document.getElementById('deadline-row-'+k);
+    if(cr&&dr){
+      const show=state[k].status==='fail';
+      cr.style.display=show?'flex':'none';
+      dr.style.display=show?'flex':'none';
+    }
+  }));
+}
+
 function buildUI(){
   const nav=document.getElementById('section-nav');
   const container=document.getElementById('sections-container');
@@ -405,11 +454,11 @@ function buildUI(){
       const card=document.createElement('div');
       card.className='item-card';card.id='card-'+k;
       card.innerHTML='<div class="item-top"><div class="item-num">'+it.n+'</div><div class="item-text"><strong>'+it.label+'</strong><span>'+it.desc+'</span></div><div class="item-score-badge">Max: '+it.score+'pt'+(it.score>1?'s':'')+'</div></div>'
-        +'<div class="item-controls">'
+        +'<div class="item-controls" style="flex-wrap:wrap">'
         +'<button id="btn-pass-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'pass\')">&#10004; Pass</button>'
         +'<button id="btn-fail-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'fail\')">&#10008; Fail</button>'
         +'<button id="btn-na-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'na\')">&#8212; N/A</button>'
-        +'<input type="text" class="comment-input" placeholder="Comment / corrective action..." oninput="setComment(\''+s.id+'\','+it.n+',this.value)" />'
+        +'<input type="text" class="comment-input" placeholder="Observation / comment..." oninput="setComment(\''+s.id+'\','+it.n+',this.value)" />'+'</div>'+'<div class="corrective-row" id="corrective-row-'+k+'">'+'<span class="corrective-label">⚠ Corrective Action:</span>'+'<textarea class="corrective-input" rows="1" placeholder="Describe corrective action required..." oninput="setCorrectiveAction(\''+s.id+'\','+it.n+',this.value)"></textarea>'+'</div>'+'<div class="deadline-row" id="deadline-row-'+k+'">'+'<span class="deadline-label">📅 Deadline:</span>'+'<input type="date" class="deadline-input" id="deadline-'+k+'" onchange="setDeadline(\''+s.id+'\','+it.n+',this.value)" />'+'<span class="deadline-label" style="margin-left:8px">👤 Responsible:</span>'+'<input type="text" class="responsible-input" placeholder="Name..." oninput="setResponsible(\''+s.id+'\','+it.n+',this.value)" />'+'</div>'+'<div class="item-controls" style="margin-top:4px">'
         +'<label class="photo-label" id="photo-label-'+k+'" for="photo-input-'+k+'">&#128247; Add photo</label>'
         +'<input type="file" class="photo-input" id="photo-input-'+k+'" accept="image/*" multiple onchange="addPhotos(\''+s.id+'\','+it.n+',this.files)" />'
         +'</div><div class="photo-thumbs" id="thumbs-'+k+'"></div>';
@@ -484,33 +533,78 @@ function exportExcel(){
     const ss=secScores[s.id];const sp=ss.max>0?Math.round(ss.earned/ss.max*100):0;
     summaryData.push([si+1,s.title,ss.max,ss.earned,sp+'%',sp>=91?'Excellent':sp>=81?'Good':sp>=71?'Fair':'Poor']);
   });
-  summaryData.push([''],['FAILED ITEMS'],['Section','Item','Comment','Photos']);
+  summaryData.push([''],['FAILED ITEMS & CORRECTIVE ACTIONS'],['Section','Item #','Criteria','Observation','Corrective Action Required','Responsible Person','Deadline','Photos']);
   let fc=0;
   SECTIONS.forEach(s=>s.items.forEach(it=>{
     const k=s.id+'_'+it.n;
-    if(state[k].status==='fail'){summaryData.push([s.title,it.label,state[k].comment||'No comment',state[k].photos.length>0?state[k].photos.length+' photo(s)':'None']);fc++;}
+    if(state[k].status==='fail'){
+      summaryData.push([
+        s.title, it.n, it.label,
+        state[k].comment||'—',
+        state[k].correctiveAction||'⚠ No corrective action entered',
+        state[k].responsible||'—',
+        state[k].deadline||'—',
+        state[k].photos.length>0?state[k].photos.length+' photo(s)':'None'
+      ]);
+      fc++;
+    }
   }));
-  if(!fc)summaryData.push(['—','No failed items','','']);
+  if(!fc)summaryData.push(['—','','No failed items','','','','','']);
   const ws=XLSX.utils.aoa_to_sheet(summaryData);
   ws['!cols']=[{wch:5},{wch:38},{wch:14},{wch:16},{wch:14},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws,'Summary');
   SECTIONS.forEach((s,si)=>{
     const rows=[['THE RED DOOR — BOH INTERNAL MONTHLY AUDIT'],['Section '+(si+1)+': '+s.title],
       ['Auditor: '+auditor,'','Outlet: '+outlet,'','Date: '+auditDate,'Shift: '+shift],[''],
-      ['No.','Criteria','Description','Status','Score','Max Score','Comment','Photos']];
+      ['No.','Criteria','Description','Status','Score','Max Score','Observation','Corrective Action','Responsible','Deadline','Photos']];
     s.items.forEach(it=>{
       const k=s.id+'_'+it.n;const d=state[k];
-      rows.push([it.n,it.label,it.desc,d.status==='pass'?'PASS':d.status==='fail'?'FAIL':d.status==='na'?'N/A':'Not Audited',
-        d.status==='pass'?it.score:0,it.score,d.comment||'',d.photos.length>0?d.photos.length+' photo(s)':'None']);
+      rows.push([
+        it.n, it.label, it.desc,
+        d.status==='pass'?'PASS':d.status==='fail'?'FAIL':d.status==='na'?'N/A':'Not Audited',
+        d.status==='pass'?it.score:0, it.score,
+        d.comment||'',
+        d.status==='fail'?(d.correctiveAction||'⚠ Required'):'—',
+        d.status==='fail'?(d.responsible||'—'):'—',
+        d.status==='fail'?(d.deadline||'—'):'—',
+        d.photos.length>0?d.photos.length+' photo(s)':'None'
+      ]);
     });
     const ss=secScores[s.id];
     rows.push([''],['','TOTAL','',ss.max>0?Math.round(ss.earned/ss.max*100)+'%':'—',ss.earned,ss.max,'','']);
     const sheet=XLSX.utils.aoa_to_sheet(rows);
-    sheet['!cols']=[{wch:5},{wch:28},{wch:48},{wch:13},{wch:8},{wch:10},{wch:35},{wch:14}];
+    sheet['!cols']=[{wch:5},{wch:28},{wch:40},{wch:13},{wch:8},{wch:10},{wch:30},{wch:40},{wch:20},{wch:14},{wch:12}];
     XLSX.utils.book_append_sheet(wb,sheet,('S'+(si+1)+'_'+s.title).substring(0,31).replace(/[:\\/?*\[\]]/g,''));
   });
   const ds=(auditDate||'').replace(/-/g,'');
   const os=outlet?'_'+outlet.replace(/\s+/g,'_'):'';
+  // Dedicated Corrective Actions sheet
+  const caRows = [
+    ['CORRECTIVE ACTION REGISTER'],[''],
+    ['Outlet:', outlet, '', 'Auditor:', auditor, '', 'Date:', auditDate],[''],
+    ['#','Section','Item','Criteria','Observation / Finding','Corrective Action Required','Responsible Person','Target Date','Status']
+  ];
+  let caNum = 0;
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.n;
+    if(state[k].status==='fail'){
+      caNum++;
+      caRows.push([
+        caNum, s.title, it.n, it.label,
+        state[k].comment||'—',
+        state[k].correctiveAction||'⚠ Action required',
+        state[k].responsible||'TBD',
+        state[k].deadline||'TBD',
+        'Open'
+      ]);
+    }
+  }));
+  if(caNum===0) caRows.push(['','','','No failed items — all criteria passed','','','','','']);
+  caRows.push([''],['Total corrective actions required:', caNum]);
+  const caSheet = XLSX.utils.aoa_to_sheet(caRows);
+  caSheet['!cols']=[{wch:4},{wch:25},{wch:6},{wch:28},{wch:35},{wch:45},{wch:20},{wch:14},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, caSheet, 'Corrective Actions');
+
   XLSX.writeFile(wb,'TheRedDoor_BOH_Audit'+(ds?'_'+ds:'')+os+'.xlsx');
   showToast('✔ Excel downloaded!','#2e7d32');
 }
@@ -751,8 +845,31 @@ function submitAuditToDashboard() {
     });
 
     localStorage.setItem('KIC_SHARED_DB_V2', JSON.stringify(db));
-    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, shift, submittedAt:new Date().toISOString()});
-    showToast('✅ Audit submitted to dashboard! Score: ' + pct + '%', '#2e7d32');
+    // Collect all photos from audit items
+    const photos = {};
+    document.querySelectorAll('.thumb').forEach((img, i) => {
+      if (img.src && img.src.startsWith('data:')) {
+        photos['photo_' + i] = img.src;
+      }
+    });
+    
+    // Collect corrective actions for failed items
+    const correctiveActions = [];
+    SECTIONS.forEach(s=>s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;
+      if(state[k].status==='fail'){
+        correctiveActions.push({
+          section: s.title, item: it.n, criteria: it.label,
+          observation: state[k].comment||'',
+          correctiveAction: state[k].correctiveAction||'',
+          responsible: state[k].responsible||'',
+          deadline: state[k].deadline||'',
+        });
+      }
+    }));
+    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, shift, submittedAt:new Date().toISOString(), photos, correctiveActions, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+    showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
+    console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
   } catch(e) {
     showToast('⚠ Could not submit to dashboard: ' + e.message, '#c62828');
   }
@@ -760,6 +877,7 @@ function submitAuditToDashboard() {
 
 buildUI();
 updateScoreBar();
+showCorrectiveFields();
 document.getElementById('audit-date').valueAsDate=new Date();
 </script>
 </body>

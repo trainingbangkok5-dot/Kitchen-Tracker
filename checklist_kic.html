@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1A3C5E">
+<link rel="manifest" href="manifest_kic.json">
+<link rel="apple-touch-icon" href="apple-touch-icon_kic.png">
+<meta name="theme-color" content="#7C2D12">
 <meta name="format-detection" content="telephone=no">
 <title>KIC Checklist</title>
 <style>
@@ -163,6 +165,34 @@ function pushToFirebase(record) {
   } catch(e) { console.warn('Firebase error:', e); }
 }
 
+
+async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
+  try {
+    // Convert dataUrl to blob
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const path = `photos/${(staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')}/day${day}/${taskId}_${Date.now()}.jpg`;
+    
+    // Use Firebase Storage REST API (works without SDK)
+    const storageUrl = `https://firebasestorage.googleapis.com/v0/b/kitchen-tracker-35293.firebasestorage.app/o/${encodeURIComponent(path)}`;
+    const uploadRes = await fetch(storageUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob
+    });
+    
+    if (uploadRes.ok) {
+      const data = await uploadRes.json();
+      const downloadUrl = `${storageUrl}?alt=media&token=${data.downloadTokens}`;
+      return downloadUrl;
+    }
+    return null;
+  } catch(e) {
+    console.warn('Photo upload failed:', e);
+    return null;
+  }
+}
+
 function pushAuditToFirebase(record) {
   try {
     const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
@@ -246,11 +276,14 @@ function compressAndReturn(file, callback) {
 function getTodayDayNumber(weekStartStr) {
   if (!weekStartStr) return 1;
   try {
-    const start = new Date(weekStartStr);
-    start.setHours(0,0,0,0);
+    // Use local calendar date (midnight-based, not 24hr rolling)
     const now = new Date();
-    now.setHours(0,0,0,0);
-    const diff = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+    const todayStr = now.getFullYear() + '-' + 
+      String(now.getMonth()+1).padStart(2,'0') + '-' + 
+      String(now.getDate()).padStart(2,'0');
+    const today = new Date(todayStr + 'T00:00:00');
+    const start = new Date(weekStartStr + 'T00:00:00');
+    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
     return Math.min(Math.max(diff + 1, 1), 6);
   } catch(e) { return 1; }
 }
@@ -580,6 +613,14 @@ function submitDay() {
     qualified:  op>=95,
     day:        currentDay,
     startedAt:  d[`d${currentDay}`]?._start || new Date().toISOString(),
+    photos: (function() {
+      const photos = {};
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const url = getVal(currentDay, t.id, 'photoUrl');
+        if (url) photos[t.id + '_day' + currentDay] = url;
+      }));
+      return photos;
+    })(),
     submittedAt:new Date().toISOString(),
     lastUpdated:new Date().toISOString(),
   };
@@ -635,11 +676,29 @@ document.getElementById('mbtnGallery').onclick = function() {
 
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
-  compressAndReturn(file, function(dataUrl) {
+  compressAndReturn(file, async function(dataUrl) {
+    // Save locally first for instant display
     setVal(currentDay, activePhotoTask, 'photo', dataUrl);
+    const taskId = activePhotoTask;
     activePhotoTask = null;
     renderDay();
     showToast('Photo saved ✓', 'ok');
+    
+    // Upload to Firebase Storage for cross-device viewing
+    const staffName = getStaffName();
+    if (staffName) {
+      const url = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
+      if (url) {
+        setVal(currentDay, taskId, 'photoUrl', url);
+        // Update Firebase submission with photo URL
+        const d = load();
+        if (d[`d${currentDay}`]?._done) {
+          // Submission already sent - update photo
+          const key = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_linecook_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+          _db.ref(`submissions/${key}/photos/${taskId}_day${currentDay}`).set(url);
+        }
+      }
+    }
   });
 }
 document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));

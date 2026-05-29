@@ -1,0 +1,29 @@
+{
+  "name": "Superbowl FOH Audit",
+  "short_name": "SB FOH",
+  "description": "Superbowl Asian Caf\u00e9 \u2014 Superbowl FOH Audit",
+  "start_url": "./Superbowl_FOH_Audit.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#166534",
+  "theme_color": "#166534",
+  "icons": [
+    {
+      "src": "icon_Superbowl_FOH_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon_Superbowl_FOH_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon_Superbowl_FOH.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

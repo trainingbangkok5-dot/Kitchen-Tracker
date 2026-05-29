@@ -4,124 +4,220 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Master Kitchen Dashboard</title>
+<link rel="manifest" href="manifest_dashboard.json">
+<link rel="apple-touch-icon" href="apple-touch-icon_dashboard.png">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F3EE;color:#0A0A0A;min-height:100vh;}
-.header{background:#1A3C5E;padding:20px 24px 16px;}
-.header h1{color:#fff;font-size:20px;font-weight:700;}
-.header-sub{color:rgba(255,255,255,0.55);font-size:12px;margin-top:3px;}
-.sync-bar{display:flex;align-items:center;gap:8px;margin-top:10px;}
+
+/* LOGIN SCREEN */
+.login-screen{position:fixed;inset:0;background:#1A3C5E;display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.login-card{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;text-align:center;}
+.login-logo{font-size:48px;margin-bottom:12px;}
+.login-title{font-size:22px;font-weight:700;color:#1A3C5E;margin-bottom:4px;}
+.login-sub{font-size:13px;color:#6B6B60;margin-bottom:24px;}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.role-btn{padding:14px 10px;border:2px solid #E0DDD4;border-radius:12px;background:#fff;cursor:pointer;transition:all .15s;text-align:center;}
+.role-btn:hover{border-color:#1A3C5E;background:#EFF6FF;}
+.role-btn.selected{border-color:#1A3C5E;background:#1A3C5E;color:#fff;}
+.role-btn .rb-icon{font-size:24px;margin-bottom:4px;}
+.role-btn .rb-name{font-size:13px;font-weight:600;}
+.outlet-sel{width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:16px;outline:none;display:none;}
+.outlet-sel.show{display:block;}
+.login-btn{width:100%;padding:13px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.login-btn:hover{opacity:.85;}
+.login-btn:disabled{background:#94A3B8;cursor:not-allowed;}
+
+/* MAIN DASHBOARD */
+.header{background:#1A3C5E;padding:16px 20px;}
+.header-row{display:flex;align-items:center;gap:10px;}
+.header h1{color:#fff;font-size:18px;font-weight:700;flex:1;}
+.role-badge{background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.sync-bar{display:flex;align-items:center;gap:8px;margin-top:8px;}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#F59E0B;}
-.sync-dot.connected{background:#22C55E;}
-.sync-dot.error{background:#EF4444;}
-.sync-text{font-size:12px;color:rgba(255,255,255,0.7);}
-.refresh-btn{margin-left:auto;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:5px 12px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
+.sync-dot.on{background:#22C55E;} .sync-dot.err{background:#EF4444;}
+.sync-text{font-size:11px;color:rgba(255,255,255,0.7);flex:1;}
+.hdr-btns{display:flex;gap:6px;}
+.hdr-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:5px 10px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;}
+
 .tabs{background:#fff;border-bottom:1px solid #E0DDD4;display:flex;overflow-x:auto;}
-.tab{flex-shrink:0;padding:11px 18px;font-size:13px;font-weight:600;color:#6B6B60;cursor:pointer;border-bottom:2.5px solid transparent;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:10px 16px;font-size:13px;font-weight:600;color:#6B6B60;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;}
 .tab.active{color:#1A3C5E;border-bottom-color:#1A3C5E;}
-.page{display:none;padding:18px 20px 40px;}
+
+.page{display:none;padding:16px 18px 60px;}
 .page.active{display:block;}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
-.kpi-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;}
-.kc-lbl{font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-.kc-val{font-size:26px;font-weight:700;line-height:1;}
-.kc-bar{height:4px;background:#E0DDD4;border-radius:2px;margin:8px 0 5px;overflow:hidden;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;}
+.kc-lbl{font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+.kc-dot{width:6px;height:6px;border-radius:50%;}
+.kc-val{font-size:24px;font-weight:700;line-height:1;}
+.kc-bar{height:4px;background:#E0DDD4;border-radius:2px;margin:7px 0 4px;overflow:hidden;}
 .kc-fill{height:100%;border-radius:2px;}
 .kc-status{font-size:11px;font-weight:600;}
 .kc-count{font-size:10px;color:#6B6B60;margin-top:2px;}
-.sec-title{font-size:13px;font-weight:700;margin-bottom:10px;}
+
+.sec-title{font-size:13px;font-weight:700;margin-bottom:10px;color:#0A0A0A;}
+.feed-card{background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:11px 13px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .1s;}
+.feed-card:hover{background:#EFF6FF;}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.fsel{padding:6px 10px;border-radius:8px;border:1.5px solid #E0DDD4;background:#fff;font-size:12px;color:#0A0A0A;outline:none;}
+
 .staff-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
-.t-head{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;background:#1A3C5E;}
-.th{padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.05em;}
-.t-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
-.t-row:hover{background:#F5F3EE;}
-.td{padding:10px 12px;font-size:13px;}
-.td-sm{font-size:11px;color:#6B6B60;}
-.role-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 7px;border-radius:20px;}
-.pill-lc{background:#EFF6FF;color:#1D4ED8;}
-.pill-st{background:#F0FDF4;color:#15803D;}
-.pill-kic{background:#FFF7ED;color:#C2410C;}
-.pill-ac{background:#EDE9FE;color:#6D28D9;}
-.sp{display:inline-flex;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px;}
-.sp-pass{background:#DCFCE7;color:#15803D;}
-.sp-fail{background:#FEE2E2;color:#B91C1C;}
-.sp-prog{background:#FEF9C3;color:#92400E;}
-.empty{padding:50px 20px;text-align:center;color:#6B6B60;}
-.empty-icon{font-size:36px;margin-bottom:10px;}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.fsel{padding:6px 11px;border-radius:8px;border:1.5px solid #E0DDD4;background:#fff;font-size:13px;color:#0A0A0A;outline:none;}
-.feed-card{background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:12px;}
-.notice{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px 14px;font-size:13px;color:#92400E;margin-bottom:14px;}
-/* Audit table */
+.t-head{display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr 0.8fr 1fr 1fr;background:#1A3C5E;}
+.th{padding:9px 10px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.04em;}
+.t-row{display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;cursor:pointer;transition:background .1s;}
+.t-row:hover{background:#EFF6FF;}
+.td{padding:9px 10px;font-size:12px;}
+.td-sm{font-size:10px;color:#6B6B60;}
+.role-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;}
+.pill-lc{background:#EFF6FF;color:#1D4ED8;} .pill-st{background:#F0FDF4;color:#15803D;}
+.pill-kic{background:#FFF7ED;color:#C2410C;} .pill-ac{background:#EDE9FE;color:#6D28D9;}
+.sp{display:inline-flex;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;}
+.sp-pass{background:#DCFCE7;color:#15803D;} .sp-fail{background:#FEE2E2;color:#B91C1C;} .sp-prog{background:#FEF9C3;color:#92400E;}
+
+/* DETAIL MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;overflow-y:auto;padding:20px;}
+.modal-overlay.open{display:block;}
+.modal-box{background:#fff;border-radius:16px;max-width:700px;margin:0 auto;overflow:hidden;}
+.modal-header{background:#1A3C5E;padding:16px 20px;display:flex;align-items:center;gap:10px;}
+.modal-header h2{color:#fff;font-size:16px;font-weight:700;flex:1;}
+.modal-close{background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;}
+.modal-body{padding:16px 20px;}
+.day-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;}
+.day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;font-size:12px;font-weight:600;color:#6B6B60;cursor:pointer;}
+.day-tab.active{background:#1A3C5E;border-color:#1A3C5E;color:#fff;}
+.task-detail{background:#F8FAFC;border:1px solid #E0DDD4;border-radius:10px;padding:11px 13px;margin-bottom:8px;}
+.task-detail-text{font-size:13px;font-weight:500;margin-bottom:6px;}
+.task-yn{display:inline-flex;font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px;}
+.yn-yes{background:#DCFCE7;color:#15803D;} .yn-no{background:#FEE2E2;color:#B91C1C;} .yn-na{background:#F3F4F6;color:#374151;}
+.task-photo{width:100%;max-width:200px;border-radius:8px;margin-top:8px;border:2px solid #22C55E;}
+.info-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+.info-item{font-size:12px;color:#6B6B60;}<br>
+.info-item strong{color:#0A0A0A;font-weight:600;}
+
+/* MONTHLY */
+.month-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;margin-bottom:12px;}
+.month-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.month-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid #E0DDD4;font-size:12px;}
+.month-row:last-child{border:none;}
+.outlet-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.outlet-header{background:#F5F3EE;padding:10px 14px;font-size:13px;font-weight:700;}
+.outlet-row{display:flex;justify-content:space-between;padding:7px 14px;border-top:.5px solid #E0DDD4;font-size:12px;}
+
+/* AUDIT */
 .audit-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
-.at-head{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;background:#1A3C5E;}
-.at-row{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
+.at-head{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;background:#1A3C5E;}
+.at-row{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
+
+.empty{padding:40px 20px;text-align:center;color:#6B6B60;}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>🏠 Master Kitchen Dashboard</h1>
-  <div class="header-sub">Training Department — Live scores from all staff checklists</div>
-  <div class="sync-bar">
-    <div class="sync-dot" id="syncDot"></div>
-    <span class="sync-text" id="syncText">Connecting to Firebase...</span>
-    <button class="refresh-btn" onclick="loadData()">⟳ Refresh</button>
-  </div>
-</div>
 
-<div class="tabs">
-  <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
-  <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
-  <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
-  <div class="tab" onclick="showTab(this,'audits')">📋 Audit Results</div>
-</div>
-
-<div class="page active" id="page-overview">
-  <div class="sec-title" id="lastUpdate">KPI by Role</div>
-  <div class="kpi-grid" id="kpiGrid"></div>
-  <div class="sec-title">Recent Submissions</div>
-  <div id="recentFeed"></div>
-</div>
-
-<div class="page" id="page-staff">
-  <div class="filters">
-    <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option></select>
-    <select class="fsel" id="fWeek" onchange="renderStaff()"><option value="">All weeks</option></select>
-    <select class="fsel" id="fOutlet" onchange="renderStaff()"><option value="">All outlets</option></select>
-  </div>
-  <div class="staff-table">
-    <div class="t-head">
-      <div class="th">Staff / Outlet</div>
-      <div class="th">Role</div>
-      <div class="th">Week</div>
-      <div class="th">Score</div>
-      <div class="th">Status</div>
-      <div class="th">Started</div>
-      <div class="th">Submitted</div>
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🍳</div>
+    <div class="login-title">Kitchen Dashboard</div>
+    <div class="login-sub">Select your role to continue</div>
+    <div class="role-grid">
+      <div class="role-btn" onclick="selectRole(this,'kic')"><div class="rb-icon">👨‍🍳</div><div class="rb-name">KIC</div></div>
+      <div class="role-btn" onclick="selectRole(this,'areachef')"><div class="rb-icon">📊</div><div class="rb-name">Area Chef</div></div>
+      <div class="role-btn" onclick="selectRole(this,'training')"><div class="rb-icon">📚</div><div class="rb-name">Training</div></div>
+      <div class="role-btn" onclick="selectRole(this,'operations')"><div class="rb-icon">⚙️</div><div class="rb-name">Operations</div></div>
+      <div class="role-btn" onclick="selectRole(this,'director')"><div class="rb-icon">🎯</div><div class="rb-name">Director</div></div>
+      <div class="role-btn" onclick="selectRole(this,'ceo')"><div class="rb-icon">👑</div><div class="rb-name">CEO</div></div>
     </div>
-    <div id="staffBody"></div>
+    <select class="outlet-sel" id="outletSel">
+      <option value="">Select your outlet...</option>
+      <option>Little Bangkok</option>
+      <option>Superbowl</option>
+      <option>The Red Door</option>
+    </select>
+    <input type="text" id="loginName" placeholder="Enter your name..." style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:14px;outline:none;">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
   </div>
 </div>
 
-<div class="page" id="page-monthly">
-  <div id="monthlyGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;"></div>
+<!-- MAIN DASHBOARD -->
+<div id="mainDash" style="display:none;">
+  <div class="header">
+    <div class="header-row">
+      <h1>🏠 Kitchen Dashboard</h1>
+      <span class="role-badge" id="roleBadge">Training</span>
+      <div class="hdr-btns">
+        <button class="hdr-btn" onclick="loadData()">⟳</button>
+        <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
+      </div>
+    </div>
+    <div class="sync-bar">
+      <div class="sync-dot" id="syncDot"></div>
+      <span class="sync-text" id="syncText">Connecting...</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
+    <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
+    <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
+    <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
+  </div>
+
+  <div class="page active" id="page-overview">
+    <div class="sec-title" id="lastUpdate">KPI by Role</div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="sec-title">Recent Submissions <span style="font-size:11px;font-weight:400;color:#6B6B60">(tap a name to see full report)</span></div>
+    <div id="recentFeed"></div>
+  </div>
+
+  <div class="page" id="page-staff">
+    <div class="filters">
+      <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option></select>
+      <select class="fsel" id="fWeek" onchange="renderStaff()"><option value="">All weeks</option></select>
+      <select class="fsel" id="fOutlet" onchange="renderStaff()"><option value="">All outlets</option></select>
+    </div>
+    <div class="staff-table">
+      <div class="t-head">
+        <div class="th">Staff / Outlet</div><div class="th">Role</div><div class="th">Week</div>
+        <div class="th">Score</div><div class="th">Status</div><div class="th">Started</div><div class="th">Submitted</div>
+      </div>
+      <div id="staffBody"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-monthly">
+    <div id="monthlyContent"></div>
+  </div>
+
+  <div class="page" id="page-audits">
+    <div class="sec-title">BOH & FOH Audit Results</div>
+    <div class="audit-table">
+      <div class="at-head">
+        <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
+        <div class="th">Points</div><div class="th">Auditor</div><div class="th">Date</div>
+      </div>
+      <div id="auditBody"></div>
+    </div>
+  </div>
 </div>
 
-<div class="page" id="page-audits">
-  <div class="sec-title">BOH & FOH Audit Results</div>
-  <div class="audit-table">
-    <div class="at-head">
-      <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
-      <div class="th">Points</div><div class="th">Auditor</div><div class="th">Date</div>
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modalTitle">Staff Report</h2>
+      <button class="modal-close" onclick="closeModal()">✕ Close</button>
     </div>
-    <div id="auditBody"></div>
+    <div class="modal-body" id="modalBody"></div>
   </div>
 </div>
 
 <script>
-// ══ FIREBASE CONFIG ════════════════════════════════════════════
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
   authDomain:        "kitchen-tracker-35293.firebaseapp.com",
@@ -131,129 +227,105 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "608954017135",
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
-// ══════════════════════════════════════════════════════════════
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
 
-let allStaff = [];
-let allAudits = [];
+let allStaff = [], allAudits = [];
+let currentRole = '', currentOutlet = '', currentName = '';
+let selectedRoleBtn = null;
 
 const ROLES = {
-  linecook: {label:'Line Cook',icon:'🍳',dot:'#2E6DA4',cls:'pill-lc'},
-  steward:  {label:'Steward',  icon:'🧹',dot:'#16A34A',cls:'pill-st'},
-  kic:      {label:'KIC',      icon:'👨‍🍳',dot:'#E87722',cls:'pill-kic'},
-  areachef: {label:'Area Chef',icon:'📊',dot:'#7C3AED',cls:'pill-ac'},
+  linecook:{label:'Line Cook',icon:'🍳',dot:'#2E6DA4',cls:'pill-lc'},
+  steward:{label:'Steward',icon:'🧹',dot:'#16A34A',cls:'pill-st'},
+  kic:{label:'KIC',icon:'👨‍🍳',dot:'#E87722',cls:'pill-kic'},
+  areachef:{label:'Area Chef',icon:'📊',dot:'#7C3AED',cls:'pill-ac'},
 };
 
-function showTab(el, id) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('page-'+id).classList.add('active');
+// Full-access roles
+const FULL_ACCESS = ['training','operations','director','ceo'];
+
+// ── LOGIN ──────────────────────────────────────────────────────
+function selectRole(btn, role) {
+  if (selectedRoleBtn) selectedRoleBtn.classList.remove('selected');
+  btn.classList.add('selected');
+  selectedRoleBtn = btn;
+  currentRole = role;
+  const outletSel = document.getElementById('outletSel');
+  if (role === 'kic' || role === 'areachef') {
+    outletSel.classList.add('show');
+  } else {
+    outletSel.classList.remove('show');
+    outletSel.value = '';
+  }
+  checkLoginReady();
 }
 
-function setSyncStatus(status, msg) {
-  const dot = document.getElementById('syncDot');
-  const txt = document.getElementById('syncText');
-  dot.className = 'sync-dot' + (status==='connected'?' connected':status==='error'?' error':'');
-  txt.textContent = msg;
+function checkLoginReady() {
+  const name = document.getElementById('loginName').value.trim();
+  const outletNeeded = currentRole === 'kic' || currentRole === 'areachef';
+  const outletOk = !outletNeeded || document.getElementById('outletSel').value;
+  document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk;
+}
+
+document.getElementById('loginName').addEventListener('input', checkLoginReady);
+document.getElementById('outletSel').addEventListener('change', checkLoginReady);
+
+function doLogin() {
+  currentName = document.getElementById('loginName').value.trim();
+  currentOutlet = document.getElementById('outletSel').value;
+  const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Training Dept',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO'};
+  document.getElementById('roleBadge').textContent = roleLabels[currentRole]||currentRole;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainDash').style.display = 'block';
+  loadData();
+}
+
+function doLogout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainDash').style.display = 'none';
+  currentRole = ''; currentOutlet = ''; currentName = '';
+  if (selectedRoleBtn) { selectedRoleBtn.classList.remove('selected'); selectedRoleBtn = null; }
+  document.getElementById('loginName').value = '';
+  document.getElementById('outletSel').value = '';
+  document.getElementById('loginBtn').disabled = true;
+}
+
+// ── DATA LOADING ──────────────────────────────────────────────
+function filterByRole(staff) {
+  if (FULL_ACCESS.includes(currentRole)) return staff;
+  if (currentRole === 'areachef') return staff.filter(s => s.outlet === currentOutlet);
+  if (currentRole === 'kic') return staff.filter(s => s.outlet === currentOutlet && (s.role === 'linecook' || s.role === 'steward'));
+  return staff;
 }
 
 function loadData() {
-  setSyncStatus('connecting','Connecting to Firebase...');
-  
-  // Listen for submissions - real time
+  setSyncStatus('syncing','Connecting...');
   db.ref('submissions').on('value', snap => {
-    const data = snap.val();
-    allStaff = data ? Object.values(data) : [];
-    console.log('Submissions loaded:', allStaff.length, allStaff);
-    
-    setSyncStatus('connected', '🔥 Live · ' + allStaff.length + ' submissions');
-    
-    // Update last update time
-    if (allStaff.length > 0) {
-      const el = document.getElementById('lastUpdate');
-      const latest = allStaff.reduce((a,b) => new Date(a.lastUpdated||0) > new Date(b.lastUpdated||0) ? a : b);
-      el.textContent = 'KPI by Role — Last updated: ' + new Date(latest.lastUpdated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    }
-
-    // Populate filters
-    const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
-    const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
-    const wSel = document.getElementById('fWeek');
-    const oSel = document.getElementById('fOutlet');
-    wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
-    oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
-
-    renderAll();
+    const raw = snap.val() ? Object.values(snap.val()) : [];
+    allStaff = filterByRole(raw);
+    db.ref('audits').on('value', aSnap => {
+      const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
+      allAudits = FULL_ACCESS.includes(currentRole) ? rawA :
+                  rawA.filter(a => a.outlet === currentOutlet);
+      populateFilters();
+      renderAll();
+      setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
+    });
   }, err => {
-    setSyncStatus('error', 'Firebase error: ' + err.message);
-    console.error('Firebase error:', err);
-  });
-
-  // Listen for audits
-  db.ref('audits').on('value', snap => {
-    const data = snap.val();
-    allAudits = data ? Object.values(data) : [];
-    renderAudits();
+    setSyncStatus('error','Error: ' + err.message);
   });
 }
 
-function renderAll() {
-  renderKPI();
-  renderRecent();
-  renderStaff();
-  renderMonthly();
-}
-
-function renderKPI() {
-  const grid = document.getElementById('kpiGrid');
-  grid.innerHTML = '';
-  Object.entries(ROLES).forEach(([key, role]) => {
-    const entries = allStaff.filter(s => s.role === key);
-    const scores  = entries.map(s => parseFloat(s.overallPct)||0).filter(s => s > 0);
-    const avg     = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-    const pass    = avg !== null && avg >= 95;
-    const card    = document.createElement('div');
-    card.className = 'kpi-card';
-    card.innerHTML = `
-      <div class="kc-lbl" style="display:flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:${role.dot};display:inline-block;"></span>${role.icon} ${role.label}</div>
-      <div class="kc-val" style="color:${avg===null?'#CBD5E1':pass?'#15803D':'#B91C1C'}">${avg!==null?avg+'%':'—'}</div>
-      <div class="kc-bar"><div class="kc-fill" style="width:${avg||0}%;background:${avg===null?'#E5E7EB':avg>=95?'#22C55E':avg>=70?'#F59E0B':'#EF4444'}"></div></div>
-      <div class="kc-status" style="color:${avg===null?'#9CA3AF':pass?'#15803D':'#B91C1C'}">${avg===null?'No data':pass?'✅ Qualified':'❌ Below 95%'}</div>
-      <div class="kc-count">${entries.length} entr${entries.length===1?'y':'ies'}</div>`;
-    grid.appendChild(card);
-  });
-}
-
-function renderRecent() {
-  const el = document.getElementById('recentFeed');
-  const recent = [...allStaff].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).slice(0,8);
-  if (!recent.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div style="font-size:15px;font-weight:700;color:#0A0A0A;margin-bottom:5px;">No submissions yet</div><div>Staff scores appear here when they tap Submit Day</div></div>`;
-    return;
-  }
-  el.innerHTML = '';
-  recent.forEach(s => {
-    const role = ROLES[s.role]||{label:s.role,icon:'',dot:'#888'};
-    const sc = s.overallPct||0;
-    const pass = sc >= 95;
-    const div = document.createElement('div');
-    div.className = 'feed-card';
-    div.innerHTML = `
-      <div style="font-size:22px">${role.icon}</div>
-      <div style="flex:1">
-        <div style="font-weight:700;font-size:14px;">${s.staffName||'—'}</div>
-        <div style="font-size:11px;color:#6B6B60;">${role.label}${s.outlet?' • '+s.outlet:''}${s.week?' • '+s.week:''}</div>
-        ${s.startedAt||s.submittedAt?`<div style="font-size:10px;color:#94A3B8;margin-top:2px;">${s.startedAt?'⏱ '+new Date(s.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}):''}${s.submittedAt?' → ✅ '+new Date(s.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}):''}</div>`:''}
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:18px;font-weight:700;color:${sc>0?(pass?'#15803D':'#B91C1C'):'#94A3B8'}">${sc>0?sc+'%':'—'}</div>
-        <div style="font-size:11px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?(pass?'✅ Pass':'❌ Fail'):''}</div>
-      </div>`;
-    el.appendChild(div);
-  });
+function populateFilters() {
+  const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
+  const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
+  const wSel = document.getElementById('fWeek');
+  const oSel = document.getElementById('fOutlet');
+  const curW = wSel.value, curO = oSel.value;
+  wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
+  oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
+  if(curW) wSel.value=curW; if(curO) oSel.value=curO;
 }
 
 function getFiltered() {
@@ -268,78 +340,325 @@ function getFiltered() {
   });
 }
 
-function renderStaff() {
-  const body = document.getElementById('staffBody');
-  const subs = getFiltered();
-  if (!subs.length) {
-    body.innerHTML = `<div class="empty"><div class="empty-icon">👥</div>No entries yet</div>`;
+function setSyncStatus(st,msg) {
+  const d=document.getElementById('syncDot'), t=document.getElementById('syncText');
+  d.className='sync-dot'+(st==='ok'?' on':st==='error'?' err':'');
+  t.textContent=msg;
+}
+
+function showTab(el,id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+}
+
+function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); }
+
+// ── KPI ───────────────────────────────────────────────────────
+function renderKPI() {
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = '';
+  Object.entries(ROLES).forEach(([key,role]) => {
+    const entries = allStaff.filter(s=>s.role===key);
+    const scores  = entries.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
+    const avg     = scores.length>0?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+    const pass    = avg!==null && avg>=95;
+    const card    = document.createElement('div');
+    card.className='kpi-card';
+    card.innerHTML=`
+      <div class="kc-lbl"><span class="kc-dot" style="background:${role.dot}"></span>${role.icon} ${role.label}</div>
+      <div class="kc-val" style="color:${avg===null?'#CBD5E1':pass?'#15803D':'#B91C1C'}">${avg!==null?avg+'%':'—'}</div>
+      <div class="kc-bar"><div class="kc-fill" style="width:${avg||0}%;background:${avg===null?'#E5E7EB':avg>=95?'#22C55E':avg>=70?'#F59E0B':'#EF4444'}"></div></div>
+      <div class="kc-status" style="color:${avg===null?'#9CA3AF':pass?'#15803D':'#B91C1C'}">${avg===null?'No data':pass?'✅ Qualified':'❌ Below 95%'}</div>
+      <div class="kc-count">${entries.length} entr${entries.length===1?'y':'ies'}</div>`;
+    grid.appendChild(card);
+  });
+  if(allStaff.length>0){
+    const latest=allStaff.reduce((a,b)=>new Date(a.lastUpdated||0)>new Date(b.lastUpdated||0)?a:b);
+    document.getElementById('lastUpdate').textContent='KPI by Role — Last: '+new Date(latest.lastUpdated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// ── RECENT FEED ───────────────────────────────────────────────
+function renderRecent() {
+  const el = document.getElementById('recentFeed');
+  const recent = [...allStaff].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).slice(0,10);
+  if(!recent.length){
+    el.innerHTML='<div class="empty"><div style="font-size:36px">📋</div><div style="font-size:14px;font-weight:700;margin:6px 0">No submissions yet</div><div>Staff scores appear here when they tap Submit Day</div></div>';
     return;
   }
-  body.innerHTML = '';
-  [...subs].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).forEach(s => {
-    const role = ROLES[s.role]||{label:s.role,icon:'',cls:'pill-lc'};
-    const sc   = parseFloat(s.overallPct)||0;
-    const pass = sc >= 95;
-    const upd  = s.lastUpdated ? new Date(s.lastUpdated).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
-    function fmtT(iso) { if(!iso)return'—'; try{return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})+'<br><span style="font-size:10px;color:#94A3B8">'+new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</span>';}catch(e){return'—';}}
-    const row = document.createElement('div');
-    row.className = 't-row';
-    row.innerHTML = `
-      <div class="td"><div style="font-weight:600">${s.staffName||'—'}</div><div class="td-sm">${s.outlet||'—'}</div></div>
+  el.innerHTML='';
+  recent.forEach(s=>{
+    const role=ROLES[s.role]||{label:s.role,icon:'',dot:'#888'};
+    const sc=parseFloat(s.overallPct)||0;
+    const pass=sc>=95;
+    const div=document.createElement('div');
+    div.className='feed-card';
+    div.onclick=()=>openStaffDetail(s);
+    div.innerHTML=`
+      <div style="font-size:20px">${role.icon}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px;color:#1A3C5E;text-decoration:underline">${s.staffName||'—'}</div>
+        <div style="font-size:11px;color:#6B6B60">${role.label}${s.outlet?' • '+s.outlet:''}${s.week?' • '+s.week:''}</div>
+        ${s.startedAt?`<div style="font-size:10px;color:#94A3B8">⏱ ${new Date(s.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})} → ✅ ${s.submittedAt?new Date(s.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}):'—'}</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:17px;font-weight:700;color:${sc>0?(pass?'#15803D':'#B91C1C'):'#94A3B8'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:10px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?(pass?'✅ Pass':'❌ Fail'):''}</div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── STAFF TABLE ───────────────────────────────────────────────
+function renderStaff() {
+  const body=document.getElementById('staffBody');
+  const subs=getFiltered();
+  if(!subs.length){body.innerHTML='<div class="empty">No entries yet</div>';return;}
+  body.innerHTML='';
+  [...subs].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).forEach(s=>{
+    const role=ROLES[s.role]||{label:s.role,icon:'',cls:'pill-lc'};
+    const sc=parseFloat(s.overallPct)||0;
+    const pass=sc>=95;
+    function fT(iso){if(!iso)return'—';try{return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})+'<br><span style="font-size:9px;color:#94A3B8">'+new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</span>';}catch(e){return'—';}}
+    const row=document.createElement('div');
+    row.className='t-row';
+    row.onclick=()=>openStaffDetail(s);
+    row.innerHTML=`
+      <div class="td"><div style="font-weight:600;color:#1A3C5E;cursor:pointer;text-decoration:underline">${s.staffName||'—'}</div><div class="td-sm">${s.outlet||'—'}</div></div>
       <div class="td"><span class="role-pill ${role.cls}">${role.icon} ${role.label}</span></div>
       <div class="td td-sm">${s.week||'—'}</div>
       <div class="td" style="font-weight:700;color:${sc===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
-      <div class="td">${sc>0?`<span class="sp ${pass?'sp-pass':'sp-fail'}">${pass?'✅ Pass':'❌ Fail'}</span>`:'<span class="sp sp-prog">⏳ In progress</span>'}</div>
-      <div class="td td-sm" style="line-height:1.4">${fmtT(s.startedAt)}</div>
-      <div class="td td-sm" style="line-height:1.4">${fmtT(s.submittedAt)}</div>`;
+      <div class="td">${sc>0?`<span class="sp ${pass?'sp-pass':'sp-fail'}">${pass?'✅':'❌'} ${pass?'Pass':'Fail'}</span>`:'<span class="sp sp-prog">⏳</span>'}</div>
+      <div class="td td-sm" style="line-height:1.5">${fT(s.startedAt)}</div>
+      <div class="td td-sm" style="line-height:1.5">${fT(s.submittedAt)}</div>`;
     body.appendChild(row);
   });
 }
 
-function renderMonthly() {
-  const grid = document.getElementById('monthlyGrid');
-  grid.innerHTML = '';
-  Object.entries(ROLES).forEach(([key,role]) => {
-    const entries = allStaff.filter(s=>s.role===key);
-    const card = document.createElement('div');
-    card.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;';
-    const rows = entries.length > 0
-      ? entries.map(s => {
-          const sc = parseFloat(s.overallPct)||0;
-          return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid #E0DDD4;font-size:12px;"><span style="font-weight:500">${s.staffName||'—'}<br><span style="font-size:10px;color:#6B6B60">${s.outlet||''}</span></span><span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'}">${sc>0?sc+'%':'—'}</span></div>`;
-        }).join('')
-      : '<div style="font-size:12px;color:#6B6B60;padding:8px 0">No entries yet</div>';
-    const q = entries.filter(s=>parseFloat(s.overallPct)>=95).length;
-    card.innerHTML = `<h3 style="font-size:13px;font-weight:700;margin-bottom:10px;color:${role.dot}">${role.icon} ${role.label}</h3>${rows}${entries.length>0?`<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;font-size:11px;color:#6B6B60">${q}/${entries.length} qualified</div>`:''}`;
-    grid.appendChild(card);
-  });
+// ── STAFF DETAIL MODAL (Fix 3) ────────────────────────────────
+function openStaffDetail(s) {
+  document.getElementById('modalTitle').textContent = (s.staffName||'Staff') + ' — ' + (s.week||'') + ' Report';
+  const body = document.getElementById('modalBody');
+  const role = ROLES[s.role]||{label:s.role,icon:''};
+  const sc = parseFloat(s.overallPct)||0;
+  const pass = sc >= 95;
+
+  // Staff info
+  body.innerHTML = `
+    <div class="info-row" style="margin-bottom:14px;padding:12px;background:#F5F3EE;border-radius:10px;">
+      <div class="info-item"><strong>${s.staffName||'—'}</strong></div>
+      <div class="info-item">${role.icon} ${role.label}</div>
+      <div class="info-item">📍 ${s.outlet||'—'}</div>
+      <div class="info-item">📅 ${s.week||'—'}</div>
+      <div class="info-item" style="color:${pass?'#15803D':'#B91C1C'};font-weight:700">Overall: ${sc>0?sc+'%':'—'} ${sc>0?(pass?'✅ Qualified':'❌ Not Qualified'):''}</div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:#6B6B60;margin-bottom:8px;">📸 Submitted photos and task responses:</div>
+    <div id="detailDays"></div>`;
+
+  // Load submission data from Firebase to show task details
+  const key = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_') + '_' + s.role + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+  
+  // Show photos if available
+  if (s.photos && Object.keys(s.photos).length > 0) {
+    const photosDiv = document.createElement('div');
+    photosDiv.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px;';
+    Object.entries(s.photos).forEach(([taskKey, url]) => {
+      const img = document.createElement('div');
+      img.innerHTML = `<img src="${url}" style="width:100%;border-radius:8px;border:2px solid #22C55E;" onerror="this.style.display='none'">
+        <div style="font-size:10px;color:#6B6B60;margin-top:3px;text-align:center">${taskKey.replace(/_/g,' ')}</div>`;
+      photosDiv.appendChild(img);
+    });
+    body.appendChild(photosDiv);
+  } else {
+    const noPhoto = document.createElement('div');
+    noPhoto.style.cssText = 'font-size:12px;color:#94A3B8;padding:10px;text-align:center;';
+    noPhoto.textContent = 'Photos are stored on staff device — available when submitted with new Firebase version';
+    body.appendChild(noPhoto);
+  }
+
+  // Show time info
+  const timeDiv = document.createElement('div');
+  timeDiv.style.cssText = 'margin-top:12px;padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px;';
+  timeDiv.innerHTML = `
+    <div>⏱ <strong>Started:</strong> ${s.startedAt ? new Date(s.startedAt).toLocaleString() : '—'}</div>
+    <div style="margin-top:4px">✅ <strong>Submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '—'}</div>
+    <div style="margin-top:4px">🔄 <strong>Last updated:</strong> ${s.lastUpdated ? new Date(s.lastUpdated).toLocaleString() : '—'}</div>`;
+  body.appendChild(timeDiv);
+
+  document.getElementById('detailModal').classList.add('open');
 }
 
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+// ── MONTHLY CONSOLIDATED (Fix 4) ──────────────────────────────
+function renderMonthly() {
+  const el = document.getElementById('monthlyContent');
+  if (!allStaff.length) {
+    el.innerHTML = '<div class="empty"><div style="font-size:36px">📅</div>No data yet</div>';
+    return;
+  }
+
+  // Group by week
+  const byWeek = {};
+  allStaff.forEach(s => {
+    const w = s.week || 'Unknown';
+    if (!byWeek[w]) byWeek[w] = [];
+    byWeek[w].push(s);
+  });
+
+  // Group by outlet
+  const byOutlet = {};
+  allStaff.forEach(s => {
+    const o = s.outlet || 'Unknown';
+    if (!byOutlet[o]) byOutlet[o] = [];
+    byOutlet[o].push(s);
+  });
+
+  let html = `<div style="font-size:14px;font-weight:700;margin-bottom:12px;">Monthly Consolidated Report</div>`;
+
+  // Summary cards
+  const total = allStaff.length;
+  const qualified = allStaff.filter(s => parseFloat(s.overallPct) >= 95).length;
+  const avgScore = total > 0 ? Math.round(allStaff.reduce((a,b) => a + (parseFloat(b.overallPct)||0), 0) / total) : 0;
+
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">TOTAL STAFF</div>
+      <div style="font-size:28px;font-weight:700;color:#1A3C5E">${total}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">QUALIFIED</div>
+      <div style="font-size:28px;font-weight:700;color:#15803D">${qualified}</div>
+      <div style="font-size:11px;color:#6B6B60">${total>0?Math.round(qualified/total*100):0}% of total</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">AVG SCORE</div>
+      <div style="font-size:28px;font-weight:700;color:${avgScore>=95?'#15803D':avgScore>=70?'#D97706':'#B91C1C'}">${avgScore}%</div>
+    </div>
+  </div>`;
+
+  // By outlet
+  html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">By Outlet</div>`;
+  Object.entries(byOutlet).forEach(([outlet, staff]) => {
+    const q = staff.filter(s=>parseFloat(s.overallPct)>=95).length;
+    const avg = staff.length > 0 ? Math.round(staff.reduce((a,b)=>a+(parseFloat(b.overallPct)||0),0)/staff.length) : 0;
+    html += `<div class="outlet-card">
+      <div class="outlet-header">📍 ${outlet} — Avg: ${avg}% · ${q}/${staff.length} qualified</div>
+      ${staff.map(s => {
+        const sc = parseFloat(s.overallPct)||0;
+        const role = ROLES[s.role]||{label:s.role,icon:''};
+        return `<div class="outlet-row">
+          <span>${role.icon} ${s.staffName||'—'} <span style="font-size:10px;color:#6B6B60">${role.label}</span></span>
+          <span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'}">${sc>0?sc+'%':'—'}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+
+  // By week
+  html += `<div style="font-size:13px;font-weight:700;margin:16px 0 8px;">By Week</div>`;
+  Object.entries(byWeek).sort().forEach(([week, staff]) => {
+    const q = staff.filter(s=>parseFloat(s.overallPct)>=95).length;
+    const avg = staff.length > 0 ? Math.round(staff.reduce((a,b)=>a+(parseFloat(b.overallPct)||0),0)/staff.length) : 0;
+    html += `<div class="month-card">
+      <div class="month-title">📅 Week of ${week} <span style="font-size:12px;color:#6B6B60;font-weight:400">${q}/${staff.length} qualified · Avg ${avg}%</span></div>
+      ${staff.map(s => {
+        const sc = parseFloat(s.overallPct)||0;
+        const role = ROLES[s.role]||{label:s.role};
+        return `<div class="month-row">
+          <span>${s.staffName||'—'} <span style="color:#6B6B60">${role.label} · ${s.outlet||''}</span></span>
+          <span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'}">${sc>0?sc+'%':'—'}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ── AUDITS ────────────────────────────────────────────────────
 function renderAudits() {
   const body = document.getElementById('auditBody');
   if (!allAudits.length) {
-    body.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>No audits submitted yet</div>';
+    body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits submitted yet<br><small>Open an audit form, fill it, and tap Submit to Dashboard</small></div>';
     return;
   }
   body.innerHTML = '';
   [...allAudits].sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
-    const pass = a.score>=80;
+    const pass = a.score >= 80;
     const row = document.createElement('div');
     row.className = 'at-row';
-    row.style.background = i%2===0?'#fff':'#F5F3EE';
-    const d = a.auditDate || (a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—');
+    row.style.cssText = `background:${i%2===0?'#fff':'#F5F3EE'};cursor:pointer;`;
+    row.onmouseover = ()=>row.style.background='#EFF6FF';
+    row.onmouseout  = ()=>row.style.background=i%2===0?'#fff':'#F5F3EE';
+    const d = a.auditDate||(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—');
     row.innerHTML = `
-      <div class="td" style="font-weight:600">${a.outlet||'—'}</div>
-      <div class="td"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
+      <div class="td" style="font-weight:600;color:#1A3C5E;text-decoration:underline;cursor:pointer">${a.outlet||'—'}</div>
+      <div class="td"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
       <div class="td" style="font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
-      <div class="td td-sm">${a.rawScore||'—'}/${a.maxScore||'—'}</div>
-      <div class="td td-sm">${a.auditor||'—'}</div>
-      <div class="td td-sm">${d}</div>`;
+      <div class="td" style="font-size:11px;color:#6B6B60">${a.rawScore||'—'}/${a.maxScore||'—'} pts</div>
+      <div class="td" style="font-size:11px;color:#6B6B60">${a.auditor||'—'}</div>
+      <div class="td" style="font-size:11px;color:#6B6B60">${d}</div>`;
+    row.onclick = () => openAuditDetail(a);
     body.appendChild(row);
   });
 }
 
-// Start listening
+function openAuditDetail(a) {
+  const pass = a.score >= 80;
+  const d = a.auditDate||(a.submittedAt?new Date(a.submittedAt).toLocaleString():'—');
+  document.getElementById('modalTitle').textContent = (a.outlet||'Outlet') + ' — ' + (a.auditType||'') + ' Audit Report';
+  
+  let photosHtml = '';
+  if (a.photos && Object.keys(a.photos).length > 0) {
+    photosHtml = `<div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:600;color:#6B6B60;margin-bottom:8px;">📸 Audit Photos (${Object.keys(a.photos).length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
+        ${Object.entries(a.photos).map(([k,url]) => 
+          `<img src="${url}" style="width:100%;border-radius:8px;border:2px solid #E0DDD4;" onerror="this.parentElement.style.display='none'">`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+  
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:#F5F3EE;border-radius:10px;padding:14px;margin-bottom:14px;">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
+        <div><strong>Outlet:</strong> ${a.outlet||'—'}</div>
+        <div><strong>Type:</strong> ${a.auditType==='BOH'?'🔧 BOH':'🛎 FOH'}</div>
+        <div><strong>Auditor:</strong> ${a.auditor||'—'}</div>
+        <div><strong>Date:</strong> ${a.auditDate||'—'}</div>
+        <div><strong>Shift:</strong> ${a.shift||'—'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:${pass?'#F0FDF4':'#FEF2F2'};border:1px solid ${pass?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">SCORE</div>
+        <div style="font-size:32px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
+        <div style="font-size:12px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${pass?'✅ PASS':'❌ FAIL'}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">POINTS</div>
+        <div style="font-size:28px;font-weight:700;color:#1A3C5E">${a.rawScore||'—'}</div>
+        <div style="font-size:12px;color:#6B6B60">out of ${a.maxScore||'—'}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">SUBMITTED</div>
+        <div style="font-size:13px;font-weight:600;color:#1A3C5E">${a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—'}</div>
+        <div style="font-size:12px;color:#6B6B60">${a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—'}</div>
+      </div>
+    </div>
+    ${photosHtml}
+    ${!photosHtml?'<div style="font-size:12px;color:#94A3B8;padding:10px;text-align:center;background:#F8FAFC;border-radius:8px;">Photos will appear here when submitted from the updated audit forms</div>':''}`;
+  
+  document.getElementById('detailModal').classList.add('open');
+}
+
+// Init
 loadData();
 </script>
 </body>
