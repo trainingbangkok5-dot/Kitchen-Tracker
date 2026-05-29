@@ -6,6 +6,8 @@
 <title>Master Kitchen Dashboard</title>
 <link rel="manifest" href="manifest_dashboard.json">
 <link rel="apple-touch-icon" href="apple-touch-icon_dashboard.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -224,6 +226,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="modal-box">
     <div class="modal-header">
       <h2 id="modalTitle">Staff Report</h2>
+      <button class="modal-close" onclick="exportDetailPDF()" style="background:#22C55E;margin-right:6px;">📄 Export PDF</button>
       <button class="modal-close" onclick="closeModal()">✕ Close</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
@@ -454,55 +457,314 @@ function renderStaff() {
 
 // ── STAFF DETAIL MODAL (Fix 3) ────────────────────────────────
 function openStaffDetail(s) {
-  document.getElementById('modalTitle').textContent = (s.staffName||'Staff') + ' — ' + (s.week||'') + ' Report';
+  document.getElementById('modalTitle').textContent = (s.staffName||'Staff') + ' — ' + (s.week||'') + ' Full Report';
   const body = document.getElementById('modalBody');
   const role = ROLES[s.role]||{label:s.role,icon:''};
   const sc = parseFloat(s.overallPct)||0;
   const pass = sc >= 95;
 
-  // Staff info
-  body.innerHTML = `
-    <div class="info-row" style="margin-bottom:14px;padding:12px;background:#F5F3EE;border-radius:10px;">
-      <div class="info-item"><strong>${s.staffName||'—'}</strong></div>
-      <div class="info-item">${role.icon} ${role.label}</div>
-      <div class="info-item">📍 ${s.outlet||'—'}</div>
-      <div class="info-item">📅 ${s.week||'—'}</div>
-      <div class="info-item" style="color:${pass?'#15803D':'#B91C1C'};font-weight:700">Overall: ${sc>0?sc+'%':'—'} ${sc>0?(pass?'✅ Qualified':'❌ Not Qualified'):''}</div>
+  // Header info
+  let html = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#F5F3EE;border-radius:10px;margin-bottom:14px;font-size:13px;">
+      <span><strong>${s.staffName||'—'}</strong></span>
+      <span>${role.icon} ${role.label}</span>
+      <span>📍 ${s.outlet||'—'}</span>
+      <span>📅 ${s.week||'—'}</span>
+      <span style="color:${pass?'#15803D':'#B91C1C'};font-weight:700">${sc>0?sc+'%':''} ${sc>0?(pass?'✅ Qualified':'❌ Not Qualified'):''}</span>
     </div>
-    <div style="font-size:12px;font-weight:600;color:#6B6B60;margin-bottom:8px;">📸 Submitted photos and task responses:</div>
-    <div id="detailDays"></div>`;
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:#F0FDF4;border-radius:8px;padding:10px;font-size:12px;">
+        <div>⏱ <strong>Started:</strong> ${s.startedAt?new Date(s.startedAt).toLocaleString():'—'}</div>
+        <div style="margin-top:3px">✅ <strong>Submitted:</strong> ${s.submittedAt?new Date(s.submittedAt).toLocaleString():'—'}</div>
+      </div>
+      <div style="background:#EFF6FF;border-radius:8px;padding:10px;font-size:12px;">
+        <div>📋 <strong>Day submitted:</strong> Day ${s.day||'—'}</div>
+        <div style="margin-top:3px">👤 <strong>Verified by:</strong> ${s.verifiedBy||'—'}</div>
+      </div>
+    </div>`;
 
-  // Load submission data from Firebase to show task details
-  const key = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_') + '_' + s.role + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
-  
-  // Show photos if available
-  if (s.photos && Object.keys(s.photos).length > 0) {
-    const photosDiv = document.createElement('div');
-    photosDiv.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px;';
-    Object.entries(s.photos).forEach(([taskKey, url]) => {
-      const img = document.createElement('div');
-      img.innerHTML = `<img src="${url}" style="width:100%;border-radius:8px;border:2px solid #22C55E;" onerror="this.style.display='none'">
-        <div style="font-size:10px;color:#6B6B60;margin-top:3px;text-align:center">${taskKey.replace(/_/g,' ')}</div>`;
-      photosDiv.appendChild(img);
+  // Full task checklist from taskData
+  if (s.taskData && Object.keys(s.taskData).length > 0) {
+    // Group by day
+    const byDay = {};
+    Object.values(s.taskData).forEach(t => {
+      const d = t.day||1;
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(t);
     });
-    body.appendChild(photosDiv);
+
+    // Group by section within each day
+    Object.keys(byDay).sort((a,b)=>a-b).forEach(day => {
+      const tasks = byDay[day];
+      html += `<div style="margin-bottom:14px;">
+        <div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;">📅 Day ${day}</div>`;
+      
+      // Group by section
+      const bySec = {};
+      tasks.forEach(t => { if(!bySec[t.section])bySec[t.section]=[]; bySec[t.section].push(t); });
+      
+      Object.entries(bySec).forEach(([sec, secTasks]) => {
+        html += `<div style="background:#F5F3EE;padding:6px 12px;font-size:11px;font-weight:700;color:#6B6B60;border-left:3px solid #1A3C5E;">${sec}</div>`;
+        secTasks.forEach(t => {
+          const yn = t.yn||'';
+          const ynColor = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+          const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+          const ynLabel = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'— N/A':'Not answered';
+          html += `<div style="background:#fff;border:1px solid #E0DDD4;border-top:none;padding:10px 12px;display:flex;align-items:flex-start;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-size:11px;color:#6B6B60;font-weight:600;margin-bottom:2px;">${t.owner||''}</div>
+              <div style="font-size:13px;font-weight:500;">${t.task||''}</div>
+              ${t.photoUrl ? `<img src="${t.photoUrl}" style="max-width:120px;border-radius:6px;margin-top:6px;border:2px solid #22C55E;" onerror="this.style.display='none'">` : ''}
+            </div>
+            <span style="background:${ynBg};color:${ynColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${ynLabel}</span>
+          </div>`;
+        });
+      });
+      html += `</div>`;
+    });
   } else {
-    const noPhoto = document.createElement('div');
-    noPhoto.style.cssText = 'font-size:12px;color:#94A3B8;padding:10px;text-align:center;';
-    noPhoto.textContent = 'Photos are stored on staff device — available when submitted with new Firebase version';
-    body.appendChild(noPhoto);
+    html += `<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">
+      <div style="font-size:28px;margin-bottom:8px;">📋</div>
+      <strong>Full task detail not available for this submission</strong><br>
+      <span style="font-size:12px;">Staff need to resubmit using the updated checklist to see full task breakdown here.</span>
+    </div>`;
   }
 
-  // Show time info
-  const timeDiv = document.createElement('div');
-  timeDiv.style.cssText = 'margin-top:12px;padding:10px;background:#F0FDF4;border-radius:8px;font-size:12px;';
-  timeDiv.innerHTML = `
-    <div>⏱ <strong>Started:</strong> ${s.startedAt ? new Date(s.startedAt).toLocaleString() : '—'}</div>
-    <div style="margin-top:4px">✅ <strong>Submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '—'}</div>
-    <div style="margin-top:4px">🔄 <strong>Last updated:</strong> ${s.lastUpdated ? new Date(s.lastUpdated).toLocaleString() : '—'}</div>`;
-  body.appendChild(timeDiv);
-
+  body.innerHTML = html;
   document.getElementById('detailModal').classList.add('open');
+}
+
+
+// ── PDF Export for staff detail report ────────────────────────
+function exportDetailPDF() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded. Please check your internet connection.'); return; }
+
+  const title = document.getElementById('modalTitle').textContent;
+  const body  = document.getElementById('modalBody');
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  let y = 0;
+
+  // Header
+  doc.setFillColor(26, 60, 94);
+  doc.rect(0, 0, pageW, 22, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Kitchen Incentive Tracker', 14, 10);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality — Staff Report', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), pageW-14, 17, {align:'right'});
+  y = 30;
+
+  // Report title
+  doc.setTextColor(26,60,94);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(title, 14, y); y += 8;
+
+  // Staff info from modal
+  const infoItems = body.querySelectorAll('[style*="F5F3EE"] span, [style*="F5F3EE"] div');
+  const infoText = body.querySelector('[style*="F5F3EE"]')?.innerText || '';
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.setTextColor(100,100,100);
+  doc.text(infoText.replace(/\n+/g,' | ').substring(0,120), 14, y); y += 6;
+
+  // Time info
+  const timeBoxes = body.querySelectorAll('[style*="F0FDF4"], [style*="EFF6FF"]');
+  timeBoxes.forEach(box => {
+    const txt = box.innerText.replace(/\n+/g,' | ');
+    doc.text(txt.substring(0,100), 14, y); y += 5;
+  });
+  y += 3;
+
+  // Task data — collect all task rows
+  const dayBlocks = body.querySelectorAll('[style*="margin-bottom:14px"]');
+  
+  if (dayBlocks.length > 0) {
+    dayBlocks.forEach(dayBlock => {
+      const dayTitle = dayBlock.querySelector('[style*="1A3C5E"]')?.innerText || '';
+      if (!dayTitle) return;
+
+      // Day header
+      if (y > pageH - 30) { doc.addPage(); y = 20; }
+      doc.setFillColor(26,60,94);
+      doc.rect(14, y-4, pageW-28, 8, 'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(10); doc.setFont('helvetica','bold');
+      doc.text(dayTitle, 16, y+1); y += 8;
+
+      // Section and task rows
+      const sections = dayBlock.querySelectorAll('[style*="6B6B60"][style*="border-left"]');
+      const taskCards = dayBlock.querySelectorAll('[style*="display:flex;align-items:flex-start"]');
+
+      const tableRows = [];
+      let currentSection = '';
+
+      taskCards.forEach(card => {
+        // Find preceding section header
+        const owner = card.querySelector('[style*="6B6B60"][style*="font-weight:600"]')?.innerText || '';
+        const taskText = card.querySelector('[style*="font-weight:500"]')?.innerText || '';
+        const ynSpan = card.querySelector('[style*="border-radius:6px"]');
+        const yn = ynSpan ? ynSpan.innerText : '—';
+        const ynColor = yn.includes('YES') ? [21,128,61] : yn.includes('NO') ? [185,28,28] : [100,100,100];
+        
+        if (taskText) {
+          tableRows.push({ owner, task: taskText, yn, ynColor });
+        }
+      });
+
+      if (tableRows.length > 0) {
+        doc.autoTable({
+          startY: y,
+          head: [['Owner', 'Task', 'Response']],
+          body: tableRows.map(r => [r.owner, r.task, r.yn]),
+          styles: { fontSize: 8, cellPadding: 3 },
+          headStyles: { fillColor: [46,109,164], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 120 },
+            2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
+          },
+          didParseCell: (data) => {
+            if (data.column.index === 2 && data.section === 'body') {
+              const val = data.cell.raw||'';
+              if (val.includes('YES')) data.cell.styles.textColor = [21,128,61];
+              else if (val.includes('NO')) data.cell.styles.textColor = [185,28,28];
+              else data.cell.styles.textColor = [100,100,100];
+            }
+          },
+          margin: { left: 14, right: 14 },
+          theme: 'grid',
+        });
+        y = doc.lastAutoTable.finalY + 6;
+      }
+    });
+  } else {
+    doc.setTextColor(150,150,150);
+    doc.setFontSize(10);
+    doc.text('Full task data not available — staff needs to resubmit with updated checklist.', 14, y);
+    y += 10;
+  }
+
+  // Footer on each page
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(245,243,238);
+    doc.rect(0, pageH-10, pageW, 10, 'F');
+    doc.setTextColor(100,100,100);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text('Culex Hospitality — Kitchen Incentive Tracker — Confidential', 14, pageH-3);
+    doc.text(`Page ${i} of ${totalPages}`, pageW-14, pageH-3, {align:'right'});
+  }
+
+  // Save
+  const safeName = title.replace(/[^a-zA-Z0-9 _-]/g,'').replace(/\s+/g,'_');
+  doc.save(safeName + '.pdf');
+  showToast && showToast('✓ PDF downloaded!', 'ok');
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2500);
+}
+
+// PDF for audit detail
+function exportAuditPDF(a) {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  // Header
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Kitchen Audit Report', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), pageW-14, 17, {align:'right'});
+
+  let y = 30;
+  const pass = a.score >= 80;
+
+  // Audit info table
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Outlet', a.outlet||'—', 'Audit Type', a.auditType||'—'],
+      ['Auditor', a.auditor||'—', 'Date', a.auditDate||'—'],
+      ['Shift', a.shift||'—', 'Score', a.score+'%'],
+      ['Points', (a.rawScore||'—')+' / '+(a.maxScore||'—'), 'Result', pass?'PASS':'FAIL'],
+    ],
+    styles: { fontSize: 9 },
+    columnStyles: {
+      0: { fontStyle:'bold', cellWidth:30, fillColor:[245,243,238] },
+      1: { cellWidth:55 },
+      2: { fontStyle:'bold', cellWidth:30, fillColor:[245,243,238] },
+      3: { cellWidth:55, textColor: pass?[21,128,61]:[185,28,28], fontStyle:'bold' },
+    },
+    margin: { left:14, right:14 },
+    theme: 'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Score bar
+  doc.setFillColor(224,221,212);
+  doc.rect(14, y, pageW-28, 6, 'F');
+  const fillW = ((pageW-28) * (a.score/100));
+  doc.setFillColor(pass?34:239, pass?197:68, pass?94:68);
+  doc.rect(14, y, fillW, 6, 'F');
+  doc.setTextColor(0,0,0); doc.setFontSize(8);
+  doc.text(a.score+'% — '+(pass?'PASS — Above 80%':'FAIL — Below 80%'), 14, y+10);
+  y += 14;
+
+  // Corrective actions if any
+  if (a.correctiveActions && a.correctiveActions.length > 0) {
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.setTextColor(26,60,94);
+    doc.text('Corrective Action Register', 14, y); y += 6;
+
+    doc.autoTable({
+      startY: y,
+      head: [['#','Section','Criteria','Observation','Corrective Action','Responsible','Deadline']],
+      body: a.correctiveActions.map((ca,i) => [
+        i+1, ca.section||'—', ca.criteria||'—',
+        ca.observation||'—', ca.correctiveAction||'⚠ Required',
+        ca.responsible||'TBD', ca.deadline||'TBD'
+      ]),
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor:[185,28,28], textColor:255, fontStyle:'bold', fontSize:7 },
+      columnStyles: {
+        0:{cellWidth:8}, 1:{cellWidth:22}, 2:{cellWidth:30},
+        3:{cellWidth:35}, 4:{cellWidth:40}, 5:{cellWidth:22}, 6:{cellWidth:18},
+      },
+      margin: {left:14,right:14},
+      theme: 'grid',
+    });
+    y = doc.lastAutoTable.finalY + 6;
+  } else {
+    doc.setFontSize(9); doc.setTextColor(21,128,61);
+    doc.text('✅ No corrective actions required — all criteria passed or N/A', 14, y); y += 8;
+  }
+
+  // Footer
+  doc.setFillColor(245,243,238);
+  doc.rect(0,pageH-10,pageW,10,'F');
+  doc.setTextColor(100,100,100); doc.setFontSize(8);
+  doc.text('Culex Hospitality — Kitchen Audit Report — Confidential', 14, pageH-3);
+  doc.text(new Date().toLocaleString(), pageW-14, pageH-3, {align:'right'});
+
+  const safeName = ('Audit_'+(a.outlet||'')+' '+(a.auditType||'')+'_'+(a.auditDate||'')).replace(/[^a-zA-Z0-9 _-]/g,'').replace(/\s+/g,'_');
+  doc.save(safeName+'.pdf');
 }
 
 function closeModal() {

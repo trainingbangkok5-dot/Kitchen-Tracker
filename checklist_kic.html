@@ -639,6 +639,28 @@ function submitDay() {
       }));
       return photos;
     })(),
+    // Store full task responses for dashboard detail view
+    taskData: (function() {
+      const tasks = {};
+      for (let dd=1; dd<=6; dd++) {
+        SECTIONS.forEach(s => s.tasks.forEach(t => {
+          const yn    = getVal(dd, t.id, 'yn');
+          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
+          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
+          if (yn || photo || pUrl) {
+            tasks[`d${dd}_${t.id}`] = {
+              day: dd,
+              section: s.title,
+              task: t.text,
+              owner: t.ownerLbl,
+              yn: yn||'',
+              photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
+            };
+          }
+        }));
+      }
+      return tasks;
+    })(),
     submittedAt:new Date().toISOString(),
     lastUpdated:new Date().toISOString(),
   };
