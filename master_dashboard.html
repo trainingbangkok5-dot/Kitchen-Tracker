@@ -26,6 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .role-btn.selected{border-color:#1A3C5E;background:#1A3C5E;color:#fff;}
 .role-btn .rb-icon{font-size:24px;margin-bottom:4px;}
 .role-btn .rb-name{font-size:13px;font-weight:600;}
+.role-btn .rb-lock{font-size:10px;margin-top:3px;opacity:0.6;}
 .outlet-sel{width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:16px;outline:none;display:none;}
 .outlet-sel.show{display:block;}
 .login-btn{width:100%;padding:13px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
@@ -128,13 +129,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="login-title">Kitchen Dashboard</div>
     <div class="login-sub">Select your role to continue</div>
     <div class="role-grid">
-      <div class="role-btn" onclick="selectRole(this,'kic')"><div class="rb-icon">👨‍🍳</div><div class="rb-name">KIC</div></div>
-      <div class="role-btn" onclick="selectRole(this,'areachef')"><div class="rb-icon">📊</div><div class="rb-name">Area Chef</div></div>
-      <div class="role-btn" onclick="selectRole(this,'training')"><div class="rb-icon">📚</div><div class="rb-name">Training</div></div>
-      <div class="role-btn" onclick="selectRole(this,'operations')"><div class="rb-icon">⚙️</div><div class="rb-name">Ops Manager</div></div>
-      <div class="role-btn" onclick="selectRole(this,'director')"><div class="rb-icon">🎯</div><div class="rb-name">Director</div></div>
-      <div class="role-btn" onclick="selectRole(this,'ceo')"><div class="rb-icon">👑</div><div class="rb-name">CEO</div></div>
+      <div class="role-btn" onclick="selectRole(this,'kic')">
+        <div class="rb-icon">👨‍🍳</div>
+        <div class="rb-name">KIC</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'areachef')">
+        <div class="rb-icon">📊</div>
+        <div class="rb-name">Area Chef</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'training')">
+        <div class="rb-icon">📚</div>
+        <div class="rb-name">Training</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'operations')">
+        <div class="rb-icon">⚙️</div>
+        <div class="rb-name">Ops Manager</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'director')">
+        <div class="rb-icon">🎯</div>
+        <div class="rb-name">Director</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'ceo')">
+        <div class="rb-icon">👑</div>
+        <div class="rb-name">CEO</div>
+        <div class="rb-lock">🔒</div>
+      </div>
     </div>
+    <div id="pinRow" style="display:none;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#1A3C5E;margin-bottom:6px;text-align:left;">🔒 Enter PIN to continue:</div>
+      <input type="password" id="loginPin" placeholder="Enter PIN code..." maxlength="10"
+        style="width:100%;padding:10px 14px;border:2px solid #1A3C5E;border-radius:10px;font-size:16px;letter-spacing:4px;text-align:center;outline:none;margin-bottom:4px;"
+        oninput="checkLoginReady()">
+      <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Training Department for your PIN</div>
+    </div>
+
     <select class="outlet-sel" id="outletSel">
       <option value="">Select your outlet...</option>
       <optgroup label="🏪 Little Bangkok">
@@ -167,6 +199,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span class="role-badge" id="roleBadge">Training</span>
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
+        <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
         <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
       </div>
     </div>
@@ -246,6 +279,8 @@ const FIREBASE_CONFIG = {
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
+// Load PINs from Firebase
+setTimeout(loadPins, 500);
 
 let allStaff = [], allAudits = [];
 let currentRole = '', currentOutlet = '', currentName = '';
@@ -260,6 +295,32 @@ const ROLES = {
 
 // Full-access roles
 const FULL_ACCESS = ['areachef','training','operations','director','ceo'];
+
+// Role PINs — stored in Firebase so each role can change their own PIN
+// Default PINs used if no PIN has been set in Firebase yet
+const DEFAULT_PINS = {
+  areachef:   'CHEF2025',
+  training:   'TRAIN2025',
+  operations: 'OPS2025',
+  director:   'DRI2025',
+  ceo:        'CEO2025',
+};
+let ROLE_PINS = {...DEFAULT_PINS};
+
+// Load PINs from Firebase on startup
+function loadPins() {
+  db.ref('settings/pins').once('value', snap => {
+    const saved = snap.val();
+    if (saved) {
+      ROLE_PINS = {...DEFAULT_PINS, ...saved};
+    }
+  });
+}
+
+function savePinToFirebase(role, newPin) {
+  return db.ref('settings/pins/' + role).set(newPin);
+}
+// KIC has no PIN — open access
 
 // ── LOGIN ──────────────────────────────────────────────────────
 function selectRole(btn, role) {
@@ -281,19 +342,42 @@ function checkLoginReady() {
   const name = document.getElementById('loginName').value.trim();
   const outletNeeded = currentRole === 'kic';
   const outletOk = !outletNeeded || document.getElementById('outletSel').value;
-  document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk;
+  const pinNeeded = FULL_ACCESS.includes(currentRole);
+  const pinOk = !pinNeeded || (document.getElementById('loginPin')?.value||'').length > 0;
+  document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk || !pinOk;
 }
 
 document.getElementById('loginName').addEventListener('input', checkLoginReady);
 document.getElementById('outletSel').addEventListener('change', checkLoginReady);
 
 function doLogin() {
+  // Validate PIN for management roles
+  if (FULL_ACCESS.includes(currentRole)) {
+    const enteredPin = document.getElementById('loginPin').value;
+    const correctPin = ROLE_PINS[currentRole];
+    if (enteredPin !== correctPin) {
+      const pinInput = document.getElementById('loginPin');
+      pinInput.style.borderColor = '#EF4444';
+      pinInput.style.background = '#FEE2E2';
+      pinInput.value = '';
+      pinInput.placeholder = 'Wrong PIN — try again';
+      setTimeout(() => {
+        pinInput.style.borderColor = '#1A3C5E';
+        pinInput.style.background = '#fff';
+        pinInput.placeholder = 'Enter PIN code...';
+      }, 2000);
+      return;
+    }
+  }
+  
   currentName = document.getElementById('loginName').value.trim();
   currentOutlet = document.getElementById('outletSel').value;
   const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Training Dept',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO / GM'};
   document.getElementById('roleBadge').textContent = roleLabels[currentRole]||currentRole;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainDash').style.display = 'block';
+  // Show Change PIN button for management roles only
+  document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   loadData();
 }
 
@@ -304,6 +388,8 @@ function doLogout() {
   if (selectedRoleBtn) { selectedRoleBtn.classList.remove('selected'); selectedRoleBtn = null; }
   document.getElementById('loginName').value = '';
   document.getElementById('outletSel').value = '';
+  document.getElementById('loginPin').value = '';
+  document.getElementById('pinRow').style.display = 'none';
   document.getElementById('loginBtn').disabled = true;
 }
 
@@ -536,6 +622,13 @@ function openStaffDetail(s) {
 
 
 // ── PDF Export for staff detail report ────────────────────────
+function stripEmoji(str) {
+  // Remove emoji and special unicode chars that jsPDF cannot render
+  return (str||'').replace(/[\u{1F000}-\u{1FFFF}|\u{2600}-\u{27FF}|\u{2B00}-\u{2BFF}|\u{FE00}-\u{FEFF}]/gu, '')
+    .replace(/[^-]/g, '') // remove all non-ASCII
+    .replace(/\s+/g,' ').trim();
+}
+
 function exportDetailPDF() {
   const { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('PDF library not loaded. Please check your internet connection.'); return; }
@@ -569,12 +662,12 @@ function exportDetailPDF() {
   const infoText = body.querySelector('[style*="F5F3EE"]')?.innerText || '';
   doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.setTextColor(100,100,100);
-  doc.text(infoText.replace(/\n+/g,' | ').substring(0,120), 14, y); y += 6;
+  doc.text(stripEmoji(infoText.replace(/\n+/g,' | ')).substring(0,120), 14, y); y += 6;
 
   // Time info
   const timeBoxes = body.querySelectorAll('[style*="F0FDF4"], [style*="EFF6FF"]');
   timeBoxes.forEach(box => {
-    const txt = box.innerText.replace(/\n+/g,' | ');
+    const txt = stripEmoji(box.innerText.replace(/\n+/g,' | '));
     doc.text(txt.substring(0,100), 14, y); y += 5;
   });
   y += 3;
@@ -593,7 +686,7 @@ function exportDetailPDF() {
       doc.rect(14, y-4, pageW-28, 8, 'F');
       doc.setTextColor(255,255,255);
       doc.setFontSize(10); doc.setFont('helvetica','bold');
-      doc.text(dayTitle, 16, y+1); y += 8;
+      doc.text(stripEmoji(dayTitle), 16, y+1); y += 8;
 
       // Section and task rows
       const sections = dayBlock.querySelectorAll('[style*="6B6B60"][style*="border-left"]');
@@ -604,35 +697,53 @@ function exportDetailPDF() {
 
       taskCards.forEach(card => {
         // Find preceding section header
-        const owner = card.querySelector('[style*="6B6B60"][style*="font-weight:600"]')?.innerText || '';
-        const taskText = card.querySelector('[style*="font-weight:500"]')?.innerText || '';
+        const owner = stripEmoji(card.querySelector('[style*="6B6B60"][style*="font-weight:600"]')?.innerText || '');
+        const taskText = stripEmoji(card.querySelector('[style*="font-weight:500"]')?.innerText || '');
         const ynSpan = card.querySelector('[style*="border-radius:6px"]');
-        const yn = ynSpan ? ynSpan.innerText : '—';
-        const ynColor = yn.includes('YES') ? [21,128,61] : yn.includes('NO') ? [185,28,28] : [100,100,100];
+        const ynRaw = ynSpan ? ynSpan.innerText : '—';
+        const yn = ynRaw.includes('YES') ? 'YES' : ynRaw.includes('NO') ? 'NO' : ynRaw.includes('N/A') ? 'N/A' : '—';
+        // Get photo if available
+        const photoImg = card.querySelector('img[src]');
+        const photoSrc = photoImg ? photoImg.src : null;
         
         if (taskText) {
-          tableRows.push({ owner, task: taskText, yn, ynColor });
+          tableRows.push({ owner, task: taskText, yn, photoSrc });
         }
       });
 
       if (tableRows.length > 0) {
         doc.autoTable({
           startY: y,
-          head: [['Owner', 'Task', 'Response']],
-          body: tableRows.map(r => [r.owner, r.task, r.yn]),
-          styles: { fontSize: 8, cellPadding: 3 },
+          head: [['Owner', 'Task', 'Response', 'Photo']],
+          body: tableRows.map(r => [r.owner, r.task, r.yn, '']),
+          styles: { fontSize: 8, cellPadding: 3, minCellHeight: 8 },
           headStyles: { fillColor: [46,109,164], textColor: 255, fontStyle: 'bold', fontSize: 8 },
           columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 120 },
-            2: { cellWidth: 25, halign: 'center', fontStyle: 'bold' }
+            0: { cellWidth: 22 },
+            1: { cellWidth: 100 },
+            2: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+            3: { cellWidth: 35, halign: 'center' }
           },
           didParseCell: (data) => {
             if (data.column.index === 2 && data.section === 'body') {
               const val = data.cell.raw||'';
-              if (val.includes('YES')) data.cell.styles.textColor = [21,128,61];
-              else if (val.includes('NO')) data.cell.styles.textColor = [185,28,28];
+              if (val === 'YES') data.cell.styles.textColor = [21,128,61];
+              else if (val === 'NO') data.cell.styles.textColor = [185,28,28];
               else data.cell.styles.textColor = [100,100,100];
+            }
+          },
+          didDrawCell: (data) => {
+            if (data.column.index === 3 && data.section === 'body') {
+              const row = tableRows[data.row.index];
+              if (row && row.photoSrc && (row.photoSrc.startsWith('data:image') || row.photoSrc.startsWith('http'))) {
+                try {
+                  const x = data.cell.x + 2;
+                  const y2 = data.cell.y + 2;
+                  const w = data.cell.width - 4;
+                  const h = data.cell.height - 4;
+                  doc.addImage(row.photoSrc, 'JPEG', x, y2, w, h);
+                } catch(e) { /* skip if image fails */ }
+              }
             }
           },
           margin: { left: 14, right: 14 },
@@ -765,6 +876,73 @@ function exportAuditPDF(a) {
 
   const safeName = ('Audit_'+(a.outlet||'')+' '+(a.auditType||'')+'_'+(a.auditDate||'')).replace(/[^a-zA-Z0-9 _-]/g,'').replace(/\s+/g,'_');
   doc.save(safeName+'.pdf');
+}
+
+
+// ── Change PIN functions ──────────────────────────────────────
+function openChangePinModal() {
+  document.getElementById('currentPinInput').value = '';
+  document.getElementById('newPinInput').value = '';
+  document.getElementById('confirmPinInput').value = '';
+  document.getElementById('pinChangeMsg').textContent = '';
+  document.getElementById('changePinModal').style.display = 'flex';
+}
+
+function closeChangePinModal() {
+  document.getElementById('changePinModal').style.display = 'none';
+}
+
+async function doChangePin() {
+  const current  = document.getElementById('currentPinInput').value;
+  const newPin   = document.getElementById('newPinInput').value;
+  const confirm  = document.getElementById('confirmPinInput').value;
+  const msgEl    = document.getElementById('pinChangeMsg');
+
+  // Validate current PIN
+  if (current !== ROLE_PINS[currentRole]) {
+    msgEl.style.color = '#EF4444';
+    msgEl.textContent = '✗ Current PIN is incorrect';
+    document.getElementById('currentPinInput').style.borderColor = '#EF4444';
+    setTimeout(() => {
+      document.getElementById('currentPinInput').style.borderColor = '#E0DDD4';
+      document.getElementById('currentPinInput').value = '';
+    }, 1500);
+    return;
+  }
+
+  // Validate new PIN
+  if (newPin.length < 4) {
+    msgEl.style.color = '#EF4444';
+    msgEl.textContent = '✗ PIN must be at least 4 characters';
+    return;
+  }
+
+  if (newPin !== confirm) {
+    msgEl.style.color = '#EF4444';
+    msgEl.textContent = '✗ PINs do not match';
+    document.getElementById('confirmPinInput').style.borderColor = '#EF4444';
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9]+$/.test(newPin)) {
+    msgEl.style.color = '#EF4444';
+    msgEl.textContent = '✗ PIN can only contain letters and numbers';
+    return;
+  }
+
+  // Save to Firebase
+  try {
+    msgEl.style.color = '#6B6B60';
+    msgEl.textContent = 'Saving...';
+    await savePinToFirebase(currentRole, newPin);
+    ROLE_PINS[currentRole] = newPin;
+    msgEl.style.color = '#15803D';
+    msgEl.textContent = '✅ PIN changed successfully!';
+    setTimeout(() => closeChangePinModal(), 1500);
+  } catch(e) {
+    msgEl.style.color = '#EF4444';
+    msgEl.textContent = '✗ Failed to save — check your connection';
+  }
 }
 
 function closeModal() {
@@ -937,5 +1115,40 @@ function openAuditDetail(a) {
 
 // Init — loadData called after login only
 </script>
+
+<!-- CHANGE PIN MODAL -->
+<div id="changePinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:360px;overflow:hidden;">
+    <div style="background:#1A3C5E;padding:16px 20px;display:flex;align-items:center;gap:10px;">
+      <span style="color:#fff;font-size:16px;font-weight:700;flex:1;">🔑 Change Your PIN</span>
+      <button onclick="closeChangePinModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div style="font-size:13px;color:#6B6B60;margin-bottom:16px;">Change your personal PIN. You will need to use the new PIN next time you log in.</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CURRENT PIN</label>
+        <input type="password" id="currentPinInput" placeholder="Enter current PIN..." maxlength="20"
+          style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;letter-spacing:3px;text-align:center;outline:none;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">NEW PIN</label>
+        <input type="password" id="newPinInput" placeholder="Enter new PIN..." maxlength="20"
+          style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;letter-spacing:3px;text-align:center;outline:none;">
+        <div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:center;">Min 4 characters — letters and numbers only</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CONFIRM NEW PIN</label>
+        <input type="password" id="confirmPinInput" placeholder="Confirm new PIN..." maxlength="20"
+          style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;letter-spacing:3px;text-align:center;outline:none;">
+      </div>
+      <div id="pinChangeMsg" style="font-size:12px;text-align:center;margin-bottom:12px;min-height:16px;"></div>
+      <button onclick="doChangePin()"
+        style="width:100%;padding:13px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">
+        Save New PIN
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
