@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kitchen Tracker — Loading...</title>
+<style>
+body{margin:0;background:#1A3C5E;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;}
+.card{background:#fff;border-radius:20px;padding:32px 24px;text-align:center;max-width:360px;width:90%;}
+h2{color:#1A3C5E;margin:0 0 8px;}
+p{color:#6B6B60;font-size:14px;margin:0 0 20px;}
+.btn{display:block;padding:13px;background:#1A3C5E;color:#fff;border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:10px;}
+.btn:hover{opacity:.85;}
+.btn.green{background:#15803D;}
+.btn.red{background:#7C2D12;}
+.btn.audit{background:#166534;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div style="font-size:40px;margin-bottom:10px;">🍳</div>
+  <h2>Kitchen Tracker</h2>
+  <p>Culex Hospitality — tap your role</p>
+  <a class="btn" href="checklist_linecook.html" onclick="bust(this)">🍳 Line Cook</a>
+  <a class="btn green" href="checklist_steward.html" onclick="bust(this)">🧹 Steward</a>
+  <a class="btn red" href="checklist_kic.html" onclick="bust(this)">👨‍🍳 KIC</a>
+  <a class="btn" style="background:#7F1D1D" href="checklist_areachef.html" onclick="bust(this)">📊 Area Chef</a>
+  <a class="btn" style="background:#374151;margin-top:6px;font-size:13px;" href="master_dashboard.html" onclick="bust(this)">🏠 Management Dashboard</a>
+</div>
+<script>
+function bust(el) {
+  el.href = el.href.split('?')[0] + '?v=' + Date.now();
+}
+// Auto-bust all links on load
+document.querySelectorAll('a').forEach(function(a) {
+  a.href = a.href.split('?')[0] + '?v=' + Date.now();
+});
+</script>
+</body>
+</html>
