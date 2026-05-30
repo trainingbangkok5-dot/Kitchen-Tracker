@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531000000">
+<meta name="app-version" content="20260531010000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531000000';
+  var v = '20260531010000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -635,23 +635,38 @@ function renderDay() {
   document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent = pct + '%';
 
-  // 6-day scores — use already calculated opO/opC/op from above
-  const pass = op>=95;
+  // 6-day scores — split by opening and closing
+  let rdoY=0,rdoM=0,rdcY=0,rdcM=0;
+  for(let d=1;d<=6;d++){
+    SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
+      const v=getVal(d,t.id,'yn');
+      if(v&&v!=='na'){
+        if(si===0){rdoM++;if(v==='yes')rdoY++;}
+        else{rdcM++;if(v==='yes')rdcY++;}
+      }
+    });});
+  }
+  const rdOpO=rdoM>0?Math.round((rdoY/rdoM)*100):null;
+  const rdOpC=rdcM>0?Math.round((rdcY/rdcM)*100):null;
+  const rdTM=rdoM+rdcM, rdTY=rdoY+rdcY;
+  const rdOp=rdTM>0?Math.round((rdTY/rdTM)*100):0;
+  const pass = rdOp>=95;
+
   const sc = document.createElement('div');
-  sc.className = `status-card ${tM>0?(pass?'pass':'fail'):''}`;
+  sc.className = `status-card ${rdTM>0?(pass?'pass':'fail'):''}`;
   sc.innerHTML = `
-    <div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
-    <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+    <div class="sc-icon">${rdTM===0?'📋':pass?'✅':'❌'}</div>
+    <div class="sc-title">${rdTM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
+    <div class="sc-score" style="color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
     <div class="sc-sub">6-day overall score (target: 95%)</div>
-    ${tM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+    ${rdTM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
-        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${rdOpO>=95?'#15803D':rdOpO>=70?'#92400E':'#B91C1C'}">${rdOpO!==null?rdOpO+'%':'—'}</div>
       </div>
       <div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌙 Closing</div>
-        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${rdOpC>=95?'#15803D':rdOpC>=70?'#92400E':'#B91C1C'}">${rdOpC!==null?rdOpC+'%':'—'}</div>
       </div>
     </div>`:''}
   `;
