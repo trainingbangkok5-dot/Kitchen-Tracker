@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531060000';
+  var v = '20260531170000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531060000">
+<meta name="app-version" content="20260531170000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -183,10 +183,18 @@ const FIREBASE_CONFIG = {
 // ══════════════════════════════════════════════════════════════
 
 // Init Firebase
-firebase.initializeApp(FIREBASE_CONFIG);
-const _db = firebase.database();
+let _db = null;
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+  } catch(e) { console.error('Firebase init error:', e); }
+}
+initFirebase();
 
 function pushToFirebase(record) {
+  if (!_db) { setTimeout(()=>pushToFirebase(record), 500); return; }
   try {
     const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.role
@@ -199,8 +207,12 @@ function pushToFirebase(record) {
       showToast('✓ Synced to dashboard', 'ok');
     }).catch(e => {
       console.warn('Firebase write failed:', e);
+      showToast('⚠ Sync failed: ' + e.message, 'error');
     });
-  } catch(e) { console.warn('Firebase error:', e); }
+  } catch(e) {
+    console.warn('Firebase error:', e);
+    showToast('⚠ Firebase error: ' + e.message, 'error');
+  }
 }
 
 
@@ -738,7 +750,30 @@ function submitOpening() {
   d[`d${currentDay}`]._openDone   = new Date().toISOString();
   d[`d${currentDay}`]._openerName = name;
   save(d);
-  showToast('Opening tasks submitted ✓', 'ok');
+
+  // Push opening to Firebase with taskData
+  let oY2=0,oM2=0;
+  const openingTaskData = {};
+  SECTIONS[0].tasks.forEach(t=>{
+    const yn   = getVal(currentDay, t.id, 'yn');
+    const pUrl = getVal(currentDay, t.id, 'photoUrl');
+    const photo= getVal(currentDay, t.id, 'photo');
+    if(yn&&yn!=='na'){oM2++;if(yn==='yes')oY2++;}
+    if(yn) openingTaskData['d'+currentDay+'_'+t.id]={
+      day:currentDay, section:SECTIONS[0].title, task:t.text, owner:t.ownerLbl,
+      yn:yn||'', photoUrl:pUrl||photo||''
+    };
+  });
+  const opO2=oM2>0?Math.round((oY2/oM2)*100):0;
+  pushToFirebase({
+    staffName:   name, role:ROLE, roleLabel:ROLE_LABEL,
+    outlet:      getOutlet(), week:getWeekStart(),
+    overallPct:  opO2, openingPct:opO2, closingPct:null,
+    qualified:   false, day:currentDay, status:'opening_submitted',
+    startedAt:   d[`d${currentDay}`]?._start || new Date().toISOString(),
+    submittedAt: new Date().toISOString(), lastUpdated:new Date().toISOString(),
+    taskData:    openingTaskData,
+  });
   currentShift = null;
   buildDayRail(); renderDay();
 }
@@ -786,6 +821,21 @@ function submitDay() {
     openingPct:   opO,
     closingPct:   opC,
     qualified:    op>=95,
+    taskData: (function() {
+      const tasks = {};
+      for (let dd=1; dd<=6; dd++) {
+        SECTIONS.forEach(s => s.tasks.forEach(t => {
+          const yn   = getVal(dd, t.id, 'yn');
+          const pUrl = getVal(dd, t.id, 'photoUrl');
+          const photo= getVal(dd, t.id, 'photo');
+          if (yn) tasks['d'+dd+'_'+t.id] = {
+            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
+            yn:yn||'', photoUrl:pUrl||photo||''
+          };
+        }));
+      }
+      return tasks;
+    })(),
     day:        currentDay,
     startedAt:  d[`d${currentDay}`]?._start || new Date().toISOString(),
     photos: (function() {
