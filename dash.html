@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531300000">
+<meta name="app-version" content="20260531320000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531300000';
+  var v = '20260531320000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1497,7 +1497,7 @@ function showDeleteToast(msg) {
 }
 
 // ── Export detail PDF (stub — main fn defined above) ──────────
-function exportDetailPDF() {
+async function exportDetailPDF() {
   var s = _currentStaffData;
   if (!s) { alert('No staff data.'); return; }
   var { jsPDF } = window.jspdf;
@@ -1626,7 +1626,7 @@ function exportDetailPDF() {
         y = doc.lastAutoTable.finalY + 2;
 
         // Add photos below table
-        const photoTasks = secTasks.filter(t => t.photoUrl);
+        const photoTasks = secTasks.filter(t => t.photoUrl || t.hasPhoto);
         if (photoTasks.length > 0) {
           if (y > H-60) { doc.addPage(); y=16; }
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
@@ -1635,23 +1635,37 @@ function exportDetailPDF() {
           for (const t of photoTasks) {
             try {
               if (y > H-50) { doc.addPage(); y=16; px=14; }
-              const imgData = t.photoUrl;
-              if (!imgData) continue;
-              // Detect format from base64 header or default to JPEG
-              let fmt = 'JPEG';
-              if (imgData.startsWith('data:image/png')) fmt = 'PNG';
-              else if (imgData.startsWith('data:image/webp')) fmt = 'WEBP';
-              doc.addImage(imgData, fmt, px, y, 40, 30);
-              doc.setFontSize(7); doc.setTextColor(100,100,100);
-              const label = (t.task||'').substring(0,25);
-              doc.text(label, px, y+33);
-              px += 46;
-              if (px > W-50) { px=14; y+=40; }
+              let imgData = t.photoUrl || '';
+              // Fetch from Realtime Database if db: reference
+              if (imgData.startsWith('db:')) {
+                const dbPath = imgData.replace('db:', '');
+                try {
+                  const snap = await db.ref('photos/' + dbPath).once('value');
+                  imgData = snap.val() || '';
+                } catch(e) { imgData = ''; }
+              }
+              if (imgData && imgData.startsWith('data:')) {
+                let fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                doc.addImage(imgData, fmt, px, y, 40, 30);
+                doc.setFontSize(7); doc.setTextColor(100,100,100);
+                doc.text((t.task||'').substring(0,25), px, y+33);
+                px += 46;
+                if (px > W-50) { px=14; y+=40; }
+              } else {
+                doc.setFillColor(240,253,244);
+                doc.roundedRect(px, y, 55, 12, 2, 2, 'F');
+                doc.setFontSize(8); doc.setTextColor(21,128,61);
+                doc.text('Photo taken', px+4, y+8);
+                doc.setFontSize(7); doc.setTextColor(100,100,100);
+                doc.text((t.task||'').substring(0,20), px, y+14);
+                px += 60;
+                if (px > W-60) { px=14; y+=20; }
+              }
             } catch(imgErr) {
               console.warn('Photo render error:', imgErr.message);
             }
           }
-          y += 42;
+          y += 22;
         }
         y += 4;
       });
