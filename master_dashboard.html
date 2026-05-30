@@ -1429,6 +1429,101 @@ function openAuditDetail(a) {
   document.getElementById('detailModal').classList.add('open');
 }
 
+
+// ── Close modal ───────────────────────────────────────────────
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+  // Remove any dynamically added PDF buttons
+  const modalHeader = document.querySelector('#detailModal .modal-header');
+  if (modalHeader) {
+    modalHeader.querySelectorAll('.pdf-monthly-btn, .pdf-audit-btn').forEach(function(b){ b.remove(); });
+  }
+}
+
+// ── Delete staff record functions (Training only) ─────────────
+function confirmDelete(fbKey, staffName, week) {
+  if (currentRole !== 'training') {
+    alert('Access denied — only Training Department can delete records.');
+    return;
+  }
+  var confirmed = window.confirm(
+    'Delete this record?\n\nStaff: ' + staffName + '\nWeek: ' + week + '\n\nThis cannot be undone.'
+  );
+  if (confirmed) deleteRecord(fbKey, staffName, week);
+}
+
+function deleteRecord(fbKey, staffName, week) {
+  if (!db) { alert('Firebase not ready — please refresh.'); return; }
+  db.ref('submissions').once('value', function(snap) {
+    var data = snap.val();
+    if (!data) { alert('No records found.'); return; }
+    var foundKey = null;
+    if (data[fbKey]) { foundKey = fbKey; }
+    if (!foundKey) {
+      Object.keys(data).forEach(function(key) {
+        if (!foundKey && data[key] && data[key].staffName === staffName && data[key].week === week) {
+          foundKey = key;
+        }
+      });
+    }
+    if (!foundKey) {
+      Object.keys(data).forEach(function(key) {
+        if (!foundKey && data[key] && data[key].staffName === staffName) {
+          foundKey = key;
+        }
+      });
+    }
+    if (!foundKey) { alert('Record not found. May already be deleted.'); return; }
+    db.ref('submissions/' + foundKey).remove()
+      .then(function() { showDeleteToast(staffName + ' — ' + week + ' deleted'); })
+      .catch(function(e) { alert('Delete failed: ' + e.message); });
+  });
+}
+
+function deleteAllRecords(staffName, role, outlet) {
+  if (currentRole !== 'training') { alert('Access denied.'); return; }
+  var confirmed = window.confirm(
+    'DELETE ALL RECORDS?\n\nStaff: ' + staffName + '\nThis will delete ALL weeks.\nThis CANNOT be undone.'
+  );
+  if (!confirmed) return;
+  if (!db) { alert('Firebase not ready.'); return; }
+  db.ref('submissions').once('value', function(snap) {
+    var data = snap.val();
+    if (!data) { alert('No records found.'); return; }
+    var updates = {};
+    var count = 0;
+    Object.keys(data).forEach(function(key) {
+      if (data[key] && data[key].staffName === staffName && data[key].role === role) {
+        updates['submissions/' + key] = null;
+        count++;
+      }
+    });
+    if (count === 0) { alert('No records found for ' + staffName); return; }
+    db.ref().update(updates)
+      .then(function() { showDeleteToast('All ' + count + ' record(s) for ' + staffName + ' deleted'); closeModal(); })
+      .catch(function(e) { alert('Delete failed: ' + e.message); });
+  });
+}
+
+function showDeleteToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#B91C1C;color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+  t.textContent = '🗑 ' + msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 3500);
+}
+
+// ── Export detail PDF (stub — main fn defined above) ──────────
+function exportDetailPDF() {
+  var s = _currentStaffData;
+  if (!s) { alert('No staff data.'); return; }
+  var { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+  exportStaffMonthlyPDF(s, allStaff.filter(function(sub){
+    return sub.staffName === s.staffName && sub.role === s.role && sub.outlet === s.outlet;
+  }));
+}
+
 // Init Firebase when page loads
 window.addEventListener('DOMContentLoaded', initFirebase);
 // loadData called after login only
