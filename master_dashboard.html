@@ -403,7 +403,7 @@ function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainDash').style.display = 'block';
   // Show Change PIN button for management roles only
-  document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
+  document.getElementById('changePinBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   loadData();
 }
 
@@ -911,6 +911,76 @@ function exportAuditPDF(a) {
 }
 
 
+
+// ── Delete staff record ───────────────────────────────────────
+function confirmDelete(fbKey, staffName, week) {
+  if (currentRole !== 'training') {
+    alert('Access denied — only Training Department can delete records.');
+    return;
+  }
+  // Show confirmation dialog
+  const confirmed = window.confirm(
+    'Delete this record?\n\n' +
+    'Staff: ' + staffName + '\n' +
+    'Week: ' + week + '\n\n' +
+    'This cannot be undone.'
+  );
+  if (confirmed) deleteRecord(fbKey, staffName);
+}
+
+function deleteRecord(fbKey, staffName) {
+  if (!db) { alert('Firebase not ready — please refresh'); return; }
+  
+  // Try multiple possible key formats
+  db.ref('submissions').once('value', snap => {
+    const data = snap.val();
+    if (!data) { alert('Record not found'); return; }
+    
+    // Find the record by matching fbKey or by staffName+role+week
+    let foundKey = null;
+    Object.keys(data).forEach(key => {
+      if (key === fbKey || key.startsWith(fbKey)) {
+        foundKey = key;
+      }
+    });
+    
+    // Also search by staffName match
+    if (!foundKey) {
+      Object.entries(data).forEach(([key, val]) => {
+        if (val && val.staffName === staffName) {
+          foundKey = key;
+        }
+      });
+    }
+    
+    if (!foundKey) {
+      // Try deleting by the exact key
+      db.ref('submissions/' + fbKey).remove()
+        .then(() => {
+          showDeleteToast(staffName + ' deleted successfully');
+        })
+        .catch(() => alert('Could not find record to delete. Please try again.'));
+      return;
+    }
+    
+    db.ref('submissions/' + foundKey).remove()
+      .then(() => {
+        showDeleteToast(staffName + ' record deleted successfully');
+      })
+      .catch(e => {
+        alert('Delete failed: ' + e.message);
+      });
+  });
+}
+
+function showDeleteToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#B91C1C;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+  t.textContent = '🗑 ' + msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
 // ── Change PIN functions ──────────────────────────────────────
 function openChangePinModal() {
   document.getElementById('currentPinInput').value = '';
@@ -929,8 +999,13 @@ async function doChangePin() {
   const newPin   = document.getElementById('newPinInput').value;
   const confirm  = document.getElementById('confirmPinInput').value;
   const msgEl    = document.getElementById('pinChangeMsg');
+  
+  // Training can change any role's PIN
+  const targetRole = (currentRole === 'training' && document.getElementById('pinRoleSelect'))
+    ? document.getElementById('pinRoleSelect').value
+    : currentRole;
 
-  // Validate current PIN
+  // Validate current PIN — Training must enter their own PIN to authorize change
   if (current !== ROLE_PINS[currentRole]) {
     msgEl.style.color = '#EF4444';
     msgEl.textContent = '✗ Current PIN is incorrect';
@@ -966,10 +1041,11 @@ async function doChangePin() {
   try {
     msgEl.style.color = '#6B6B60';
     msgEl.textContent = 'Saving...';
-    await savePinToFirebase(currentRole, newPin);
-    ROLE_PINS[currentRole] = newPin;
+    await savePinToFirebase(targetRole, newPin);
+    ROLE_PINS[targetRole] = newPin;
     msgEl.style.color = '#15803D';
-    msgEl.textContent = '✅ PIN changed successfully!';
+    const roleNames = {areachef:'Area Chef',training:'Training',operations:'Ops Manager',director:'Director',ceo:'CEO'};
+    msgEl.textContent = '✅ ' + (roleNames[targetRole]||targetRole) + ' PIN changed successfully!';
     setTimeout(() => closeChangePinModal(), 1500);
   } catch(e) {
     msgEl.style.color = '#EF4444';
@@ -985,89 +1061,717 @@ function closeModal() {
 function renderMonthly() {
   const el = document.getElementById('monthlyContent');
   if (!allStaff.length) {
-    el.innerHTML = '<div class="empty"><div style="font-size:36px">📅</div>No data yet</div>';
+    el.innerHTML = '<div class="empty"><div style="font-size:36px">📅</div><div style="font-size:15px;font-weight:700;color:#0A0A0A;margin-bottom:5px;">No data yet</div><div>Submissions will appear here automatically</div></div>';
     return;
   }
 
-  // Group by week
-  const byWeek = {};
-  allStaff.forEach(s => {
-    const w = s.week || 'Unknown';
-    if (!byWeek[w]) byWeek[w] = [];
-    byWeek[w].push(s);
+  // ── Get selected month/week from filter ──────────────────────
+  const selectedWeek   = document.getElementById('fWeek')?.value   || '';
+  const selectedOutlet = document.getElementById('fOutlet')?.value || '';
+  const selectedRole   = document.getElementById('fRole')?.value   || '';
+
+  // Filter staff
+  let filtered = allStaff.filter(s => {
+    if (selectedWeek   && s.week   !== selectedWeek)   return false;
+    if (selectedOutlet && (s.outlet||'').toLowerCase() !== selectedOutlet.toLowerCase()) return false;
+    if (selectedRole   && s.role   !== selectedRole)   return false;
+    return true;
   });
 
-  // Group by outlet
+  // ── Group submissions by staff name (consolidate all weeks) ──
+  const byStaff = {};
+  filtered.forEach(s => {
+    const key = (s.staffName||'Unknown') + '|' + (s.role||'') + '|' + (s.outlet||'');
+    if (!byStaff[key]) {
+      byStaff[key] = {
+        staffName: s.staffName,
+        role: s.role,
+        outlet: s.outlet,
+        weeks: [],
+        scores: [],
+        qualified: 0,
+        total: 0,
+      };
+    }
+    const sc = parseFloat(s.overallPct)||0;
+    byStaff[key].weeks.push(s.week||'—');
+    byStaff[key].scores.push(sc);
+    byStaff[key].total++;
+    if (sc >= 95) byStaff[key].qualified++;
+  });
+
+  // ── Overall summary ──────────────────────────────────────────
+  const allScores  = filtered.map(s => parseFloat(s.overallPct)||0).filter(s=>s>0);
+  const totalStaff = Object.keys(byStaff).length;
+  const totalQ     = Object.values(byStaff).filter(s => s.qualified > 0).length;
+  const avgScore   = allScores.length > 0 ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+  const passRate   = totalStaff > 0 ? Math.round((totalQ/totalStaff)*100) : 0;
+
+  let html2 = `
+  <!-- Filter row -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <select class="fsel" id="mRole" onchange="renderMonthly()">
+      <option value="">All roles</option>
+      <option value="linecook">Line Cook</option>
+      <option value="steward">Steward</option>
+      <option value="kic">KIC</option>
+      <option value="areachef">Area Chef</option>
+    </select>
+    <select class="fsel" id="mOutlet" onchange="renderMonthly()">
+      <option value="">All outlets</option>
+      ${[...new Set(allStaff.map(s=>s.outlet).filter(Boolean))].map(o=>`<option value="${o}">${o}</option>`).join('')}
+    </select>
+    <select class="fsel" id="mWeek" onchange="renderMonthly()">
+      <option value="">All weeks</option>
+      ${[...new Set(allStaff.map(s=>s.week).filter(Boolean))].sort().map(w=>`<option value="${w}">${w}</option>`).join('')}
+    </select>
+    <button onclick="exportMonthlyPDF()" style="padding:6px 14px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📄 Export PDF</button>
+    <button onclick="exportMonthlyExcel()" style="padding:6px 14px;background:#1A4731;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📊 Export Excel</button>
+  </div>
+
+  <!-- Summary KPI cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Total Staff</div>
+      <div style="font-size:28px;font-weight:700;color:#1A3C5E">${totalStaff}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Qualified</div>
+      <div style="font-size:28px;font-weight:700;color:#15803D">${totalQ}</div>
+      <div style="font-size:11px;color:#6B6B60">${passRate}% of team</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Avg Score</div>
+      <div style="font-size:28px;font-weight:700;color:${avgScore>=95?'#15803D':avgScore>=70?'#D97706':'#B91C1C'}">${avgScore>0?avgScore+'%':'—'}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Not Qualified</div>
+      <div style="font-size:28px;font-weight:700;color:#B91C1C">${totalStaff-totalQ}</div>
+      <div style="font-size:11px;color:#6B6B60">${100-passRate}% of team</div>
+    </div>
+  </div>
+
+  <!-- Consolidated staff table -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#0A0A0A;">
+    Team Member Performance — Monthly Consolidated
+    <span style="font-size:11px;font-weight:400;color:#6B6B60;margin-left:6px;">(tap a row to see weekly breakdown)</span>
+  </div>
+  <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;background:#1A3C5E;">
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Staff Member</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Role</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Outlet</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Avg Score</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Best</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Weeks</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Status</div>
+    </div>
+    <div id="monthlyStaffRows"></div>
+  </div>
+
+  <!-- By outlet breakdown -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;">By Outlet</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px;" id="outletBreakdown"></div>
+
+  <!-- By role breakdown -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;">By Role</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;" id="roleBreakdown"></div>
+  `;
+
+  el.innerHTML = html2;
+
+  // Restore filter values
+  const mRole = document.getElementById('mRole');
+  const mOutlet = document.getElementById('mOutlet');
+  const mWeek = document.getElementById('mWeek');
+  if (mRole)   mRole.value   = selectedRole;
+  if (mOutlet) mOutlet.value = selectedOutlet;
+  if (mWeek)   mWeek.value   = selectedWeek;
+
+  // ── Render staff rows ────────────────────────────────────────
+  const staffRows = document.getElementById('monthlyStaffRows');
+  const sortedStaff = Object.values(byStaff).sort((a,b) => {
+    const avgA = a.scores.length ? a.scores.reduce((x,y)=>x+y,0)/a.scores.length : 0;
+    const avgB = b.scores.length ? b.scores.reduce((x,y)=>x+y,0)/b.scores.length : 0;
+    return avgB - avgA;
+  });
+
+  sortedStaff.forEach((s, i) => {
+    const role  = ROLES[s.role]||{label:s.role||'—',icon:'',cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role]||'pill-lc';
+    const avg   = s.scores.length ? Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length) : 0;
+    const best  = s.scores.length ? Math.max(...s.scores) : 0;
+    const pass  = avg >= 95;
+    const row   = document.createElement('div');
+    row.style.cssText = `display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;background:${i%2===0?'#fff':'#F9F9F9'};cursor:pointer;transition:background .1s;`;
+    row.onmouseover = () => row.style.background='#EFF6FF';
+    row.onmouseout  = () => row.style.background = i%2===0?'#fff':'#F9F9F9';
+    row.onclick = () => showStaffWeeklyBreakdown(s);
+    row.innerHTML = `
+      <div style="padding:10px 12px;font-weight:600;font-size:13px;color:#1A3C5E">${s.staffName||'—'}</div>
+      <div style="padding:10px 12px;"><span class="role-pill ${roleCls}">${role.icon} ${role.label}</span></div>
+      <div style="padding:10px 12px;font-size:12px;color:#6B6B60">${s.outlet||'—'}</div>
+      <div style="padding:10px 12px;font-weight:700;font-size:14px;color:${pass?'#15803D':'#B91C1C'}">${avg>0?avg+'%':'—'}</div>
+      <div style="padding:10px 12px;font-size:12px;color:#15803D;font-weight:600">${best>0?best+'%':'—'}</div>
+      <div style="padding:10px 12px;font-size:12px;color:#6B6B60">${s.total} week${s.total!==1?'s':''}</div>
+      <div style="padding:10px 12px;"><span class="sp ${pass?'sp-pass':'sp-fail'}">${pass?'✅ Qualified':'❌ Not Yet'}</span></div>`;
+    staffRows.appendChild(row);
+  });
+
+  // ── Outlet breakdown ─────────────────────────────────────────
+  const outletEl = document.getElementById('outletBreakdown');
   const byOutlet = {};
-  allStaff.forEach(s => {
-    const o = s.outlet || 'Unknown';
+  sortedStaff.forEach(s => {
+    const o = s.outlet||'Unknown';
     if (!byOutlet[o]) byOutlet[o] = [];
     byOutlet[o].push(s);
   });
-
-  let html = `<div style="font-size:14px;font-weight:700;margin-bottom:12px;">Monthly Consolidated Report</div>`;
-
-  // Summary cards
-  const total = allStaff.length;
-  const qualified = allStaff.filter(s => parseFloat(s.overallPct) >= 95).length;
-  const avgScore = total > 0 ? Math.round(allStaff.reduce((a,b) => a + (parseFloat(b.overallPct)||0), 0) / total) : 0;
-
-  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
-    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">TOTAL STAFF</div>
-      <div style="font-size:28px;font-weight:700;color:#1A3C5E">${total}</div>
-    </div>
-    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">QUALIFIED</div>
-      <div style="font-size:28px;font-weight:700;color:#15803D">${qualified}</div>
-      <div style="font-size:11px;color:#6B6B60">${total>0?Math.round(qualified/total*100):0}% of total</div>
-    </div>
-    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;text-align:center;">
-      <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">AVG SCORE</div>
-      <div style="font-size:28px;font-weight:700;color:${avgScore>=95?'#15803D':avgScore>=70?'#D97706':'#B91C1C'}">${avgScore}%</div>
-    </div>
-  </div>`;
-
-  // By outlet
-  html += `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">By Outlet</div>`;
-  Object.entries(byOutlet).forEach(([outlet, staff]) => {
-    const q = staff.filter(s=>parseFloat(s.overallPct)>=95).length;
-    const avg = staff.length > 0 ? Math.round(staff.reduce((a,b)=>a+(parseFloat(b.overallPct)||0),0)/staff.length) : 0;
-    html += `<div class="outlet-card">
-      <div class="outlet-header">📍 ${outlet} — Avg: ${avg}% · ${q}/${staff.length} qualified</div>
-      ${staff.map(s => {
-        const sc = parseFloat(s.overallPct)||0;
-        const role = ROLES[s.role]||{label:s.role,icon:''};
-        return `<div class="outlet-row">
-          <span>${role.icon} ${s.staffName||'—'} <span style="font-size:10px;color:#6B6B60">${role.label}</span></span>
-          <span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'}">${sc>0?sc+'%':'—'}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
+  Object.entries(byOutlet).sort().forEach(([outlet, staff]) => {
+    const avgs = staff.map(s => s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0).filter(s=>s>0);
+    const outletAvg = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : 0;
+    const q = staff.filter(s => {
+      const avg2 = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+      return avg2 >= 95;
+    }).length;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;';
+    card.innerHTML = `
+      <div style="background:#F5F3EE;padding:10px 13px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>📍 ${outlet}</span>
+        <span style="font-size:14px;font-weight:700;color:${outletAvg>=95?'#15803D':outletAvg>=70?'#D97706':'#B91C1C'}">${outletAvg>0?outletAvg+'%':'—'}</span>
+      </div>
+      <div style="padding:8px 0;">
+        ${staff.map(s => {
+          const avg2 = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+          const role2 = ROLES[s.role]||{icon:''};
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 13px;border-bottom:.5px solid #E0DDD4;font-size:12px;">
+            <span>${role2.icon} ${s.staffName||'—'}</span>
+            <span style="font-weight:700;color:${avg2>=95?'#15803D':avg2>=70?'#D97706':'#B91C1C'}">${avg2>0?avg2+'%':'—'}</span>
+          </div>`;
+        }).join('')}
+        <div style="padding:6px 13px;font-size:11px;color:#6B6B60;">${q}/${staff.length} qualified</div>
+      </div>`;
+    outletEl.appendChild(card);
   });
 
-  // By week
-  html += `<div style="font-size:13px;font-weight:700;margin:16px 0 8px;">By Week</div>`;
-  Object.entries(byWeek).sort().forEach(([week, staff]) => {
-    const q = staff.filter(s=>parseFloat(s.overallPct)>=95).length;
-    const avg = staff.length > 0 ? Math.round(staff.reduce((a,b)=>a+(parseFloat(b.overallPct)||0),0)/staff.length) : 0;
-    html += `<div class="month-card">
-      <div class="month-title">📅 Week of ${week} <span style="font-size:12px;color:#6B6B60;font-weight:400">${q}/${staff.length} qualified · Avg ${avg}%</span></div>
-      ${staff.map(s => {
-        const sc = parseFloat(s.overallPct)||0;
-        const role = ROLES[s.role]||{label:s.role};
-        return `<div class="month-row">
-          <span>${s.staffName||'—'} <span style="color:#6B6B60">${role.label} · ${s.outlet||''}</span></span>
-          <span style="font-weight:700;color:${sc>=95?'#15803D':sc>=70?'#D97706':'#B91C1C'}">${sc>0?sc+'%':'—'}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
+  // ── Role breakdown ───────────────────────────────────────────
+  const roleEl = document.getElementById('roleBreakdown');
+  Object.entries(ROLES).forEach(([key, role]) => {
+    const roleStaff = sortedStaff.filter(s => s.role === key);
+    if (!roleStaff.length) return;
+    const avgs = roleStaff.map(s => s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0).filter(s=>s>0);
+    const roleAvg = avgs.length?Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length):0;
+    const q2 = roleStaff.filter(s=>{const a=s.scores.length?Math.round(s.scores.reduce((x,y)=>x+y,0)/s.scores.length):0;return a>=95;}).length;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;';
+    card.innerHTML = `
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:${role.dot}">${role.icon} ${role.label}</div>
+      <div style="font-size:26px;font-weight:700;color:${roleAvg>=95?'#15803D':roleAvg>=70?'#D97706':'#B91C1C'}">${roleAvg>0?roleAvg+'%':'—'}</div>
+      <div style="height:4px;background:#E0DDD4;border-radius:2px;margin:6px 0;">
+        <div style="height:100%;width:${roleAvg}%;background:${roleAvg>=95?'#22C55E':roleAvg>=70?'#F59E0B':'#EF4444'};border-radius:2px;"></div>
+      </div>
+      <div style="font-size:11px;color:#6B6B60;">${q2}/${roleStaff.length} qualified</div>`;
+    roleEl.appendChild(card);
   });
-
-  el.innerHTML = html;
 }
 
-// ── AUDITS ────────────────────────────────────────────────────
+// ── Staff weekly breakdown popup ──────────────────────────────
+function showStaffWeeklyBreakdown(s) {
+  const role = ROLES[s.role]||{label:s.role,icon:''};
+  const avg  = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+  const pass = avg >= 95;
+
+  // Get ALL submissions for this staff member for the whole month
+  const staffSubs = allStaff.filter(sub =>
+    sub.staffName === s.staffName && sub.role === s.role && sub.outlet === s.outlet
+  ).sort((a,b) => (a.week||'').localeCompare(b.week||''));
+
+  document.getElementById('modalTitle').textContent = s.staffName + ' — Full Monthly Report';
+
+  // Add PDF export button
+  const modalHeader = document.querySelector('#detailModal .modal-header');
+  if (modalHeader) {
+    const existing = modalHeader.querySelector('.pdf-monthly-btn');
+    if (!existing) {
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'modal-close pdf-monthly-btn';
+      pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;';
+      pdfBtn.textContent = '📄 Export PDF';
+      pdfBtn.onclick = () => exportStaffMonthlyPDF(s, staffSubs);
+      const closeBtn = modalHeader.querySelector('.modal-close');
+      if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
+    }
+  }
+
+  const body = document.getElementById('modalBody');
+
+  // ── Header info ──────────────────────────────────────────────
+  let html2 = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#F5F3EE;border-radius:10px;margin-bottom:14px;font-size:13px;">
+      <span style="font-weight:700;font-size:15px;">${s.staffName||'—'}</span>
+      <span>${role.icon} ${role.label}</span>
+      <span>📍 ${s.outlet||'—'}</span>
+      <span style="color:${pass?'#15803D':'#B91C1C'};font-weight:700;">Monthly Avg: ${avg>0?avg+'%':'—'} ${pass?'✅ Qualified':'❌ Not Qualified'}</span>
+    </div>
+
+    <!-- Score trend -->
+    <div style="margin-bottom:16px;background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:12px;">
+      <div style="font-size:11px;font-weight:700;color:#6B6B60;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Score trend</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;height:55px;">
+        ${staffSubs.map(sub => {
+          const sc = parseFloat(sub.overallPct)||0;
+          const h  = sc>0?Math.max(Math.round(sc/100*48),4):4;
+          const col= sc>=95?'#22C55E':sc>=70?'#F59E0B':'#EF4444';
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="font-size:9px;font-weight:700;color:${col}">${sc>0?sc+'%':'—'}</div>
+            <div style="width:100%;height:${h}px;background:${col};border-radius:3px 3px 0 0;"></div>
+            <div style="font-size:8px;color:#94A3B8;white-space:nowrap;">${(sub.week||'').substring(5)||'—'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // ── Week by week detail with full checklist ──────────────────
+  staffSubs.forEach((sub, wi) => {
+    const sc  = parseFloat(sub.overallPct)||0;
+    const p2  = sc >= 95;
+    const startT = sub.startedAt  ? new Date(sub.startedAt).toLocaleString()  : '—';
+    const endT   = sub.submittedAt? new Date(sub.submittedAt).toLocaleString(): '—';
+
+    html2 += `
+      <div style="margin-bottom:16px;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;">
+        <!-- Week header -->
+        <div style="background:#1A3C5E;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="color:#fff;font-size:13px;font-weight:700;">Week of ${sub.week||'—'}</div>
+          <div style="color:#fff;font-size:14px;font-weight:700;background:${p2?'#15803D':'#B91C1C'};padding:3px 10px;border-radius:20px;">
+            ${sc>0?sc+'%':'—'} ${p2?'✅':'❌'}
+          </div>
+        </div>
+        <!-- Time info -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #E0DDD4;">
+          <div style="padding:8px 12px;font-size:11px;color:#6B6B60;border-right:1px solid #E0DDD4;">
+            ⏱ <strong>Started:</strong> ${startT}
+          </div>
+          <div style="padding:8px 12px;font-size:11px;color:#6B6B60;">
+            ✅ <strong>Submitted:</strong> ${endT}
+          </div>
+        </div>`;
+
+    // Full task checklist
+    if (sub.taskData && Object.keys(sub.taskData).length > 0) {
+      // Group by day
+      const byDay = {};
+      Object.values(sub.taskData).forEach(t => {
+        const d = t.day||1;
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push(t);
+      });
+
+      Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+        const tasks = byDay[day];
+
+        // Group by section
+        const bySec = {};
+        tasks.forEach(t => {
+          const sec = t.section||'Tasks';
+          if (!bySec[sec]) bySec[sec] = [];
+          bySec[sec].push(t);
+        });
+
+        html2 += `<div style="background:#F5F3EE;padding:6px 12px;font-size:11px;font-weight:700;color:#1A3C5E;border-bottom:1px solid #E0DDD4;">
+          📅 Day ${day}
+        </div>`;
+
+        Object.entries(bySec).forEach(([sec, secTasks]) => {
+          html2 += `<div style="background:#fff;padding:5px 12px;font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid #E0DDD4;">
+            ${sec}
+          </div>`;
+
+          secTasks.forEach(t => {
+            const yn = t.yn||'';
+            const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+            const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+            const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+
+            html2 += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;">
+              <div style="flex:1;">
+                <div style="font-size:10px;color:#94A3B8;font-weight:600;margin-bottom:1px;">${t.owner||''}</div>
+                <div style="font-size:12px;font-weight:500;color:#0A0A0A;">${t.task||''}</div>
+                ${t.photoUrl?`<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:1.5px solid #22C55E;" onerror="this.style.display='none'">`:``}
+              </div>
+              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+            </div>`;
+          });
+        });
+      });
+    } else {
+      html2 += `<div style="padding:14px;text-align:center;color:#94A3B8;font-size:12px;">
+        Task detail not available for this week — staff needs to resubmit with updated checklist
+      </div>`;
+    }
+
+    html2 += `</div>`; // close week card
+  });
+
+  body.innerHTML = html2;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+// ── Export individual staff monthly PDF ───────────────────────
+function exportStaffMonthlyPDF(s, staffSubs) {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+
+  const doc  = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const role  = ROLES[s.role]||{label:s.role||'Staff'};
+  const avg   = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+  const pass  = avg >= 95;
+  let y = 0;
+
+  // Header
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('Monthly Staff Performance Report', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality -- Kitchen Incentive Tracker', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}), pageW-14, 17, {align:'right'});
+  y = 28;
+
+  // Staff info
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Staff Name', s.staffName||'—', 'Role', role.label||'—'],
+      ['Outlet', s.outlet||'—', 'Monthly Avg', avg>0?avg+'%':'—'],
+      ['Total Weeks', staffSubs.length, 'Status', pass?'QUALIFIED':'NOT QUALIFIED'],
+    ],
+    styles:{fontSize:9,cellPadding:3},
+    columnStyles:{
+      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:30},
+      1:{cellWidth:55},
+      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:30},
+      3:{cellWidth:55,textColor:pass?[21,128,61]:[185,28,28],fontStyle:'bold'},
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Week by week table
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,60,94);
+  doc.text('Weekly Performance Summary', 14, y); y += 5;
+
+  doc.autoTable({
+    startY: y,
+    head: [['Week','Score','Status','Started','Submitted']],
+    body: staffSubs.map(sub => {
+      const sc = parseFloat(sub.overallPct)||0;
+      return [
+        sub.week||'—',
+        sc>0?sc+'%':'—',
+        sc>=95?'QUALIFIED':'NOT YET',
+        sub.startedAt?new Date(sub.startedAt).toLocaleDateString('en-GB'):'—',
+        sub.submittedAt?new Date(sub.submittedAt).toLocaleDateString('en-GB'):'—',
+      ];
+    }),
+    styles:{fontSize:8,cellPadding:3},
+    headStyles:{fillColor:[26,60,94],textColor:255,fontStyle:'bold'},
+    columnStyles:{
+      0:{cellWidth:28},1:{cellWidth:18,halign:'center',fontStyle:'bold'},
+      2:{cellWidth:28,halign:'center'},3:{cellWidth:35},4:{cellWidth:35},
+    },
+    didParseCell:(data)=>{
+      if(data.column.index===2&&data.section==='body'){
+        data.cell.styles.textColor=data.cell.raw==='QUALIFIED'?[21,128,61]:[185,28,28];
+      }
+      if(data.column.index===1&&data.section==='body'){
+        const v=parseInt(data.cell.raw)||0;
+        data.cell.styles.textColor=v>=95?[21,128,61]:v>=70?[180,100,0]:[185,28,28];
+      }
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Full checklist per week
+  staffSubs.forEach((sub, wi) => {
+    if (!sub.taskData || !Object.keys(sub.taskData).length) return;
+
+    if (y > pageH - 40) { doc.addPage(); y = 16; }
+
+    // Week header
+    const sc2 = parseFloat(sub.overallPct)||0;
+    const p3  = sc2 >= 95;
+    doc.setFillColor(26,60,94);
+    doc.rect(14, y-3, pageW-28, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('Week of ' + (sub.week||'—') + '   |   Score: ' + (sc2>0?sc2+'%':'—') + '   |   ' + (p3?'QUALIFIED':'NOT QUALIFIED'), 16, y+2);
+    y += 9;
+
+    // Group by day
+    const byDay2 = {};
+    Object.values(sub.taskData).forEach(t => {
+      const d = t.day||1;
+      if (!byDay2[d]) byDay2[d] = [];
+      byDay2[d].push(t);
+    });
+
+    Object.keys(byDay2).sort((a,b)=>+a-+b).forEach(day => {
+      const tasks2 = byDay2[day];
+      if (y > pageH - 30) { doc.addPage(); y = 16; }
+
+      const rows2 = tasks2.map(t => {
+        const yn2 = (t.yn||'').toUpperCase();
+        return [t.owner||'', t.task||'', yn2==='YES'?'YES':yn2==='NO'?'NO':yn2==='NA'?'N/A':'—'];
+      });
+
+      doc.autoTable({
+        startY: y,
+        head: [['Day '+day+' — '+tasks2[0]?.section||'', '', 'Response']],
+        body: rows2,
+        styles:{fontSize:7,cellPadding:2},
+        headStyles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:7},
+        columnStyles:{
+          0:{cellWidth:22},1:{cellWidth:120},
+          2:{cellWidth:20,halign:'center',fontStyle:'bold'},
+        },
+        didParseCell:(data)=>{
+          if(data.column.index===2&&data.section==='body'){
+            const v=data.cell.raw||'';
+            if(v==='YES')data.cell.styles.textColor=[21,128,61];
+            else if(v==='NO')data.cell.styles.textColor=[185,28,28];
+            else data.cell.styles.textColor=[100,100,100];
+          }
+        },
+        margin:{left:14,right:14}, theme:'grid',
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    });
+  });
+
+  // Footer
+  const tp2 = doc.internal.getNumberOfPages();
+  for(let i=1;i<=tp2;i++){
+    doc.setPage(i);
+    doc.setFillColor(245,243,238);
+    doc.rect(0,pageH-8,pageW,8,'F');
+    doc.setTextColor(120,120,120); doc.setFontSize(7);
+    doc.text('Culex Hospitality -- Staff Monthly Report -- Confidential', 14, pageH-2);
+    doc.text('Page '+i+' of '+tp2, pageW-14, pageH-2, {align:'right'});
+  }
+
+  const fname = ((s.staffName||'Staff')+'_Monthly_Report').replace(/[^a-zA-Z0-9_]/g,'_');
+  doc.save(fname+'.pdf');
+}
+
+
+// ── Monthly PDF Export ────────────────────────────────────────
+function exportMonthlyPDF() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  let y = 0;
+
+  // Header
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Monthly Consolidated Performance Report', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality -- Kitchen Incentive Tracker', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}), pageW-14, 17, {align:'right'});
+  y = 28;
+
+  // Summary
+  const allScores2 = allStaff.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
+  const totalSt = [...new Set(allStaff.map(s=>s.staffName+'|'+s.role))].length;
+  const avgSc2  = allScores2.length?Math.round(allScores2.reduce((a,b)=>a+b,0)/allScores2.length):0;
+
+  // Group by staff for monthly avg
+  const byStaff2 = {};
+  allStaff.forEach(s => {
+    const key = (s.staffName||'')+'|'+(s.role||'')+'|'+(s.outlet||'');
+    if (!byStaff2[key]) byStaff2[key] = {staffName:s.staffName,role:s.role,outlet:s.outlet,scores:[]};
+    const sc = parseFloat(s.overallPct)||0;
+    if (sc>0) byStaff2[key].scores.push(sc);
+  });
+  const staffList2 = Object.values(byStaff2).map(s => ({
+    ...s,
+    avg: s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0
+  })).sort((a,b)=>b.avg-a.avg);
+  const qualified2 = staffList2.filter(s=>s.avg>=95).length;
+
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Total Staff', totalSt, 'Qualified', qualified2],
+      ['Average Score', avgSc2>0?avgSc2+'%':'—', 'Not Qualified', totalSt-qualified2],
+      ['Pass Rate', totalSt>0?Math.round(qualified2/totalSt*100)+'%':'—', 'Total Weeks', allStaff.length],
+    ],
+    styles:{fontSize:9,cellPadding:3},
+    columnStyles:{
+      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:35},
+      1:{cellWidth:45},
+      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:35},
+      3:{cellWidth:45},
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Staff performance table
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,60,94);
+  doc.text('Team Member Performance', 14, y); y += 5;
+
+  doc.autoTable({
+    startY: y,
+    head: [['#','Staff Name','Role','Outlet','Avg Score','Best Score','Weeks','Status']],
+    body: staffList2.map((s,i) => {
+      const role3 = ROLES[s.role]||{label:s.role||'—'};
+      const best3 = s.scores.length?Math.max(...s.scores):0;
+      return [
+        i+1, s.staffName||'—', role3.label, s.outlet||'—',
+        s.avg>0?s.avg+'%':'—', best3>0?best3+'%':'—',
+        s.scores.length, s.avg>=95?'QUALIFIED':'NOT YET'
+      ];
+    }),
+    styles:{fontSize:8,cellPadding:2},
+    headStyles:{fillColor:[26,60,94],textColor:255,fontStyle:'bold',fontSize:8},
+    columnStyles:{
+      0:{cellWidth:8},1:{cellWidth:32},2:{cellWidth:22},3:{cellWidth:22},
+      4:{cellWidth:18,halign:'center',fontStyle:'bold'},
+      5:{cellWidth:16,halign:'center'},
+      6:{cellWidth:12,halign:'center'},
+      7:{cellWidth:26,halign:'center',fontStyle:'bold'},
+    },
+    didParseCell:(data)=>{
+      if(data.column.index===7&&data.section==='body'){
+        data.cell.styles.textColor=data.cell.raw==='QUALIFIED'?[21,128,61]:[185,28,28];
+      }
+      if(data.column.index===4&&data.section==='body'){
+        const v=parseInt(data.cell.raw)||0;
+        data.cell.styles.textColor=v>=95?[21,128,61]:v>=70?[180,100,0]:[185,28,28];
+      }
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+
+  // Footer
+  const tp = doc.internal.getNumberOfPages();
+  for(let i=1;i<=tp;i++){
+    doc.setPage(i);
+    doc.setFillColor(245,243,238);
+    doc.rect(0,pageH-8,pageW,8,'F');
+    doc.setTextColor(120,120,120); doc.setFontSize(7);
+    doc.text('Culex Hospitality -- Monthly Performance Report -- Confidential', 14, pageH-2);
+    doc.text('Page '+i+' of '+tp, pageW-14, pageH-2, {align:'right'});
+  }
+
+  doc.save('Monthly_Performance_Report_'+new Date().toISOString().split('T')[0]+'.pdf');
+}
+
+// ── Monthly Excel Export ──────────────────────────────────────
+function exportMonthlyExcel() {
+  if(typeof XLSX==='undefined'){alert('Excel library not loaded.');return;}
+  const wb = XLSX.utils.book_new();
+
+  // Group by staff
+  const byStaff3 = {};
+  allStaff.forEach(s => {
+    const key=(s.staffName||'')+'|'+(s.role||'')+'|'+(s.outlet||'');
+    if(!byStaff3[key]) byStaff3[key]={staffName:s.staffName,role:s.role,outlet:s.outlet,weeks:[]};
+    byStaff3[key].weeks.push({week:s.week,score:parseFloat(s.overallPct)||0,submitted:s.submittedAt});
+  });
+
+  const staffList3 = Object.values(byStaff3).map(s=>({
+    ...s,
+    avg:s.weeks.length?Math.round(s.weeks.map(w=>w.score).reduce((a,b)=>a+b,0)/s.weeks.length):0
+  })).sort((a,b)=>b.avg-a.avg);
+
+  // Summary sheet
+  const allAvgs = staffList3.map(s=>s.avg).filter(s=>s>0);
+  const overallAvg = allAvgs.length?Math.round(allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length):0;
+  const qualified3 = staffList3.filter(s=>s.avg>=95).length;
+
+  const summaryRows = [
+    ['MONTHLY CONSOLIDATED PERFORMANCE REPORT'],
+    ['Culex Hospitality — Kitchen Incentive Tracker'],
+    ['Generated:', new Date().toLocaleDateString('en-GB')],[''],
+    ['SUMMARY'],
+    ['Total Staff', staffList3.length, 'Qualified', qualified3],
+    ['Average Score', overallAvg+'%', 'Not Qualified', staffList3.length-qualified3],
+    ['Pass Rate', staffList3.length>0?Math.round(qualified3/staffList3.length*100)+'%':'—','',''],
+    [''],
+    ['TEAM MEMBER PERFORMANCE'],
+    ['#','Staff Name','Role','Outlet','Monthly Avg','Best Score','Lowest Score','Weeks Submitted','Status'],
+    ...staffList3.map((s,i)=>{
+      const role4=ROLES[s.role]||{label:s.role||'—'};
+      const scores4=s.weeks.map(w=>w.score).filter(sc=>sc>0);
+      return [
+        i+1, s.staffName||'—', role4.label, s.outlet||'—',
+        s.avg>0?s.avg+'%':'—',
+        scores4.length?Math.max(...scores4)+'%':'—',
+        scores4.length?Math.min(...scores4)+'%':'—',
+        s.weeks.length,
+        s.avg>=95?'QUALIFIED':'NOT QUALIFIED'
+      ];
+    })
+  ];
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+  summarySheet['!cols']=[{wch:4},{wch:25},{wch:15},{wch:20},{wch:14},{wch:12},{wch:13},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, summarySheet, 'Monthly Summary');
+
+  // Weekly detail sheet
+  const detailRows = [
+    ['WEEKLY DETAIL BY STAFF MEMBER'],[''],
+    ['Staff Name','Role','Outlet','Week','Score','Status','Submitted Date'],
+    ...allStaff.sort((a,b)=>(a.staffName||'').localeCompare(b.staffName||'')).map(s=>{
+      const role5=ROLES[s.role]||{label:s.role||'—'};
+      const sc5=parseFloat(s.overallPct)||0;
+      return [
+        s.staffName||'—', role5.label, s.outlet||'—', s.week||'—',
+        sc5>0?sc5+'%':'—', sc5>=95?'QUALIFIED':'NOT QUALIFIED',
+        s.submittedAt?new Date(s.submittedAt).toLocaleDateString('en-GB'):'—'
+      ];
+    })
+  ];
+  const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
+  detailSheet['!cols']=[{wch:25},{wch:15},{wch:20},{wch:14},{wch:10},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, detailSheet, 'Weekly Detail');
+
+  // Outlet summary sheet
+  const byOutlet3={};
+  staffList3.forEach(s=>{
+    const o=s.outlet||'Unknown';
+    if(!byOutlet3[o]) byOutlet3[o]=[];
+    byOutlet3[o].push(s);
+  });
+  const outletRows=[['OUTLET PERFORMANCE SUMMARY'],[''],
+    ['Outlet','Total Staff','Qualified','Avg Score','Pass Rate']];
+  Object.entries(byOutlet3).sort().forEach(([outlet,staff3])=>{
+    const avgs3=staff3.map(s=>s.avg).filter(s=>s>0);
+    const avg3=avgs3.length?Math.round(avgs3.reduce((a,b)=>a+b,0)/avgs3.length):0;
+    const q3=staff3.filter(s=>s.avg>=95).length;
+    outletRows.push([outlet,staff3.length,q3,avg3>0?avg3+'%':'—',staff3.length>0?Math.round(q3/staff3.length*100)+'%':'—']);
+  });
+  const outletSheet=XLSX.utils.aoa_to_sheet(outletRows);
+  outletSheet['!cols']=[{wch:25},{wch:14},{wch:12},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,outletSheet,'By Outlet');
+
+  XLSX.writeFile(wb,'Monthly_Performance_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+
+
 function renderAudits() {
   const body = document.getElementById('auditBody');
   if (!allAudits.length) {
@@ -1158,7 +1862,19 @@ window.addEventListener('DOMContentLoaded', initFirebase);
       <button onclick="closeChangePinModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;">✕</button>
     </div>
     <div style="padding:20px;">
-      <div style="font-size:13px;color:#6B6B60;margin-bottom:16px;">Change your personal PIN. You will need to use the new PIN next time you log in.</div>
+      <div style="font-size:13px;color:#6B6B60;margin-bottom:10px;">
+      ${currentRole === 'training' ? 'As Training Department, you can change any role PIN.' : 'Change your personal PIN.'}
+    </div>
+    <div id="pinRoleSelector" style="margin-bottom:12px;${currentRole === 'training' ? '' : 'display:none;'}">
+      <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CHANGE PIN FOR ROLE</label>
+      <select id="pinRoleSelect" style="width:100%;padding:8px 12px;border:2px solid #E0DDD4;border-radius:8px;font-size:13px;outline:none;">
+        <option value="areachef">📊 Area Chef</option>
+        <option value="training">📚 Training (my PIN)</option>
+        <option value="operations">⚙️ Ops Manager</option>
+        <option value="director">🎯 Director</option>
+        <option value="ceo">👑 CEO</option>
+      </select>
+    </div>
       <div style="margin-bottom:12px;">
         <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CURRENT PIN</label>
         <input type="password" id="currentPinInput" placeholder="Enter current PIN..." maxlength="20"
