@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531160000';
+  var v = '20260531210000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531160000">
+<meta name="app-version" content="20260531210000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -165,6 +165,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     <button id="btnOpenShift" onclick="selectShift('opening')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌅 Opening Shift</button>
     <button id="btnCloseShift" onclick="selectShift('closing')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌙 Closing Shift</button>
   </div>
+<script>function selectShift(s){window._pendingShift=s;if(window._selectShiftReady)window._selectShiftReady(s);}</script>
 </div>
 <div class="score-bar">
   <span style="font-size:12px;color:#64748B;font-weight:500;">Today's score</span>
@@ -532,7 +533,8 @@ function selectShift(shift) {
     }
   }
   currentShift = shift;
-  const btnO = document.getElementById('btnOpenShift');
+  window._selectShiftReady = null;
+  window._pendingShift = null;
   const btnC = document.getElementById('btnCloseShift');
   if (btnO) btnO.style.cssText = shift === 'opening'
     ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#1A3C5E;font-size:12px;font-weight:700;cursor:pointer;'
@@ -1003,6 +1005,8 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  window._selectShiftReady = selectShift;
+  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
   // Auto-set to current Monday
   // Auto-set week to current Monday
   if (typeof getMonday === 'function') {
@@ -1025,16 +1029,4 @@ window.addEventListener('DOMContentLoaded', () => {
   ['fName','fOutlet','fWeek'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
-    if (saved) el.value = saved;
-    el.addEventListener('input', () => {
-      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
-      buildDayRail(); renderDay();
-    });
-  });
-  buildDayRail();
-  renderDay();
-});
-</script>
-</body>
-</html>
+    const saved = localStorage.getItem('kic_info_' + RO
