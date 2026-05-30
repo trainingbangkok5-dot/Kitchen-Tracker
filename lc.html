@@ -24,15 +24,15 @@
 <meta name="app-version" content="20260531210000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1A3C5E">
+<meta name="theme-color" content="#1A4731">
 <meta name="format-detection" content="telephone=no">
-<title>Line Cook Checklist</title>
+<title>Steward Checklist</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#F8FAFC; color:#0F172A; padding-bottom:60px; -webkit-font-smoothing:antialiased; }
-.header { background:#1A3C5E; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
-.role-badge { display:inline-block; background:#2E6DA4; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
+.header { background:#1A4731; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
+.role-badge { display:inline-block; background:#16A34A; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
 .header h1 { color:#fff; font-size:17px; font-weight:700; }
 .header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
 .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:10px; }
@@ -42,17 +42,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .info-field input::placeholder { color:rgba(255,255,255,0.3); }
 .score-bar { background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; display:flex; align-items:center; gap:10px; }
 .score-track { flex:1; height:5px; background:#E2E8F0; border-radius:3px; overflow:hidden; }
-.score-fill { height:100%; border-radius:3px; background:#2E6DA4; transition:width 0.4s; }
-.score-pct { font-size:13px; font-weight:700; color:#1A3C5E; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
+.score-fill { height:100%; border-radius:3px; background:#16A34A; transition:width 0.4s; }
+.score-pct { font-size:13px; font-weight:700; color:#1A4731; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
 .day-rail { background:#fff; border-bottom:1px solid #E2E8F0; padding:9px 14px; display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .day-rail::-webkit-scrollbar { display:none; }
 .day-pill { flex-shrink:0; padding:5px 14px; border-radius:20px; border:1.5px solid #E2E8F0; background:#fff; font-size:12px; font-weight:700; color:#64748B; cursor:pointer; white-space:nowrap; -webkit-appearance:none; transition:all 0.15s; }
-.day-pill.active { background:#1A3C5E; border-color:#1A3C5E; color:#fff; }
+.day-pill.active { background:#1A4731; border-color:#1A4731; color:#fff; }
 .day-pill.done { border-color:#22C55E; color:#15803D; }
-.day-pill.done.active { background:#1A3C5E; color:#fff; }
+.day-pill.done.active { background:#1A4731; color:#fff; }
 .day-pill.locked { opacity:0.35; cursor:not-allowed; }
 .content { padding:12px 16px; }
-.section-hdr { background:#2E6DA4; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
+.section-hdr { background:#16A34A; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
 .task-card { background:#fff; border:1px solid #E2E8F0; border-top:none; padding:12px 13px; }
 .task-card:last-child { border-radius:0 0 10px 10px; }
 .task-card.locked-card { opacity:0.7; pointer-events:none; }
@@ -82,7 +82,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .sc-title { font-size:16px; font-weight:700; margin-bottom:3px; }
 .sc-score { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; margin:6px 0; }
 .sc-sub { font-size:12px; color:#64748B; }
-.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#1A3C5E; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
+.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#1A4731; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
 .submit-btn:active { opacity:0.85; }
 .submit-btn:disabled { background:#94A3B8; cursor:not-allowed; }
 
@@ -95,20 +95,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 
 .synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
 .locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
-.closing-locked-banner { background:#F1F5F9; border:1.5px dashed #94A3B8; border-radius:10px; padding:14px; text-align:center; margin-top:16px; }
-.closing-locked-banner .cl-icon { font-size:28px; margin-bottom:4px; }
-.closing-locked-banner .cl-text { font-size:13px; font-weight:600; color:#475569; }
-.closing-locked-banner .cl-sub { font-size:11px; color:#94A3B8; margin-top:3px; }
-.shift-active { background:rgba(255,255,255,0.95) !important; color:#1A3C5E !important; border-color:#fff !important; }
-.shift-screen { padding:24px 16px; text-align:center; }
-.shift-screen h2 { font-size:16px; font-weight:700; color:#1A3C5E; margin-bottom:6px; }
-.shift-screen p { font-size:13px; color:#64748B; margin-bottom:20px; }
-.shift-btn-big { display:block; width:100%; padding:18px; border-radius:14px; border:none; font-size:16px; font-weight:700; cursor:pointer; margin-bottom:12px; }
-.shift-btn-opening { background:linear-gradient(135deg,#1A3C5E,#2E6DA4); color:#fff; }
-.shift-btn-closing { background:linear-gradient(135deg,#1A4731,#16A34A); color:#fff; }
-.shift-btn-closing.locked { background:#E2E8F0; color:#94A3B8; cursor:not-allowed; }
-.readonly-section { opacity:0.55; pointer-events:none; }
-.readonly-badge { display:inline-block; background:#E2E8F0; color:#64748B; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:middle; }
 /* OVERWRITE PANEL (KIC & Area Chef only) */
 .overwrite-panel { background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:10px; padding:12px 14px; margin-top:14px; }
 .overwrite-title { font-size:12px; font-weight:700; color:#B91C1C; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
@@ -122,8 +108,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .modal-title { font-size:16px; font-weight:700; margin-bottom:4px; }
 .modal-sub { font-size:12px; color:#64748B; margin-bottom:18px; }
 .mbtn { display:block; width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; -webkit-appearance:none; }
-.mbtn-cam { background:#1A3C5E; color:#fff; }
-.mbtn-gal { background:#EFF6FF; color:#2E6DA4; }
+.mbtn-cam { background:#1A4731; color:#fff; }
+.mbtn-gal { background:#EFF6FF; color:#16A34A; }
 .mbtn-cancel { background:#F8FAFC; color:#64748B; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -131,7 +117,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </head>
 <body>
 <div class="header">
-  <div class="role-badge">🍳 Line Cook</div>
+  <div class="role-badge">🧹 Steward</div>
   <h1>6-Day Incentive Checklist</h1>
   <div class="header-sub">Complete tasks • Take photos • Submit each day</div>
   <div class="info-grid">
@@ -156,11 +142,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </optgroup>
 </select></div>
     <div class="info-field"><label>Week Starting (Auto)</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-resets every Monday"></div>
-    <div class="info-field" style="display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="clearAllData()" title="Clear all data for this week">
-      <label style="cursor:pointer;font-size:9px;color:rgba(255,100,100,0.8);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;">🗑 Reset</label>
     </div>
-    </div>
-  <!-- Shift selector bar -->
   <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
     <button id="btnOpenShift" onclick="selectShift('opening')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌅 Opening Shift</button>
     <button id="btnCloseShift" onclick="selectShift('closing')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌙 Closing Shift</button>
@@ -201,26 +183,19 @@ const FIREBASE_CONFIG = {
 };
 // ══════════════════════════════════════════════════════════════
 
-// Init Firebase — wait for SDK to be ready
+// Init Firebase
 let _db = null;
 function initFirebase() {
   try {
-    if (typeof firebase === 'undefined') {
-      setTimeout(initFirebase, 100); return;
-    }
-    if (!firebase.apps.length) {
-      firebase.initializeApp(FIREBASE_CONFIG);
-    }
+    if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     _db = firebase.database();
-    console.log('Firebase ready ✓');
-  } catch(e) {
-    console.error('Firebase init error:', e);
-  }
+  } catch(e) { console.error('Firebase init error:', e); }
 }
 initFirebase();
 
 function pushToFirebase(record) {
-  if (!_db) { console.warn('Firebase not ready'); setTimeout(()=>pushToFirebase(record), 500); return; }
+  if (!_db) { setTimeout(()=>pushToFirebase(record), 500); return; }
   try {
     const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.role
@@ -442,30 +417,13 @@ function checkAutoReset() {
 }
 
 // ── Role config ───────────────────────────────────────────────
-const ROLE       = 'linecook';
-
-// ── Clear all local data ──────────────────────────────────────
-function clearAllData() {
-  if (!confirm('Clear ALL checklist data for this week? This cannot be undone.')) return;
-  localStorage.removeItem(SK);
-  showToast('Data cleared — fresh start ✓', 'ok');
-  currentShift = null;
-  buildDayRail();
-  renderDay();
-}
-const ROLE_LABEL = 'Line Cook';
-const SK_BASE    = 'kic_linecook_data_v2';
-const SK         = SK_BASE + '_' + (function(){
-  // Get current Monday as week key
-  var d = new Date(); var day = d.getDay();
-  var diff = d.getDate() - day + (day===0?-6:1);
-  d.setDate(diff); d.setHours(0,0,0,0);
-  return d.toISOString().split('T')[0];
-})();
+const ROLE       = 'steward';
+const ROLE_LABEL = 'Steward';
+const SK         = 'kic_steward_data_v2';
 const ALLOW_OVERWRITE = false;
 const OVERWRITE_CODE  = '';
 
-const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cooking & measuring utensils readiness, knives sharpened", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: all ingredients filled, FIFOed, clean and tidy", "photo": true}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Cheat sheet: visible, completed, and used", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: in proper working condition", "photo": true}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, organized, and properly stored after use", "photo": true}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: all ingredients covered, labeled, FIFOed, clean and tidy", "photo": true}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing checklist completed and endorsed properly", "photo": true}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: cleaned, switched off, and in proper condition before closing", "photo": true}]}];
+const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaning tools, dishwashing machine, chemicals, garbage bins, chopping board ready", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area clean, organized, and ready for operation", "photo": true}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: cleaning schedule visible, completed, and followed", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine and sinks in proper working condition", "photo": true}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, washed, organized, and properly stored after operation", "photo": true}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area cleaned, garbage disposed, drains cleaned and area tidy", "photo": true}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing cleaning checklist completed and followed properly", "photo": true}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine, sinks, cleaning equipment cleaned and switched off", "photo": true}]}];
 
 let currentDay = 1;
 let activePhotoTask = null;
@@ -512,34 +470,29 @@ function buildDayRail() {
 }
 
 // ── Shift selection ───────────────────────────────────────────
-let currentShift = null; // 'opening' or 'closing'
+let currentShift = null;
 
 function selectShift(shift) {
   const data = load();
   const openingDone = !!data[`d${currentDay}`]?._openDone;
-
   if (shift === 'closing') {
-    if (!openingDone) {
-      showToast('Opening shift must be submitted first 🔒', 'warn'); return;
-    }
+    if (!openingDone) { showToast('Opening shift must be submitted first 🔒', 'warn'); return; }
     const now = new Date();
-    const hour = now.getHours();
-    if (hour < 23) {
-      const minutesLeft = (23 - hour - 1) * 60 + (60 - now.getMinutes());
-      const h = Math.floor(minutesLeft / 60);
-      const m = minutesLeft % 60;
-      showToast(`Closing unlocks at 11:00 PM — ${h}h ${m}m remaining ⏰`, 'warn');
+    if (now.getHours() < 23) {
+      const mLeft = (23 - now.getHours() - 1) * 60 + (60 - now.getMinutes());
+      showToast(`Closing unlocks at 11:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
       return;
     }
   }
   currentShift = shift;
   window._selectShiftReady = null;
   window._pendingShift = null;
+  const btnO = document.getElementById('btnOpenShift');
   const btnC = document.getElementById('btnCloseShift');
-  if (btnO) btnO.style.cssText = shift === 'opening'
-    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#1A3C5E;font-size:12px;font-weight:700;cursor:pointer;'
+  if (btnO) btnO.style.cssText = shift==='opening'
+    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#1A4731;font-size:12px;font-weight:700;cursor:pointer;'
     : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
-  if (btnC) btnC.style.cssText = shift === 'closing'
+  if (btnC) btnC.style.cssText = shift==='closing'
     ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #22C55E;background:rgba(34,197,94,0.25);color:#fff;font-size:12px;font-weight:700;cursor:pointer;'
     : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
   renderDay();
@@ -550,60 +503,63 @@ function renderDay() {
   const container = document.getElementById('mainContent');
   container.innerHTML = '';
 
+  // Track start time for this day
   const dayKey = `d${currentDay}`;
   const dNow = load();
   if (!dNow[dayKey]) { dNow[dayKey] = {}; }
-  if (!dNow[dayKey]._start) { dNow[dayKey]._start = new Date().toISOString(); save(dNow); }
+  if (!dNow[dayKey]._start) {
+    dNow[dayKey]._start = new Date().toISOString();
+    save(dNow);
+  }
 
   const data = load();
-  const isDone     = !!data[`d${currentDay}`]?._openDone && !!data[`d${currentDay}`]?._closeDone;
-  const openingDone = !!data[`d${currentDay}`]?._openDone;
-  const closingDone = !!data[`d${currentDay}`]?._closeDone;
-  const weekStart  = getWeekStart();
-  const unlocked   = isDayUnlocked(currentDay, weekStart);
+  const isDone = !!data[`d${currentDay}`]?._closeDone || !!data[`d${currentDay}`]?._done;
+  const openingDone2 = !!data[`d${currentDay}`]?._openDone;
+  const closingDone  = !!data[`d${currentDay}`]?._closeDone;
+  const weekStart = getWeekStart();
+  const unlocked = isDayUnlocked(currentDay, weekStart);
+  let total = 0, yes = 0;
 
   if (!unlocked) {
     const locked = document.createElement('div');
     locked.className = 'locked-msg';
-    locked.textContent = `🔒 Day ${currentDay} is not available yet.`;
+    locked.textContent = `🔒 Day ${currentDay} is not available yet. It will unlock on the correct date.`;
     container.appendChild(locked);
     return;
   }
 
-  // No shift chosen — show shift picker
+  // Show shift picker if no shift selected
   if (!currentShift) {
-    const screen = document.createElement('div');
-    screen.style.cssText = 'padding:24px 16px;text-align:center;';
-    const openerName = data[`d${currentDay}`]?._openerName || '';
     const nowH = new Date().getHours();
     const isAfter11 = nowH >= 23;
-    const closingAvailable = openingDone && isAfter11;
+    const closingAvailable = openingDone2 && isAfter11;
     const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
-    const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
+    const openerName = data[`d${currentDay}`]?._openerName || '';
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
-      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
-      closingBtnLabel = '🌙 Closing Shift ✓';
-      closingSubNote = '';
+      closingBtnStyle='background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel='🌙 Closing Shift ✓'; closingSubNote='';
     } else if (closingAvailable) {
-      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
-      closingBtnLabel = '🌙 Closing Shift';
-      closingSubNote = '<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
-    } else if (!openingDone) {
-      closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
-      closingBtnLabel = '🌙 Closing Shift 🔒';
-      closingSubNote = '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Submit Opening first</div>';
+      closingBtnStyle='background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel='🌙 Closing Shift';
+      closingSubNote='<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
+    } else if (!openingDone2) {
+      closingBtnStyle='background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel='🌙 Closing Shift 🔒';
+      closingSubNote='<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Submit Opening first</div>';
     } else {
-      closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
-      closingBtnLabel = '🌙 Closing Shift ⏰';
-      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 11:00 PM — ${hLeft}h ${mLeft}m remaining</div>`;
+      closingBtnStyle='background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel='🌙 Closing Shift ⏰';
+      closingSubNote=`<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 11:00 PM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
     }
-    screen.innerHTML = `
+    const screen = document.createElement('div');
+    screen.style.cssText='padding:24px 16px;text-align:center;';
+    screen.innerHTML=`
       <div style="font-size:32px;margin-bottom:8px;">👋</div>
-      <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">Which shift are you on?</h2>
+      <h2 style="font-size:16px;font-weight:700;color:#1A4731;margin-bottom:6px;">Which shift are you on?</h2>
       <p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>
-      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;">
-        🌅 Opening Shift ${openingDone ? '✓' : ''}
+      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;">
+        🌅 Opening Shift ${openingDone2 ? '✓' : ''}
       </button>
       <button onclick="selectShift('closing')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;margin-bottom:4px;${closingBtnStyle}">
         ${closingBtnLabel}
@@ -615,33 +571,33 @@ function renderDay() {
     return;
   }
 
-  let total = 0, yes = 0;
-
   SECTIONS.forEach((section, si) => {
     const isOpenSection  = si === 0;
     const isCloseSection = si === 1;
-
-    // Opening shift: only show opening tasks
     if (currentShift === 'opening' && isCloseSection) return;
 
     const hdr = document.createElement('div');
     hdr.className = 'section-hdr';
-    hdr.innerHTML = section.title + (currentShift === 'closing' && isOpenSection
+    hdr.innerHTML = section.title + (currentShift==='closing' && isOpenSection
       ? ' <span style="font-size:10px;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;margin-left:6px;">READ ONLY</span>' : '');
     container.appendChild(hdr);
 
-    const sectionReadOnly = currentShift === 'closing' && isOpenSection;
-    const sectionLocked   = (isOpenSection && openingDone && !ALLOW_OVERWRITE) || sectionReadOnly
-                          || (isCloseSection && closingDone && !ALLOW_OVERWRITE);
+    const openingSubmitted = !!data[`d${currentDay}`]?._openDone;
+    const closingSubmitted = !!data[`d${currentDay}`]?._closeDone;
+    const sectionReadOnly  = currentShift==='closing' && isOpenSection;
 
     section.tasks.forEach((task, ti) => {
+      const sectionLocked = (isOpenSection && openingSubmitted && !ALLOW_OVERWRITE) || sectionReadOnly
+                          || (isCloseSection && closingSubmitted && !ALLOW_OVERWRITE);
       total++;
-      const val   = getVal(currentDay, task.id, 'yn');
+      const val = getVal(currentDay, task.id, 'yn');
       if (val === 'yes') yes++;
       const photo = getVal(currentDay, task.id, 'photo');
-      const card  = document.createElement('div');
+
+      const card = document.createElement('div');
       card.className = 'task-card' + (sectionLocked ? ' locked-card' : '');
       if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
+
       const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
       let photoHtml = '';
       if (task.photo) {
@@ -668,19 +624,20 @@ function renderDay() {
 
     // Submit Opening button
     if (isOpenSection && currentShift === 'opening') {
-      if (!openingDone) {
-        const ob = document.createElement('button');
-        ob.className = 'submit-btn';
-        ob.style.cssText = 'margin:10px 0;background:#2E6DA4;';
-        ob.textContent = 'Submit Opening Tasks ✓';
-        ob.onclick = submitOpening;
-        container.appendChild(ob);
+      const openDoneFlag = !!data[`d${currentDay}`]?._openDone;
+      if (!openDoneFlag) {
+        const openBtn = document.createElement('button');
+        openBtn.className = 'submit-btn';
+        openBtn.style.cssText = 'margin:10px 0;background:#16A34A;';
+        openBtn.textContent = 'Submit Opening Tasks ✓';
+        openBtn.onclick = submitOpening;
+        container.appendChild(openBtn);
       } else {
-        const om = document.createElement('div');
-        om.className = 'synced-msg';
-        om.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
-        om.textContent = '✓ Opening Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        container.appendChild(om);
+        const openDoneMsg = document.createElement('div');
+        openDoneMsg.className = 'synced-msg';
+        openDoneMsg.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
+        openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        container.appendChild(openDoneMsg);
       }
     }
   });
@@ -692,36 +649,37 @@ function renderDay() {
   document.getElementById('scorePct').textContent = pct + '%';
 
   // 6-day scores — split by opening and closing
-  let oY=0,oM=0,cY=0,cM=0;
+  let rdoY=0,rdoM=0,rdcY=0,rdcM=0;
   for(let d=1;d<=6;d++){
     SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
       const v=getVal(d,t.id,'yn');
       if(v&&v!=='na'){
-        if(si===0){oM++;if(v==='yes')oY++;}
-        else{cM++;if(v==='yes')cY++;}
+        if(si===0){rdoM++;if(v==='yes')rdoY++;}
+        else{rdcM++;if(v==='yes')rdcY++;}
       }
     });});
   }
-  const opO=oM>0?Math.round((oY/oM)*100):null;
-  const opC=cM>0?Math.round((cY/cM)*100):null;
-  const tM=oM+cM, tY=oY+cY;
-  const op=tM>0?Math.round((tY/tM)*100):0, pass=op>=95;
+  const rdOpO=rdoM>0?Math.round((rdoY/rdoM)*100):null;
+  const rdOpC=rdcM>0?Math.round((rdcY/rdcM)*100):null;
+  const rdTM=rdoM+rdcM, rdTY=rdoY+rdcY;
+  const rdOp=rdTM>0?Math.round((rdTY/rdTM)*100):0;
+  const pass = rdOp>=95;
 
-  const sc=document.createElement('div');
-  sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
-  sc.innerHTML=`
-    <div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
-    <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+  const sc = document.createElement('div');
+  sc.className = `status-card ${rdTM>0?(pass?'pass':'fail'):''}`;
+  sc.innerHTML = `
+    <div class="sc-icon">${rdTM===0?'📋':pass?'✅':'❌'}</div>
+    <div class="sc-title">${rdTM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
+    <div class="sc-score" style="color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
     <div class="sc-sub">6-day overall score (target: 95%)</div>
-    ${tM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+    ${rdTM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
-        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${rdOpO>=95?'#15803D':rdOpO>=70?'#92400E':'#B91C1C'}">${rdOpO!==null?rdOpO+'%':'—'}</div>
       </div>
       <div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌙 Closing</div>
-        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${rdOpC>=95?'#15803D':rdOpC>=70?'#92400E':'#B91C1C'}">${rdOpC!==null?rdOpC+'%':'—'}</div>
       </div>
     </div>`:''}
   `;
@@ -758,9 +716,7 @@ function tapYN(tid, val, el) {
   el.classList.add('on');
   // update score bar
   let t=0, y=0;
-  const shiftIdx = currentShift==='closing'?1:0;
-  const shiftSection = SECTIONS[shiftIdx];
-  if(shiftSection) shiftSection.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;});
+  SECTIONS.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;}));
   const p=t>0?Math.round((y/t)*100):0;
   document.getElementById('scoreFill').style.width=p+'%';
   document.getElementById('scorePct').textContent=p+'%';
@@ -798,54 +754,37 @@ function submitOpening() {
   d[`d${currentDay}`]._openerName = name;
   save(d);
 
-  // Push opening record to Firebase so dashboard shows partial data
+  // Push opening to Firebase with taskData
   let oY2=0,oM2=0;
-  SECTIONS[0].tasks.forEach(t=>{
-    const v=getVal(currentDay,t.id,'yn');
-    if(v&&v!=='na'){oM2++;if(v==='yes')oY2++;}
-  });
-  const opO2=oM2>0?Math.round((oY2/oM2)*100):0;
-
-  // Build taskData for opening tasks only
   const openingTaskData = {};
   SECTIONS[0].tasks.forEach(t=>{
     const yn   = getVal(currentDay, t.id, 'yn');
     const pUrl = getVal(currentDay, t.id, 'photoUrl');
     const photo= getVal(currentDay, t.id, 'photo');
-    if (yn) {
-      openingTaskData[`d${currentDay}_${t.id}`] = {
-        day: currentDay, section: SECTIONS[0].title,
-        task: t.text, owner: t.ownerLbl,
-        yn: yn||'', photoUrl: pUrl||photo||'',
-      };
-    }
+    if(yn&&yn!=='na'){oM2++;if(yn==='yes')oY2++;}
+    if(yn) openingTaskData['d'+currentDay+'_'+t.id]={
+      day:currentDay, section:SECTIONS[0].title, task:t.text, owner:t.ownerLbl,
+      yn:yn||'', photoUrl:pUrl||photo||''
+    };
   });
-
+  const startedAt = (load()[`d${currentDay}`] || {})._start || new Date().toISOString();
+  const opO2=oM2>0?Math.round((oY2/oM2)*100):0;
   pushToFirebase({
-    staffName:   name,
-    role:        ROLE,
-    roleLabel:   ROLE_LABEL,
-    outlet:      getOutlet(),
-    week:        getWeekStart(),
-    overallPct:  opO2,
-    openingPct:  opO2,
-    closingPct:  null,
-    qualified:   false,
-    day:         currentDay,
-    status:      'opening_submitted',
-    startedAt:   d[`d${currentDay}`]?._start || new Date().toISOString(),
-    submittedAt: new Date().toISOString(),
-    lastUpdated: new Date().toISOString(),
+    staffName:   name, role:ROLE, roleLabel:ROLE_LABEL,
+    outlet:      getOutlet(), week:getWeekStart(),
+    overallPct:  opO2, openingPct:opO2, closingPct:null,
+    qualified:   false, day:currentDay, status:'opening_submitted',
+    startedAt:   startedAt,
+    submittedAt: new Date().toISOString(), lastUpdated:new Date().toISOString(),
     taskData:    openingTaskData,
   });
   showToast('Opening tasks submitted ✓', 'ok');
-  currentShift = null; // reset so closing staff sees shift picker
+  currentShift = null;
   buildDayRail(); renderDay();
 }
 
 function submitDay() {
   const name = getStaffName();
-  const closerName = name; // closing staff enters their own name in the Staff Name field
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
@@ -855,8 +794,8 @@ function submitDay() {
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
   d[`d${currentDay}`]._closeDone  = new Date().toISOString();
-  d[`d${currentDay}`]._closerName = closerName;
-  d[`d${currentDay}`]._done       = new Date().toISOString(); // keep _done for compatibility
+  d[`d${currentDay}`]._closerName = name;
+  d[`d${currentDay}`]._done       = new Date().toISOString();
   save(d);
 
   // Calc overall — split by opening and closing
@@ -877,17 +816,31 @@ function submitDay() {
 
   // Push to master dashboard
   const _fbRecord = {
-    staffName:    d[`d${currentDay}`]._openerName || name,
-    closingStaff: closerName,
-    role:         ROLE,
-    roleLabel:    ROLE_LABEL,
-    outlet:       getOutlet(),
-    week:         getWeekStart(),
-    verifiedBy:   '',
+    staffName:  name,
+    role:       ROLE,
+    roleLabel:  ROLE_LABEL,
+    outlet:     getOutlet(),
+    week:       getWeekStart(),
+    verifiedBy: '',
     overallPct:   op,
     openingPct:   opO,
     closingPct:   opC,
     qualified:    op>=95,
+    taskData: (function() {
+      const tasks = {};
+      for (let dd=1; dd<=6; dd++) {
+        SECTIONS.forEach(s => s.tasks.forEach(t => {
+          const yn   = getVal(dd, t.id, 'yn');
+          const pUrl = getVal(dd, t.id, 'photoUrl');
+          const photo= getVal(dd, t.id, 'photo');
+          if (yn) tasks['d'+dd+'_'+t.id] = {
+            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
+            yn:yn||'', photoUrl:pUrl||photo||''
+          };
+        }));
+      }
+      return tasks;
+    })(),
     day:        currentDay,
     startedAt:  d[`d${currentDay}`]?._start || new Date().toISOString(),
     photos: (function() {
@@ -1005,6 +958,7 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // Handle any shift tap that happened before script loaded
   window._selectShiftReady = selectShift;
   if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
   // Auto-set to current Monday
@@ -1024,9 +978,4 @@ window.addEventListener('DOMContentLoaded', () => {
     const y = now.getFullYear();
     const m = String(now.getMonth()+1).padStart(2,'0');
     const d = String(now.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  }
-  ['fName','fOutlet','fWeek'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const saved = localStorage.getItem('kic_info_' + RO
+    document.getElementById('fWeek').value = y + '-' + m 
