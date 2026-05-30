@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Kitchen Tracker</title>
+<link rel="preload" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" as="script">
+<link rel="preload" href="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" as="script">
+<link rel="dns-prefetch" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://kitchen-tracker-35293-default-rtdb.firebaseio.com" crossorigin>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1A3C5E;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -103,21 +105,15 @@ h1{font-size:22px;font-weight:800;color:#1A3C5E;margin-bottom:4px;}
 
 <script>
 // ── Force fresh load every time ───────────────────────────────
-const BUILD = '20260530_v3';
+const BUILD = '20260530_v4';
 
 function openPage(page, msg) {
-  // Show loading screen
   document.getElementById('loadingText').textContent = msg;
   document.getElementById('loading').classList.add('show');
-
-  // Add timestamp to force browser to load fresh version — bypasses cache
-  const ts = Date.now();
-  const url = page + '?nocache=' + ts + '&build=' + BUILD;
-
-  // Small delay so loading animation shows
+  // Navigate directly — checklist pages handle their own cache busting
   setTimeout(function() {
-    window.location.href = url;
-  }, 300);
+    window.location.href = page;
+  }, 150);
 }
 
 // Also clear any old cached versions from localStorage app_version

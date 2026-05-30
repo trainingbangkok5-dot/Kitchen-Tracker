@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260530120000">
+<meta name="app-version" content="20260530170000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260530120000';
+  var v = '20260530170000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -144,6 +144,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </select></div>
     <div class="info-field"><label>Week Starting (Auto)</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-resets every Monday"></div>
     </div>
+  <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
+    <button id="btnOpenShift" onclick="selectShift('opening')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌅 Opening Shift</button>
+    <button id="btnCloseShift" onclick="selectShift('closing')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌙 Closing Shift</button>
+  </div>
 </div>
 <div class="score-bar">
   <span style="font-size:12px;color:#64748B;font-weight:500;">Today's score</span>
@@ -427,7 +431,7 @@ function setVal(day,tid,field,val) {
 function getWeekStart() { return document.getElementById('fWeek').value; }
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
-function getVerified() { return document.getElementById('fVerified').value.trim(); }
+function getVerified() { return ''; }
 
 // ── Day rail ──────────────────────────────────────────────────
 function buildDayRail() {
@@ -453,6 +457,33 @@ function buildDayRail() {
   }
 }
 
+// ── Shift selection ───────────────────────────────────────────
+let currentShift = null;
+
+function selectShift(shift) {
+  const data = load();
+  const openingDone = !!data[`d${currentDay}`]?._openDone;
+  if (shift === 'closing') {
+    if (!openingDone) { showToast('Opening shift must be submitted first 🔒', 'warn'); return; }
+    const now = new Date();
+    if (now.getHours() < 23) {
+      const mLeft = (23 - now.getHours() - 1) * 60 + (60 - now.getMinutes());
+      showToast(`Closing unlocks at 11:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
+      return;
+    }
+  }
+  currentShift = shift;
+  const btnO = document.getElementById('btnOpenShift');
+  const btnC = document.getElementById('btnCloseShift');
+  if (btnO) btnO.style.cssText = shift==='opening'
+    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#1A4731;font-size:12px;font-weight:700;cursor:pointer;'
+    : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
+  if (btnC) btnC.style.cssText = shift==='closing'
+    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #22C55E;background:rgba(34,197,94,0.25);color:#fff;font-size:12px;font-weight:700;cursor:pointer;'
+    : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
+  renderDay();
+}
+
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
   const container = document.getElementById('mainContent');
@@ -468,7 +499,7 @@ function renderDay() {
   }
 
   const data = load();
-  const isDone = !!data[`d${currentDay}`]?._done;
+  const isDone = !!data[`d${currentDay}`]?._closeDone || !!data[`d${currentDay}`]?._done;
   const weekStart = getWeekStart();
   const unlocked = isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
@@ -481,21 +512,69 @@ function renderDay() {
     return;
   }
 
+  // Show shift picker if no shift selected
+  const openingDone2 = !!data[`d${currentDay}`]?._openDone;
+  const closingDone  = !!data[`d${currentDay}`]?._closeDone;
+  if (!currentShift) {
+    const nowH = new Date().getHours();
+    const isAfter11 = nowH >= 23;
+    const closingAvailable = openingDone2 && isAfter11;
+    const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+    const openerName = data[`d${currentDay}`]?._openerName || '';
+    let closingBtnStyle, closingBtnLabel, closingSubNote;
+    if (closingDone) {
+      closingBtnStyle='background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel='🌙 Closing Shift ✓'; closingSubNote='';
+    } else if (closingAvailable) {
+      closingBtnStyle='background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel='🌙 Closing Shift';
+      closingSubNote='<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
+    } else if (!openingDone2) {
+      closingBtnStyle='background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel='🌙 Closing Shift 🔒';
+      closingSubNote='<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Submit Opening first</div>';
+    } else {
+      closingBtnStyle='background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel='🌙 Closing Shift ⏰';
+      closingSubNote=`<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 11:00 PM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
+    }
+    const screen = document.createElement('div');
+    screen.style.cssText='padding:24px 16px;text-align:center;';
+    screen.innerHTML=`
+      <div style="font-size:32px;margin-bottom:8px;">👋</div>
+      <h2 style="font-size:16px;font-weight:700;color:#1A4731;margin-bottom:6px;">Which shift are you on?</h2>
+      <p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>
+      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;">
+        🌅 Opening Shift ${openingDone2 ? '✓' : ''}
+      </button>
+      <button onclick="selectShift('closing')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;margin-bottom:4px;${closingBtnStyle}">
+        ${closingBtnLabel}
+      </button>
+      ${closingSubNote}
+      ${openerName ? `<p style="font-size:11px;color:#64748B;margin-top:12px;">Opening submitted by <b>${openerName}</b></p>` : ''}
+    `;
+    container.appendChild(screen);
+    return;
+  }
+
   SECTIONS.forEach((section, si) => {
+    const isOpenSection  = si === 0;
+    const isCloseSection = si === 1;
+    if (currentShift === 'opening' && isCloseSection) return;
+
     const hdr = document.createElement('div');
     hdr.className = 'section-hdr';
-    hdr.textContent = section.title;
+    hdr.innerHTML = section.title + (currentShift==='closing' && isOpenSection
+      ? ' <span style="font-size:10px;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;margin-left:6px;">READ ONLY</span>' : '');
     container.appendChild(hdr);
 
-    // Lock opening tasks if opening is submitted
     const openingSubmitted = !!data[`d${currentDay}`]?._openDone;
-    // Lock closing tasks only if fully done
-    const closingSubmitted = isDone;
+    const closingSubmitted = !!data[`d${currentDay}`]?._closeDone;
+    const sectionReadOnly  = currentShift==='closing' && isOpenSection;
 
     section.tasks.forEach((task, ti) => {
-      // Determine lock state per section
-      const sectionLocked = (si === 0 && openingSubmitted && !ALLOW_OVERWRITE) || 
-                            (si === 1 && closingSubmitted && !ALLOW_OVERWRITE);
+      const sectionLocked = (isOpenSection && openingSubmitted && !ALLOW_OVERWRITE) || sectionReadOnly
+                          || (isCloseSection && closingSubmitted && !ALLOW_OVERWRITE);
       total++;
       const val = getVal(currentDay, task.id, 'yn');
       if (val === 'yes') yes++;
@@ -529,13 +608,13 @@ function renderDay() {
       container.appendChild(card);
     });
 
-    // Add "Submit Opening" button after Opening section (si===0)
-    if (si === 0) {
+    // Submit Opening button
+    if (isOpenSection && currentShift === 'opening') {
       const openDoneFlag = !!data[`d${currentDay}`]?._openDone;
       if (!openDoneFlag) {
         const openBtn = document.createElement('button');
         openBtn.className = 'submit-btn';
-        openBtn.style.cssText = 'margin:10px 0;background:#2E6DA4;';
+        openBtn.style.cssText = 'margin:10px 0;background:#16A34A;';
         openBtn.textContent = 'Submit Opening Tasks ✓';
         openBtn.onclick = submitOpening;
         container.appendChild(openBtn);
@@ -543,7 +622,7 @@ function renderDay() {
         const openDoneMsg = document.createElement('div');
         openDoneMsg.className = 'synced-msg';
         openDoneMsg.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
-        openDoneMsg.textContent = '✓ Opening Tasks Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         container.appendChild(openDoneMsg);
       }
     }
@@ -574,37 +653,24 @@ function renderDay() {
     <div class="sc-sub">6-day overall score (target: 95%)</div>`;
   container.appendChild(sc);
 
-  // Submit buttons — Opening and Closing separately
-  const openDone = !!data[`d${currentDay}`]?._openDone;
-  const btn = document.createElement('button');
-  btn.className = 'submit-btn';
-  if (isDone && !ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
-    const msg = document.createElement('div');
-    msg.className = 'synced-msg';
-    msg.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(btn);
-    container.appendChild(msg);
-  } else if (isDone && ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted`;
-    container.appendChild(btn);
-    // Overwrite panel
-    const owp = document.createElement('div');
-    owp.className = 'overwrite-panel';
-    owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access (KIC/Area Chef only)</div>
-      <input class="overwrite-input" id="owCode" type="password" placeholder="Enter overwrite code...">
-      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
-    container.appendChild(owp);
-    const msg2 = document.createElement('div');
-    msg2.className = 'synced-msg';
-    msg2.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(msg2);
-  } else {
-    btn.textContent = `Submit Day ${currentDay}`;
-    btn.onclick = submitDay;
-    container.appendChild(btn);
+  // Submit closing button
+  if (currentShift === 'closing') {
+    const closingDone2 = !!data[`d${currentDay}`]?._closeDone;
+    const btn = document.createElement('button');
+    btn.className = 'submit-btn';
+    if (closingDone2) {
+      btn.disabled = true;
+      btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
+      container.appendChild(btn);
+      const msg = document.createElement('div');
+      msg.className = 'synced-msg';
+      msg.textContent = '✓ Submitted and synced to dashboard';
+      container.appendChild(msg);
+    } else {
+      btn.textContent = 'Submit Closing Tasks ✓';
+      btn.onclick = submitDay;
+      container.appendChild(btn);
+    }
   }
 }
 
@@ -646,30 +712,34 @@ function fmtTimeOnly(iso) {
 function submitOpening() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
-  // Check all opening tasks answered
   const openingTasks = SECTIONS[0].tasks;
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
-  d[`d${currentDay}`]._openDone = new Date().toISOString();
+  d[`d${currentDay}`]._openDone   = new Date().toISOString();
+  d[`d${currentDay}`]._openerName = name;
   save(d);
   showToast('Opening tasks submitted ✓', 'ok');
+  currentShift = null;
   buildDayRail(); renderDay();
 }
 
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
-  // Check all closing tasks answered
   const closingTasks = SECTIONS[1].tasks;
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
-  d[`d${currentDay}`]._done = new Date().toISOString();
+  d[`d${currentDay}`]._closeDone  = new Date().toISOString();
+  d[`d${currentDay}`]._closerName = name;
+  d[`d${currentDay}`]._done       = new Date().toISOString();
   save(d);
 
   // Calc overall
@@ -830,10 +900,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   ['fName','fOutlet','fWeek'].forEach(id => {
     const el = document.getElementById(id);
-    const saved = localStorage.getItem('kic_info_${steward}_${id}');
+    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
     if (saved) el.value = saved;
     el.addEventListener('input', () => {
-      localStorage.setItem('kic_info_${steward}_${id}', el.value);
+      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
       buildDayRail(); renderDay();
     });
   });

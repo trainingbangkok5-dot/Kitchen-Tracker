@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260530160000">
+<meta name="app-version" content="20260530170000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260530160000';
+  var v = '20260530170000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -478,8 +478,20 @@ let currentShift = null; // 'opening' or 'closing'
 function selectShift(shift) {
   const data = load();
   const openingDone = !!data[`d${currentDay}`]?._openDone;
-  if (shift === 'closing' && !openingDone) {
-    showToast('Opening shift must be submitted first 🔒', 'warn'); return;
+
+  if (shift === 'closing') {
+    if (!openingDone) {
+      showToast('Opening shift must be submitted first 🔒', 'warn'); return;
+    }
+    const now = new Date();
+    const hour = now.getHours();
+    if (hour < 23) {
+      const minutesLeft = (23 - hour - 1) * 60 + (60 - now.getMinutes());
+      const h = Math.floor(minutesLeft / 60);
+      const m = minutesLeft % 60;
+      showToast(`Closing unlocks at 11:00 PM — ${h}h ${m}m remaining ⏰`, 'warn');
+      return;
+    }
   }
   currentShift = shift;
   const btnO = document.getElementById('btnOpenShift');
@@ -523,6 +535,29 @@ function renderDay() {
     const screen = document.createElement('div');
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
     const openerName = data[`d${currentDay}`]?._openerName || '';
+    const nowH = new Date().getHours();
+    const isAfter11 = nowH >= 23;
+    const closingAvailable = openingDone && isAfter11;
+    const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+    const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
+    let closingBtnStyle, closingBtnLabel, closingSubNote;
+    if (closingDone) {
+      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel = '🌙 Closing Shift ✓';
+      closingSubNote = '';
+    } else if (closingAvailable) {
+      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel = '🌙 Closing Shift';
+      closingSubNote = '<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
+    } else if (!openingDone) {
+      closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel = '🌙 Closing Shift 🔒';
+      closingSubNote = '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Submit Opening first</div>';
+    } else {
+      closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel = '🌙 Closing Shift ⏰';
+      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 11:00 PM — ${hLeft}h ${mLeft}m remaining</div>`;
+    }
     screen.innerHTML = `
       <div style="font-size:32px;margin-bottom:8px;">👋</div>
       <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">Which shift are you on?</h2>
@@ -530,11 +565,11 @@ function renderDay() {
       <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;">
         🌅 Opening Shift ${openingDone ? '✓' : ''}
       </button>
-      <button onclick="${openingDone ? "selectShift('closing')" : "showToast('Submit Opening first 🔒','warn')"}"
-        style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:${openingDone ? 'linear-gradient(135deg,#1A4731,#16A34A)' : '#E2E8F0'};color:${openingDone ? '#fff' : '#94A3B8'};">
-        🌙 Closing Shift ${closingDone ? '✓' : openingDone ? '' : '🔒'}
+      <button onclick="selectShift('closing')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;margin-bottom:4px;${closingBtnStyle}">
+        ${closingBtnLabel}
       </button>
-      ${openerName ? `<p style="font-size:11px;color:#64748B;margin-top:4px;">Opening submitted by <b>${openerName}</b></p>` : ''}
+      ${closingSubNote}
+      ${openerName ? `<p style="font-size:11px;color:#64748B;margin-top:12px;">Opening submitted by <b>${openerName}</b></p>` : ''}
     `;
     container.appendChild(screen);
     return;
