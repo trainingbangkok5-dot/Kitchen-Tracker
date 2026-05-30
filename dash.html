@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531320000">
+<meta name="app-version" content="20260531390000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531320000';
+  var v = '20260531390000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -261,7 +261,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="page" id="page-audits">
-    <div class="sec-title">BOH & FOH Audit Results</div>
+    <div class="sec-title">BOH Audit Results (KIC KPI)</div>
     <div class="audit-table">
       <div class="at-head">
         <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
@@ -454,8 +454,10 @@ function loadData() {
     allStaff = filterByRole(raw);
     db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
-      allAudits = FULL_ACCESS.includes(currentRole) ? rawA :
-                  rawA.filter(a => a.outlet === currentOutlet);
+      // Only BOH audits — FOH not included in KPI system
+      const bohOnly = rawA.filter(a => a.auditType === 'BOH');
+      allAudits = FULL_ACCESS.includes(currentRole) ? bohOnly :
+                  bohOnly.filter(a => a.outlet === currentOutlet);
       populateFilters();
       renderAll();
       setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
@@ -508,18 +510,32 @@ function renderKPI() {
   const grid = document.getElementById('kpiGrid');
   grid.innerHTML = '';
   Object.entries(ROLES).forEach(([key,role]) => {
-    const entries = allStaff.filter(s=>s.role===key);
-    const scores  = entries.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
-    const avg     = scores.length>0?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
-    const pass    = avg!==null && avg>=95;
-    const card    = document.createElement('div');
+    let scores, avg, count, subLabel;
+
+    if (key === 'kic') {
+      // KIC KPI = BOH Audit scores
+      const bohAudits = (allAudits||[]).filter(a => a.auditType === 'BOH');
+      scores   = bohAudits.map(a => parseFloat(a.score)||0).filter(s=>s>0);
+      avg      = scores.length>0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+      count    = bohAudits.length;
+      subLabel = 'BOH Audit Score';
+    } else {
+      const entries = allStaff.filter(s=>s.role===key);
+      scores   = entries.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
+      avg      = scores.length>0?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+      count    = entries.length;
+      subLabel = role.label;
+    }
+
+    const pass = avg!==null && avg>=95;
+    const card = document.createElement('div');
     card.className='kpi-card';
     card.innerHTML=`
-      <div class="kc-lbl"><span class="kc-dot" style="background:${role.dot}"></span>${role.icon} ${role.label}</div>
+      <div class="kc-lbl"><span class="kc-dot" style="background:${role.dot}"></span>${role.icon} ${subLabel}</div>
       <div class="kc-val" style="color:${avg===null?'#CBD5E1':pass?'#15803D':'#B91C1C'}">${avg!==null?avg+'%':'—'}</div>
       <div class="kc-bar"><div class="kc-fill" style="width:${avg||0}%;background:${avg===null?'#E5E7EB':avg>=95?'#22C55E':avg>=70?'#F59E0B':'#EF4444'}"></div></div>
       <div class="kc-status" style="color:${avg===null?'#9CA3AF':pass?'#15803D':'#B91C1C'}">${avg===null?'No data':pass?'✅ Qualified':'❌ Below 95%'}</div>
-      <div class="kc-count">${entries.length} entr${entries.length===1?'y':'ies'}</div>`;
+      <div class="kc-count">${count} entr${count===1?'y':'ies'}${key==='kic'?' (BOH Audits)':''}</div>`;
     grid.appendChild(card);
   });
   if(allStaff.length>0){
@@ -954,6 +970,7 @@ function openStaffDetail(s) {
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
               <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
+              ${t.comment?`<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>`:''}
               ${t.photoUrl?`<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`:``}
             </div>
             <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
@@ -1602,16 +1619,18 @@ async function exportDetailPDF() {
       Object.entries(bySec).forEach(([sec, secTasks]) => {
         doc.autoTable({
           startY: y,
-          head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim() || sec, colSpan:3, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
+          head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim() || sec, colSpan:4, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
           body: secTasks.map(t => [
             t.owner||'',
             t.task||'',
-            (t.yn||'').toUpperCase()||'—'
+            (t.yn||'').toUpperCase()||'—',
+            t.comment||''
           ]),
           columnStyles:{
-            0:{cellWidth:32,fontSize:8,textColor:[100,100,100]},
-            1:{cellWidth:115,fontSize:9},
-            2:{cellWidth:23,halign:'center',fontStyle:'bold'},
+            0:{cellWidth:28,fontSize:8,textColor:[100,100,100]},
+            1:{cellWidth:90,fontSize:9},
+            2:{cellWidth:20,halign:'center',fontStyle:'bold'},
+            3:{cellWidth:42,fontSize:8,textColor:[80,80,80],fontStyle:'italic'},
           },
           didParseCell:(data)=>{
             if(data.column.index===2&&data.section==='body'){
