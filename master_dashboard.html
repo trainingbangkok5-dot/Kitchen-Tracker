@@ -544,569 +544,82 @@ function renderRecent() {
 
 // ── STAFF TABLE ───────────────────────────────────────────────
 function renderStaff() {
-  const body=document.getElementById('staffBody');
-  const subs=getFiltered();
-  if(!subs.length){body.innerHTML='<div class="empty">No entries yet</div>';return;}
-  body.innerHTML='';
-  [...subs].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).forEach(s=>{
-    const role=ROLES[s.role]||{label:s.role,icon:'',cls:'pill-lc'};
-    const sc=parseFloat(s.overallPct)||0;
-    const pass=sc>=95;
-    function fT(iso){if(!iso)return'—';try{return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})+'<br><span style="font-size:9px;color:#94A3B8">'+new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+'</span>';}catch(e){return'—';}}
-    const row=document.createElement('div');
-    row.className='t-row';
-    row.onclick=()=>openStaffDetail(s);
-    row.innerHTML=`
-      <div class="td"><div style="font-weight:600;color:#1A3C5E;cursor:pointer;text-decoration:underline">${s.staffName||'—'}</div><div class="td-sm">${s.outlet||'—'}</div></div>
-      <div class="td"><span class="role-pill ${role.cls}">${role.icon} ${role.label}</span></div>
-      <div class="td td-sm">${s.week||'—'}</div>
-      <div class="td" style="font-weight:700;color:${sc===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
-      <div class="td">${sc>0?`<span class="sp ${pass?'sp-pass':'sp-fail'}">${pass?'✅':'❌'} ${pass?'Pass':'Fail'}</span>`:'<span class="sp sp-prog">⏳</span>'}</div>
-      <div class="td td-sm" style="line-height:1.5">${fT(s.startedAt)}</div>
-      <div class="td td-sm" style="line-height:1.5">${fT(s.submittedAt)}</div>`;
-    body.appendChild(row);
-  });
-}
-
-// ── STAFF DETAIL MODAL (Fix 3) ────────────────────────────────
-let _currentStaffData = null; // stores current staff for PDF export
-
-function openStaffDetail(s) {
-  _currentStaffData = s; // save for PDF
-  document.getElementById('modalTitle').textContent = (s.staffName||'Staff') + ' — ' + (s.week||'') + ' Full Report';
-  const body = document.getElementById('modalBody');
-  const role = ROLES[s.role]||{label:s.role,icon:''};
-  const sc = parseFloat(s.overallPct)||0;
-  const pass = sc >= 95;
-
-  // Header info
-  let html = `
-    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#F5F3EE;border-radius:10px;margin-bottom:14px;font-size:13px;">
-      <span><strong>${s.staffName||'—'}</strong></span>
-      <span>${role.icon} ${role.label}</span>
-      <span>📍 ${s.outlet||'—'}</span>
-      <span>📅 ${s.week||'—'}</span>
-      <span style="color:${pass?'#15803D':'#B91C1C'};font-weight:700">${sc>0?sc+'%':''} ${sc>0?(pass?'✅ Qualified':'❌ Not Qualified'):''}</span>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-      <div style="background:#F0FDF4;border-radius:8px;padding:10px;font-size:12px;">
-        <div>⏱ <strong>Started:</strong> ${s.startedAt?new Date(s.startedAt).toLocaleString():'—'}</div>
-        <div style="margin-top:3px">✅ <strong>Submitted:</strong> ${s.submittedAt?new Date(s.submittedAt).toLocaleString():'—'}</div>
-      </div>
-      <div style="background:#EFF6FF;border-radius:8px;padding:10px;font-size:12px;">
-        <div>📋 <strong>Day submitted:</strong> Day ${s.day||'—'}</div>
-        <div style="margin-top:3px">👤 <strong>Verified by:</strong> ${s.verifiedBy||'—'}</div>
-      </div>
-    </div>`;
-
-  // Full task checklist from taskData
-  if (s.taskData && Object.keys(s.taskData).length > 0) {
-    // Group by day
-    const byDay = {};
-    Object.values(s.taskData).forEach(t => {
-      const d = t.day||1;
-      if (!byDay[d]) byDay[d] = [];
-      byDay[d].push(t);
-    });
-
-    // Group by section within each day
-    Object.keys(byDay).sort((a,b)=>a-b).forEach(day => {
-      const tasks = byDay[day];
-      html += `<div style="margin-bottom:14px;">
-        <div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;">📅 Day ${day}</div>`;
-      
-      // Group by section
-      const bySec = {};
-      tasks.forEach(t => { if(!bySec[t.section])bySec[t.section]=[]; bySec[t.section].push(t); });
-      
-      Object.entries(bySec).forEach(([sec, secTasks]) => {
-        html += `<div style="background:#F5F3EE;padding:6px 12px;font-size:11px;font-weight:700;color:#6B6B60;border-left:3px solid #1A3C5E;">${sec}</div>`;
-        secTasks.forEach(t => {
-          const yn = t.yn||'';
-          const ynColor = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
-          const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
-          const ynLabel = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'— N/A':'Not answered';
-          html += `<div style="background:#fff;border:1px solid #E0DDD4;border-top:none;padding:10px 12px;display:flex;align-items:flex-start;gap:10px;">
-            <div style="flex:1;">
-              <div style="font-size:11px;color:#6B6B60;font-weight:600;margin-bottom:2px;">${t.owner||''}</div>
-              <div style="font-size:13px;font-weight:500;">${t.task||''}</div>
-              ${t.photoUrl ? `<img src="${t.photoUrl}" style="max-width:120px;border-radius:6px;margin-top:6px;border:2px solid #22C55E;" onerror="this.style.display='none'">` : ''}
-            </div>
-            <span style="background:${ynBg};color:${ynColor};font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${ynLabel}</span>
-          </div>`;
-        });
-      });
-      html += `</div>`;
-    });
-  } else {
-    html += `<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">
-      <div style="font-size:28px;margin-bottom:8px;">📋</div>
-      <strong>Full task detail not available for this submission</strong><br>
-      <span style="font-size:12px;">Staff need to resubmit using the updated checklist to see full task breakdown here.</span>
-    </div>`;
-  }
-
-  body.innerHTML = html;
-  document.getElementById('detailModal').classList.add('open');
-}
-
-
-// ── PDF Export for staff detail report ────────────────────────
-function stripEmoji(str) {
-  // Remove emoji and special unicode chars that jsPDF cannot render
-  return (str||'').replace(/[\u{1F000}-\u{1FFFF}|\u{2600}-\u{27FF}|\u{2B00}-\u{2BFF}|\u{FE00}-\u{FEFF}]/gu, '')
-    .replace(/[^-]/g, '') // remove all non-ASCII
-    .replace(/\s+/g,' ').trim();
-}
-
-function exportDetailPDF() {
-  const { jsPDF } = window.jspdf;
-  if (!jsPDF) { alert('PDF library not loaded.'); return; }
-  const s = _currentStaffData;
-  if (!s) { alert('No staff data found.'); return; }
-
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const role  = ROLES[s.role]||{label:s.role||'Staff'};
-  const sc    = parseFloat(s.overallPct)||0;
-  const pass  = sc >= 95;
-
-  // ── Header ──────────────────────────────────────────────────
-  doc.setFillColor(26,60,94);
-  doc.rect(0,0,pageW,22,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text('Kitchen Incentive Tracker', 14, 9);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Culex Hospitality -- Staff Report', 14, 17);
-  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), pageW-14, 17, {align:'right'});
-
-  let y = 28;
-
-  // ── Staff info ───────────────────────────────────────────────
-  doc.setTextColor(26,60,94);
-  doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text((s.staffName||'—') + ' -- ' + (s.week||'') + ' Full Report', 14, y); y += 7;
-
-  doc.autoTable({
-    startY: y,
-    body: [
-      ['Name', s.staffName||'—', 'Role', role.label||'—'],
-      ['Outlet', s.outlet||'—', 'Week', s.week||'—'],
-      ['Overall Score', (sc>0?sc+'%':'—'), 'Result', sc>0?(pass?'QUALIFIED':'NOT QUALIFIED'):'—'],
-      ['Started', s.startedAt?new Date(s.startedAt).toLocaleString():'—', 'Submitted', s.submittedAt?new Date(s.submittedAt).toLocaleString():'—'],
-    ],
-    styles: {fontSize:9, cellPadding:3},
-    columnStyles: {
-      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
-      1:{cellWidth:60},
-      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
-      3:{cellWidth:60, textColor: sc>0?(pass?[21,128,61]:[185,28,28]):[0,0,0], fontStyle:'bold'}
-    },
-    margin:{left:14,right:14}, theme:'grid',
-  });
-  y = doc.lastAutoTable.finalY + 6;
-
-  // ── Task data ────────────────────────────────────────────────
-  if (s.taskData && Object.keys(s.taskData).length > 0) {
-    // Group by day
-    const byDay = {};
-    Object.values(s.taskData).forEach(t => {
-      const d = t.day||1;
-      if (!byDay[d]) byDay[d] = [];
-      byDay[d].push(t);
-    });
-
-    Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
-      const tasks = byDay[day];
-      if (y > pageH - 40) { doc.addPage(); y = 16; }
-
-      // Day header
-      doc.setFillColor(26,60,94);
-      doc.rect(14, y-3, pageW-28, 7, 'F');
-      doc.setTextColor(255,255,255);
-      doc.setFontSize(9); doc.setFont('helvetica','bold');
-      doc.text('Day ' + day, 16, y+1); y += 8;
-
-      // Group by section
-      const bySec = {};
-      tasks.forEach(t => {
-        const sec = t.section||'Tasks';
-        if (!bySec[sec]) bySec[sec] = [];
-        bySec[sec].push(t);
-      });
-
-      Object.entries(bySec).forEach(([sec, secTasks]) => {
-        // Build table rows — with photos
-        const rows = secTasks.map(t => {
-          const yn = (t.yn||'').toUpperCase();
-          return [t.owner||'', t.task||'', yn||'—'];
-        });
-
-        doc.autoTable({
-          startY: y,
-          head: [[sec, '', 'Response']],
-          body: rows,
-          styles: {fontSize:8, cellPadding:3},
-          headStyles: {fillColor:[46,109,164], textColor:255, fontStyle:'bold', fontSize:8},
-          columnStyles: {
-            0:{cellWidth:26},
-            1:{cellWidth:120},
-            2:{cellWidth:24, halign:'center', fontStyle:'bold'}
-          },
-          didParseCell: (data) => {
-            if (data.column.index === 2 && data.section === 'body') {
-              const v = data.cell.raw||'';
-              if (v==='YES') data.cell.styles.textColor=[21,128,61];
-              else if (v==='NO') data.cell.styles.textColor=[185,28,28];
-              else data.cell.styles.textColor=[100,100,100];
-            }
-          },
-          didDrawCell: (data) => {
-            // Add photo if available
-            if (data.column.index === 1 && data.section === 'body') {
-              const task = secTasks[data.row.index];
-              if (task && task.photoUrl && task.photoUrl.length > 0) {
-                try {
-                  const imgX = data.cell.x + data.cell.width - 22;
-                  const imgY = data.cell.y + 1;
-                  doc.addImage(task.photoUrl, 'JPEG', imgX, imgY, 18, 14);
-                } catch(e) {}
-              }
-            }
-          },
-          margin:{left:14, right:14},
-          theme:'grid',
-        });
-        y = doc.lastAutoTable.finalY + 4;
-        if (y > pageH - 30) { doc.addPage(); y = 16; }
-      });
-    });
-  } else {
-    doc.setTextColor(150,150,150);
-    doc.setFontSize(10); doc.setFont('helvetica','normal');
-    doc.text('Full task data not available for this submission.', 14, y);
-    doc.setFontSize(9);
-    doc.text('Staff needs to resubmit using the updated checklist.', 14, y+6);
-    y += 16;
-  }
-
-  // ── Footer on every page ─────────────────────────────────────
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let i=1; i<=totalPages; i++) {
-    doc.setPage(i);
-    doc.setFillColor(245,243,238);
-    doc.rect(0,pageH-8,pageW,8,'F');
-    doc.setTextColor(120,120,120);
-    doc.setFontSize(7); doc.setFont('helvetica','normal');
-    doc.text('Culex Hospitality -- Kitchen Incentive Tracker -- Confidential', 14, pageH-2);
-    doc.text('Page '+i+' of '+totalPages, pageW-14, pageH-2, {align:'right'});
-  }
-
-  const fname = ((s.staffName||'Staff')+'_'+(s.week||'')+'_Report').replace(/[^a-zA-Z0-9_-]/g,'_');
-  doc.save(fname+'.pdf');
-}
-
-
-function showToast(msg, type) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F172A;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 2500);
-}
-
-// PDF for audit detail
-function exportAuditPDF(a) {
-  const { jsPDF } = window.jspdf;
-  if (!jsPDF) { alert('PDF library not loaded.'); return; }
-
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-
-  // Header
-  doc.setFillColor(26,60,94);
-  doc.rect(0,0,pageW,22,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('Kitchen Audit Report', 14, 10);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Culex Hospitality', 14, 17);
-  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), pageW-14, 17, {align:'right'});
-
-  let y = 30;
-  const pass = a.score >= 80;
-
-  // Audit info table
-  doc.autoTable({
-    startY: y,
-    body: [
-      ['Outlet', a.outlet||'—', 'Audit Type', a.auditType||'—'],
-      ['Auditor', a.auditor||'—', 'Date', a.auditDate||'—'],
-      ['Shift', a.shift||'—', 'Score', a.score+'%'],
-      ['Points', (a.rawScore||'—')+' / '+(a.maxScore||'—'), 'Result', pass?'PASS':'FAIL'],
-    ],
-    styles: { fontSize: 9 },
-    columnStyles: {
-      0: { fontStyle:'bold', cellWidth:30, fillColor:[245,243,238] },
-      1: { cellWidth:55 },
-      2: { fontStyle:'bold', cellWidth:30, fillColor:[245,243,238] },
-      3: { cellWidth:55, textColor: pass?[21,128,61]:[185,28,28], fontStyle:'bold' },
-    },
-    margin: { left:14, right:14 },
-    theme: 'grid',
-  });
-  y = doc.lastAutoTable.finalY + 8;
-
-  // Score bar
-  doc.setFillColor(224,221,212);
-  doc.rect(14, y, pageW-28, 6, 'F');
-  const fillW = ((pageW-28) * (a.score/100));
-  doc.setFillColor(pass?34:239, pass?197:68, pass?94:68);
-  doc.rect(14, y, fillW, 6, 'F');
-  doc.setTextColor(0,0,0); doc.setFontSize(8);
-  doc.text(a.score+'% — '+(pass?'PASS — Above 80%':'FAIL — Below 80%'), 14, y+10);
-  y += 14;
-
-  // Corrective actions if any
-  if (a.correctiveActions && a.correctiveActions.length > 0) {
-    doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.setTextColor(26,60,94);
-    doc.text('Corrective Action Register', 14, y); y += 6;
-
-    doc.autoTable({
-      startY: y,
-      head: [['#','Section','Criteria','Observation','Corrective Action','Responsible','Deadline']],
-      body: a.correctiveActions.map((ca,i) => [
-        i+1, ca.section||'—', ca.criteria||'—',
-        ca.observation||'—', ca.correctiveAction||'⚠ Required',
-        ca.responsible||'TBD', ca.deadline||'TBD'
-      ]),
-      styles: { fontSize: 7, cellPadding: 2 },
-      headStyles: { fillColor:[185,28,28], textColor:255, fontStyle:'bold', fontSize:7 },
-      columnStyles: {
-        0:{cellWidth:8}, 1:{cellWidth:22}, 2:{cellWidth:30},
-        3:{cellWidth:35}, 4:{cellWidth:40}, 5:{cellWidth:22}, 6:{cellWidth:18},
-      },
-      margin: {left:14,right:14},
-      theme: 'grid',
-    });
-    y = doc.lastAutoTable.finalY + 6;
-  } else {
-    doc.setFontSize(9); doc.setTextColor(21,128,61);
-    doc.text('✅ No corrective actions required — all criteria passed or N/A', 14, y); y += 8;
-  }
-
-  // Footer
-  doc.setFillColor(245,243,238);
-  doc.rect(0,pageH-10,pageW,10,'F');
-  doc.setTextColor(100,100,100); doc.setFontSize(8);
-  doc.text('Culex Hospitality — Kitchen Audit Report — Confidential', 14, pageH-3);
-  doc.text(new Date().toLocaleString(), pageW-14, pageH-3, {align:'right'});
-
-  const safeName = ('Audit_'+(a.outlet||'')+' '+(a.auditType||'')+'_'+(a.auditDate||'')).replace(/[^a-zA-Z0-9 _-]/g,'').replace(/\s+/g,'_');
-  doc.save(safeName+'.pdf');
-}
-
-
-
-// ── Delete staff record ───────────────────────────────────────
-function confirmDelete(fbKey, staffName, week) {
-  if (currentRole !== 'training') {
-    alert('Access denied — only Training Department can delete records.');
+  const body = document.getElementById('staffBody');
+  const subs = getFiltered();
+  if (!subs.length) {
+    body.innerHTML = '<div class="empty">No entries yet</div>';
     return;
   }
-  // Show confirmation dialog
-  const confirmed = window.confirm(
-    'Delete this record?\n\n' +
-    'Staff: ' + staffName + '\n' +
-    'Week: ' + week + '\n\n' +
-    'This cannot be undone.'
-  );
-  if (confirmed) deleteRecord(fbKey, staffName);
-}
+  body.innerHTML = '';
 
-function deleteRecord(fbKey, staffName) {
-  if (!db) { alert('Firebase not ready — please refresh'); return; }
-  
-  // Try multiple possible key formats
-  db.ref('submissions').once('value', snap => {
-    const data = snap.val();
-    if (!data) { alert('Record not found'); return; }
-    
-    // Find the record by matching fbKey or by staffName+role+week
-    let foundKey = null;
-    Object.keys(data).forEach(key => {
-      if (key === fbKey || key.startsWith(fbKey)) {
-        foundKey = key;
-      }
-    });
-    
-    // Also search by staffName match
-    if (!foundKey) {
-      Object.entries(data).forEach(([key, val]) => {
-        if (val && val.staffName === staffName) {
-          foundKey = key;
-        }
-      });
-    }
-    
-    if (!foundKey) {
-      // Try deleting by the exact key
-      db.ref('submissions/' + fbKey).remove()
-        .then(() => {
-          showDeleteToast(staffName + ' deleted successfully');
-        })
-        .catch(() => alert('Could not find record to delete. Please try again.'));
-      return;
-    }
-    
-    db.ref('submissions/' + foundKey).remove()
-      .then(() => {
-        showDeleteToast(staffName + ' record deleted successfully');
-      })
-      .catch(e => {
-        alert('Delete failed: ' + e.message);
-      });
-  });
-}
+  const isTraining = currentRole === 'training';
 
+  [...subs].sort((a,b) => new Date(b.lastUpdated||0) - new Date(a.lastUpdated||0)).forEach((s, i) => {
+    const role    = ROLES[s.role] || {label:s.role,icon:'',cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role] || 'pill-lc';
+    const sc      = parseFloat(s.overallPct) || 0;
+    const pass    = sc >= 95;
 
-function deleteAllRecords(staffName, role, outlet) {
-  if (currentRole !== 'training') { alert('Access denied.'); return; }
-  
-  const confirmed = window.confirm(
-    'DELETE ALL RECORDS for this staff?\n\n' +
-    'Staff: ' + staffName + '\n' +
-    'Role: ' + role + '\n' +
-    'Outlet: ' + outlet + '\n\n' +
-    'This will delete ALL weeks for this staff member.\n' +
-    'This CANNOT be undone.'
-  );
-  if (!confirmed) return;
-
-  if (!db) { alert('Firebase not ready.'); return; }
-  
-  db.ref('submissions').once('value', snap => {
-    const data = snap.val();
-    if (!data) { alert('No records found.'); return; }
-    
-    // Find all records matching this staff
-    const keysToDelete = [];
-    Object.entries(data).forEach(([key, val]) => {
-      if (val && 
-          val.staffName === staffName && 
-          val.role === role &&
-          val.outlet === outlet) {
-        keysToDelete.push(key);
-      }
-    });
-
-    if (keysToDelete.length === 0) {
-      alert('No records found for ' + staffName);
-      return;
+    function fmtT(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})
+          + '<br><span style="font-size:10px;color:#94A3B8">'
+          + new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+          + '</span>';
+      } catch(e) { return '—'; }
     }
 
-    // Delete all matching records
-    const updates = {};
-    keysToDelete.forEach(key => { updates['submissions/' + key] = null; });
-    
-    db.ref().update(updates)
-      .then(() => {
-        showDeleteToast('All ' + keysToDelete.length + ' record(s) for ' + staffName + ' deleted');
-        closeModal();
-      })
-      .catch(e => alert('Delete failed: ' + e.message));
+    // Build Firebase key
+    const fbKey = (s.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+                + '_' + (s.role||'')
+                + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+
+    // Create wrapper div
+    const wrapper = document.createElement('div');
+
+    // Create row
+    const row = document.createElement('div');
+    row.className = 't-row';
+    row.style.cursor = 'pointer';
+    row.onclick = () => openStaffDetail(s);
+
+    row.innerHTML =
+      '<div class="td"><div style="font-weight:600;color:#1A3C5E;text-decoration:underline">' + (s.staffName||'—') + '</div>'
+      + '<div class="td-sm">' + (s.outlet||'—') + '</div></div>'
+      + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
+      + '<div class="td td-sm">' + (s.week||'—') + '</div>'
+      + '<div class="td" style="font-weight:700;color:' + (sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>'
+      + '<div class="td">' + (sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅':'❌') + ' ' + (pass?'Pass':'Fail') + '</span>':'<span class="sp sp-prog">⏳</span>') + '</div>'
+      + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.startedAt) + '</div>'
+      + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.submittedAt) + '</div>';
+
+    wrapper.appendChild(row);
+
+    // Delete button — Training only
+    if (isTraining) {
+      const staffName = s.staffName || '';
+      const week      = s.week || '';
+      const delBtn    = document.createElement('button');
+      delBtn.textContent = '🗑 Delete this record (' + week + ')';
+      delBtn.style.cssText = 'display:block;width:calc(100% - 0px);padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
+      delBtn.onclick = function(e) {
+        e.stopPropagation();
+        confirmDelete(fbKey, staffName, week);
+      };
+      wrapper.appendChild(delBtn);
+    }
+
+    // Separator line
+    const sep = document.createElement('div');
+    sep.style.cssText = 'border-top:1px solid #E0DDD4;';
+    wrapper.appendChild(sep);
+
+    body.appendChild(wrapper);
   });
 }
 
-function showDeleteToast(msg) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#B91C1C;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
-  t.textContent = '🗑 ' + msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
-}
 
-// ── Change PIN functions ──────────────────────────────────────
-function openChangePinModal() {
-  document.getElementById('currentPinInput').value = '';
-  document.getElementById('newPinInput').value = '';
-  document.getElementById('confirmPinInput').value = '';
-  document.getElementById('pinChangeMsg').textContent = '';
-  document.getElementById('changePinModal').style.display = 'flex';
-}
-
-function closeChangePinModal() {
-  document.getElementById('changePinModal').style.display = 'none';
-}
-
-async function doChangePin() {
-  const current  = document.getElementById('currentPinInput').value;
-  const newPin   = document.getElementById('newPinInput').value;
-  const confirm  = document.getElementById('confirmPinInput').value;
-  const msgEl    = document.getElementById('pinChangeMsg');
-  
-  // Training can change any role's PIN
-  const targetRole = (currentRole === 'training' && document.getElementById('pinRoleSelect'))
-    ? document.getElementById('pinRoleSelect').value
-    : currentRole;
-
-  // Validate current PIN — Training must enter their own PIN to authorize change
-  if (current !== ROLE_PINS[currentRole]) {
-    msgEl.style.color = '#EF4444';
-    msgEl.textContent = '✗ Current PIN is incorrect';
-    document.getElementById('currentPinInput').style.borderColor = '#EF4444';
-    setTimeout(() => {
-      document.getElementById('currentPinInput').style.borderColor = '#E0DDD4';
-      document.getElementById('currentPinInput').value = '';
-    }, 1500);
-    return;
-  }
-
-  // Validate new PIN
-  if (newPin.length < 4) {
-    msgEl.style.color = '#EF4444';
-    msgEl.textContent = '✗ PIN must be at least 4 characters';
-    return;
-  }
-
-  if (newPin !== confirm) {
-    msgEl.style.color = '#EF4444';
-    msgEl.textContent = '✗ PINs do not match';
-    document.getElementById('confirmPinInput').style.borderColor = '#EF4444';
-    return;
-  }
-
-  if (!/^[a-zA-Z0-9]+$/.test(newPin)) {
-    msgEl.style.color = '#EF4444';
-    msgEl.textContent = '✗ PIN can only contain letters and numbers';
-    return;
-  }
-
-  // Save to Firebase
-  try {
-    msgEl.style.color = '#6B6B60';
-    msgEl.textContent = 'Saving...';
-    await savePinToFirebase(targetRole, newPin);
-    ROLE_PINS[targetRole] = newPin;
-    msgEl.style.color = '#15803D';
-    const roleNames = {areachef:'Area Chef',training:'Training',operations:'Ops Manager',director:'Director',ceo:'CEO'};
-    msgEl.textContent = '✅ ' + (roleNames[targetRole]||targetRole) + ' PIN changed successfully!';
-    setTimeout(() => closeChangePinModal(), 1500);
-  } catch(e) {
-    msgEl.style.color = '#EF4444';
-    msgEl.textContent = '✗ Failed to save — check your connection';
-  }
-}
-
-function closeModal() {
-  document.getElementById('detailModal').classList.remove('open');
-}
-
-// ── MONTHLY CONSOLIDATED (Fix 4) ──────────────────────────────
 function renderMonthly() {
   const el = document.getElementById('monthlyContent');
   if (!allStaff.length) {
