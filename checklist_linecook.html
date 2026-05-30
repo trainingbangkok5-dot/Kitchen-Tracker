@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="version" content="202605300935">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -358,6 +362,8 @@ function checkAutoReset() {
     // New week detected — auto reset
     weekField.value = currentWeekStart;
     localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
+    // Also update the week label display
+    try { const el = document.getElementById('fWeek'); if(el) el.value = currentWeekStart; } catch(e) {}
 
     if (storedWeek && storedWeek !== currentWeekStart) {
       // Clear old week data from localStorage
@@ -790,8 +796,24 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   // Auto-set to current Monday
-  const monday = getMonday ? getMonday(new Date()) : new Date();
-  document.getElementById('fWeek').valueAsDate = monday;
+  // Auto-set week to current Monday
+  if (typeof getMonday === 'function') {
+    const monday = getMonday(new Date());
+    // Format as YYYY-MM-DD for date input
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth()+1).padStart(2,'0');
+    const d = String(monday.getDate()).padStart(2,'0');
+    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
+  } else {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    now.setDate(diff);
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
+  }
   ['fName','fOutlet','fWeek'].forEach(id => {
     const el = document.getElementById(id);
     const saved = localStorage.getItem('kic_info_${linecook}_${id}');
