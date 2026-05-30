@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531150000';
+  var v = '20260531160000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531150000">
+<meta name="app-version" content="20260531160000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -232,8 +232,12 @@ function pushToFirebase(record) {
       showToast('✓ Synced to dashboard', 'ok');
     }).catch(e => {
       console.warn('Firebase write failed:', e);
+      showToast('⚠ Sync failed: ' + e.message, 'error');
     });
-  } catch(e) { console.warn('Firebase error:', e); }
+  } catch(e) {
+    console.warn('Firebase error:', e);
+    showToast('⚠ Firebase error: ' + e.message, 'error');
+  }
 }
 
 
