@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531140000">
+<meta name="app-version" content="20260531150000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531140000';
+  var v = '20260531150000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1502,9 +1502,142 @@ function exportDetailPDF() {
   if (!s) { alert('No staff data.'); return; }
   var { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('PDF library not loaded.'); return; }
-  exportStaffMonthlyPDF(s, allStaff.filter(function(sub){
-    return sub.staffName === s.staffName && sub.role === s.role && sub.outlet === s.outlet;
-  }));
+
+  const role = ROLES[s.role]||{label:s.role||'Staff'};
+  const sc   = parseFloat(s.overallPct)||0;
+  const pass = sc >= 95;
+  const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
+  const opC  = s.closingPct != null ? parseFloat(s.closingPct) : null;
+
+  const doc  = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const W    = doc.internal.pageSize.getWidth();
+  const H    = doc.internal.pageSize.getHeight();
+  let y = 0;
+
+  // Header bar
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,W,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('Kitchen Incentive Tracker', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality -- Staff Report', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}), W-14, 17, {align:'right'});
+  y = 28;
+
+  // Title
+  doc.setTextColor(26,60,94);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(`${s.staffName||'—'} -- ${s.week||'—'} Full Report`, 14, y); y+=8;
+
+  // Staff info table
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Name', s.staffName||'—', 'Role', role.label||'—'],
+      ['Outlet', s.outlet||'—', 'Week', s.week||'—'],
+      ['Overall Score', sc>0?sc+'%':'—', 'Result', pass?'QUALIFIED':'NOT QUALIFIED'],
+      ['Started', s.startedAt?new Date(s.startedAt).toLocaleString('en-GB'):'—',
+       'Submitted', s.submittedAt?new Date(s.submittedAt).toLocaleString('en-GB'):'—'],
+    ],
+    styles:{fontSize:9,cellPadding:3},
+    columnStyles:{
+      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
+      1:{cellWidth:57},
+      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
+      3:{cellWidth:57,textColor:pass?[21,128,61]:[185,28,28],fontStyle:'bold'},
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // Score boxes
+  if (opO !== null || opC !== null) {
+    const bw = (W-28)/3;
+    [
+      {label:'Opening', val:opO},
+      {label:'Closing', val:opC},
+      {label:'Total', val:sc},
+    ].forEach((box,i) => {
+      const x = 14 + i*(bw+4);
+      doc.setFillColor(i===0?239:i===1?240:pass?240:254, i===0?246:i===1?253:pass?253:242, i===0?255:i===1?244:pass?244:242);
+      doc.roundedRect(x,y,bw,14,2,2,'F');
+      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
+      doc.text(box.label.toUpperCase(), x+bw/2, y+5, {align:'center'});
+      doc.setFontSize(13); doc.setFont('helvetica','bold');
+      const v = box.val;
+      doc.setTextColor(v!=null&&v>=95?21:v!=null&&v>=70?180:185, v!=null&&v>=95?128:v!=null&&v>=70?100:28, 0);
+      doc.text(v!=null?v+'%':'—', x+bw/2, y+12, {align:'center'});
+    });
+    y += 20;
+  }
+
+  // Task checklist
+  if (s.taskData && Object.keys(s.taskData).length > 0) {
+    const byDay = {};
+    Object.values(s.taskData).forEach(t => {
+      const d = t.day||1;
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(t);
+    });
+
+    Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+      if (y > H-40) { doc.addPage(); y=16; }
+      const tasks = byDay[day];
+      const bySec = {};
+      tasks.forEach(t => {
+        const sec = t.section||'Tasks';
+        if (!bySec[sec]) bySec[sec] = [];
+        bySec[sec].push(t);
+      });
+
+      // Day header
+      doc.setFillColor(26,60,94);
+      doc.rect(14,y-3,W-28,7,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.text('Day ' + day, 16, y+2);
+      y += 8;
+
+      Object.entries(bySec).forEach(([sec, secTasks]) => {
+        doc.autoTable({
+          startY: y,
+          head: [[{content: sec, colSpan:3, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
+          body: secTasks.map(t => [
+            t.owner||'',
+            t.task||'',
+            (t.yn||'').toUpperCase()||'—'
+          ]),
+          columnStyles:{
+            0:{cellWidth:32,fontSize:8,textColor:[100,100,100]},
+            1:{cellWidth:115,fontSize:9},
+            2:{cellWidth:23,halign:'center',fontStyle:'bold'},
+          },
+          didParseCell:(data)=>{
+            if(data.column.index===2&&data.section==='body'){
+              const v=data.cell.raw;
+              data.cell.styles.textColor=v==='YES'?[21,128,61]:v==='NO'?[185,28,28]:[100,100,100];
+            }
+          },
+          styles:{fontSize:9,cellPadding:3},
+          alternateRowStyles:{fillColor:[248,250,252]},
+          margin:{left:14,right:14},
+        });
+        y = doc.lastAutoTable.finalY + 4;
+      });
+    });
+  } else {
+    doc.setFontSize(10); doc.setTextColor(150,150,150);
+    doc.text('Task details not available for this record.', W/2, y+10, {align:'center'});
+    y += 20;
+  }
+
+  // Footer
+  doc.setFontSize(8); doc.setTextColor(150,150,150);
+  doc.text('needs to export via pdf.', W/2, H-8, {align:'center'});
+
+  const fname = (s.staffName||'staff').replace(/\s+/g,'_')+'_'+(s.week||'')+'.pdf';
+  doc.save(fname);
 }
 
 // Init Firebase when page loads
