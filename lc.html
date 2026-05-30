@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531290000';
+  var v = '20260531320000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531290000">
+<meta name="app-version" content="20260531320000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -244,29 +244,47 @@ function pushToFirebase(record) {
 
 async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   try {
-    // Convert dataUrl to blob
-    const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    const path = `photos/${(staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')}/day${day}/${taskId}_${Date.now()}.jpg`;
-    
-    // Use Firebase Storage REST API (works without SDK)
-    const storageUrl = `https://firebasestorage.googleapis.com/v0/b/kitchen-tracker-35293.firebasestorage.app/o/${encodeURIComponent(path)}`;
-    const uploadRes = await fetch(storageUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'image/jpeg' },
-      body: blob
-    });
-    
-    if (uploadRes.ok) {
-      const data = await uploadRes.json();
-      const downloadUrl = `${storageUrl}?alt=media&token=${data.downloadTokens}`;
-      return downloadUrl;
-    }
-    return null;
+    if (!_db || !dataUrl) return null;
+    // Compress photo before saving to Realtime Database
+    const compressed = await compressToSize(dataUrl, 150); // max 150KB
+    const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + ROLE + '_'
+              + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+    const photoKey = `d${day}_${taskId}`;
+    await _db.ref(`photos/${key}/${photoKey}`).set(compressed);
+    // Return a special marker URL so we know photo is in database
+    return `db:${key}/${photoKey}`;
   } catch(e) {
-    console.warn('Photo upload failed:', e);
+    console.warn('Photo save failed:', e);
     return null;
   }
+}
+
+// Compress image to target size in KB
+function compressToSize(dataUrl, maxKB) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      // Scale down if too large
+      const maxDim = 800;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim/w); w = maxDim; }
+        else { w = Math.round(w * maxDim/h); h = maxDim; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      // Try quality 0.7 first
+      let result = canvas.toDataURL('image/jpeg', 0.7);
+      if (result.length > maxKB * 1024 * 1.37) {
+        result = canvas.toDataURL('image/jpeg', 0.4);
+      }
+      resolve(result);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
 }
 
 function pushAuditToFirebase(record) {
@@ -812,7 +830,9 @@ function submitOpening() {
       openingTaskData[`d${currentDay}_${t.id}`] = {
         day: currentDay, section: SECTIONS[0].title,
         task: t.text, owner: t.ownerLbl,
-        yn: yn||'', photoUrl: pUrl||photo||'',
+        yn: yn||'',
+        photoUrl: pUrl||'',
+        hasPhoto: !!(pUrl||photo),
       };
     }
   });
@@ -978,20 +998,14 @@ function handlePhotoFile(file) {
     activePhotoTask = null;
     renderDay();
     showToast('Photo saved ✓', 'ok');
-    
-    // Upload to Firebase Storage for cross-device viewing
+
+    // Save compressed photo to Firebase Realtime Database
     const staffName = getStaffName();
-    if (staffName) {
-      const url = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
-      if (url) {
-        setVal(currentDay, taskId, 'photoUrl', url);
-        // Update Firebase submission with photo URL
-        const d = load();
-        if (d[`d${currentDay}`]?._done) {
-          // Submission already sent - update photo
-          const key = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_linecook_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
-          _db.ref(`submissions/${key}/photos/${taskId}_day${currentDay}`).set(url);
-        }
+    if (staffName && _db) {
+      const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
+      if (dbRef) {
+        setVal(currentDay, taskId, 'photoUrl', dbRef);
+        showToast('Photo synced ✓', 'ok');
       }
     }
   });
