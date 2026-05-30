@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531470000';
+  var v = '20260531490000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531470000">
+<meta name="app-version" content="20260531490000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -483,7 +483,7 @@ function clearAllData() {
 const ROLE_LABEL = 'Line Cook';
 const SK_BASE    = 'kic_linecook_data_v2';
 const SK         = SK_BASE;
-const ALLOW_OVERWRITE = true;
+const ALLOW_OVERWRITE = false;
 const OVERWRITE_CODE  = 'KIC2025'; // KIC PIN to overwrite submitted checklist
 
 const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cooking & measuring utensils readiness, knives sharpened", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: all ingredients filled, FIFOed, clean and tidy", "photo": true}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Cheat sheet: visible, completed, and used", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: in proper working condition", "photo": true}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, organized, and properly stored after use", "photo": true}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: all ingredients covered, labeled, FIFOed, clean and tidy", "photo": true}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing checklist completed and endorsed properly", "photo": true}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: cleaned, switched off, and in proper condition before closing", "photo": true}]}];
@@ -1086,4 +1086,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html>
+</html
