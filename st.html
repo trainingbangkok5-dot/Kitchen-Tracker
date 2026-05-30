@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531320000';
+  var v = '20260531470000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531320000">
+<meta name="app-version" content="20260531470000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -94,6 +94,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .ts-divider { width:1px; background:#E2E8F0; flex-shrink:0; }
 
 .synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
+.comment-field { width:100%; margin-top:6px; padding:6px 10px; border:1px solid #E0DDD4; border-radius:8px; font-size:12px; color:#374151; background:#F8FAFC; resize:none; font-family:inherit; }
+.comment-field:focus { outline:none; border-color:#94A3B8; background:#fff; }
 .locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
 /* OVERWRITE PANEL (KIC & Area Chef only) */
 .overwrite-panel { background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:10px; padding:12px 14px; margin-top:14px; }
@@ -118,7 +120,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <body>
 <div class="header">
   <div class="role-badge">🧹 Steward</div>
-  <h1>6-Day Incentive Checklist</h1>
+  <h1>7-Day Incentive Checklist</h1>
   <div class="header-sub">Complete tasks • Take photos • Submit each day</div>
   <div class="info-grid">
     <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
@@ -142,8 +144,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </optgroup>
 </select></div>
     <div class="info-field"><label>Week Starting (Auto)</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-resets every Monday"></div>
-    <div class="info-field" style="display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="clearAllData()" title="Clear all data for this week">
-      <label style="cursor:pointer;font-size:9px;color:rgba(255,100,100,0.8);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;">🗑 Reset</label>
+    <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
+      <label onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;font-weight:400;user-select:none;" title="">⚙</label>
     </div>
     </div>
   <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
@@ -349,7 +351,7 @@ function getTodayDayNumber(weekStartStr) {
     const today = new Date(todayStr + 'T00:00:00');
     const start = new Date(weekStartStr + 'T00:00:00');
     const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    return Math.min(Math.max(diff + 1, 1), 6);
+    return Math.min(Math.max(diff + 1, 1), 7);
   } catch(e) { return 1; }
 }
 
@@ -435,6 +437,12 @@ function checkAutoReset() {
 const ROLE       = 'steward';
 
 function clearAllData() {
+  const pin = prompt('Enter Training PIN to reset checklist:');
+  if (pin === null) return; // cancelled
+  if (pin !== 'TRAIN2025') {
+    showToast('Incorrect PIN — reset not allowed 🔒', 'error');
+    return;
+  }
   if (!confirm('Clear ALL checklist data for this week? This cannot be undone.')) return;
   localStorage.removeItem(SK);
   showToast('Data cleared — fresh start ✓', 'ok');
@@ -444,8 +452,8 @@ function clearAllData() {
 }
 const ROLE_LABEL = 'Steward';
 const SK         = 'kic_steward_data_v2';
-const ALLOW_OVERWRITE = false;
-const OVERWRITE_CODE  = '';
+const ALLOW_OVERWRITE = true;
+const OVERWRITE_CODE  = 'KIC2025'; // KIC PIN to overwrite submitted checklist
 
 const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaning tools, dishwashing machine, chemicals, garbage bins, chopping board ready", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area clean, organized, and ready for operation", "photo": true}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: cleaning schedule visible, completed, and followed", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine and sinks in proper working condition", "photo": true}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, washed, organized, and properly stored after operation", "photo": true}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area cleaned, garbage disposed, drains cleaned and area tidy", "photo": true}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing cleaning checklist completed and followed properly", "photo": true}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine, sinks, cleaning equipment cleaned and switched off", "photo": true}]}];
 
@@ -475,7 +483,7 @@ function buildDayRail() {
   const data = load();
   const weekStart = getWeekStart();
   rail.innerHTML = '';
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 7; i++) {
     const done     = data[`d${i}`]?._done;
     const unlocked = isDayUnlocked(i, weekStart);
     const btn = document.createElement('button');
@@ -632,6 +640,8 @@ function renderDay() {
           ${photo ? `<img class="photo-thumb" src="${photo}" alt="proof">` : ''}
         </div>`;
       }
+      const comment = getVal(currentDay, task.id, 'comment') || '';
+      const commentDisabled = sectionLocked ? 'disabled' : '';
       card.innerHTML = `
         <div class="task-top">
           <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
@@ -642,6 +652,10 @@ function renderDay() {
           <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
           <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">— N/A</div>
         </div>
+        <textarea class="comment-field" rows="1" placeholder="Add comment (optional)..." ${commentDisabled}
+          onchange="setComment('${task.id}', this.value)"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        >${comment}</textarea>
         ${photoHtml}`;
       container.appendChild(card);
     });
@@ -674,7 +688,7 @@ function renderDay() {
 
   // 6-day scores — split by opening and closing
   let rdoY=0,rdoM=0,rdcY=0,rdcM=0;
-  for(let d=1;d<=6;d++){
+  for(let d=1;d<=7;d++){
     SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
       const v=getVal(d,t.id,'yn');
       if(v&&v!=='na'){
@@ -695,7 +709,7 @@ function renderDay() {
     <div class="sc-icon">${rdTM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${rdTM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
-    <div class="sc-sub">6-day overall score (target: 95%)</div>
+    <div class="sc-sub">7-day overall score (target: 95%)</div>
     ${rdTM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
@@ -721,6 +735,14 @@ function renderDay() {
       msg.className = 'synced-msg';
       msg.textContent = '✓ Submitted and synced to dashboard';
       container.appendChild(msg);
+      // KIC overwrite panel
+      const owp = document.createElement('div');
+      owp.className = 'overwrite-panel';
+      owp.innerHTML = `<div class="overwrite-title">🔓 KIC Overwrite Access</div>
+        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter KIC PIN to unlock and edit Day ${currentDay}</div>
+        <input class="overwrite-input" id="owCode" type="password" placeholder="Enter KIC PIN...">
+        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      container.appendChild(owp);
     } else {
       btn.textContent = 'Submit Closing Tasks ✓';
       btn.onclick = submitDay;
@@ -730,6 +752,10 @@ function renderDay() {
 }
 
 // ── Tap YES/NO/NA ─────────────────────────────────────────────
+function setComment(taskId, value) {
+  setVal(currentDay, taskId, 'comment', value);
+}
+
 function tapYN(tid, val, el) {
   const data = load();
   if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
@@ -824,7 +850,7 @@ function submitDay() {
 
   // Calc overall — split by opening and closing
   let tY=0,tM=0,oY=0,oM=0,cY=0,cM=0;
-  for(let dd=1;dd<=6;dd++){
+  for(let dd=1;dd<=7;dd++){
     SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
       const v=getVal(dd,t.id,'yn');
       if(v&&v!=='na'){
@@ -852,7 +878,7 @@ function submitDay() {
     qualified:    op>=95,
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
+      for (let dd=1; dd<=7; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn   = getVal(dd, t.id, 'yn');
           const pUrl = getVal(dd, t.id, 'photoUrl');
@@ -878,7 +904,7 @@ function submitDay() {
     // Store full task responses for dashboard detail view
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
+      for (let dd=1; dd<=7; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn    = getVal(dd, t.id, 'yn');
           const photo = getVal(dd, t.id, 'photo'); // base64 local photo
@@ -890,6 +916,7 @@ function submitDay() {
               task: t.text,
               owner: t.ownerLbl,
               yn: yn||'',
+              comment: getVal(dd, t.id, 'comment')||'',
               photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
             };
           }
@@ -911,11 +938,16 @@ function submitDay() {
 // ── Overwrite (KIC/Area Chef) ─────────────────────────────────
 function doOverwrite() {
   const code = document.getElementById('owCode')?.value;
-  if (code !== OVERWRITE_CODE) { showToast('Wrong overwrite code', 'error'); return; }
+  if (code !== OVERWRITE_CODE) { showToast('Wrong KIC PIN — access denied 🔒', 'error'); return; }
   const d = load();
-  if (d[`d${currentDay}`]) delete d[`d${currentDay}`]._done;
+  if (d[`d${currentDay}`]) {
+    delete d[`d${currentDay}`]._done;
+    delete d[`d${currentDay}`]._closeDone;
+    delete d[`d${currentDay}`]._openDone;
+  }
   save(d);
-  showToast('Day ${currentDay} unlocked — you can now edit', 'ok');
+  showToast(`Day ${currentDay} unlocked — KIC can now edit ✓`, 'ok');
+  currentShift = null;
   buildDayRail();
   renderDay();
 }
