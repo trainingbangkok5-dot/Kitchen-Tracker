@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531120000">
+<meta name="app-version" content="20260531130000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531120000';
+  var v = '20260531130000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -277,7 +277,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="modal-box">
     <div class="modal-header">
       <h2 id="modalTitle">Staff Report</h2>
-      <button class="modal-close" onclick="exportDetailPDF()" style="background:#22C55E;margin-right:6px;">📄 Export PDF</button>
       <button class="modal-close" onclick="closeModal()">✕ Close</button>
     </div>
     <div class="modal-body" id="modalBody"></div>
@@ -872,11 +871,10 @@ function openStaffDetail(s) {
 
   document.getElementById('modalTitle').textContent = s.staffName + ' — Daily Report (Day ' + (s.day||1) + ')';
 
-  // Add PDF export button
+  // Add PDF export button — always refresh
   const modalHeader = document.querySelector('#detailModal .modal-header');
   if (modalHeader) {
-    const existing = modalHeader.querySelector('.pdf-daily-btn');
-    if (existing) existing.remove();
+    modalHeader.querySelectorAll('.pdf-monthly-btn,.pdf-daily-btn,.pdf-audit-btn').forEach(b=>b.remove());
     const pdfBtn = document.createElement('button');
     pdfBtn.className = 'modal-close pdf-daily-btn';
     pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;font-size:12px;padding:5px 10px;';
@@ -1078,19 +1076,17 @@ function showStaffWeeklyBreakdown(s) {
 
   document.getElementById('modalTitle').textContent = s.staffName + ' — Full Monthly Report';
 
-  // Add PDF export button
+  // Add PDF export button — always refresh
   const modalHeader = document.querySelector('#detailModal .modal-header');
   if (modalHeader) {
-    const existing = modalHeader.querySelector('.pdf-monthly-btn');
-    if (!existing) {
-      const pdfBtn = document.createElement('button');
-      pdfBtn.className = 'modal-close pdf-monthly-btn';
-      pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;';
-      pdfBtn.textContent = '📄 Export PDF';
-      pdfBtn.onclick = () => exportStaffMonthlyPDF(s, staffSubs);
-      const closeBtn = modalHeader.querySelector('.modal-close');
-      if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
-    }
+    modalHeader.querySelectorAll('.pdf-monthly-btn,.pdf-daily-btn,.pdf-audit-btn').forEach(b=>b.remove());
+    const pdfBtn = document.createElement('button');
+    pdfBtn.className = 'modal-close pdf-monthly-btn';
+    pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;';
+    pdfBtn.textContent = '📄 Export PDF';
+    pdfBtn.onclick = () => exportStaffMonthlyPDF(s, staffSubs);
+    const closeBtn = modalHeader.querySelector('.modal-close');
+    if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
   }
 
   const body = document.getElementById('modalBody');
