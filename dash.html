@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531110000">
+<meta name="app-version" content="20260531120000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531110000';
+  var v = '20260531120000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -855,9 +855,214 @@ function renderMonthly() {
   });
 }
 
-// ── Open staff detail — called when name is clicked ─────────────
+// ── Open staff detail — daily view from All Staff tab ────────────
 function openStaffDetail(s) {
-  showStaffWeeklyBreakdown(s);
+  const { jsPDF } = window.jspdf || {};
+  const role = ROLES[s.role] || {label:s.role, icon:''};
+  const sc   = parseFloat(s.overallPct) || 0;
+  const pass = sc >= 95;
+  const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
+  const opC  = s.closingPct != null ? parseFloat(s.closingPct) : null;
+
+  function fmtDT(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+    catch(e) { return iso; }
+  }
+
+  document.getElementById('modalTitle').textContent = s.staffName + ' — Daily Report (Day ' + (s.day||1) + ')';
+
+  // Add PDF export button
+  const modalHeader = document.querySelector('#detailModal .modal-header');
+  if (modalHeader) {
+    const existing = modalHeader.querySelector('.pdf-daily-btn');
+    if (existing) existing.remove();
+    const pdfBtn = document.createElement('button');
+    pdfBtn.className = 'modal-close pdf-daily-btn';
+    pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;font-size:12px;padding:5px 10px;';
+    pdfBtn.textContent = '📄 Export PDF';
+    pdfBtn.onclick = () => exportDailyPDF(s);
+    const closeBtn = modalHeader.querySelector('.modal-close:not(.pdf-daily-btn)');
+    if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
+  }
+
+  const body = document.getElementById('modalBody');
+
+  // Header
+  let html = `
+    <div style="background:#F5F3EE;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;">
+        <span style="font-size:16px;font-weight:700;">${s.staffName||'—'}</span>
+        <span>${role.icon} ${role.label}</span>
+        <span>📍 ${s.outlet||'—'}</span>
+        <span>📅 Week: ${s.week||'—'} · Day ${s.day||1}</span>
+      </div>
+      ${s.closingStaff && s.closingStaff !== s.staffName
+        ? `<div style="font-size:12px;color:#64748B;">🌅 Opener: <b>${s.staffName}</b> &nbsp;|&nbsp; 🌙 Closer: <b>${s.closingStaff}</b></div>`
+        : `<div style="font-size:12px;color:#64748B;">🌅 Opener: <b>${s.staffName}</b></div>`}
+      <div style="font-size:11px;color:#94A3B8;margin-top:4px;">Started: ${fmtDT(s.startedAt)} &nbsp;|&nbsp; Submitted: ${fmtDT(s.submittedAt)}</div>
+    </div>
+
+    <!-- Score summary -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
+      <div style="background:#EFF6FF;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 Opening</div>
+        <div style="font-size:22px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#D97706':'#B91C1C'}">${opO!=null?opO+'%':'—'}</div>
+      </div>
+      <div style="background:#F0FDF4;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 Closing</div>
+        <div style="font-size:22px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C'}">${opC!=null?opC+'%':'—'}</div>
+      </div>
+      <div style="background:${pass?'#F0FDF4':'#FEF2F2'};border-radius:10px;padding:12px;border:2px solid ${pass?'#22C55E':'#EF4444'};">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">📊 Total</div>
+        <div style="font-size:22px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:10px;color:${pass?'#15803D':'#B91C1C'};font-weight:700;">${sc>0?(pass?'✅ Pass':'❌ Fail'):''}</div>
+      </div>
+    </div>`;
+
+  // Task detail
+  if (s.taskData && Object.keys(s.taskData).length > 0) {
+    // Group by section
+    const bySec = {};
+    Object.values(s.taskData).forEach(t => {
+      const sec = t.section || 'Tasks';
+      if (!bySec[sec]) bySec[sec] = [];
+      bySec[sec].push(t);
+    });
+
+    Object.entries(bySec).forEach(([sec, tasks]) => {
+      html += `<div style="margin-bottom:12px;border:1px solid #E0DDD4;border-radius:10px;overflow:hidden;">
+        <div style="background:#1A3C5E;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec}</div>`;
+
+      tasks.forEach(t => {
+        const yn    = t.yn || '';
+        const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+        const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+        const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;">
+          <div style="flex:1;">
+            <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
+            <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
+            ${t.photoUrl?`<img src="${t.photoUrl}" style="max-width:100px;max-height:75px;border-radius:6px;margin-top:6px;border:2px solid #22C55E;" onerror="this.style.display='none'">`:``}
+          </div>
+          <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    });
+  } else {
+    html += `<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">
+      📋 Task details not available — full submit required for task breakdown
+    </div>`;
+  }
+
+  body.innerHTML = html;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+// ── Export daily PDF ──────────────────────────────────────────
+function exportDailyPDF(s) {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded'); return; }
+  const role = ROLES[s.role] || {label:s.role, icon:''};
+  const sc   = parseFloat(s.overallPct) || 0;
+  const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
+  const opC  = s.closingPct != null ? parseFloat(s.closingPct) : null;
+  const pass = sc >= 95;
+
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const W = doc.internal.pageSize.getWidth();
+  let y = 15;
+
+  // Header
+  doc.setFillColor(26,60,94);
+  doc.rect(0, 0, W, 30, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('Culex Hospitality — Kitchen Tracker', 14, 12);
+  doc.setFontSize(11); doc.setFont('helvetica','normal');
+  doc.text('Daily Checklist Report', 14, 20);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), W-14, 20, {align:'right'});
+  y = 38;
+
+  // Staff info
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text(s.staffName||'—', 14, y);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.setTextColor(100,100,100);
+  y += 6;
+  doc.text(`${role.label} · ${s.outlet||'—'} · Week: ${s.week||'—'} · Day ${s.day||1}`, 14, y);
+  if (s.closingStaff && s.closingStaff !== s.staffName) {
+    y += 5;
+    doc.text(`Opener: ${s.staffName} | Closer: ${s.closingStaff}`, 14, y);
+  }
+  y += 10;
+
+  // Score boxes
+  doc.setTextColor(0,0,0);
+  const boxW = (W-28)/3;
+  [
+    {label:'Opening', val:opO, bg:[239,246,255]},
+    {label:'Closing', val:opC, bg:[240,253,244]},
+    {label:'Total', val:sc, bg:pass?[240,253,244]:[254,242,242]},
+  ].forEach((box, i) => {
+    const x = 14 + i*(boxW+4);
+    doc.setFillColor(...box.bg);
+    doc.roundedRect(x, y, boxW, 18, 3, 3, 'F');
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.setTextColor(100,100,100);
+    doc.text(box.label.toUpperCase(), x+boxW/2, y+6, {align:'center'});
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.setTextColor(box.val>=95?21:box.val>=70?180:185, box.val>=95?128:box.val>=70?100:28, box.val>=95?0:0);
+    doc.text(box.val!=null?box.val+'%':'—', x+boxW/2, y+15, {align:'center'});
+  });
+  y += 24;
+
+  // Tasks table
+  if (s.taskData && Object.keys(s.taskData).length > 0) {
+    const bySec = {};
+    Object.values(s.taskData).forEach(t => {
+      const sec = t.section || 'Tasks';
+      if (!bySec[sec]) bySec[sec] = [];
+      bySec[sec].push(t);
+    });
+
+    Object.entries(bySec).forEach(([sec, tasks]) => {
+      doc.autoTable({
+        startY: y,
+        head: [[{content: sec, colSpan:3, styles:{fillColor:[26,60,94],textColor:255,fontStyle:'bold'}}]],
+        body: tasks.map(t => [
+          t.owner||'',
+          t.task||'',
+          (t.yn||'').toUpperCase()||'—'
+        ]),
+        columns: [
+          {header:'Owner', dataKey:0},
+          {header:'Task', dataKey:1},
+          {header:'Answer', dataKey:2},
+        ],
+        columnStyles: {
+          0: {cellWidth:30, fontSize:8, textColor:[100,100,100]},
+          1: {cellWidth:120, fontSize:9},
+          2: {cellWidth:25, halign:'center', fontStyle:'bold',
+              textColor: tasks.map(t=>t.yn==='yes'?[21,128,61]:t.yn==='no'?[185,28,28]:[100,100,100])},
+        },
+        styles: {fontSize:9, cellPadding:4},
+        headStyles: {fillColor:[26,60,94]},
+        alternateRowStyles: {fillColor:[248,250,252]},
+        margin: {left:14, right:14},
+      });
+      y = doc.lastAutoTable.finalY + 6;
+    });
+  }
+
+  // Footer
+  doc.setFontSize(8); doc.setTextColor(150,150,150);
+  doc.text('Generated by Kitchen Tracker — Culex Hospitality', W/2, 287, {align:'center'});
+
+  const fname = (s.staffName||'staff').replace(/\s+/g,'_') + '_Day' + (s.day||1) + '_' + (s.week||'') + '.pdf';
+  doc.save(fname);
 }
 
 // ── Staff weekly breakdown popup ──────────────────────────────
