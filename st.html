@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531470000';
+  var v = '20260531490000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531470000">
+<meta name="app-version" content="20260531490000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -452,7 +452,7 @@ function clearAllData() {
 }
 const ROLE_LABEL = 'Steward';
 const SK         = 'kic_steward_data_v2';
-const ALLOW_OVERWRITE = true;
+const ALLOW_OVERWRITE = false;
 const OVERWRITE_CODE  = 'KIC2025'; // KIC PIN to overwrite submitted checklist
 
 const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaning tools, dishwashing machine, chemicals, garbage bins, chopping board ready", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area clean, organized, and ready for operation", "photo": true}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: cleaning schedule visible, completed, and followed", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine and sinks in proper working condition", "photo": true}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, washed, organized, and properly stored after operation", "photo": true}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area cleaned, garbage disposed, drains cleaned and area tidy", "photo": true}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing cleaning checklist completed and followed properly", "photo": true}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine, sinks, cleaning equipment cleaned and switched off", "photo": true}]}];
@@ -1043,4 +1043,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html>
+</html
