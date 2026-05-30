@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531390000">
+<meta name="app-version" content="20260531420000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531390000';
+  var v = '20260531420000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -390,8 +390,10 @@ function checkLoginReady() {
   document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk || !pinOk;
 }
 
-document.getElementById('loginName').addEventListener('input', checkLoginReady);
-document.getElementById('outletSel').addEventListener('change', checkLoginReady);
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('loginName').addEventListener('input', checkLoginReady);
+  document.getElementById('outletSel').addEventListener('change', checkLoginReady);
+});
 
 function doLogin() {
   // Validate PIN for management roles
