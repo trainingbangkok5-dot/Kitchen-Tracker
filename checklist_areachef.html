@@ -124,7 +124,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <option value="The Red Door" style="color:#000">The Red Door</option>
 </optgroup>
 </select></div>
-    <div class="info-field"><label>Week Starting</label><input id="fWeek" type="date"></div>
+    <div class="info-field"><label>Week Starting (Auto)</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-resets every Monday"></div>
     <div class="info-field"><label>Verified By (Area Chef)</label><input id="fVerified" type="text" placeholder="Area Chef name..." autocorrect="off"></div>
   </div>
 </div>
@@ -383,6 +383,56 @@ function autoSetAuditorTask(score) {
   // Find the aud1 task and auto-set it
   const val = score >= 80 ? 'yes' : 'no';
   setVal(currentDay, 'aud1', 'yn', val);
+}
+
+
+// ── Auto-reset: detect new week and start fresh cycle ────────
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function getCurrentWeekStart() {
+  const monday = getMonday(new Date());
+  return monday.toISOString().split('T')[0];
+}
+
+function checkAutoReset() {
+  const weekField = document.getElementById('fWeek');
+  if (!weekField) return;
+
+  const currentWeekStart = getCurrentWeekStart();
+  const storedWeek = localStorage.getItem('kic_info_' + ROLE + '_fWeek') || '';
+
+  // Auto-set week to current Monday if not set or if it's a new week
+  if (!storedWeek || storedWeek !== currentWeekStart) {
+    // New week detected — auto reset
+    weekField.value = currentWeekStart;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
+
+    if (storedWeek && storedWeek !== currentWeekStart) {
+      // Clear old week data from localStorage
+      const oldData = JSON.parse(localStorage.getItem(SK) || '{}');
+      const oldWeekKey = 'week_' + storedWeek;
+      
+      // Archive old week data before clearing
+      const archiveKey = SK + '_archive_' + storedWeek;
+      try {
+        localStorage.setItem(archiveKey, JSON.stringify(oldData));
+      } catch(e) {}
+      
+      // Start fresh
+      localStorage.removeItem(SK);
+      showToast('New week started — checklist reset ✓', 'ok');
+    }
+
+    buildDayRail();
+    renderDay();
+  }
 }
 
 // ── Role config ───────────────────────────────────────────────
@@ -746,7 +796,9 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('fWeek').valueAsDate = new Date();
+  // Auto-set to current Monday
+  const monday = getMonday ? getMonday(new Date()) : new Date();
+  document.getElementById('fWeek').valueAsDate = monday;
   ['fName','fOutlet','fWeek','fVerified'].forEach(id => {
     const el = document.getElementById(id);
     const saved = localStorage.getItem('kic_info_${areachef}_${id}');

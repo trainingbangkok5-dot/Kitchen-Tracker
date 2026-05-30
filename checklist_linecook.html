@@ -124,7 +124,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <option value="The Red Door" style="color:#000">The Red Door</option>
 </optgroup>
 </select></div>
-    <div class="info-field"><label>Week Starting</label><input id="fWeek" type="date"></div>
+    <div class="info-field"><label>Week Starting (Auto)</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-resets every Monday"></div>
     </div>
 </div>
 <div class="score-bar">
@@ -330,6 +330,56 @@ function showToast(msg, type) {
 }
 
 
+
+// ── Auto-reset: detect new week and start fresh cycle ────────
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function getCurrentWeekStart() {
+  const monday = getMonday(new Date());
+  return monday.toISOString().split('T')[0];
+}
+
+function checkAutoReset() {
+  const weekField = document.getElementById('fWeek');
+  if (!weekField) return;
+
+  const currentWeekStart = getCurrentWeekStart();
+  const storedWeek = localStorage.getItem('kic_info_' + ROLE + '_fWeek') || '';
+
+  // Auto-set week to current Monday if not set or if it's a new week
+  if (!storedWeek || storedWeek !== currentWeekStart) {
+    // New week detected — auto reset
+    weekField.value = currentWeekStart;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
+
+    if (storedWeek && storedWeek !== currentWeekStart) {
+      // Clear old week data from localStorage
+      const oldData = JSON.parse(localStorage.getItem(SK) || '{}');
+      const oldWeekKey = 'week_' + storedWeek;
+      
+      // Archive old week data before clearing
+      const archiveKey = SK + '_archive_' + storedWeek;
+      try {
+        localStorage.setItem(archiveKey, JSON.stringify(oldData));
+      } catch(e) {}
+      
+      // Start fresh
+      localStorage.removeItem(SK);
+      showToast('New week started — checklist reset ✓', 'ok');
+    }
+
+    buildDayRail();
+    renderDay();
+  }
+}
+
 // ── Role config ───────────────────────────────────────────────
 const ROLE       = 'linecook';
 const ROLE_LABEL = 'Line Cook';
@@ -417,14 +467,22 @@ function renderDay() {
     hdr.textContent = section.title;
     container.appendChild(hdr);
 
+    // Lock opening tasks if opening is submitted
+    const openingSubmitted = !!data[`d${currentDay}`]?._openDone;
+    // Lock closing tasks only if fully done
+    const closingSubmitted = isDone;
+
     section.tasks.forEach((task, ti) => {
+      // Determine lock state per section
+      const sectionLocked = (si === 0 && openingSubmitted && !ALLOW_OVERWRITE) || 
+                            (si === 1 && closingSubmitted && !ALLOW_OVERWRITE);
       total++;
       const val = getVal(currentDay, task.id, 'yn');
       if (val === 'yes') yes++;
       const photo = getVal(currentDay, task.id, 'photo');
 
       const card = document.createElement('div');
-      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '');
+      card.className = 'task-card' + (sectionLocked ? ' locked-card' : '');
       if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
 
       const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
@@ -450,6 +508,25 @@ function renderDay() {
         ${photoHtml}`;
       container.appendChild(card);
     });
+
+    // Add "Submit Opening" button after Opening section (si===0)
+    if (si === 0) {
+      const openDoneFlag = !!data[`d${currentDay}`]?._openDone;
+      if (!openDoneFlag) {
+        const openBtn = document.createElement('button');
+        openBtn.className = 'submit-btn';
+        openBtn.style.cssText = 'margin:10px 0;background:#2E6DA4;';
+        openBtn.textContent = 'Submit Opening Tasks ✓';
+        openBtn.onclick = submitOpening;
+        container.appendChild(openBtn);
+      } else {
+        const openDoneMsg = document.createElement('div');
+        openDoneMsg.className = 'synced-msg';
+        openDoneMsg.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
+        openDoneMsg.textContent = '✓ Opening Tasks Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        container.appendChild(openDoneMsg);
+      }
+    }
   });
 
   // Score
@@ -477,12 +554,13 @@ function renderDay() {
     <div class="sc-sub">6-day overall score (target: 95%)</div>`;
   container.appendChild(sc);
 
-  // Submit button
+  // Submit buttons — Opening and Closing separately
+  const openDone = !!data[`d${currentDay}`]?._openDone;
   const btn = document.createElement('button');
   btn.className = 'submit-btn';
   if (isDone && !ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
+    btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
     const msg = document.createElement('div');
     msg.className = 'synced-msg';
     msg.textContent = '✓ Submitted and synced to dashboard';
@@ -545,10 +623,30 @@ function fmtTimeOnly(iso) {
 }
 
 // ── Submit day ────────────────────────────────────────────────
+function submitOpening() {
+  const name = getStaffName();
+  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // Check all opening tasks answered
+  const openingTasks = SECTIONS[0].tasks;
+  const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
+  if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
+  const d = load();
+  if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
+  d[`d${currentDay}`]._openDone = new Date().toISOString();
+  save(d);
+  showToast('Opening tasks submitted ✓', 'ok');
+  buildDayRail(); renderDay();
+}
+
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // Check all closing tasks answered
+  const closingTasks = SECTIONS[1].tasks;
+  const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
+  if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
   d[`d${currentDay}`]._done = new Date().toISOString();
@@ -691,7 +789,9 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('fWeek').valueAsDate = new Date();
+  // Auto-set to current Monday
+  const monday = getMonday ? getMonday(new Date()) : new Date();
+  document.getElementById('fWeek').valueAsDate = monday;
   ['fName','fOutlet','fWeek'].forEach(id => {
     const el = document.getElementById(id);
     const saved = localStorage.getItem('kic_info_${linecook}_${id}');

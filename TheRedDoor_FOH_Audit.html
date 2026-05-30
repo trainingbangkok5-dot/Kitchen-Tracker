@@ -111,9 +111,12 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
   <h1>&#128682; The Red Door &mdash; FOH Internal Monthly Audit</h1>
   <div class="meta">
     <input id="auditor" placeholder="Auditor name" value="Sunshine Jade Rogel" />
-    <input id="outlet" placeholder="Outlet / branch" />
+    <select id="outlet" style="font-family:Arial,sans-serif;font-size:13px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;width:100%;">
+<option value="">Select outlet...</option>
+<option value="The Red Door">The Red Door</option>
+</select>
     <input id="audit-date" type="date" />
-    <select id="shift"><option value="">Select shift</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select>
+    
   </div>
   <div class="score-bar">
     <div class="grade-badge" id="grade-badge" style="background:#ffebee;color:#7f0000">D</div>
@@ -501,11 +504,10 @@ function showSummary(){
   const auditor=document.getElementById('auditor').value||'—';
   const outlet=document.getElementById('outlet').value||'—';
   const date=document.getElementById('audit-date').value||'—';
-  const shift=document.getElementById('shift').value||'—';
-  let html='<div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.875rem 1rem;background:'+gr.bg+';border-radius:8px;border-left:4px solid '+gr.fill+'">'
+    let html='<div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.875rem 1rem;background:'+gr.bg+';border-radius:8px;border-left:4px solid '+gr.fill+'">'
     +'<div style="width:48px;height:48px;border-radius:50%;background:'+gr.fill+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0">'+gr.g+'</div>'
     +'<div><div style="font-size:18px;font-weight:700;color:'+gr.col+'">'+pct+'% &mdash; Grade '+gr.g+' ('+gr.label+')</div>'
-    +'<div style="font-size:12px;color:#666;margin-top:2px">'+total+'/'+maxTotal+' pts | '+auditor+' | '+outlet+' | '+date+' | '+shift+'</div></div></div>'
+    +'<div style="font-size:12px;color:#666;margin-top:2px">'+total+'/'+maxTotal+' pts | '+auditor+' | '+outlet+' | '+date++'</div></div></div>'
     +'<div style="font-weight:700;font-size:13px;margin-bottom:.5rem;color:#333">Section Breakdown</div>';
   SECTIONS.forEach((s,si)=>{
     const ss=secScores[s.id];const sp=ss.max>0?Math.round(ss.earned/ss.max*100):0;
@@ -537,13 +539,12 @@ function exportExcel(){
   const auditor=document.getElementById('auditor').value||'';
   const outlet=document.getElementById('outlet').value||'';
   const auditDate=document.getElementById('audit-date').value||'';
-  const shift=document.getElementById('shift').value||'';
-  const{total,maxTotal,secScores}=calcScores();
+    const{total,maxTotal,secScores}=calcScores();
   const pct=maxTotal>0?Math.round(total/maxTotal*100):0;
   const gr=getGrade(pct);
   const summaryData=[
     ['THE RED DOOR &MDASH; FOH INTERNAL MONTHLY AUDIT'],[''],
-    ['Auditor',auditor,'Date',auditDate],['Outlet',outlet,'Shift',shift],[''],
+    ['Auditor',auditor,'Date',auditDate],['Outlet',outlet],[''],
     ['OVERALL SCORE',total+' / '+maxTotal,'Compliance %',pct+'%','Grade',gr.g+' — '+gr.label],[''],
     ['SECTION SUMMARY'],['No.','Section','Max Score','Score Achieved','Percentage','Status'],
   ];
@@ -562,7 +563,7 @@ function exportExcel(){
         state[k].correctiveAction||'⚠ No corrective action entered',
         state[k].responsible||'—',
         state[k].deadline||'—',
-        state[k].photos.length>0?state[k].photos.length+' photo(s)':'None'
+        state[k].photos.length>0 ? state[k].photos.length+' photo(s) — see PDF for images' : 'None'
       ]);
       fc++;
     }
@@ -573,7 +574,7 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb,ws,'Summary');
   SECTIONS.forEach((s,si)=>{
     const rows=[['THE RED DOOR &MDASH; FOH INTERNAL MONTHLY AUDIT'],['Section '+(si+1)+': '+s.title],
-      ['Auditor: '+auditor,'','Outlet: '+outlet,'','Date: '+auditDate,'Shift: '+shift],[''],
+      ['Auditor: '+auditor,'','Outlet: '+outlet,'','Date: '+auditDate],[''],
       ['No.','Criteria','Description','Status','Score','Max Score','Observation','Corrective Action','Responsible','Deadline','Photos']];
     s.items.forEach(it=>{
       const k=s.id+'_'+it.n;const d=state[k];
@@ -585,7 +586,7 @@ function exportExcel(){
         d.status==='fail'?(d.correctiveAction||'⚠ Required'):'—',
         d.status==='fail'?(d.responsible||'—'):'—',
         d.status==='fail'?(d.deadline||'—'):'—',
-        d.photos.length>0?d.photos.length+' photo(s)':'None'
+        d.photos.length>0 ? d.photos.map((_,i)=>'Photo '+(i+1)+': [image_'+i+']').join(' | ') : 'None'
       ]);
     });
     const ss=secScores[s.id];
@@ -619,7 +620,15 @@ function exportExcel(){
   }));
   if(caNum===0) caRows.push(['','','','No failed items — all criteria passed','','','','','']);
   caRows.push([''],['Total corrective actions required:', caNum]);
+  caRows.push([''],['Note: Photos are embedded in the PDF export. Export PDF for full visual report.']);
   const caSheet = XLSX.utils.aoa_to_sheet(caRows);
+  // Style the header row
+  const caRange = XLSX.utils.decode_range(caSheet['!ref']||'A1:I1');
+  for (let C = caRange.s.c; C <= caRange.e.c; C++) {
+    const addr = XLSX.utils.encode_cell({r:4, c:C});
+    if (!caSheet[addr]) continue;
+    caSheet[addr].s = { font:{bold:true}, fill:{fgColor:{rgb:'1A3C5E'}}, font:{color:{rgb:'FFFFFF'},bold:true} };
+  }
   caSheet['!cols']=[{wch:4},{wch:25},{wch:6},{wch:28},{wch:35},{wch:45},{wch:20},{wch:14},{wch:10}];
   XLSX.utils.book_append_sheet(wb, caSheet, 'Corrective Actions');
 
@@ -633,8 +642,7 @@ async function exportPDF(){
   const auditor=document.getElementById('auditor').value||'Not specified';
   const outlet=document.getElementById('outlet').value||'Not specified';
   const auditDate=document.getElementById('audit-date').value||'Not specified';
-  const shift=document.getElementById('shift').value||'Not specified';
-  const{total,maxTotal,secScores}=calcScores();
+    const{total,maxTotal,secScores}=calcScores();
   const pct=maxTotal>0?Math.round(total/maxTotal*100):0;
   const gr=getGrade(pct);
   const prog=document.getElementById('pdf-progress');
@@ -661,7 +669,7 @@ async function exportPDF(){
   sf(13,'bold',[255,255,255]);doc.text('Grade '+gr.g+' — '+gr.label,ML+22,y+11);
   sf(9,'normal',[255,255,255]);doc.text(pct+'% Compliance   |   '+total+' / '+maxTotal+' points'+(maxTotal<ORIG_MAX?' (excl. N/A)':''),ML+22,y+22);
   y+=30;
-  const info=[['Auditor',auditor],['Outlet / Branch',outlet],['Audit Date',auditDate],['Shift',shift]];
+  const info=[['Auditor',auditor],['Outlet / Branch',outlet],['Audit Date',auditDate]];
   info.forEach(([lb,vl],i)=>{
     const ix=ML+(i%2)*(CW/2+2),iy=y+Math.floor(i/2)*12;
     fr(ix,iy,CW/2-2,12,245,245,245);
@@ -669,7 +677,7 @@ async function exportPDF(){
     sf(10,'normal',[30,30,30]);doc.text(String(vl),ix+3,iy+10);
   });
   y+=30;
-  sf(11,'bold',[30,30,30]);doc.text('Section Summary',ML,y);y+=6;
+  sf(9,'bold',[30,30,30]);doc.text('Section Summary',ML,y);y+=6;
   fr(ML,y,CW,7,50,50,50);
   sf(8,'bold',[255,255,255]);doc.text('Section',ML+2,y+5);doc.text('Score',ML+CW-42,y+5);doc.text('Max',ML+CW-28,y+5);doc.text('%',ML+CW-12,y+5);
   y+=7;
@@ -686,7 +694,7 @@ async function exportPDF(){
   const fails=[];
   SECTIONS.forEach(s=>s.items.forEach(it=>{const k=s.id+'_'+it.n;if(state[k].status==='fail')fails.push({section:s.title,item:it,data:state[k]});}));
   if(fails.length){
-    cy(12);sf(11,'bold',[180,30,30]);doc.text('Failed Items Requiring Corrective Action ('+fails.length+')',ML,y);y+=6;
+    cy(12);sf(9,'bold',[180,30,30]);doc.text('Failed Items Requiring Corrective Action ('+fails.length+')',ML,y);y+=6;
     fails.forEach(fi=>{
       cy(14);fr(ML,y,3,10,180,30,30);fr(ML+3,y,CW-3,10,255,235,235);
       sf(8,'bold',[120,0,0]);doc.text(fi.section+' — '+fi.item.label,ML+6,y+4);
@@ -766,7 +774,7 @@ function saveAudit(){
     auditor: document.getElementById('auditor').value,
     outlet: (document.getElementById('outlet')||document.getElementById('location')||{value:''}).value,
     date: document.getElementById('audit-date').value,
-    shift: document.getElementById('shift').value,
+    
     savedAt: new Date().toISOString()
   };
   // Photos are already base64 in state — save all
@@ -790,7 +798,7 @@ function loadAudit(){
     const outletEl=document.getElementById('outlet')||document.getElementById('location');
     if(outletEl&&payload.outlet) outletEl.value=payload.outlet;
     if(payload.date) document.getElementById('audit-date').value=payload.date;
-    if(payload.shift) document.getElementById('shift').value=payload.shift;
+    
     // Restore state
     if(payload.state){
       Object.keys(payload.state).forEach(k=>{
@@ -838,8 +846,7 @@ function submitAuditToDashboard() {
   const auditor  = document.getElementById('auditor')?.value || '—';
   const outlet   = (document.getElementById('outlet') || document.getElementById('location') || {value:'—'}).value || '—';
   const auditDate= document.getElementById('audit-date')?.value || new Date().toISOString().split('T')[0];
-  const shift    = document.getElementById('shift')?.value || '—';
-  const title    = document.title || '';
+    const title    = document.title || '';
   const auditType= title.toLowerCase().includes('foh') ? 'FOH' : 'BOH';
   const outletKey= outlet.trim().toLowerCase().replace(/\s+/g,'_');
 
@@ -858,7 +865,6 @@ function submitAuditToDashboard() {
       maxScore: maxTotal,
       auditor,
       auditDate,
-      shift,
       submittedAt: new Date().toISOString()
     });
 
@@ -885,7 +891,7 @@ function submitAuditToDashboard() {
         });
       }
     }));
-    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, shift, submittedAt:new Date().toISOString(), photos, correctiveActions, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), photos, correctiveActions, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
     showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
     console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
   } catch(e) {
