@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260530170000">
+<meta name="app-version" content="20260530200000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260530170000';
+  var v = '20260530200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -483,15 +483,9 @@ function selectShift(shift) {
     if (!openingDone) {
       showToast('Opening shift must be submitted first 🔒', 'warn'); return;
     }
-    const now = new Date();
-    const hour = now.getHours();
-    if (hour < 23) {
-      const minutesLeft = (23 - hour - 1) * 60 + (60 - now.getMinutes());
-      const h = Math.floor(minutesLeft / 60);
-      const m = minutesLeft % 60;
-      showToast(`Closing unlocks at 11:00 PM — ${h}h ${m}m remaining ⏰`, 'warn');
-      return;
-    }
+    // TIME CHECK DISABLED FOR TESTING
+    // const now = new Date();
+    // if (now.getHours() < 23) { showToast('Unlocks at 11PM', 'warn'); return; }
   }
   currentShift = shift;
   const btnO = document.getElementById('btnOpenShift');
@@ -535,11 +529,10 @@ function renderDay() {
     const screen = document.createElement('div');
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
     const openerName = data[`d${currentDay}`]?._openerName || '';
-    const nowH = new Date().getHours();
-    const isAfter11 = nowH >= 23;
-    const closingAvailable = openingDone && isAfter11;
-    const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
-    const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
+    const isAfter11 = true; // TESTING — always open
+    const closingAvailable = openingDone;
+    const minsLeft = 0;
+    const hLeft = 0, mLeft = 0;
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
       closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
