@@ -3,7 +3,7 @@
   "short_name": "RD FOH",
   "description": "Culex Hospitality \u2014 The Red Door FOH Audit",
   "start_url": "./TheRedDoor_FOH_Audit.html",
-  "display": "standalone",
+  "display": "browser",
   "orientation": "portrait",
   "background_color": "#9A3412",
   "theme_color": "#9A3412",

@@ -3,7 +3,7 @@
   "short_name": "LB BOH",
   "description": "Culex Hospitality \u2014 Little Bangkok BOH Audit",
   "start_url": "./Little_Bangkok_BOH_Audit.html",
-  "display": "standalone",
+  "display": "browser",
   "orientation": "portrait",
   "background_color": "#1A3C5E",
   "theme_color": "#1A3C5E",

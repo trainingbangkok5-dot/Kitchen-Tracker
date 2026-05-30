@@ -3,7 +3,7 @@
   "short_name": "RD BOH",
   "description": "Culex Hospitality \u2014 The Red Door BOH Audit",
   "start_url": "./TheRedDoor_BOH_Audit.html",
-  "display": "standalone",
+  "display": "browser",
   "orientation": "portrait",
   "background_color": "#7C2D12",
   "theme_color": "#7C2D12",
