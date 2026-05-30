@@ -2,29 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script>
+// Force latest version — bypasses ALL browser and PWA cache
+(function() {
+  var CURRENT = '20260531030000';
+  // Fetch this page fresh from server to check real version
+  fetch(location.pathname + '?_v=' + Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.text(); })
+    .then(function(html){
+      var m = html.match(/app-version[^>]+content="(\d+)"/);
+      if (m && m[1] !== CURRENT) {
+        // Server has newer version — hard reload bypassing all cache
+        location.href = location.pathname + '?_bust=' + Date.now();
+      }
+    }).catch(function(){});
+})();
+</script>
+
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531010000">
-<script>
-// Force fresh load — clear old cached version
-(function() {
-  var v = '20260531010000';
-  var stored = localStorage.getItem('app_version');
-  if (stored !== v) {
-    localStorage.setItem('app_version', v);
-    if (stored) {
-      // Old version detected — reload without cache
-      window.location.reload(true);
-    }
-  }
-})();
-</script>
+<meta name="app-version" content="20260531030000">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest_linecook.json">
-<link rel="apple-touch-icon" href="apple-touch-icon_linecook.png">
 <meta name="theme-color" content="#1A3C5E">
 <meta name="format-detection" content="telephone=no">
 <title>Line Cook Checklist</title>
