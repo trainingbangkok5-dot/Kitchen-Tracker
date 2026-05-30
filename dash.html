@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531420000">
+<meta name="app-version" content="20260531430000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531420000';
+  var v = '20260531430000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1653,8 +1653,7 @@ async function exportDetailPDF() {
           doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
           doc.text('Photo Evidence:', 14, y+4); y+=8;
           let px = 14;
-          for (const t of photoTasks) {
-            try {
+          for (const t of photoTasks) {            try {
               if (y > H-50) { doc.addPage(); y=16; px=14; }
               let imgData = t.photoUrl || '';
               // Fetch from Realtime Database if db: reference
