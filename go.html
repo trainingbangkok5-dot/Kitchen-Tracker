@@ -1,40 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kitchen Tracker — Loading...</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Kitchen Tracker</title>
 <style>
-body{margin:0;background:#1A3C5E;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;}
-.card{background:#fff;border-radius:20px;padding:32px 24px;text-align:center;max-width:360px;width:90%;}
-h2{color:#1A3C5E;margin:0 0 8px;}
-p{color:#6B6B60;font-size:14px;margin:0 0 20px;}
-.btn{display:block;padding:13px;background:#1A3C5E;color:#fff;border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;margin-bottom:10px;}
-.btn:hover{opacity:.85;}
-.btn.green{background:#15803D;}
-.btn.red{background:#7C2D12;}
-.btn.audit{background:#166534;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#1A3C5E;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:#fff;border-radius:24px;padding:28px 22px;width:100%;max-width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.logo{font-size:52px;margin-bottom:8px;}
+h1{font-size:22px;font-weight:800;color:#1A3C5E;margin-bottom:4px;}
+.sub{font-size:13px;color:#6B6B60;margin-bottom:24px;}
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:8px;text-align:left;}
+.btn{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;text-decoration:none;margin-bottom:8px;transition:transform .1s,opacity .1s;cursor:pointer;border:none;width:100%;text-align:left;}
+.btn:active{transform:scale(.97);opacity:.85;}
+.btn-icon{font-size:24px;flex-shrink:0;}
+.btn-text{flex:1;}
+.btn-name{font-size:15px;font-weight:700;color:#fff;display:block;}
+.btn-desc{font-size:11px;color:rgba(255,255,255,0.75);display:block;margin-top:1px;}
+.btn-arrow{font-size:18px;color:rgba(255,255,255,0.6);}
+.btn-lc{background:linear-gradient(135deg,#1A3C5E,#2E6DA4);}
+.btn-st{background:linear-gradient(135deg,#1A4731,#16A34A);}
+.btn-kic{background:linear-gradient(135deg,#7C2D12,#E87722);}
+.btn-ac{background:linear-gradient(135deg,#7F1D1D,#DC2626);}
+.divider{border:none;border-top:1px solid #E0DDD4;margin:16px 0;}
+.btn-dash{background:linear-gradient(135deg,#374151,#1F2937);}
+.loading{display:none;position:fixed;inset:0;background:#1A3C5E;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:16px;}
+.loading.show{display:flex;}
+.spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top:4px solid #fff;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{color:#fff;font-size:15px;font-weight:600;}
+.version{font-size:10px;color:#CBD5E1;margin-top:16px;}
 </style>
 </head>
 <body>
-<div class="card">
-  <div style="font-size:40px;margin-bottom:10px;">🍳</div>
-  <h2>Kitchen Tracker</h2>
-  <p>Culex Hospitality — tap your role</p>
-  <a class="btn" href="checklist_linecook.html" onclick="bust(this)">🍳 Line Cook</a>
-  <a class="btn green" href="checklist_steward.html" onclick="bust(this)">🧹 Steward</a>
-  <a class="btn red" href="checklist_kic.html" onclick="bust(this)">👨‍🍳 KIC</a>
-  <a class="btn" style="background:#7F1D1D" href="checklist_areachef.html" onclick="bust(this)">📊 Area Chef</a>
-  <a class="btn" style="background:#374151;margin-top:6px;font-size:13px;" href="master_dashboard.html" onclick="bust(this)">🏠 Management Dashboard</a>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Opening checklist...</div>
 </div>
+
+<div class="card">
+  <div class="logo">🍳</div>
+  <h1>Kitchen Tracker</h1>
+  <div class="sub">Culex Hospitality — tap your role</div>
+
+  <div class="section-label">Staff Checklists</div>
+
+  <button class="btn btn-lc" onclick="openPage('checklist_linecook.html', 'Opening Line Cook checklist...')">
+    <span class="btn-icon">🍳</span>
+    <span class="btn-text">
+      <span class="btn-name">Line Cook</span>
+      <span class="btn-desc">Daily opening & closing tasks</span>
+    </span>
+    <span class="btn-arrow">›</span>
+  </button>
+
+  <button class="btn btn-st" onclick="openPage('checklist_steward.html', 'Opening Steward checklist...')">
+    <span class="btn-icon">🧹</span>
+    <span class="btn-text">
+      <span class="btn-name">Steward</span>
+      <span class="btn-desc">Daily opening & closing tasks</span>
+    </span>
+    <span class="btn-arrow">›</span>
+  </button>
+
+  <button class="btn btn-kic" onclick="openPage('checklist_kic.html', 'Opening KIC checklist...')">
+    <span class="btn-icon">👨‍🍳</span>
+    <span class="btn-text">
+      <span class="btn-name">KIC</span>
+      <span class="btn-desc">Kitchen In Charge daily tasks</span>
+    </span>
+    <span class="btn-arrow">›</span>
+  </button>
+
+  <button class="btn btn-ac" onclick="openPage('checklist_areachef.html', 'Opening Area Chef checklist...')">
+    <span class="btn-icon">📊</span>
+    <span class="btn-text">
+      <span class="btn-name">Area Chef</span>
+      <span class="btn-desc">Area Chef KPI checklist</span>
+    </span>
+    <span class="btn-arrow">›</span>
+  </button>
+
+  <hr class="divider">
+  <div class="section-label">Management</div>
+
+  <button class="btn btn-dash" onclick="openPage('master_dashboard.html', 'Opening Dashboard...')">
+    <span class="btn-icon">🏠</span>
+    <span class="btn-text">
+      <span class="btn-name">Kitchen Dashboard</span>
+      <span class="btn-desc">Training, Management, KIC</span>
+    </span>
+    <span class="btn-arrow">›</span>
+  </button>
+
+  <div class="version" id="versionTag">v<script>document.write(new Date().getFullYear())</script></div>
+</div>
+
 <script>
-function bust(el) {
-  el.href = el.href.split('?')[0] + '?v=' + Date.now();
+// ── Force fresh load every time ───────────────────────────────
+const BUILD = '20260530_v3';
+
+function openPage(page, msg) {
+  // Show loading screen
+  document.getElementById('loadingText').textContent = msg;
+  document.getElementById('loading').classList.add('show');
+
+  // Add timestamp to force browser to load fresh version — bypasses cache
+  const ts = Date.now();
+  const url = page + '?nocache=' + ts + '&build=' + BUILD;
+
+  // Small delay so loading animation shows
+  setTimeout(function() {
+    window.location.href = url;
+  }, 300);
 }
-// Auto-bust all links on load
-document.querySelectorAll('a').forEach(function(a) {
-  a.href = a.href.split('?')[0] + '?v=' + Date.now();
-});
+
+// Also clear any old cached versions from localStorage app_version
+try {
+  var currentBuild = localStorage.getItem('culex_build');
+  if (currentBuild !== BUILD) {
+    // New build detected — clear old cache keys
+    var keysToKeep = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var key = localStorage.key(i);
+      // Keep checklist data (kic_info, kic_data) but clear version flags
+      if (key && (key.startsWith('kic_info') || key.startsWith('kic_data') || key.startsWith('kic_'))) {
+        keysToKeep.push(key);
+      }
+    }
+    localStorage.setItem('culex_build', BUILD);
+    localStorage.removeItem('app_version');
+  }
+} catch(e) {}
+
+// Show version
+try {
+  var d = new Date();
+  document.getElementById('versionTag').textContent = 
+    'v' + d.getFullYear() + '.' + (d.getMonth()+1) + '.' + d.getDate() + ' — Tap a role to start';
+} catch(e) {}
 </script>
 </body>
 </html>
