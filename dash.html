@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531430000">
+<meta name="app-version" content="20260531440000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531430000';
+  var v = '20260531440000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1656,14 +1656,8 @@ async function exportDetailPDF() {
           for (const t of photoTasks) {            try {
               if (y > H-50) { doc.addPage(); y=16; px=14; }
               let imgData = t.photoUrl || '';
-              // Fetch from Realtime Database if db: reference
-              if (imgData.startsWith('db:')) {
-                const dbPath = imgData.replace('db:', '');
-                try {
-                  const snap = await db.ref('photos/' + dbPath).once('value');
-                  imgData = snap.val() || '';
-                } catch(e) { imgData = ''; }
-              }
+              // Skip db: references - show badge instead
+              if (imgData.startsWith('db:')) { imgData = ''; }
               if (imgData && imgData.startsWith('data:')) {
                 let fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
                 doc.addImage(imgData, fmt, px, y, 40, 30);
