@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531180000';
+  var v = '20260531190000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531180000">
+<meta name="app-version" content="20260531190000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -764,13 +764,14 @@ function submitOpening() {
       yn:yn||'', photoUrl:pUrl||photo||''
     };
   });
+  const startedAt = (load()[`d${currentDay}`] || {})._start || new Date().toISOString();
   const opO2=oM2>0?Math.round((oY2/oM2)*100):0;
   pushToFirebase({
     staffName:   name, role:ROLE, roleLabel:ROLE_LABEL,
     outlet:      getOutlet(), week:getWeekStart(),
     overallPct:  opO2, openingPct:opO2, closingPct:null,
     qualified:   false, day:currentDay, status:'opening_submitted',
-    startedAt:   d[`d${currentDay}`]?._start || new Date().toISOString(),
+    startedAt:   startedAt,
     submittedAt: new Date().toISOString(), lastUpdated:new Date().toISOString(),
     taskData:    openingTaskData,
   });
@@ -983,8 +984,4 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
   buildDayRail();
-  renderDay();
-});
-</script>
-</body>
-</html>
+ 
