@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531000000">
+<meta name="app-version" content="20260531110000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531000000';
+  var v = '20260531110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -602,24 +602,12 @@ function renderStaff() {
     row.style.cursor = 'pointer';
     row.onclick = () => openStaffDetail(s);
 
-    const opO = s.openingPct != null ? parseFloat(s.openingPct) : null;
-    const opC = s.closingPct != null ? parseFloat(s.closingPct) : null;
-    const scoreHtml = sc > 0
-      ? '<div style="font-weight:700;font-size:13px;color:' + (pass?'#15803D':'#B91C1C') + '">' + sc + '%</div>'
-        + '<div style="display:flex;gap:4px;margin-top:3px;">'
-        + (opO!=null?'<span style="font-size:10px;background:#EFF6FF;color:#1A3C5E;padding:1px 5px;border-radius:4px;font-weight:600;">🌅' + opO + '%</span>':'')
-        + (opC!=null?'<span style="font-size:10px;background:#F0FDF4;color:#15803D;padding:1px 5px;border-radius:4px;font-weight:600;">🌙' + opC + '%</span>':'')
-        + '</div>'
-      : '<span style="color:#94A3B8">—</span>';
-
     row.innerHTML =
       '<div class="td"><div style="font-weight:600;color:#1A3C5E;text-decoration:underline">' + (s.staffName||'—') + '</div>'
-      + '<div class="td-sm">' + (s.outlet||'—') + '</div>'
-      + (s.closingStaff && s.closingStaff !== s.staffName ? '<div class="td-sm" style="color:#64748B;">🌙 ' + s.closingStaff + '</div>' : '')
-      + '</div>'
+      + '<div class="td-sm">' + (s.outlet||'—') + '</div></div>'
       + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
       + '<div class="td td-sm">' + (s.week||'—') + '</div>'
-      + '<div class="td">' + scoreHtml + '</div>'
+      + '<div class="td" style="font-weight:700;color:' + (sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>'
       + '<div class="td">' + (sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅':'❌') + ' ' + (pass?'Pass':'Fail') + '</span>':'<span class="sp sp-prog">⏳</span>') + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.startedAt) + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.submittedAt) + '</div>';
@@ -865,6 +853,11 @@ function renderMonthly() {
       <div style="font-size:11px;color:#6B6B60;">${q2}/${roleStaff.length} qualified</div>`;
     roleEl.appendChild(card);
   });
+}
+
+// ── Open staff detail — called when name is clicked ─────────────
+function openStaffDetail(s) {
+  showStaffWeeklyBreakdown(s);
 }
 
 // ── Staff weekly breakdown popup ──────────────────────────────
