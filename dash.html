@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531150000">
+<meta name="app-version" content="20260531300000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531150000';
+  var v = '20260531300000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -943,7 +943,7 @@ function openStaffDetail(s) {
       html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;">📅 Day ${day}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
-        html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec}</div>`;
+      html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim() || 'Tasks'}</div>`;
         secTasks.forEach((t,ti) => {
           const yn    = t.yn||'';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -1602,7 +1602,7 @@ function exportDetailPDF() {
       Object.entries(bySec).forEach(([sec, secTasks]) => {
         doc.autoTable({
           startY: y,
-          head: [[{content: sec, colSpan:3, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
+          head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim() || sec, colSpan:3, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
           body: secTasks.map(t => [
             t.owner||'',
             t.task||'',
@@ -1623,7 +1623,37 @@ function exportDetailPDF() {
           alternateRowStyles:{fillColor:[248,250,252]},
           margin:{left:14,right:14},
         });
-        y = doc.lastAutoTable.finalY + 4;
+        y = doc.lastAutoTable.finalY + 2;
+
+        // Add photos below table
+        const photoTasks = secTasks.filter(t => t.photoUrl);
+        if (photoTasks.length > 0) {
+          if (y > H-60) { doc.addPage(); y=16; }
+          doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
+          doc.text('Photo Evidence:', 14, y+4); y+=8;
+          let px = 14;
+          for (const t of photoTasks) {
+            try {
+              if (y > H-50) { doc.addPage(); y=16; px=14; }
+              const imgData = t.photoUrl;
+              if (!imgData) continue;
+              // Detect format from base64 header or default to JPEG
+              let fmt = 'JPEG';
+              if (imgData.startsWith('data:image/png')) fmt = 'PNG';
+              else if (imgData.startsWith('data:image/webp')) fmt = 'WEBP';
+              doc.addImage(imgData, fmt, px, y, 40, 30);
+              doc.setFontSize(7); doc.setTextColor(100,100,100);
+              const label = (t.task||'').substring(0,25);
+              doc.text(label, px, y+33);
+              px += 46;
+              if (px > W-50) { px=14; y+=40; }
+            } catch(imgErr) {
+              console.warn('Photo render error:', imgErr.message);
+            }
+          }
+          y += 42;
+        }
+        y += 4;
       });
     });
   } else {
