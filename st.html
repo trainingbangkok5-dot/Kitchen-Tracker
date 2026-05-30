@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531170000';
+  var v = '20260531180000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531170000">
+<meta name="app-version" content="20260531180000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -774,6 +774,7 @@ function submitOpening() {
     submittedAt: new Date().toISOString(), lastUpdated:new Date().toISOString(),
     taskData:    openingTaskData,
   });
+  showToast('Opening tasks submitted ✓', 'ok');
   currentShift = null;
   buildDayRail(); renderDay();
 }
