@@ -973,6 +973,55 @@ function deleteRecord(fbKey, staffName) {
   });
 }
 
+
+function deleteAllRecords(staffName, role, outlet) {
+  if (currentRole !== 'training') { alert('Access denied.'); return; }
+  
+  const confirmed = window.confirm(
+    'DELETE ALL RECORDS for this staff?\n\n' +
+    'Staff: ' + staffName + '\n' +
+    'Role: ' + role + '\n' +
+    'Outlet: ' + outlet + '\n\n' +
+    'This will delete ALL weeks for this staff member.\n' +
+    'This CANNOT be undone.'
+  );
+  if (!confirmed) return;
+
+  if (!db) { alert('Firebase not ready.'); return; }
+  
+  db.ref('submissions').once('value', snap => {
+    const data = snap.val();
+    if (!data) { alert('No records found.'); return; }
+    
+    // Find all records matching this staff
+    const keysToDelete = [];
+    Object.entries(data).forEach(([key, val]) => {
+      if (val && 
+          val.staffName === staffName && 
+          val.role === role &&
+          val.outlet === outlet) {
+        keysToDelete.push(key);
+      }
+    });
+
+    if (keysToDelete.length === 0) {
+      alert('No records found for ' + staffName);
+      return;
+    }
+
+    // Delete all matching records
+    const updates = {};
+    keysToDelete.forEach(key => { updates['submissions/' + key] = null; });
+    
+    db.ref().update(updates)
+      .then(() => {
+        showDeleteToast('All ' + keysToDelete.length + ' record(s) for ' + staffName + ' deleted');
+        closeModal();
+      })
+      .catch(e => alert('Delete failed: ' + e.message));
+  });
+}
+
 function showDeleteToast(msg) {
   const t = document.createElement('div');
   t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#B91C1C;color:#fff;padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
@@ -1414,6 +1463,24 @@ function showStaffWeeklyBreakdown(s) {
   });
 
   body.innerHTML = html2;
+  // Add Delete All button for Training role
+  if (currentRole === 'training') {
+    const delAllBtn = document.createElement('button');
+    delAllBtn.textContent = '🗑 Delete ALL Records for this Staff';
+    delAllBtn.style.cssText = 'width:100%;margin-top:14px;padding:10px;background:#FEE2E2;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;';
+    delAllBtn.onclick = () => deleteAllRecords(s.staffName, s.role, s.outlet);
+    body.appendChild(delAllBtn);
+  }
+
+  // Add Delete All button in monthly breakdown too
+  if (currentRole === 'training') {
+    const delAllBtn2 = document.createElement('button');
+    delAllBtn2.textContent = '🗑 Delete ALL Records for ' + s.staffName;
+    delAllBtn2.style.cssText = 'width:100%;margin-top:14px;padding:10px;background:#FEE2E2;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;';
+    delAllBtn2.onclick = () => deleteAllRecords(s.staffName, s.role, s.outlet);
+    body.appendChild(delAllBtn2);
+  }
+
   document.getElementById('detailModal').classList.add('open');
 }
 
