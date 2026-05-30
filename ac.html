@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="app-version" content="20260530094938">
+<script>
+// Force fresh load — clear old cached version
+(function() {
+  var v = '20260530094938';
+  var stored = localStorage.getItem('app_version');
+  if (stored !== v) {
+    localStorage.setItem('app_version', v);
+    if (stored) {
+      // Old version detected — reload without cache
+      window.location.reload(true);
+    }
+  }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest_areachef.json">
+<link rel="apple-touch-icon" href="apple-touch-icon_areachef.png">
+<meta name="theme-color" content="#7F1D1D">
+<meta name="format-detection" content="telephone=no">
+<title>Area Chef KPI Checklist</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#F8FAFC; color:#0F172A; padding-bottom:60px; -webkit-font-smoothing:antialiased; }
+.header { background:#7F1D1D; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
+.role-badge { display:inline-block; background:#DC2626; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
+.header h1 { color:#fff; font-size:17px; font-weight:700; }
+.header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px; }
+.info-field { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:7px 10px; }
+.info-field label { display:block; font-size:9px; color:rgba(255,255,255,0.55); font-weight:700; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
+.info-field input { background:transparent; border:none; outline:none; color:#fff; font-size:13px; font-weight:500; width:100%; -webkit-appearance:none; }
+.info-field input::placeholder { color:rgba(255,255,255,0.3); }
+.score-bar { background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+.score-track { flex:1; height:5px; background:#E2E8F0; border-radius:3px; overflow:hidden; }
+.score-fill { height:100%; border-radius:3px; background:#DC2626; transition:width 0.4s; }
+.score-pct { font-size:13px; font-weight:700; color:#7F1D1D; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
+.day-rail { background:#fff; border-bottom:1px solid #E2E8F0; padding:9px 14px; display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.day-rail::-webkit-scrollbar { display:none; }
+.day-pill { flex-shrink:0; padding:5px 14px; border-radius:20px; border:1.5px solid #E2E8F0; background:#fff; font-size:12px; font-weight:700; color:#64748B; cursor:pointer; white-space:nowrap; -webkit-appearance:none; transition:all 0.15s; }
+.day-pill.active { background:#7F1D1D; border-color:#7F1D1D; color:#fff; }
+.day-pill.done { border-color:#22C55E; color:#15803D; }
+.day-pill.done.active { background:#7F1D1D; color:#fff; }
+.day-pill.locked { opacity:0.35; cursor:not-allowed; }
+.content { padding:12px 16px; }
+.section-hdr { background:#DC2626; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
+.task-card { background:#fff; border:1px solid #E2E8F0; border-top:none; padding:12px 13px; }
+.task-card:last-child { border-radius:0 0 10px 10px; }
+.task-card.locked-card { opacity:0.7; pointer-events:none; }
+.task-top { display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; }
+.owner-tag { font-size:8px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; padding:2px 6px; border-radius:4px; white-space:nowrap; margin-top:2px; flex-shrink:0; }
+.ot-self { background:#FEF3C7; color:#92400E; }
+.ot-verify { background:#DBEAFE; color:#1E40AF; }
+.ot-monitor { background:#D1FAE5; color:#065F46; }
+.ot-record { background:#EDE9FE; color:#5B21B6; }
+.ot-auditor { background:#FCE7F3; color:#9D174D; }
+.task-text { font-size:13px; font-weight:500; line-height:1.4; flex:1; }
+.yn-row { display:flex; gap:6px; }
+.yn { flex:1; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
+.yn:active { transform:scale(0.96); }
+.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
+.yn.no.on  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
+.yn.na.on  { background:#F3F4F6; border-color:#9CA3AF; color:#374151; }
+.photo-row { margin-top:9px; display:flex; align-items:center; gap:8px; }
+.photo-btn { display:flex; align-items:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; }
+.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
+.photo-btn:active { transform:scale(0.97); }
+.photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
+.status-card { margin:16px 0 0; border-radius:12px; padding:16px; text-align:center; border:2px solid #E2E8F0; background:#fff; }
+.status-card.pass { background:#F0FDF4; border-color:#22C55E; }
+.status-card.fail { background:#FEF2F2; border-color:#EF4444; }
+.sc-icon { font-size:28px; margin-bottom:5px; }
+.sc-title { font-size:16px; font-weight:700; margin-bottom:3px; }
+.sc-score { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; margin:6px 0; }
+.sc-sub { font-size:12px; color:#64748B; }
+.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#7F1D1D; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
+.submit-btn:active { opacity:0.85; }
+.submit-btn:disabled { background:#94A3B8; cursor:not-allowed; }
+
+.time-stamp-card { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:11px 14px; margin-top:10px; display:flex; gap:14px; }
+.ts-block { flex:1; text-align:center; }
+.ts-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#94A3B8; margin-bottom:3px; }
+.ts-value { font-size:13px; font-weight:700; color:#0F172A; }
+.ts-date  { font-size:10px; color:#64748B; margin-top:1px; }
+.ts-divider { width:1px; background:#E2E8F0; flex-shrink:0; }
+
+.synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
+.locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
+/* OVERWRITE PANEL (KIC & Area Chef only) */
+.overwrite-panel { background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:10px; padding:12px 14px; margin-top:14px; }
+.overwrite-title { font-size:12px; font-weight:700; color:#B91C1C; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.overwrite-input { width:100%; padding:8px 11px; border:1.5px solid #FCA5A5; border-radius:8px; font-size:13px; background:#fff; outline:none; -webkit-appearance:none; margin-bottom:8px; }
+.overwrite-input:focus { border-color:#EF4444; }
+.overwrite-btn { width:100%; padding:10px; background:#EF4444; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; -webkit-appearance:none; }
+/* PHOTO MODAL */
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:999; align-items:flex-end; justify-content:center; }
+.modal-bg.open { display:flex; }
+.modal-box { background:#fff; border-radius:20px 20px 0 0; padding:22px 18px 36px; width:100%; max-width:440px; }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:4px; }
+.modal-sub { font-size:12px; color:#64748B; margin-bottom:18px; }
+.mbtn { display:block; width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; -webkit-appearance:none; }
+.mbtn-cam { background:#7F1D1D; color:#fff; }
+.mbtn-gal { background:#EFF6FF; color:#DC2626; }
+.mbtn-cancel { background:#F8FAFC; color:#64748B; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<div class="header">
+  <div class="role-badge">📊 Area Chef</div>
+  <h1>Area Chef KPI Checklist</h1>
+  <div class="header-sub">KPI verification • Team performance</div>
+  <div class="info-grid">
+    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
+    <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;-webkit-appearance:none;">
+<option value="" style="color:#000">Select outlet...</option>
+<optgroup label="Little Bangkok" style="color:#000">
+<option value="LB DSO" style="color:#000">LB DSO</option>
+<option value="LB Tower" style="color:#000">LB Tower</option>
+<option value="LB Hamra" style="color:#000">LB Hamra</option>
+<option value="LB JLT" style="color:#000">LB JLT</option>
+<option value="LB OM" style="color:#000">LB OM</option>
+<option value="LB DHE" style="color:#000">LB DHE</option>
+<option value="LB MTC" style="color:#000">LB MTC</option>
+</optgroup>
+<optgroup label="Superbowl" style="color:#000">
+<option value="SB Deira" style="color:#000">SB Deira</option>
+<option value="SB DG" style="color:#000">SB DG</option>
+</optgroup>
+<optgroup label="The Red Door" style="color:#000">
+<option value="The Red Door" style="color:#000">The Red Door</option>
+</optgroup>
+</select></div>
+    <div class="info-field"><label>Week Starting (Auto)</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-resets every Monday"></div>
+    <div class="info-field"><label>Verified By (Area Chef)</label><input id="fVerified" type="text" placeholder="Area Chef name..." autocorrect="off"></div>
+  </div>
+</div>
+<div class="score-bar">
+  <span style="font-size:12px;color:#64748B;font-weight:500;">Today's score</span>
+  <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
+  <span class="score-pct" id="scorePct">0%</span>
+</div>
+<div class="day-rail" id="dayRail"></div>
+<div class="content" id="mainContent"></div>
+
+<div class="modal-bg" id="photoModal">
+  <div class="modal-box">
+    <div class="modal-title">📷 Photo Proof</div>
+    <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
+    <button class="mbtn mbtn-cam" id="mbtnCamera">📸 Take Photo Now</button>
+    <button class="mbtn mbtn-gal" id="mbtnGallery">🖼 Choose from Gallery</button>
+    <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
+  </div>
+</div>
+<input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;position:absolute;left:-9999px;">
+<input type="file" id="galInput" accept="image/*" style="display:none;position:absolute;left:-9999px;">
+
+<script>
+
+// ══ FIREBASE CONFIG ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+// ══════════════════════════════════════════════════════════════
+
+// Init Firebase
+firebase.initializeApp(FIREBASE_CONFIG);
+const _db = firebase.database();
+
+function pushToFirebase(record) {
+  try {
+    const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.role
+              + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + Date.now();
+    _db.ref('submissions/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).then(() => {
+      showToast('✓ Synced to dashboard', 'ok');
+    }).catch(e => {
+      console.warn('Firebase write failed:', e);
+    });
+  } catch(e) { console.warn('Firebase error:', e); }
+}
+
+
+async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
+  try {
+    // Convert dataUrl to blob
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const path = `photos/${(staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')}/day${day}/${taskId}_${Date.now()}.jpg`;
+    
+    // Use Firebase Storage REST API (works without SDK)
+    const storageUrl = `https://firebasestorage.googleapis.com/v0/b/kitchen-tracker-35293.firebasestorage.app/o/${encodeURIComponent(path)}`;
+    const uploadRes = await fetch(storageUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob
+    });
+    
+    if (uploadRes.ok) {
+      const data = await uploadRes.json();
+      const downloadUrl = `${storageUrl}?alt=media&token=${data.downloadTokens}`;
+      return downloadUrl;
+    }
+    return null;
+  } catch(e) {
+    console.warn('Photo upload failed:', e);
+    return null;
+  }
+}
+
+function pushAuditToFirebase(record) {
+  try {
+    const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.auditType
+              + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+    _db.ref('audits/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).catch(e => console.warn('Audit write failed:', e));
+  } catch(e) { console.warn('Firebase audit error:', e); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// SHARED DATABASE — all checklists write to same localStorage key
+// so master dashboard can read all submissions
+// ══════════════════════════════════════════════════════════════
+const SHARED_DB_KEY = 'KIC_SHARED_DB_V2';
+
+function loadSharedDB() {
+  try { return JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || { submissions: [] }; }
+  catch(e) { return { submissions: [] }; }
+}
+function saveSharedDB(db) {
+  try { localStorage.setItem(SHARED_DB_KEY, JSON.stringify(db)); } catch(e) {}
+}
+
+function pushToMasterDashboard(record) {
+  // record: { staffName, role, outlet, week, day, overallPct, qualified, submittedAt, verifiedBy }
+  const db = loadSharedDB();
+  // Find existing entry for this staff + week and update, or add new
+  const idx = db.submissions.findIndex(
+    s => s.staffName === record.staffName &&
+         s.role === record.role &&
+         s.week === record.week &&
+         s.outlet === record.outlet
+  );
+  if (idx >= 0) {
+    db.submissions[idx] = { ...db.submissions[idx], ...record };
+  } else {
+    db.submissions.push(record);
+  }
+  saveSharedDB(db);
+}
+
+// ── iOS Safari fix: use blob URL for camera capture ──────────────────────────
+function iosPhotoFix(inputEl, onDataUrl) {
+  // iOS Safari needs special handling — no capture attribute workaround
+  inputEl.removeAttribute('capture');
+  inputEl.setAttribute('accept', 'image/*');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    // On iOS we add capture back AFTER a small delay so Safari registers it
+    setTimeout(() => inputEl.setAttribute('capture', 'environment'), 50);
+  }
+}
+
+function compressAndReturn(file, callback) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX = 600;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = function() { callback(ev.target.result); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Day unlock logic — only unlock next day, not future days ─────────────────
+function getTodayDayNumber(weekStartStr) {
+  if (!weekStartStr) return 1;
+  try {
+    // Use local calendar date (midnight-based, not 24hr rolling)
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + 
+      String(now.getMonth()+1).padStart(2,'0') + '-' + 
+      String(now.getDate()).padStart(2,'0');
+    const today = new Date(todayStr + 'T00:00:00');
+    const start = new Date(weekStartStr + 'T00:00:00');
+    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    return Math.min(Math.max(diff + 1, 1), 6);
+  } catch(e) { return 1; }
+}
+
+function isDayUnlocked(dayNum, weekStartStr) {
+  return dayNum <= getTodayDayNumber(weekStartStr);
+}
+
+function showToast(msg, type) {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;z-index:9999;white-space:nowrap;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#EF4444' : type === 'warn' ? '#F59E0B' : '#0F172A';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 2800);
+}
+
+
+
+// ── Auto-fill audit score for KIC's outlet ───────────────────────────────────
+function getLatestAuditForOutlet(outlet) {
+  if (!outlet) return null;
+  try {
+    const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{}');
+    const audits = db.audits || [];
+    const outletAudits = audits.filter(a =>
+      a.outlet && a.outlet.trim().toLowerCase() === outlet.trim().toLowerCase()
+    );
+    if (outletAudits.length === 0) return null;
+    // Get most recent
+    return outletAudits.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0];
+  } catch(e) { return null; }
+}
+
+function showAuditBanner() {
+  const outlet = document.getElementById('fOutlet')?.value?.trim();
+  const audit = getLatestAuditForOutlet(outlet);
+  let banner = document.getElementById('_auditBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = '_auditBanner';
+    banner.style.cssText = 'margin:10px 16px 0;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;';
+    const content = document.getElementById('mainContent');
+    if (content) content.parentNode.insertBefore(banner, content);
+  }
+  if (!outlet) {
+    banner.style.display = 'none';
+    return;
+  }
+  if (!audit) {
+    banner.style.cssText += 'background:#FEF9C3;border:1px solid #FDE68A;color:#92400E;display:block;';
+    banner.textContent = '⏳ ' + outlet + ' — No audit submitted yet (Pending)';
+  } else {
+    const pass = audit.score >= 80;
+    banner.style.cssText += (pass
+      ? 'background:#DCFCE7;border:1px solid #22C55E;color:#15803D;display:block;'
+      : 'background:#FEE2E2;border:1px solid #EF4444;color:#B91C1C;display:block;');
+    const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+    banner.textContent = (pass ? '✅' : '❌') + ' ' + outlet + ' ' + audit.auditType +
+      ' Audit: ' + audit.score + '% (' + audit.rawScore + '/' + audit.maxScore + ' pts)' +
+      ' — Auditor: ' + audit.auditor + ' — ' + d;
+    // Also auto-set the auditor section task yn if score >= 80
+    autoSetAuditorTask(audit.score);
+  }
+}
+
+function autoSetAuditorTask(score) {
+  // Find the aud1 task and auto-set it
+  const val = score >= 80 ? 'yes' : 'no';
+  setVal(currentDay, 'aud1', 'yn', val);
+}
+
+
+// ── Auto-reset: detect new week and start fresh cycle ────────
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function getCurrentWeekStart() {
+  const monday = getMonday(new Date());
+  return monday.toISOString().split('T')[0];
+}
+
+function checkAutoReset() {
+  const weekField = document.getElementById('fWeek');
+  if (!weekField) return;
+
+  const currentWeekStart = getCurrentWeekStart();
+  const storedWeek = localStorage.getItem('kic_info_' + ROLE + '_fWeek') || '';
+
+  // Auto-set week to current Monday if not set or if it's a new week
+  if (!storedWeek || storedWeek !== currentWeekStart) {
+    // New week detected — auto reset
+    weekField.value = currentWeekStart;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
+    // Also update the week label display
+    try { const el = document.getElementById('fWeek'); if(el) el.value = currentWeekStart; } catch(e) {}
+
+    if (storedWeek && storedWeek !== currentWeekStart) {
+      // Clear old week data from localStorage
+      const oldData = JSON.parse(localStorage.getItem(SK) || '{}');
+      const oldWeekKey = 'week_' + storedWeek;
+      
+      // Archive old week data before clearing
+      const archiveKey = SK + '_archive_' + storedWeek;
+      try {
+        localStorage.setItem(archiveKey, JSON.stringify(oldData));
+      } catch(e) {}
+      
+      // Start fresh
+      localStorage.removeItem(SK);
+      showToast('New week started — checklist reset ✓', 'ok');
+    }
+
+    buildDayRail();
+    renderDay();
+  }
+}
+
+// ── Role config ───────────────────────────────────────────────
+const ROLE       = 'areachef';
+const ROLE_LABEL = 'Area Chef';
+const SK         = 'kic_areachef_data_v2';
+const ALLOW_OVERWRITE = true;
+const OVERWRITE_CODE  = 'CHEF2024';
+
+const SECTIONS = [{"title": "Opening Today", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self / Tactiq", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self / Tactiq", "text": "Storage check: stock level, check high value items inventory", "photo": true}, {"id": "o3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: everything in proper running condition", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team briefing: constructive, follow agenda", "photo": false}]}, {"title": "Closing Yesterday", "tasks": [{"id": "cy1", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true}, {"id": "cy2", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Storage check: stock level, next day stock availability", "photo": true}, {"id": "cy3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: any maintenance required", "photo": true}, {"id": "cy4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team debriefing: constructive, follow agenda", "photo": false}]}, {"title": "Food Consistency Today", "tasks": [{"id": "fc1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served cooked as per recipes", "photo": true}, {"id": "fc2", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served presented as per correct presentation", "photo": true}, {"id": "fc3", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Ticket timing as per standard", "photo": false}, {"id": "fc4", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Comments are read and actioned", "photo": false}, {"id": "fc5", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Delivery: packing, customer comments, small sides not missed", "photo": false}]}, {"title": "Leadership Today", "tasks": [{"id": "l1", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Display professional control of operation flow", "photo": false}, {"id": "l2", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Display efficient and professional communication skill", "photo": false}, {"id": "l3", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Display culinary knowledge and integrity", "photo": false}, {"id": "l4", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Cleanliness of all stations including steward area", "photo": true}, {"id": "l5", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Storage area neat and clean, items arranged", "photo": true}, {"id": "l6", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "All stations are properly set up and filled", "photo": true}, {"id": "l7", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Staff are ready physically and mentally motivated", "photo": false}]}, {"title": "Food Cost & Staff", "tasks": [{"id": "cost1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Theory vs actual difference less than 1.5%", "photo": false}, {"id": "sp1", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Staff monitoring done properly and scored fairly", "photo": false}, {"id": "sp2", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Overall team score above 80%", "photo": false}, {"id": "cc1", "owner": "record", "ownerLbl": "Record / Tactiq", "text": "Two or fewer genuine food-related customer complaints", "photo": false}, {"id": "aud1", "owner": "auditor", "ownerLbl": "Auditor", "text": "Section audit score on last visit above 80%", "photo": false}]}];
+
+let currentDay = 1;
+let activePhotoTask = null;
+
+// ── Storage ───────────────────────────────────────────────────
+function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
+function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
+function getVal(day,tid,field) { return load()[`d${day}`]?.[tid]?.[field]||null; }
+function setVal(day,tid,field,val) {
+  const d=load();
+  if(!d[`d${day}`]) d[`d${day}`]={};
+  if(!d[`d${day}`][tid]) d[`d${day}`][tid]={};
+  d[`d${day}`][tid][field]=val;
+  save(d);
+}
+
+function getWeekStart() { return document.getElementById('fWeek').value; }
+function getStaffName() { return document.getElementById('fName').value.trim(); }
+function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
+function getVerified() { return document.getElementById('fVerified').value.trim(); }
+
+// ── Day rail ──────────────────────────────────────────────────
+function buildDayRail() {
+  const rail = document.getElementById('dayRail');
+  const data = load();
+  const weekStart = getWeekStart();
+  rail.innerHTML = '';
+  for (let i = 1; i <= 6; i++) {
+    const done     = data[`d${i}`]?._done;
+    const unlocked = isDayUnlocked(i, weekStart);
+    const btn = document.createElement('button');
+    let cls = 'd-pill day-pill';
+    if (i === currentDay) cls += ' active';
+    if (done) cls += ' done';
+    if (!unlocked) cls += ' locked';
+    btn.className = cls;
+    btn.textContent = done ? `Day ${i} ✓` : `Day ${i}`;
+    btn.onclick = () => {
+      if (!unlocked) { showToast(`Day ${i} unlocks on the correct date 📅`, 'warn'); return; }
+      currentDay = i; buildDayRail(); renderDay();
+    };
+    rail.appendChild(btn);
+  }
+}
+
+// ── Render day ────────────────────────────────────────────────
+function renderDay() {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = '';
+
+  // Track start time for this day
+  const dayKey = `d${currentDay}`;
+  const dNow = load();
+  if (!dNow[dayKey]) { dNow[dayKey] = {}; }
+  if (!dNow[dayKey]._start) {
+    dNow[dayKey]._start = new Date().toISOString();
+    save(dNow);
+  }
+
+  const data = load();
+  const isDone = !!data[`d${currentDay}`]?._done;
+  const weekStart = getWeekStart();
+  const unlocked = isDayUnlocked(currentDay, weekStart);
+  let total = 0, yes = 0;
+
+  if (!unlocked) {
+    const locked = document.createElement('div');
+    locked.className = 'locked-msg';
+    locked.textContent = `🔒 Day ${currentDay} is not available yet. It will unlock on the correct date.`;
+    container.appendChild(locked);
+    return;
+  }
+
+  SECTIONS.forEach((section, si) => {
+    const hdr = document.createElement('div');
+    hdr.className = 'section-hdr';
+    hdr.textContent = section.title;
+    container.appendChild(hdr);
+
+    section.tasks.forEach((task, ti) => {
+      total++;
+      const val = getVal(currentDay, task.id, 'yn');
+      if (val === 'yes') yes++;
+      const photo = getVal(currentDay, task.id, 'photo');
+
+      const card = document.createElement('div');
+      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '');
+      if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
+
+      const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
+      let photoHtml = '';
+      if (task.photo) {
+        photoHtml = `<div class="photo-row">
+          <button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
+            ${photo ? '✓ Photo saved' : '📷 Tap to take photo'}
+          </button>
+          ${photo ? `<img class="photo-thumb" src="${photo}" alt="proof">` : ''}
+        </div>`;
+      }
+      card.innerHTML = `
+        <div class="task-top">
+          <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
+          <span class="task-text">${task.text}</span>
+        </div>
+        <div class="yn-row">
+          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
+          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
+          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">— N/A</div>
+        </div>
+        ${photoHtml}`;
+      container.appendChild(card);
+    });
+  });
+
+  // Score
+  const pct = total > 0 ? Math.round((yes/total)*100) : 0;
+  document.getElementById('scoreFill').style.width = pct + '%';
+  document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
+  document.getElementById('scorePct').textContent = pct + '%';
+
+  // Overall
+  let tY=0, tM=0;
+  for (let d=1;d<=6;d++) {
+    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
+      const v=getVal(d,t.id,'yn');
+      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
+    }));
+  }
+  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
+  const pass = op>=95;
+
+  const sc = document.createElement('div');
+  sc.className = `status-card ${tM>0?(pass?'pass':'fail'):''}`;
+  sc.innerHTML = `<div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
+    <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
+    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+    <div class="sc-sub">6-day overall score (target: 95%)</div>`;
+  container.appendChild(sc);
+
+  // Submit button
+  const btn = document.createElement('button');
+  btn.className = 'submit-btn';
+  if (isDone && !ALLOW_OVERWRITE) {
+    btn.disabled = true;
+    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
+    const msg = document.createElement('div');
+    msg.className = 'synced-msg';
+    msg.textContent = '✓ Submitted and synced to dashboard';
+    container.appendChild(btn);
+    container.appendChild(msg);
+  } else if (isDone && ALLOW_OVERWRITE) {
+    btn.disabled = true;
+    btn.textContent = `✓ Day ${currentDay} Submitted`;
+    container.appendChild(btn);
+    // Overwrite panel
+    const owp = document.createElement('div');
+    owp.className = 'overwrite-panel';
+    owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access (KIC/Area Chef only)</div>
+      <input class="overwrite-input" id="owCode" type="password" placeholder="Enter overwrite code...">
+      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+    container.appendChild(owp);
+    const msg2 = document.createElement('div');
+    msg2.className = 'synced-msg';
+    msg2.textContent = '✓ Submitted and synced to dashboard';
+    container.appendChild(msg2);
+  } else {
+    btn.textContent = `Submit Day ${currentDay}`;
+    btn.onclick = submitDay;
+    container.appendChild(btn);
+  }
+}
+
+// ── Tap YES/NO/NA ─────────────────────────────────────────────
+function tapYN(tid, val, el) {
+  const data = load();
+  if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
+    showToast('Day already submitted — cannot edit', 'error'); return;
+  }
+  setVal(currentDay, tid, 'yn', val);
+  el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  // update score bar
+  let t=0, y=0;
+  SECTIONS.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;}));
+  const p=t>0?Math.round((y/t)*100):0;
+  document.getElementById('scoreFill').style.width=p+'%';
+  document.getElementById('scorePct').textContent=p+'%';
+}
+
+
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
+    return date + ' ' + time;
+  } catch(e) { return iso; }
+}
+function fmtTimeOnly(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
+  } catch(e) { return '—'; }
+}
+
+// ── Submit day ────────────────────────────────────────────────
+function submitDay() {
+  const name = getStaffName();
+  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  const d = load();
+  if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
+  d[`d${currentDay}`]._done = new Date().toISOString();
+  save(d);
+
+  // Calc overall
+  let tY=0, tM=0;
+  for (let dd=1;dd<=6;dd++) {
+    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
+      const v=getVal(dd,t.id,'yn');
+      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
+    }));
+  }
+  const op = tM>0?Math.round((tY/tM)*100):0;
+
+  // Push to master dashboard
+  const _fbRecord = {
+    staffName:  name,
+    role:       ROLE,
+    roleLabel:  ROLE_LABEL,
+    outlet:     getOutlet(),
+    week:       getWeekStart(),
+    verifiedBy: getVerified(),
+    overallPct: op,
+    qualified:  op>=95,
+    day:        currentDay,
+    startedAt:  d[`d${currentDay}`]?._start || new Date().toISOString(),
+    photos: (function() {
+      const photos = {};
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const url = getVal(currentDay, t.id, 'photoUrl');
+        if (url) photos[t.id + '_day' + currentDay] = url;
+      }));
+      return photos;
+    })(),
+    // Store full task responses for dashboard detail view
+    taskData: (function() {
+      const tasks = {};
+      for (let dd=1; dd<=6; dd++) {
+        SECTIONS.forEach(s => s.tasks.forEach(t => {
+          const yn    = getVal(dd, t.id, 'yn');
+          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
+          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
+          if (yn || photo || pUrl) {
+            tasks[`d${dd}_${t.id}`] = {
+              day: dd,
+              section: s.title,
+              task: t.text,
+              owner: t.ownerLbl,
+              yn: yn||'',
+              photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
+            };
+          }
+        }));
+      }
+      return tasks;
+    })(),
+    submittedAt:new Date().toISOString(),
+    lastUpdated:new Date().toISOString(),
+  };
+  pushToMasterDashboard(_fbRecord);
+  pushToFirebase(_fbRecord);
+
+  showToast(`Day ${currentDay} submitted ✓`, 'ok');
+  buildDayRail();
+  renderDay();
+}
+
+// ── Overwrite (KIC/Area Chef) ─────────────────────────────────
+function doOverwrite() {
+  const code = document.getElementById('owCode')?.value;
+  if (code !== OVERWRITE_CODE) { showToast('Wrong overwrite code', 'error'); return; }
+  const d = load();
+  if (d[`d${currentDay}`]) delete d[`d${currentDay}`]._done;
+  save(d);
+  showToast('Day ${currentDay} unlocked — you can now edit', 'ok');
+  buildDayRail();
+  renderDay();
+}
+
+// ── Photo ─────────────────────────────────────────────────────
+function openPhotoModal(tid, label) {
+  const data = load();
+  if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
+    showToast('Day submitted — cannot change photos', 'error'); return;
+  }
+  activePhotoTask = tid;
+  document.getElementById('modalLabel').textContent = label;
+  document.getElementById('photoModal').classList.add('open');
+}
+function closePhotoModal() {
+  document.getElementById('photoModal').classList.remove('open');
+  activePhotoTask = null;
+}
+
+document.getElementById('mbtnCamera').onclick = function() {
+  closePhotoModal();
+  const inp = document.getElementById('camInput');
+  inp.value = '';
+  // iOS fix: remove then re-add capture attribute
+  inp.removeAttribute('capture');
+  setTimeout(() => { inp.setAttribute('capture','environment'); inp.click(); }, 80);
+};
+document.getElementById('mbtnGallery').onclick = function() {
+  closePhotoModal();
+  const inp = document.getElementById('galInput');
+  inp.value = '';
+  inp.click();
+};
+
+function handlePhotoFile(file) {
+  if (!file || !activePhotoTask) return;
+  compressAndReturn(file, async function(dataUrl) {
+    // Save locally first for instant display
+    setVal(currentDay, activePhotoTask, 'photo', dataUrl);
+    const taskId = activePhotoTask;
+    activePhotoTask = null;
+    renderDay();
+    showToast('Photo saved ✓', 'ok');
+    
+    // Upload to Firebase Storage for cross-device viewing
+    const staffName = getStaffName();
+    if (staffName) {
+      const url = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
+      if (url) {
+        setVal(currentDay, taskId, 'photoUrl', url);
+        // Update Firebase submission with photo URL
+        const d = load();
+        if (d[`d${currentDay}`]?._done) {
+          // Submission already sent - update photo
+          const key = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_linecook_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+          _db.ref(`submissions/${key}/photos/${taskId}_day${currentDay}`).set(url);
+        }
+      }
+    }
+  });
+}
+document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+document.getElementById('galInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+
+// ── Persist info fields ───────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Auto-set to current Monday
+  // Auto-set week to current Monday
+  if (typeof getMonday === 'function') {
+    const monday = getMonday(new Date());
+    // Format as YYYY-MM-DD for date input
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth()+1).padStart(2,'0');
+    const d = String(monday.getDate()).padStart(2,'0');
+    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
+  } else {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    now.setDate(diff);
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
+  }
+  ['fName','fOutlet','fWeek','fVerified'].forEach(id => {
+    const el = document.getElementById(id);
+    const saved = localStorage.getItem('kic_info_${areachef}_${id}');
+    if (saved) el.value = saved;
+    el.addEventListener('input', () => {
+      localStorage.setItem('kic_info_${areachef}_${id}', el.value);
+      buildDayRail(); renderDay();
+    });
+  });
+  buildDayRail();
+  renderDay();
+  showAuditBanner();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="app-version" content="20260530094938">
+<script>
+// Force fresh load — clear old cached version
+(function() {
+  var v = '20260530094938';
+  var stored = localStorage.getItem('app_version');
+  if (stored !== v) {
+    localStorage.setItem('app_version', v);
+    if (stored) {
+      // Old version detected — reload without cache
+      window.location.reload(true);
+    }
+  }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master Kitchen Dashboard</title>
+<link rel="manifest" href="manifest_dashboard.json">
+<link rel="apple-touch-icon" href="apple-touch-icon_dashboard.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F3EE;color:#0A0A0A;min-height:100vh;}
+
+/* LOGIN SCREEN */
+.login-screen{position:fixed;inset:0;background:#1A3C5E;display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.login-card{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;text-align:center;}
+.login-logo{font-size:48px;margin-bottom:12px;}
+.login-title{font-size:22px;font-weight:700;color:#1A3C5E;margin-bottom:4px;}
+.login-sub{font-size:13px;color:#6B6B60;margin-bottom:24px;}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.role-btn{padding:14px 10px;border:2px solid #E0DDD4;border-radius:12px;background:#fff;cursor:pointer;transition:all .15s;text-align:center;}
+.role-btn:hover{border-color:#1A3C5E;background:#EFF6FF;}
+.role-btn.selected{border-color:#1A3C5E;background:#1A3C5E;color:#fff;}
+.role-btn .rb-icon{font-size:24px;margin-bottom:4px;}
+.role-btn .rb-name{font-size:13px;font-weight:600;}
+.role-btn .rb-lock{font-size:10px;margin-top:3px;opacity:0.6;}
+.outlet-sel{width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:16px;outline:none;display:none;}
+.outlet-sel.show{display:block;}
+.login-btn{width:100%;padding:13px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.login-btn:hover{opacity:.85;}
+.login-btn:disabled{background:#94A3B8;cursor:not-allowed;}
+
+/* MAIN DASHBOARD */
+.header{background:#1A3C5E;padding:16px 20px;}
+.header-row{display:flex;align-items:center;gap:10px;}
+.header h1{color:#fff;font-size:18px;font-weight:700;flex:1;}
+.role-badge{background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
+.sync-bar{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#F59E0B;}
+.sync-dot.on{background:#22C55E;} .sync-dot.err{background:#EF4444;}
+.sync-text{font-size:11px;color:rgba(255,255,255,0.7);flex:1;}
+.hdr-btns{display:flex;gap:6px;}
+.hdr-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:8px;padding:5px 10px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;}
+
+.tabs{background:#fff;border-bottom:1px solid #E0DDD4;display:flex;overflow-x:auto;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:10px 16px;font-size:13px;font-weight:600;color:#6B6B60;cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;}
+.tab.active{color:#1A3C5E;border-bottom-color:#1A3C5E;}
+
+.page{display:none;padding:16px 18px 60px;}
+.page.active{display:block;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.kpi-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;}
+.kc-lbl{font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:flex;align-items:center;gap:4px;}
+.kc-dot{width:6px;height:6px;border-radius:50%;}
+.kc-val{font-size:24px;font-weight:700;line-height:1;}
+.kc-bar{height:4px;background:#E0DDD4;border-radius:2px;margin:7px 0 4px;overflow:hidden;}
+.kc-fill{height:100%;border-radius:2px;}
+.kc-status{font-size:11px;font-weight:600;}
+.kc-count{font-size:10px;color:#6B6B60;margin-top:2px;}
+
+.sec-title{font-size:13px;font-weight:700;margin-bottom:10px;color:#0A0A0A;}
+.feed-card{background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:11px 13px;margin-bottom:6px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .1s;}
+.feed-card:hover{background:#EFF6FF;}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.fsel{padding:6px 10px;border-radius:8px;border:1.5px solid #E0DDD4;background:#fff;font-size:12px;color:#0A0A0A;outline:none;}
+
+.staff-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
+.t-head{display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr 0.8fr 1fr 1fr;background:#1A3C5E;}
+.th{padding:9px 10px;font-size:10px;font-weight:700;color:rgba(255,255,255,.65);text-transform:uppercase;letter-spacing:.04em;}
+.t-row{display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;cursor:pointer;transition:background .1s;}
+.t-row:hover{background:#EFF6FF;}
+.td{padding:9px 10px;font-size:12px;}
+.td-sm{font-size:10px;color:#6B6B60;}
+.role-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;}
+.pill-lc{background:#EFF6FF;color:#1D4ED8;} .pill-st{background:#F0FDF4;color:#15803D;}
+.pill-kic{background:#FFF7ED;color:#C2410C;} .pill-ac{background:#EDE9FE;color:#6D28D9;}
+.sp{display:inline-flex;font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;}
+.sp-pass{background:#DCFCE7;color:#15803D;} .sp-fail{background:#FEE2E2;color:#B91C1C;} .sp-prog{background:#FEF9C3;color:#92400E;}
+
+/* DETAIL MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;overflow-y:auto;padding:20px;}
+.modal-overlay.open{display:block;}
+.modal-box{background:#fff;border-radius:16px;max-width:700px;margin:0 auto;overflow:hidden;}
+.modal-header{background:#1A3C5E;padding:16px 20px;display:flex;align-items:center;gap:10px;}
+.modal-header h2{color:#fff;font-size:16px;font-weight:700;flex:1;}
+.modal-close{background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;font-weight:600;}
+.modal-body{padding:16px 20px;}
+.day-tabs{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;}
+.day-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;font-size:12px;font-weight:600;color:#6B6B60;cursor:pointer;}
+.day-tab.active{background:#1A3C5E;border-color:#1A3C5E;color:#fff;}
+.task-detail{background:#F8FAFC;border:1px solid #E0DDD4;border-radius:10px;padding:11px 13px;margin-bottom:8px;}
+.task-detail-text{font-size:13px;font-weight:500;margin-bottom:6px;}
+.task-yn{display:inline-flex;font-size:12px;font-weight:700;padding:3px 10px;border-radius:6px;}
+.yn-yes{background:#DCFCE7;color:#15803D;} .yn-no{background:#FEE2E2;color:#B91C1C;} .yn-na{background:#F3F4F6;color:#374151;}
+.task-photo{width:100%;max-width:200px;border-radius:8px;margin-top:8px;border:2px solid #22C55E;}
+.info-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;}
+.info-item{font-size:12px;color:#6B6B60;}<br>
+.info-item strong{color:#0A0A0A;font-weight:600;}
+
+/* MONTHLY */
+.month-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:14px;margin-bottom:12px;}
+.month-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.month-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:.5px solid #E0DDD4;font-size:12px;}
+.month-row:last-child{border:none;}
+.outlet-card{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;margin-bottom:12px;}
+.outlet-header{background:#F5F3EE;padding:10px 14px;font-size:13px;font-weight:700;}
+.outlet-row{display:flex;justify-content:space-between;padding:7px 14px;border-top:.5px solid #E0DDD4;font-size:12px;}
+
+/* AUDIT */
+.audit-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
+.at-head{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;background:#1A3C5E;}
+.at-row{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
+
+.empty{padding:40px 20px;text-align:center;color:#6B6B60;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🍳</div>
+    <div class="login-title">Kitchen Dashboard</div>
+    <div class="login-sub">Select your role to continue</div>
+    <div class="role-grid">
+      <div class="role-btn" onclick="selectRole(this,'kic')">
+        <div class="rb-icon">👨‍🍳</div>
+        <div class="rb-name">KIC</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'areachef')">
+        <div class="rb-icon">📊</div>
+        <div class="rb-name">Area Chef</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'training')">
+        <div class="rb-icon">📚</div>
+        <div class="rb-name">Training</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'operations')">
+        <div class="rb-icon">⚙️</div>
+        <div class="rb-name">Ops Manager</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'director')">
+        <div class="rb-icon">🎯</div>
+        <div class="rb-name">Director</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'ceo')">
+        <div class="rb-icon">👑</div>
+        <div class="rb-name">CEO</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+    </div>
+    <div id="pinRow" style="display:none;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#1A3C5E;margin-bottom:6px;text-align:left;">🔒 Enter PIN to continue:</div>
+      <input type="password" id="loginPin" placeholder="Enter PIN code..." maxlength="10"
+        style="width:100%;padding:10px 14px;border:2px solid #1A3C5E;border-radius:10px;font-size:16px;letter-spacing:4px;text-align:center;outline:none;margin-bottom:4px;"
+        oninput="checkLoginReady()">
+      <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Training Department for your PIN</div>
+    </div>
+
+    <select class="outlet-sel" id="outletSel">
+      <option value="">Select your outlet...</option>
+      <optgroup label="🏪 Little Bangkok">
+        <option value="LB DSO">LB DSO</option>
+        <option value="LB Tower">LB Tower</option>
+        <option value="LB Hamra">LB Hamra</option>
+        <option value="LB JLT">LB JLT</option>
+        <option value="LB OM">LB OM</option>
+        <option value="LB DHE">LB DHE</option>
+        <option value="LB MTC">LB MTC</option>
+      </optgroup>
+      <optgroup label="🥣 Superbowl">
+        <option value="SB Deira">SB Deira</option>
+        <option value="SB DG">SB DG</option>
+      </optgroup>
+      <optgroup label="🚪 The Red Door">
+        <option value="The Red Door">The Red Door</option>
+      </optgroup>
+    </select>
+    <input type="text" id="loginName" placeholder="Enter your name..." style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:14px;outline:none;">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div id="mainDash" style="display:none;">
+  <div class="header">
+    <div class="header-row">
+      <h1>🏠 Kitchen Dashboard</h1>
+      <span class="role-badge" id="roleBadge">Training</span>
+      <div class="hdr-btns">
+        <button class="hdr-btn" onclick="loadData()">⟳</button>
+        <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
+        <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
+      </div>
+    </div>
+    <div class="sync-bar">
+      <div class="sync-dot" id="syncDot"></div>
+      <span class="sync-text" id="syncText">Connecting...</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
+    <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
+    <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
+    <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
+  </div>
+
+  <div class="page active" id="page-overview">
+    <div class="sec-title" id="lastUpdate">KPI by Role</div>
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="sec-title">Recent Submissions <span style="font-size:11px;font-weight:400;color:#6B6B60">(tap a name to see full report)</span></div>
+    <div id="recentFeed"></div>
+  </div>
+
+  <div class="page" id="page-staff">
+    <div class="filters">
+      <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option></select>
+      <select class="fsel" id="fWeek" onchange="renderStaff()"><option value="">All weeks</option></select>
+      <select class="fsel" id="fOutlet" onchange="renderStaff()"><option value="">All outlets</option></select>
+    </div>
+    <div class="staff-table">
+      <div class="t-head">
+        <div class="th">Staff / Outlet</div><div class="th">Role</div><div class="th">Week</div>
+        <div class="th">Score</div><div class="th">Status</div><div class="th">Started</div><div class="th">Submitted</div>
+      </div>
+      <div id="staffBody"></div>
+    </div>
+  </div>
+
+  <div class="page" id="page-monthly">
+    <div id="monthlyContent"></div>
+  </div>
+
+  <div class="page" id="page-audits">
+    <div class="sec-title">BOH & FOH Audit Results</div>
+    <div class="audit-table">
+      <div class="at-head">
+        <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
+        <div class="th">Points</div><div class="th">Auditor</div><div class="th">Date</div>
+      </div>
+      <div id="auditBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modalTitle">Staff Report</h2>
+      <button class="modal-close" onclick="exportDetailPDF()" style="background:#22C55E;margin-right:6px;">📄 Export PDF</button>
+      <button class="modal-close" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+
+let db = null;
+let allStaff = [], allAudits = [];
+let currentRole = '', currentOutlet = '', currentName = '';
+let selectedRoleBtn = null;
+
+// Initialize Firebase after page loads
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    loadPins();
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+}
+
+const ROLES = {
+  linecook:{label:'Line Cook',icon:'🍳',dot:'#2E6DA4',cls:'pill-lc'},
+  steward:{label:'Steward',icon:'🧹',dot:'#16A34A',cls:'pill-st'},
+  kic:{label:'KIC',icon:'👨‍🍳',dot:'#E87722',cls:'pill-kic'},
+  areachef:{label:'Area Chef',icon:'📊',dot:'#7C3AED',cls:'pill-ac'},
+};
+
+// Full-access roles
+const FULL_ACCESS = ['areachef','training','operations','director','ceo'];
+
+// Role PINs — stored in Firebase so each role can change their own PIN
+// Default PINs used if no PIN has been set in Firebase yet
+const DEFAULT_PINS = {
+  areachef:   'CHEF2025',
+  training:   'TRAIN2025',
+  operations: 'OPS2025',
+  director:   'DRI2025',
+  ceo:        'CEO2025',
+};
+let ROLE_PINS = {...DEFAULT_PINS};
+
+// Load PINs from Firebase on startup
+function loadPins() {
+  if (!db) return;
+  db.ref('settings/pins').once('value', snap => {
+    const saved = snap.val();
+    if (saved) ROLE_PINS = {...DEFAULT_PINS, ...saved};
+  }).catch(e => console.warn('loadPins error:', e));
+}
+
+function savePinToFirebase(role, newPin) {
+  if (!db) return Promise.reject('Firebase not ready');
+  return db.ref('settings/pins/' + role).set(newPin);
+}
+// KIC has no PIN — open access
+
+// ── LOGIN ──────────────────────────────────────────────────────
+function selectRole(btn, role) {
+  if (selectedRoleBtn) selectedRoleBtn.classList.remove('selected');
+  btn.classList.add('selected');
+  selectedRoleBtn = btn;
+  currentRole = role;
+
+  // Outlet dropdown — only for KIC
+  const outletSel = document.getElementById('outletSel');
+  if (role === 'kic') {
+    outletSel.classList.add('show');
+  } else {
+    outletSel.classList.remove('show');
+    outletSel.value = '';
+  }
+
+  // PIN field — only for management roles
+  const pinRow = document.getElementById('pinRow');
+  const pinInput = document.getElementById('loginPin');
+  if (FULL_ACCESS.includes(role)) {
+    pinRow.style.display = 'block';
+    pinInput.value = '';
+    pinInput.style.borderColor = '#1A3C5E';
+    pinInput.style.background = '#fff';
+    setTimeout(() => pinInput.focus(), 100);
+  } else {
+    pinRow.style.display = 'none';
+    if (pinInput) pinInput.value = '';
+  }
+
+  checkLoginReady();
+}
+
+function checkLoginReady() {
+  const name = document.getElementById('loginName').value.trim();
+  // Outlet only needed for KIC
+  const outletNeeded = currentRole === 'kic';
+  const outletOk = !outletNeeded || document.getElementById('outletSel').value;
+  // PIN needed for management roles
+  const pinNeeded = FULL_ACCESS.includes(currentRole);
+  const pinOk = !pinNeeded || (document.getElementById('loginPin')?.value||'').length > 0;
+  document.getElementById('loginBtn').disabled = !currentRole || !name || !outletOk || !pinOk;
+}
+
+document.getElementById('loginName').addEventListener('input', checkLoginReady);
+document.getElementById('outletSel').addEventListener('change', checkLoginReady);
+
+function doLogin() {
+  // Validate PIN for management roles
+  if (FULL_ACCESS.includes(currentRole)) {
+    const enteredPin = document.getElementById('loginPin').value;
+    const correctPin = ROLE_PINS[currentRole];
+    if (enteredPin !== correctPin) {
+      const pinInput = document.getElementById('loginPin');
+      pinInput.style.borderColor = '#EF4444';
+      pinInput.style.background = '#FEE2E2';
+      pinInput.value = '';
+      pinInput.placeholder = 'Wrong PIN — try again';
+      setTimeout(() => {
+        pinInput.style.borderColor = '#1A3C5E';
+        pinInput.style.background = '#fff';
+        pinInput.placeholder = 'Enter PIN code...';
+      }, 2000);
+      return;
+    }
+  }
+  
+  currentName = document.getElementById('loginName').value.trim();
+  currentOutlet = document.getElementById('outletSel').value;
+  const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Training Dept',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO / GM'};
+  document.getElementById('roleBadge').textContent = roleLabels[currentRole]||currentRole;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('mainDash').style.display = 'block';
+  // Show Change PIN button for management roles only
+  document.getElementById('changePinBtn').style.display = currentRole === 'training' ? 'block' : 'none';
+  loadData();
+}
+
+function doLogout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('mainDash').style.display = 'none';
+  currentRole = ''; currentOutlet = ''; currentName = '';
+  if (selectedRoleBtn) { selectedRoleBtn.classList.remove('selected'); selectedRoleBtn = null; }
+  document.getElementById('loginName').value = '';
+  document.getElementById('outletSel').value = '';
+  document.getElementById('loginPin').value = '';
+  document.getElementById('pinRow').style.display = 'none';
+  document.getElementById('loginBtn').disabled = true;
+}
+
+// ── DATA LOADING ──────────────────────────────────────────────
+function filterByRole(staff) {
+  // Full access roles see everything
+  if (FULL_ACCESS.includes(currentRole)) return staff;
+  // KIC sees only their outlet
+  const myOutlet = (currentOutlet||'').trim().toLowerCase();
+  if (currentRole === 'kic') return staff.filter(s => (s.outlet||'').trim().toLowerCase() === myOutlet);
+  return staff;
+}
+
+function loadData() {
+  if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
+  setSyncStatus('syncing','Connecting...');
+  db.ref('submissions').on('value', snap => {
+    const raw = snap.val() ? Object.values(snap.val()) : [];
+    allStaff = filterByRole(raw);
+    db.ref('audits').on('value', aSnap => {
+      const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
+      allAudits = FULL_ACCESS.includes(currentRole) ? rawA :
+                  rawA.filter(a => a.outlet === currentOutlet);
+      populateFilters();
+      renderAll();
+      setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
+    });
+  }, err => {
+    setSyncStatus('error','Error: ' + err.message);
+  });
+}
+
+function populateFilters() {
+  const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
+  const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
+  const wSel = document.getElementById('fWeek');
+  const oSel = document.getElementById('fOutlet');
+  const curW = wSel.value, curO = oSel.value;
+  wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
+  oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
+  if(curW) wSel.value=curW; if(curO) oSel.value=curO;
+}
+
+function getFiltered() {
+  const role   = document.getElementById('fRole')?.value||'';
+  const week   = document.getElementById('fWeek')?.value||'';
+  const outlet = document.getElementById('fOutlet')?.value||'';
+  return allStaff.filter(s => {
+    if(role   && s.role   !== role)   return false;
+    if(week   && s.week   !== week)   return false;
+    if(outlet && s.outlet !== outlet) return false;
+    return true;
+  });
+}
+
+function setSyncStatus(st,msg) {
+  const d=document.getElementById('syncDot'), t=document.getElementById('syncText');
+  d.className='sync-dot'+(st==='ok'?' on':st==='error'?' err':'');
+  t.textContent=msg;
+}
+
+function showTab(el,id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+}
+
+function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); }
+
+// ── KPI ───────────────────────────────────────────────────────
+function renderKPI() {
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = '';
+  Object.entries(ROLES).forEach(([key,role]) => {
+    const entries = allStaff.filter(s=>s.role===key);
+    const scores  = entries.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
+    const avg     = scores.length>0?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null;
+    const pass    = avg!==null && avg>=95;
+    const card    = document.createElement('div');
+    card.className='kpi-card';
+    card.innerHTML=`
+      <div class="kc-lbl"><span class="kc-dot" style="background:${role.dot}"></span>${role.icon} ${role.label}</div>
+      <div class="kc-val" style="color:${avg===null?'#CBD5E1':pass?'#15803D':'#B91C1C'}">${avg!==null?avg+'%':'—'}</div>
+      <div class="kc-bar"><div class="kc-fill" style="width:${avg||0}%;background:${avg===null?'#E5E7EB':avg>=95?'#22C55E':avg>=70?'#F59E0B':'#EF4444'}"></div></div>
+      <div class="kc-status" style="color:${avg===null?'#9CA3AF':pass?'#15803D':'#B91C1C'}">${avg===null?'No data':pass?'✅ Qualified':'❌ Below 95%'}</div>
+      <div class="kc-count">${entries.length} entr${entries.length===1?'y':'ies'}</div>`;
+    grid.appendChild(card);
+  });
+  if(allStaff.length>0){
+    const latest=allStaff.reduce((a,b)=>new Date(a.lastUpdated||0)>new Date(b.lastUpdated||0)?a:b);
+    document.getElementById('lastUpdate').textContent='KPI by Role — Last: '+new Date(latest.lastUpdated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// ── RECENT FEED ───────────────────────────────────────────────
+function renderRecent() {
+  const el = document.getElementById('recentFeed');
+  const recent = [...allStaff].sort((a,b)=>new Date(b.lastUpdated||0)-new Date(a.lastUpdated||0)).slice(0,10);
+  if(!recent.length){
+    el.innerHTML='<div class="empty"><div style="font-size:36px">📋</div><div style="font-size:14px;font-weight:700;margin:6px 0">No submissions yet</div><div>Staff scores appear here when they tap Submit Day</div></div>';
+    return;
+  }
+  el.innerHTML='';
+  recent.forEach(s=>{
+    const role=ROLES[s.role]||{label:s.role,icon:'',dot:'#888'};
+    const sc=parseFloat(s.overallPct)||0;
+    const pass=sc>=95;
+    const div=document.createElement('div');
+    div.className='feed-card';
+    div.onclick=()=>openStaffDetail(s);
+    div.innerHTML=`
+      <div style="font-size:20px">${role.icon}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px;color:#1A3C5E;text-decoration:underline">${s.staffName||'—'}</div>
+        <div style="font-size:11px;color:#6B6B60">${role.label}${s.outlet?' • '+s.outlet:''}${s.week?' • '+s.week:''}</div>
+        ${s.startedAt?`<div style="font-size:10px;color:#94A3B8">⏱ ${new Date(s.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})} → ✅ ${s.submittedAt?new Date(s.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true}):'—'}</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:17px;font-weight:700;color:${sc>0?(pass?'#15803D':'#B91C1C'):'#94A3B8'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:10px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?(pass?'✅ Pass':'❌ Fail'):''}</div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── STAFF TABLE ───────────────────────────────────────────────
+function renderStaff() {
+  const body = document.getElementById('staffBody');
+  const subs = getFiltered();
+  if (!subs.length) {
+    body.innerHTML = '<div class="empty">No entries yet</div>';
+    return;
+  }
+  body.innerHTML = '';
+
+  const isTraining = currentRole === 'training';
+
+  [...subs].sort((a,b) => new Date(b.lastUpdated||0) - new Date(a.lastUpdated||0)).forEach((s, i) => {
+    const role    = ROLES[s.role] || {label:s.role,icon:'',cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role] || 'pill-lc';
+    const sc      = parseFloat(s.overallPct) || 0;
+    const pass    = sc >= 95;
+
+    function fmtT(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})
+          + '<br><span style="font-size:10px;color:#94A3B8">'
+          + new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+          + '</span>';
+      } catch(e) { return '—'; }
+    }
+
+    // Build Firebase key
+    const fbKey = (s.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+                + '_' + (s.role||'')
+                + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+
+    // Create wrapper div
+    const wrapper = document.createElement('div');
+
+    // Create row
+    const row = document.createElement('div');
+    row.className = 't-row';
+    row.style.cursor = 'pointer';
+    row.onclick = () => openStaffDetail(s);
+
+    row.innerHTML =
+      '<div class="td"><div style="font-weight:600;color:#1A3C5E;text-decoration:underline">' + (s.staffName||'—') + '</div>'
+      + '<div class="td-sm">' + (s.outlet||'—') + '</div></div>'
+      + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
+      + '<div class="td td-sm">' + (s.week||'—') + '</div>'
+      + '<div class="td" style="font-weight:700;color:' + (sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>'
+      + '<div class="td">' + (sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅':'❌') + ' ' + (pass?'Pass':'Fail') + '</span>':'<span class="sp sp-prog">⏳</span>') + '</div>'
+      + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.startedAt) + '</div>'
+      + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.submittedAt) + '</div>';
+
+    wrapper.appendChild(row);
+
+    // Delete button — Training only
+    if (isTraining) {
+      const staffName = s.staffName || '';
+      const week      = s.week || '';
+      const delBtn    = document.createElement('button');
+      delBtn.textContent = '🗑 Delete this record (' + week + ')';
+      delBtn.style.cssText = 'display:block;width:calc(100% - 0px);padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
+      delBtn.onclick = function(e) {
+        e.stopPropagation();
+        confirmDelete(fbKey, staffName, week);
+      };
+      wrapper.appendChild(delBtn);
+    }
+
+    // Separator line
+    const sep = document.createElement('div');
+    sep.style.cssText = 'border-top:1px solid #E0DDD4;';
+    wrapper.appendChild(sep);
+
+    body.appendChild(wrapper);
+  });
+}
+
+
+function renderMonthly() {
+  const el = document.getElementById('monthlyContent');
+  if (!allStaff.length) {
+    el.innerHTML = '<div class="empty"><div style="font-size:36px">📅</div><div style="font-size:15px;font-weight:700;color:#0A0A0A;margin-bottom:5px;">No data yet</div><div>Submissions will appear here automatically</div></div>';
+    return;
+  }
+
+  // ── Get selected month/week from filter ──────────────────────
+  const selectedWeek   = document.getElementById('fWeek')?.value   || '';
+  const selectedOutlet = document.getElementById('fOutlet')?.value || '';
+  const selectedRole   = document.getElementById('fRole')?.value   || '';
+
+  // Filter staff
+  let filtered = allStaff.filter(s => {
+    if (selectedWeek   && s.week   !== selectedWeek)   return false;
+    if (selectedOutlet && (s.outlet||'').toLowerCase() !== selectedOutlet.toLowerCase()) return false;
+    if (selectedRole   && s.role   !== selectedRole)   return false;
+    return true;
+  });
+
+  // ── Group submissions by staff name (consolidate all weeks) ──
+  const byStaff = {};
+  filtered.forEach(s => {
+    const key = (s.staffName||'Unknown') + '|' + (s.role||'') + '|' + (s.outlet||'');
+    if (!byStaff[key]) {
+      byStaff[key] = {
+        staffName: s.staffName,
+        role: s.role,
+        outlet: s.outlet,
+        weeks: [],
+        scores: [],
+        qualified: 0,
+        total: 0,
+      };
+    }
+    const sc = parseFloat(s.overallPct)||0;
+    byStaff[key].weeks.push(s.week||'—');
+    byStaff[key].scores.push(sc);
+    byStaff[key].total++;
+    if (sc >= 95) byStaff[key].qualified++;
+  });
+
+  // ── Overall summary ──────────────────────────────────────────
+  const allScores  = filtered.map(s => parseFloat(s.overallPct)||0).filter(s=>s>0);
+  const totalStaff = Object.keys(byStaff).length;
+  const totalQ     = Object.values(byStaff).filter(s => s.qualified > 0).length;
+  const avgScore   = allScores.length > 0 ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+  const passRate   = totalStaff > 0 ? Math.round((totalQ/totalStaff)*100) : 0;
+
+  let html2 = `
+  <!-- Filter row -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+    <select class="fsel" id="mRole" onchange="renderMonthly()">
+      <option value="">All roles</option>
+      <option value="linecook">Line Cook</option>
+      <option value="steward">Steward</option>
+      <option value="kic">KIC</option>
+      <option value="areachef">Area Chef</option>
+    </select>
+    <select class="fsel" id="mOutlet" onchange="renderMonthly()">
+      <option value="">All outlets</option>
+      ${[...new Set(allStaff.map(s=>s.outlet).filter(Boolean))].map(o=>`<option value="${o}">${o}</option>`).join('')}
+    </select>
+    <select class="fsel" id="mWeek" onchange="renderMonthly()">
+      <option value="">All weeks</option>
+      ${[...new Set(allStaff.map(s=>s.week).filter(Boolean))].sort().map(w=>`<option value="${w}">${w}</option>`).join('')}
+    </select>
+    <button onclick="exportMonthlyPDF()" style="padding:6px 14px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📄 Export PDF</button>
+    <button onclick="exportMonthlyExcel()" style="padding:6px 14px;background:#1A4731;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📊 Export Excel</button>
+  </div>
+
+  <!-- Summary KPI cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Total Staff</div>
+      <div style="font-size:28px;font-weight:700;color:#1A3C5E">${totalStaff}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Qualified</div>
+      <div style="font-size:28px;font-weight:700;color:#15803D">${totalQ}</div>
+      <div style="font-size:11px;color:#6B6B60">${passRate}% of team</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Avg Score</div>
+      <div style="font-size:28px;font-weight:700;color:${avgScore>=95?'#15803D':avgScore>=70?'#D97706':'#B91C1C'}">${avgScore>0?avgScore+'%':'—'}</div>
+    </div>
+    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;text-align:center;">
+      <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Not Qualified</div>
+      <div style="font-size:28px;font-weight:700;color:#B91C1C">${totalStaff-totalQ}</div>
+      <div style="font-size:11px;color:#6B6B60">${100-passRate}% of team</div>
+    </div>
+  </div>
+
+  <!-- Consolidated staff table -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#0A0A0A;">
+    Team Member Performance — Monthly Consolidated
+    <span style="font-size:11px;font-weight:400;color:#6B6B60;margin-left:6px;">(tap a row to see weekly breakdown)</span>
+  </div>
+  <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;background:#1A3C5E;">
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Staff Member</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Role</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Outlet</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Avg Score</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Best</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Weeks</div>
+      <div style="padding:9px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;">Status</div>
+    </div>
+    <div id="monthlyStaffRows"></div>
+  </div>
+
+  <!-- By outlet breakdown -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;">By Outlet</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:16px;" id="outletBreakdown"></div>
+
+  <!-- By role breakdown -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px;">By Role</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;" id="roleBreakdown"></div>
+  `;
+
+  el.innerHTML = html2;
+
+  // Restore filter values
+  const mRole = document.getElementById('mRole');
+  const mOutlet = document.getElementById('mOutlet');
+  const mWeek = document.getElementById('mWeek');
+  if (mRole)   mRole.value   = selectedRole;
+  if (mOutlet) mOutlet.value = selectedOutlet;
+  if (mWeek)   mWeek.value   = selectedWeek;
+
+  // ── Render staff rows ────────────────────────────────────────
+  const staffRows = document.getElementById('monthlyStaffRows');
+  const sortedStaff = Object.values(byStaff).sort((a,b) => {
+    const avgA = a.scores.length ? a.scores.reduce((x,y)=>x+y,0)/a.scores.length : 0;
+    const avgB = b.scores.length ? b.scores.reduce((x,y)=>x+y,0)/b.scores.length : 0;
+    return avgB - avgA;
+  });
+
+  sortedStaff.forEach((s, i) => {
+    const role  = ROLES[s.role]||{label:s.role||'—',icon:'',cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role]||'pill-lc';
+    const avg   = s.scores.length ? Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length) : 0;
+    const best  = s.scores.length ? Math.max(...s.scores) : 0;
+    const pass  = avg >= 95;
+    const row   = document.createElement('div');
+    row.style.cssText = `display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;background:${i%2===0?'#fff':'#F9F9F9'};cursor:pointer;transition:background .1s;`;
+    row.onmouseover = () => row.style.background='#EFF6FF';
+    row.onmouseout  = () => row.style.background = i%2===0?'#fff':'#F9F9F9';
+    row.onclick = () => showStaffWeeklyBreakdown(s);
+    row.innerHTML = `
+      <div style="padding:10px 12px;font-weight:600;font-size:13px;color:#1A3C5E">${s.staffName||'—'}</div>
+      <div style="padding:10px 12px;"><span class="role-pill ${roleCls}">${role.icon} ${role.label}</span></div>
+      <div style="padding:10px 12px;font-size:12px;color:#6B6B60">${s.outlet||'—'}</div>
+      <div style="padding:10px 12px;font-weight:700;font-size:14px;color:${pass?'#15803D':'#B91C1C'}">${avg>0?avg+'%':'—'}</div>
+      <div style="padding:10px 12px;font-size:12px;color:#15803D;font-weight:600">${best>0?best+'%':'—'}</div>
+      <div style="padding:10px 12px;font-size:12px;color:#6B6B60">${s.total} week${s.total!==1?'s':''}</div>
+      <div style="padding:10px 12px;"><span class="sp ${pass?'sp-pass':'sp-fail'}">${pass?'✅ Qualified':'❌ Not Yet'}</span></div>`;
+    staffRows.appendChild(row);
+  });
+
+  // ── Outlet breakdown ─────────────────────────────────────────
+  const outletEl = document.getElementById('outletBreakdown');
+  const byOutlet = {};
+  sortedStaff.forEach(s => {
+    const o = s.outlet||'Unknown';
+    if (!byOutlet[o]) byOutlet[o] = [];
+    byOutlet[o].push(s);
+  });
+  Object.entries(byOutlet).sort().forEach(([outlet, staff]) => {
+    const avgs = staff.map(s => s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0).filter(s=>s>0);
+    const outletAvg = avgs.length ? Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length) : 0;
+    const q = staff.filter(s => {
+      const avg2 = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+      return avg2 >= 95;
+    }).length;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;';
+    card.innerHTML = `
+      <div style="background:#F5F3EE;padding:10px 13px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;">
+        <span>📍 ${outlet}</span>
+        <span style="font-size:14px;font-weight:700;color:${outletAvg>=95?'#15803D':outletAvg>=70?'#D97706':'#B91C1C'}">${outletAvg>0?outletAvg+'%':'—'}</span>
+      </div>
+      <div style="padding:8px 0;">
+        ${staff.map(s => {
+          const avg2 = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+          const role2 = ROLES[s.role]||{icon:''};
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 13px;border-bottom:.5px solid #E0DDD4;font-size:12px;">
+            <span>${role2.icon} ${s.staffName||'—'}</span>
+            <span style="font-weight:700;color:${avg2>=95?'#15803D':avg2>=70?'#D97706':'#B91C1C'}">${avg2>0?avg2+'%':'—'}</span>
+          </div>`;
+        }).join('')}
+        <div style="padding:6px 13px;font-size:11px;color:#6B6B60;">${q}/${staff.length} qualified</div>
+      </div>`;
+    outletEl.appendChild(card);
+  });
+
+  // ── Role breakdown ───────────────────────────────────────────
+  const roleEl = document.getElementById('roleBreakdown');
+  Object.entries(ROLES).forEach(([key, role]) => {
+    const roleStaff = sortedStaff.filter(s => s.role === key);
+    if (!roleStaff.length) return;
+    const avgs = roleStaff.map(s => s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0).filter(s=>s>0);
+    const roleAvg = avgs.length?Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length):0;
+    const q2 = roleStaff.filter(s=>{const a=s.scores.length?Math.round(s.scores.reduce((x,y)=>x+y,0)/s.scores.length):0;return a>=95;}).length;
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:13px;';
+    card.innerHTML = `
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:${role.dot}">${role.icon} ${role.label}</div>
+      <div style="font-size:26px;font-weight:700;color:${roleAvg>=95?'#15803D':roleAvg>=70?'#D97706':'#B91C1C'}">${roleAvg>0?roleAvg+'%':'—'}</div>
+      <div style="height:4px;background:#E0DDD4;border-radius:2px;margin:6px 0;">
+        <div style="height:100%;width:${roleAvg}%;background:${roleAvg>=95?'#22C55E':roleAvg>=70?'#F59E0B':'#EF4444'};border-radius:2px;"></div>
+      </div>
+      <div style="font-size:11px;color:#6B6B60;">${q2}/${roleStaff.length} qualified</div>`;
+    roleEl.appendChild(card);
+  });
+}
+
+// ── Staff weekly breakdown popup ──────────────────────────────
+function showStaffWeeklyBreakdown(s) {
+  const role = ROLES[s.role]||{label:s.role,icon:''};
+  const avg  = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+  const pass = avg >= 95;
+
+  // Get ALL submissions for this staff member for the whole month
+  const staffSubs = allStaff.filter(sub =>
+    sub.staffName === s.staffName && sub.role === s.role && sub.outlet === s.outlet
+  ).sort((a,b) => (a.week||'').localeCompare(b.week||''));
+
+  document.getElementById('modalTitle').textContent = s.staffName + ' — Full Monthly Report';
+
+  // Add PDF export button
+  const modalHeader = document.querySelector('#detailModal .modal-header');
+  if (modalHeader) {
+    const existing = modalHeader.querySelector('.pdf-monthly-btn');
+    if (!existing) {
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'modal-close pdf-monthly-btn';
+      pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;';
+      pdfBtn.textContent = '📄 Export PDF';
+      pdfBtn.onclick = () => exportStaffMonthlyPDF(s, staffSubs);
+      const closeBtn = modalHeader.querySelector('.modal-close');
+      if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
+    }
+  }
+
+  const body = document.getElementById('modalBody');
+
+  // ── Header info ──────────────────────────────────────────────
+  let html2 = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#F5F3EE;border-radius:10px;margin-bottom:14px;font-size:13px;">
+      <span style="font-weight:700;font-size:15px;">${s.staffName||'—'}</span>
+      <span>${role.icon} ${role.label}</span>
+      <span>📍 ${s.outlet||'—'}</span>
+      <span style="color:${pass?'#15803D':'#B91C1C'};font-weight:700;">Monthly Avg: ${avg>0?avg+'%':'—'} ${pass?'✅ Qualified':'❌ Not Qualified'}</span>
+    </div>
+
+    <!-- Score trend -->
+    <div style="margin-bottom:16px;background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:12px;">
+      <div style="font-size:11px;font-weight:700;color:#6B6B60;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Score trend</div>
+      <div style="display:flex;gap:6px;align-items:flex-end;height:55px;">
+        ${staffSubs.map(sub => {
+          const sc = parseFloat(sub.overallPct)||0;
+          const h  = sc>0?Math.max(Math.round(sc/100*48),4):4;
+          const col= sc>=95?'#22C55E':sc>=70?'#F59E0B':'#EF4444';
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="font-size:9px;font-weight:700;color:${col}">${sc>0?sc+'%':'—'}</div>
+            <div style="width:100%;height:${h}px;background:${col};border-radius:3px 3px 0 0;"></div>
+            <div style="font-size:8px;color:#94A3B8;white-space:nowrap;">${(sub.week||'').substring(5)||'—'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // ── Week by week detail with full checklist ──────────────────
+  staffSubs.forEach((sub, wi) => {
+    const sc  = parseFloat(sub.overallPct)||0;
+    const p2  = sc >= 95;
+    const startT = sub.startedAt  ? new Date(sub.startedAt).toLocaleString()  : '—';
+    const endT   = sub.submittedAt? new Date(sub.submittedAt).toLocaleString(): '—';
+
+    html2 += `
+      <div style="margin-bottom:16px;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;">
+        <!-- Week header -->
+        <div style="background:#1A3C5E;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="color:#fff;font-size:13px;font-weight:700;">Week of ${sub.week||'—'}</div>
+          <div style="color:#fff;font-size:14px;font-weight:700;background:${p2?'#15803D':'#B91C1C'};padding:3px 10px;border-radius:20px;">
+            ${sc>0?sc+'%':'—'} ${p2?'✅':'❌'}
+          </div>
+        </div>
+        <!-- Time info -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #E0DDD4;">
+          <div style="padding:8px 12px;font-size:11px;color:#6B6B60;border-right:1px solid #E0DDD4;">
+            ⏱ <strong>Started:</strong> ${startT}
+          </div>
+          <div style="padding:8px 12px;font-size:11px;color:#6B6B60;">
+            ✅ <strong>Submitted:</strong> ${endT}
+          </div>
+        </div>`;
+
+    // Full task checklist
+    if (sub.taskData && Object.keys(sub.taskData).length > 0) {
+      // Group by day
+      const byDay = {};
+      Object.values(sub.taskData).forEach(t => {
+        const d = t.day||1;
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push(t);
+      });
+
+      Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+        const tasks = byDay[day];
+
+        // Group by section
+        const bySec = {};
+        tasks.forEach(t => {
+          const sec = t.section||'Tasks';
+          if (!bySec[sec]) bySec[sec] = [];
+          bySec[sec].push(t);
+        });
+
+        html2 += `<div style="background:#F5F3EE;padding:6px 12px;font-size:11px;font-weight:700;color:#1A3C5E;border-bottom:1px solid #E0DDD4;">
+          📅 Day ${day}
+        </div>`;
+
+        Object.entries(bySec).forEach(([sec, secTasks]) => {
+          html2 += `<div style="background:#fff;padding:5px 12px;font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.05em;border-bottom:.5px solid #E0DDD4;">
+            ${sec}
+          </div>`;
+
+          secTasks.forEach(t => {
+            const yn = t.yn||'';
+            const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+            const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+            const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+
+            html2 += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;">
+              <div style="flex:1;">
+                <div style="font-size:10px;color:#94A3B8;font-weight:600;margin-bottom:1px;">${t.owner||''}</div>
+                <div style="font-size:12px;font-weight:500;color:#0A0A0A;">${t.task||''}</div>
+                ${t.photoUrl?`<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:1.5px solid #22C55E;" onerror="this.style.display='none'">`:``}
+              </div>
+              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+            </div>`;
+          });
+        });
+      });
+    } else {
+      html2 += `<div style="padding:14px;text-align:center;color:#94A3B8;font-size:12px;">
+        Task detail not available for this week — staff needs to resubmit with updated checklist
+      </div>`;
+    }
+
+    html2 += `</div>`; // close week card
+  });
+
+  body.innerHTML = html2;
+  // Add Delete All button for Training role
+  if (currentRole === 'training') {
+    const delAllBtn = document.createElement('button');
+    delAllBtn.textContent = '🗑 Delete ALL Records for this Staff';
+    delAllBtn.style.cssText = 'width:100%;margin-top:14px;padding:10px;background:#FEE2E2;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;';
+    delAllBtn.onclick = () => deleteAllRecords(s.staffName, s.role, s.outlet);
+    body.appendChild(delAllBtn);
+  }
+
+  // Add Delete All button in monthly breakdown too
+  if (currentRole === 'training') {
+    const delAllBtn2 = document.createElement('button');
+    delAllBtn2.textContent = '🗑 Delete ALL Records for ' + s.staffName;
+    delAllBtn2.style.cssText = 'width:100%;margin-top:14px;padding:10px;background:#FEE2E2;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;';
+    delAllBtn2.onclick = () => deleteAllRecords(s.staffName, s.role, s.outlet);
+    body.appendChild(delAllBtn2);
+  }
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+// ── Export individual staff monthly PDF ───────────────────────
+function exportStaffMonthlyPDF(s, staffSubs) {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+
+  const doc  = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const role  = ROLES[s.role]||{label:s.role||'Staff'};
+  const avg   = s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0;
+  const pass  = avg >= 95;
+  let y = 0;
+
+  // Header
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('Monthly Staff Performance Report', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality -- Kitchen Incentive Tracker', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}), pageW-14, 17, {align:'right'});
+  y = 28;
+
+  // Staff info
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Staff Name', s.staffName||'—', 'Role', role.label||'—'],
+      ['Outlet', s.outlet||'—', 'Monthly Avg', avg>0?avg+'%':'—'],
+      ['Total Weeks', staffSubs.length, 'Status', pass?'QUALIFIED':'NOT QUALIFIED'],
+    ],
+    styles:{fontSize:9,cellPadding:3},
+    columnStyles:{
+      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:30},
+      1:{cellWidth:55},
+      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:30},
+      3:{cellWidth:55,textColor:pass?[21,128,61]:[185,28,28],fontStyle:'bold'},
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Week by week table
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,60,94);
+  doc.text('Weekly Performance Summary', 14, y); y += 5;
+
+  doc.autoTable({
+    startY: y,
+    head: [['Week','Score','Status','Started','Submitted']],
+    body: staffSubs.map(sub => {
+      const sc = parseFloat(sub.overallPct)||0;
+      return [
+        sub.week||'—',
+        sc>0?sc+'%':'—',
+        sc>=95?'QUALIFIED':'NOT YET',
+        sub.startedAt?new Date(sub.startedAt).toLocaleDateString('en-GB'):'—',
+        sub.submittedAt?new Date(sub.submittedAt).toLocaleDateString('en-GB'):'—',
+      ];
+    }),
+    styles:{fontSize:8,cellPadding:3},
+    headStyles:{fillColor:[26,60,94],textColor:255,fontStyle:'bold'},
+    columnStyles:{
+      0:{cellWidth:28},1:{cellWidth:18,halign:'center',fontStyle:'bold'},
+      2:{cellWidth:28,halign:'center'},3:{cellWidth:35},4:{cellWidth:35},
+    },
+    didParseCell:(data)=>{
+      if(data.column.index===2&&data.section==='body'){
+        data.cell.styles.textColor=data.cell.raw==='QUALIFIED'?[21,128,61]:[185,28,28];
+      }
+      if(data.column.index===1&&data.section==='body'){
+        const v=parseInt(data.cell.raw)||0;
+        data.cell.styles.textColor=v>=95?[21,128,61]:v>=70?[180,100,0]:[185,28,28];
+      }
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Full checklist per week
+  staffSubs.forEach((sub, wi) => {
+    if (!sub.taskData || !Object.keys(sub.taskData).length) return;
+
+    if (y > pageH - 40) { doc.addPage(); y = 16; }
+
+    // Week header
+    const sc2 = parseFloat(sub.overallPct)||0;
+    const p3  = sc2 >= 95;
+    doc.setFillColor(26,60,94);
+    doc.rect(14, y-3, pageW-28, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('Week of ' + (sub.week||'—') + '   |   Score: ' + (sc2>0?sc2+'%':'—') + '   |   ' + (p3?'QUALIFIED':'NOT QUALIFIED'), 16, y+2);
+    y += 9;
+
+    // Group by day
+    const byDay2 = {};
+    Object.values(sub.taskData).forEach(t => {
+      const d = t.day||1;
+      if (!byDay2[d]) byDay2[d] = [];
+      byDay2[d].push(t);
+    });
+
+    Object.keys(byDay2).sort((a,b)=>+a-+b).forEach(day => {
+      const tasks2 = byDay2[day];
+      if (y > pageH - 30) { doc.addPage(); y = 16; }
+
+      const rows2 = tasks2.map(t => {
+        const yn2 = (t.yn||'').toUpperCase();
+        return [t.owner||'', t.task||'', yn2==='YES'?'YES':yn2==='NO'?'NO':yn2==='NA'?'N/A':'—'];
+      });
+
+      doc.autoTable({
+        startY: y,
+        head: [['Day '+day+' — '+tasks2[0]?.section||'', '', 'Response']],
+        body: rows2,
+        styles:{fontSize:7,cellPadding:2},
+        headStyles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:7},
+        columnStyles:{
+          0:{cellWidth:22},1:{cellWidth:120},
+          2:{cellWidth:20,halign:'center',fontStyle:'bold'},
+        },
+        didParseCell:(data)=>{
+          if(data.column.index===2&&data.section==='body'){
+            const v=data.cell.raw||'';
+            if(v==='YES')data.cell.styles.textColor=[21,128,61];
+            else if(v==='NO')data.cell.styles.textColor=[185,28,28];
+            else data.cell.styles.textColor=[100,100,100];
+          }
+        },
+        margin:{left:14,right:14}, theme:'grid',
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    });
+  });
+
+  // Footer
+  const tp2 = doc.internal.getNumberOfPages();
+  for(let i=1;i<=tp2;i++){
+    doc.setPage(i);
+    doc.setFillColor(245,243,238);
+    doc.rect(0,pageH-8,pageW,8,'F');
+    doc.setTextColor(120,120,120); doc.setFontSize(7);
+    doc.text('Culex Hospitality -- Staff Monthly Report -- Confidential', 14, pageH-2);
+    doc.text('Page '+i+' of '+tp2, pageW-14, pageH-2, {align:'right'});
+  }
+
+  const fname = ((s.staffName||'Staff')+'_Monthly_Report').replace(/[^a-zA-Z0-9_]/g,'_');
+  doc.save(fname+'.pdf');
+}
+
+
+// ── Monthly PDF Export ────────────────────────────────────────
+function exportMonthlyPDF() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  let y = 0;
+
+  // Header
+  doc.setFillColor(26,60,94);
+  doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Monthly Consolidated Performance Report', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality -- Kitchen Incentive Tracker', 14, 17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}), pageW-14, 17, {align:'right'});
+  y = 28;
+
+  // Summary
+  const allScores2 = allStaff.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
+  const totalSt = [...new Set(allStaff.map(s=>s.staffName+'|'+s.role))].length;
+  const avgSc2  = allScores2.length?Math.round(allScores2.reduce((a,b)=>a+b,0)/allScores2.length):0;
+
+  // Group by staff for monthly avg
+  const byStaff2 = {};
+  allStaff.forEach(s => {
+    const key = (s.staffName||'')+'|'+(s.role||'')+'|'+(s.outlet||'');
+    if (!byStaff2[key]) byStaff2[key] = {staffName:s.staffName,role:s.role,outlet:s.outlet,scores:[]};
+    const sc = parseFloat(s.overallPct)||0;
+    if (sc>0) byStaff2[key].scores.push(sc);
+  });
+  const staffList2 = Object.values(byStaff2).map(s => ({
+    ...s,
+    avg: s.scores.length?Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length):0
+  })).sort((a,b)=>b.avg-a.avg);
+  const qualified2 = staffList2.filter(s=>s.avg>=95).length;
+
+  doc.autoTable({
+    startY: y,
+    body: [
+      ['Total Staff', totalSt, 'Qualified', qualified2],
+      ['Average Score', avgSc2>0?avgSc2+'%':'—', 'Not Qualified', totalSt-qualified2],
+      ['Pass Rate', totalSt>0?Math.round(qualified2/totalSt*100)+'%':'—', 'Total Weeks', allStaff.length],
+    ],
+    styles:{fontSize:9,cellPadding:3},
+    columnStyles:{
+      0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:35},
+      1:{cellWidth:45},
+      2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:35},
+      3:{cellWidth:45},
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Staff performance table
+  doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(26,60,94);
+  doc.text('Team Member Performance', 14, y); y += 5;
+
+  doc.autoTable({
+    startY: y,
+    head: [['#','Staff Name','Role','Outlet','Avg Score','Best Score','Weeks','Status']],
+    body: staffList2.map((s,i) => {
+      const role3 = ROLES[s.role]||{label:s.role||'—'};
+      const best3 = s.scores.length?Math.max(...s.scores):0;
+      return [
+        i+1, s.staffName||'—', role3.label, s.outlet||'—',
+        s.avg>0?s.avg+'%':'—', best3>0?best3+'%':'—',
+        s.scores.length, s.avg>=95?'QUALIFIED':'NOT YET'
+      ];
+    }),
+    styles:{fontSize:8,cellPadding:2},
+    headStyles:{fillColor:[26,60,94],textColor:255,fontStyle:'bold',fontSize:8},
+    columnStyles:{
+      0:{cellWidth:8},1:{cellWidth:32},2:{cellWidth:22},3:{cellWidth:22},
+      4:{cellWidth:18,halign:'center',fontStyle:'bold'},
+      5:{cellWidth:16,halign:'center'},
+      6:{cellWidth:12,halign:'center'},
+      7:{cellWidth:26,halign:'center',fontStyle:'bold'},
+    },
+    didParseCell:(data)=>{
+      if(data.column.index===7&&data.section==='body'){
+        data.cell.styles.textColor=data.cell.raw==='QUALIFIED'?[21,128,61]:[185,28,28];
+      }
+      if(data.column.index===4&&data.section==='body'){
+        const v=parseInt(data.cell.raw)||0;
+        data.cell.styles.textColor=v>=95?[21,128,61]:v>=70?[180,100,0]:[185,28,28];
+      }
+    },
+    margin:{left:14,right:14}, theme:'grid',
+  });
+
+  // Footer
+  const tp = doc.internal.getNumberOfPages();
+  for(let i=1;i<=tp;i++){
+    doc.setPage(i);
+    doc.setFillColor(245,243,238);
+    doc.rect(0,pageH-8,pageW,8,'F');
+    doc.setTextColor(120,120,120); doc.setFontSize(7);
+    doc.text('Culex Hospitality -- Monthly Performance Report -- Confidential', 14, pageH-2);
+    doc.text('Page '+i+' of '+tp, pageW-14, pageH-2, {align:'right'});
+  }
+
+  doc.save('Monthly_Performance_Report_'+new Date().toISOString().split('T')[0]+'.pdf');
+}
+
+// ── Monthly Excel Export ──────────────────────────────────────
+function exportMonthlyExcel() {
+  if(typeof XLSX==='undefined'){alert('Excel library not loaded.');return;}
+  const wb = XLSX.utils.book_new();
+
+  // Group by staff
+  const byStaff3 = {};
+  allStaff.forEach(s => {
+    const key=(s.staffName||'')+'|'+(s.role||'')+'|'+(s.outlet||'');
+    if(!byStaff3[key]) byStaff3[key]={staffName:s.staffName,role:s.role,outlet:s.outlet,weeks:[]};
+    byStaff3[key].weeks.push({week:s.week,score:parseFloat(s.overallPct)||0,submitted:s.submittedAt});
+  });
+
+  const staffList3 = Object.values(byStaff3).map(s=>({
+    ...s,
+    avg:s.weeks.length?Math.round(s.weeks.map(w=>w.score).reduce((a,b)=>a+b,0)/s.weeks.length):0
+  })).sort((a,b)=>b.avg-a.avg);
+
+  // Summary sheet
+  const allAvgs = staffList3.map(s=>s.avg).filter(s=>s>0);
+  const overallAvg = allAvgs.length?Math.round(allAvgs.reduce((a,b)=>a+b,0)/allAvgs.length):0;
+  const qualified3 = staffList3.filter(s=>s.avg>=95).length;
+
+  const summaryRows = [
+    ['MONTHLY CONSOLIDATED PERFORMANCE REPORT'],
+    ['Culex Hospitality — Kitchen Incentive Tracker'],
+    ['Generated:', new Date().toLocaleDateString('en-GB')],[''],
+    ['SUMMARY'],
+    ['Total Staff', staffList3.length, 'Qualified', qualified3],
+    ['Average Score', overallAvg+'%', 'Not Qualified', staffList3.length-qualified3],
+    ['Pass Rate', staffList3.length>0?Math.round(qualified3/staffList3.length*100)+'%':'—','',''],
+    [''],
+    ['TEAM MEMBER PERFORMANCE'],
+    ['#','Staff Name','Role','Outlet','Monthly Avg','Best Score','Lowest Score','Weeks Submitted','Status'],
+    ...staffList3.map((s,i)=>{
+      const role4=ROLES[s.role]||{label:s.role||'—'};
+      const scores4=s.weeks.map(w=>w.score).filter(sc=>sc>0);
+      return [
+        i+1, s.staffName||'—', role4.label, s.outlet||'—',
+        s.avg>0?s.avg+'%':'—',
+        scores4.length?Math.max(...scores4)+'%':'—',
+        scores4.length?Math.min(...scores4)+'%':'—',
+        s.weeks.length,
+        s.avg>=95?'QUALIFIED':'NOT QUALIFIED'
+      ];
+    })
+  ];
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+  summarySheet['!cols']=[{wch:4},{wch:25},{wch:15},{wch:20},{wch:14},{wch:12},{wch:13},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, summarySheet, 'Monthly Summary');
+
+  // Weekly detail sheet
+  const detailRows = [
+    ['WEEKLY DETAIL BY STAFF MEMBER'],[''],
+    ['Staff Name','Role','Outlet','Week','Score','Status','Submitted Date'],
+    ...allStaff.sort((a,b)=>(a.staffName||'').localeCompare(b.staffName||'')).map(s=>{
+      const role5=ROLES[s.role]||{label:s.role||'—'};
+      const sc5=parseFloat(s.overallPct)||0;
+      return [
+        s.staffName||'—', role5.label, s.outlet||'—', s.week||'—',
+        sc5>0?sc5+'%':'—', sc5>=95?'QUALIFIED':'NOT QUALIFIED',
+        s.submittedAt?new Date(s.submittedAt).toLocaleDateString('en-GB'):'—'
+      ];
+    })
+  ];
+  const detailSheet = XLSX.utils.aoa_to_sheet(detailRows);
+  detailSheet['!cols']=[{wch:25},{wch:15},{wch:20},{wch:14},{wch:10},{wch:16},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, detailSheet, 'Weekly Detail');
+
+  // Outlet summary sheet
+  const byOutlet3={};
+  staffList3.forEach(s=>{
+    const o=s.outlet||'Unknown';
+    if(!byOutlet3[o]) byOutlet3[o]=[];
+    byOutlet3[o].push(s);
+  });
+  const outletRows=[['OUTLET PERFORMANCE SUMMARY'],[''],
+    ['Outlet','Total Staff','Qualified','Avg Score','Pass Rate']];
+  Object.entries(byOutlet3).sort().forEach(([outlet,staff3])=>{
+    const avgs3=staff3.map(s=>s.avg).filter(s=>s>0);
+    const avg3=avgs3.length?Math.round(avgs3.reduce((a,b)=>a+b,0)/avgs3.length):0;
+    const q3=staff3.filter(s=>s.avg>=95).length;
+    outletRows.push([outlet,staff3.length,q3,avg3>0?avg3+'%':'—',staff3.length>0?Math.round(q3/staff3.length*100)+'%':'—']);
+  });
+  const outletSheet=XLSX.utils.aoa_to_sheet(outletRows);
+  outletSheet['!cols']=[{wch:25},{wch:14},{wch:12},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,outletSheet,'By Outlet');
+
+  XLSX.writeFile(wb,'Monthly_Performance_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+
+
+function renderAudits() {
+  const body = document.getElementById('auditBody');
+  if (!allAudits.length) {
+    body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits submitted yet<br><small>Open an audit form, fill it, and tap Submit to Dashboard</small></div>';
+    return;
+  }
+  body.innerHTML = '';
+  [...allAudits].sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
+    const pass = a.score >= 80;
+    const row = document.createElement('div');
+    row.className = 'at-row';
+    row.style.cssText = `background:${i%2===0?'#fff':'#F5F3EE'};cursor:pointer;`;
+    row.onmouseover = ()=>row.style.background='#EFF6FF';
+    row.onmouseout  = ()=>row.style.background=i%2===0?'#fff':'#F5F3EE';
+    const d = a.auditDate||(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—');
+    row.innerHTML = `
+      <div class="td" style="font-weight:600;color:#1A3C5E;text-decoration:underline;cursor:pointer">${a.outlet||'—'}</div>
+      <div class="td"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
+      <div class="td" style="font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
+      <div class="td" style="font-size:11px;color:#6B6B60">${a.rawScore||'—'}/${a.maxScore||'—'} pts</div>
+      <div class="td" style="font-size:11px;color:#6B6B60">${a.auditor||'—'}</div>
+      <div class="td" style="font-size:11px;color:#6B6B60">${d}</div>`;
+    row.onclick = () => openAuditDetail(a);
+    body.appendChild(row);
+  });
+}
+
+function openAuditDetail(a) {
+  const pass = a.score >= 80;
+  const d = a.auditDate||(a.submittedAt?new Date(a.submittedAt).toLocaleString():'—');
+  document.getElementById('modalTitle').textContent = (a.outlet||'Outlet') + ' — ' + (a.auditType||'') + ' Audit Report';
+  
+  let photosHtml = '';
+  if (a.photos && Object.keys(a.photos).length > 0) {
+    photosHtml = `<div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:600;color:#6B6B60;margin-bottom:8px;">📸 Audit Photos (${Object.keys(a.photos).length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
+        ${Object.entries(a.photos).map(([k,url]) => 
+          `<img src="${url}" style="width:100%;border-radius:8px;border:2px solid #E0DDD4;" onerror="this.parentElement.style.display='none'">`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+  
+  document.getElementById('modalBody').innerHTML = `
+    <div style="background:#F5F3EE;border-radius:10px;padding:14px;margin-bottom:14px;">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
+        <div><strong>Outlet:</strong> ${a.outlet||'—'}</div>
+        <div><strong>Type:</strong> ${a.auditType==='BOH'?'🔧 BOH':'🛎 FOH'}</div>
+        <div><strong>Auditor:</strong> ${a.auditor||'—'}</div>
+        <div><strong>Date:</strong> ${a.auditDate||'—'}</div>
+        <div><strong>Shift:</strong> ${a.shift||'—'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:${pass?'#F0FDF4':'#FEF2F2'};border:1px solid ${pass?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">SCORE</div>
+        <div style="font-size:32px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
+        <div style="font-size:12px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${pass?'✅ PASS':'❌ FAIL'}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">POINTS</div>
+        <div style="font-size:28px;font-weight:700;color:#1A3C5E">${a.rawScore||'—'}</div>
+        <div style="font-size:12px;color:#6B6B60">out of ${a.maxScore||'—'}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">SUBMITTED</div>
+        <div style="font-size:13px;font-weight:600;color:#1A3C5E">${a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—'}</div>
+        <div style="font-size:12px;color:#6B6B60">${a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—'}</div>
+      </div>
+    </div>
+    ${photosHtml}
+    ${!photosHtml?'<div style="font-size:12px;color:#94A3B8;padding:10px;text-align:center;background:#F8FAFC;border-radius:8px;">Photos will appear here when submitted from the updated audit forms</div>':''}`;
+  
+  document.getElementById('detailModal').classList.add('open');
+}
+
+
+// ── Close modal ───────────────────────────────────────────────
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+  // Remove any dynamically added PDF buttons
+  const modalHeader = document.querySelector('#detailModal .modal-header');
+  if (modalHeader) {
+    modalHeader.querySelectorAll('.pdf-monthly-btn, .pdf-audit-btn').forEach(function(b){ b.remove(); });
+  }
+}
+
+// ── Delete staff record functions (Training only) ─────────────
+function confirmDelete(fbKey, staffName, week) {
+  if (currentRole !== 'training') {
+    alert('Access denied — only Training Department can delete records.');
+    return;
+  }
+  var confirmed = window.confirm(
+    'Delete this record?\n\nStaff: ' + staffName + '\nWeek: ' + week + '\n\nThis cannot be undone.'
+  );
+  if (confirmed) deleteRecord(fbKey, staffName, week);
+}
+
+function deleteRecord(fbKey, staffName, week) {
+  if (!db) { alert('Firebase not ready — please refresh.'); return; }
+  db.ref('submissions').once('value', function(snap) {
+    var data = snap.val();
+    if (!data) { alert('No records found.'); return; }
+    var foundKey = null;
+    if (data[fbKey]) { foundKey = fbKey; }
+    if (!foundKey) {
+      Object.keys(data).forEach(function(key) {
+        if (!foundKey && data[key] && data[key].staffName === staffName && data[key].week === week) {
+          foundKey = key;
+        }
+      });
+    }
+    if (!foundKey) {
+      Object.keys(data).forEach(function(key) {
+        if (!foundKey && data[key] && data[key].staffName === staffName) {
+          foundKey = key;
+        }
+      });
+    }
+    if (!foundKey) { alert('Record not found. May already be deleted.'); return; }
+    db.ref('submissions/' + foundKey).remove()
+      .then(function() { showDeleteToast(staffName + ' — ' + week + ' deleted'); })
+      .catch(function(e) { alert('Delete failed: ' + e.message); });
+  });
+}
+
+function deleteAllRecords(staffName, role, outlet) {
+  if (currentRole !== 'training') { alert('Access denied.'); return; }
+  var confirmed = window.confirm(
+    'DELETE ALL RECORDS?\n\nStaff: ' + staffName + '\nThis will delete ALL weeks.\nThis CANNOT be undone.'
+  );
+  if (!confirmed) return;
+  if (!db) { alert('Firebase not ready.'); return; }
+  db.ref('submissions').once('value', function(snap) {
+    var data = snap.val();
+    if (!data) { alert('No records found.'); return; }
+    var updates = {};
+    var count = 0;
+    Object.keys(data).forEach(function(key) {
+      if (data[key] && data[key].staffName === staffName && data[key].role === role) {
+        updates['submissions/' + key] = null;
+        count++;
+      }
+    });
+    if (count === 0) { alert('No records found for ' + staffName); return; }
+    db.ref().update(updates)
+      .then(function() { showDeleteToast('All ' + count + ' record(s) for ' + staffName + ' deleted'); closeModal(); })
+      .catch(function(e) { alert('Delete failed: ' + e.message); });
+  });
+}
+
+function showDeleteToast(msg) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#B91C1C;color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+  t.textContent = '🗑 ' + msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 3500);
+}
+
+// ── Export detail PDF (stub — main fn defined above) ──────────
+function exportDetailPDF() {
+  var s = _currentStaffData;
+  if (!s) { alert('No staff data.'); return; }
+  var { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+  exportStaffMonthlyPDF(s, allStaff.filter(function(sub){
+    return sub.staffName === s.staffName && sub.role === s.role && sub.outlet === s.outlet;
+  }));
+}
+
+// Init Firebase when page loads
+window.addEventListener('DOMContentLoaded', initFirebase);
+// loadData called after login only
+</script>
+
+<!-- CHANGE PIN MODAL -->
+<div id="changePinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:360px;overflow:hidden;">
+    <div style="background:#1A3C5E;padding:16px 20px;display:flex;align-items:center;gap:10px;">
+      <span style="color:#fff;font-size:16px;font-weight:700;flex:1;">🔑 Change Your PIN</span>
+      <button onclick="closeChangePinModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div style="font-size:13px;color:#6B6B60;margin-bottom:10px;">
+      ${currentRole === 'training' ? 'As Training Department, you can change any role PIN.' : 'Change your personal PIN.'}
+    </div>
+    <div id="pinRoleSelector" style="margin-bottom:12px;${currentRole === 'training' ? '' : 'display:none;'}">
+      <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CHANGE PIN FOR ROLE</label>
+      <select id="pinRoleSelect" style="width:100%;padding:8px 12px;border:2px solid #E0DDD4;border-radius:8px;font-size:13px;outline:none;">
+        <option value="areachef">📊 Area Chef</option>
+        <option value="training">📚 Training (my PIN)</option>
+        <option value="operations">⚙️ Ops Manager</option>
+        <option value="director">🎯 Director</option>
+        <option value="ceo">👑 CEO</option>
+      </select>
+    </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CURRENT PIN</label>
+        <input type="password" id="currentPinInput" placeholder="Enter current PIN..." maxlength="20"
+          style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;letter-spacing:3px;text-align:center;outline:none;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">NEW PIN</label>
+        <input type="password" id="newPinInput" placeholder="Enter new PIN..." maxlength="20"
+          style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;letter-spacing:3px;text-align:center;outline:none;">
+        <div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:center;">Min 4 characters — letters and numbers only</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CONFIRM NEW PIN</label>
+        <input type="password" id="confirmPinInput" placeholder="Confirm new PIN..." maxlength="20"
+          style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;letter-spacing:3px;text-align:center;outline:none;">
+      </div>
+      <div id="pinChangeMsg" style="font-size:12px;text-align:center;margin-bottom:12px;min-height:16px;"></div>
+      <button onclick="doChangePin()"
+        style="width:100%;padding:13px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">
+        Save New PIN
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
