@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531490000';
+  var v = '20260531500000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531490000">
+<meta name="app-version" content="20260531500000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -510,8 +510,10 @@ function selectShift(shift) {
   if (shift === 'closing') {
     if (!openingDone) { showToast('Opening shift must be submitted first 🔒', 'warn'); return; }
     const now = new Date();
-    if (now.getHours() < 23) {
-      const mLeft = (23 - now.getHours() - 1) * 60 + (60 - now.getMinutes());
+    const hourNow = now.getHours();
+    const isNightNow = hourNow >= 23 || hourNow < 6;
+    if (!isNightNow) {
+      const mLeft = hourNow < 23 ? (23 - hourNow - 1) * 60 + (60 - now.getMinutes()) : 0;
       showToast(`Closing unlocks at 11:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
       return;
     }
@@ -563,7 +565,7 @@ function renderDay() {
   // Show shift picker if no shift selected
   if (!currentShift) {
     const nowH = new Date().getHours();
-    const isAfter11 = nowH >= 23;
+    const isAfter11 = nowH >= 23 || nowH < 6;
     const closingAvailable = openingDone2 && isAfter11;
     const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const openerName = data[`d${currentDay}`]?._openerName || '';
@@ -1043,4 +1045,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html
+</html>
