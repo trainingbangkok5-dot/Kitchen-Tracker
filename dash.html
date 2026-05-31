@@ -515,12 +515,12 @@ function renderKPI() {
     let scores, avg, count, subLabel;
 
     if (key === 'kic') {
-      // KIC KPI = BOH Audit scores
-      const bohAudits = (allAudits||[]).filter(a => a.auditType === 'BOH');
-      scores   = bohAudits.map(a => parseFloat(a.score)||0).filter(s=>s>0);
+      // KIC card shows KIC checklist submissions
+      const entries = allStaff.filter(s => s.role === 'kic');
+      scores   = entries.map(s => parseFloat(s.overallPct)||0).filter(s=>s>0);
       avg      = scores.length>0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-      count    = bohAudits.length;
-      subLabel = 'BOH Audit Score';
+      count    = entries.length;
+      subLabel = 'KIC';
     } else {
       const entries = allStaff.filter(s=>s.role===key);
       scores   = entries.map(s=>parseFloat(s.overallPct)||0).filter(s=>s>0);
@@ -537,7 +537,7 @@ function renderKPI() {
       <div class="kc-val" style="color:${avg===null?'#CBD5E1':pass?'#15803D':'#B91C1C'}">${avg!==null?avg+'%':'—'}</div>
       <div class="kc-bar"><div class="kc-fill" style="width:${avg||0}%;background:${avg===null?'#E5E7EB':avg>=95?'#22C55E':avg>=70?'#F59E0B':'#EF4444'}"></div></div>
       <div class="kc-status" style="color:${avg===null?'#9CA3AF':pass?'#15803D':'#B91C1C'}">${avg===null?'No data':pass?'✅ Qualified':'❌ Below 95%'}</div>
-      <div class="kc-count">${count} entr${count===1?'y':'ies'}${key==='kic'?' (BOH Audits)':''}</div>`;
+      <div class="kc-count">${count} entr${count===1?'y':'ies'}</div>`;
     grid.appendChild(card);
   });
   if(allStaff.length>0){
