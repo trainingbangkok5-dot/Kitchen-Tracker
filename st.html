@@ -1019,11 +1019,11 @@ function closePhotoModal() {
 
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
+  const taskId = activePhotoTask;
+  activePhotoTask = null;
   closePhotoModal();
   compressAndReturn(file, async function(dataUrl) {
-    setVal(currentDay, activePhotoTask, 'photo', dataUrl);
-    const taskId = activePhotoTask;
-    activePhotoTask = null;
+    setVal(currentDay, taskId, 'photo', dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
     const staffName = getStaffName();
