@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260601040000';
+  var v = '20260601050000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260601040000">
+<meta name="app-version" content="20260601050000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -972,20 +972,7 @@ function closePhotoModal() {
   activePhotoTask = null;
 }
 
-document.getElementById('mbtnCamera').onclick = function() {
-  closePhotoModal();
-  const inp = document.getElementById('camInput');
-  inp.value = '';
-  // iOS fix: remove then re-add capture attribute
-  inp.removeAttribute('capture');
-  setTimeout(() => { inp.setAttribute('capture','environment'); inp.click(); }, 80);
-};
-document.getElementById('mbtnGallery').onclick = function() {
-  closePhotoModal();
-  const inp = document.getElementById('galInput');
-  inp.value = '';
-  inp.click();
-};
+
 
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
@@ -1005,14 +992,30 @@ function handlePhotoFile(file) {
     }
   });
 }
-document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-document.getElementById('galInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+// Photo input listeners moved to DOMContentLoaded
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   // Handle any shift tap that happened before script loaded
   window._selectShiftReady = selectShift;
   if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
+
+  // Photo input listeners
+  document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+  document.getElementById('galInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+  document.getElementById('mbtnCamera').onclick = function() {
+    closePhotoModal();
+    const inp = document.getElementById('camInput');
+    inp.value = '';
+    inp.removeAttribute('capture');
+    setTimeout(() => { inp.setAttribute('capture','environment'); inp.click(); }, 80);
+  };
+  document.getElementById('mbtnGallery').onclick = function() {
+    closePhotoModal();
+    const inp = document.getElementById('galInput');
+    inp.value = '';
+    inp.click();
+  };
   // Auto-set to current Monday
   // Auto-set week to current Monday
   if (typeof getMonday === 'function') {
