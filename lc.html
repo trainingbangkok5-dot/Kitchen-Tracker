@@ -915,6 +915,7 @@ function submitOpening() {
     }
   });
 
+  console.log("KIC DEBUG submitOpening taskData:", JSON.stringify(openingTaskData));
   pushToFirebase({
     staffName:   name,
     role:        ROLE,
