@@ -973,7 +973,11 @@ function openStaffDetail(s) {
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
               <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
               ${t.comment?`<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>`:''}
-              ${t.photoUrl?`<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`:``}
+              ${t.photoUrl
+                ? t.photoUrl.startsWith('db:')
+                  ? `<img data-dbref="${t.photoUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;display:none;" onerror="this.style.display='none'">`
+                  : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
+                : ``}
             </div>
             <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
           </div>`;
@@ -997,6 +1001,20 @@ function openStaffDetail(s) {
 
   body.innerHTML = html;
   document.getElementById('detailModal').classList.add('open');
+
+  // Fetch db: photos from Firebase and display them
+  body.querySelectorAll('img[data-dbref]').forEach(async img => {
+    const ref = img.getAttribute('data-dbref');
+    if (!ref || !db) return;
+    try {
+      const snap = await db.ref('photos/' + ref).once('value');
+      const dataUrl = snap.val();
+      if (dataUrl && dataUrl.startsWith('data:')) {
+        img.src = dataUrl;
+        img.style.display = '';
+      }
+    } catch(e) { console.warn('Photo fetch failed:', e); }
+  });
 }
 
 // ── Export individual staff monthly PDF ───────────────────────
