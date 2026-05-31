@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260601030000';
+  var v = '20260601040000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260601030000">
+<meta name="app-version" content="20260601040000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -768,9 +768,10 @@ function tapYN(tid, val, el) {
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
-  // update score bar
+  // update score bar — only count current shift tasks
   let t=0, y=0;
-  SECTIONS.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;}));
+  const shiftSections = currentShift === 'closing' ? [SECTIONS[1]] : [SECTIONS[0]];
+  shiftSections.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;}));
   const p=t>0?Math.round((y/t)*100):0;
   document.getElementById('scoreFill').style.width=p+'%';
   document.getElementById('scorePct').textContent=p+'%';
