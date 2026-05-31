@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531500000';
+  var v = '20260601030000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531500000">
+<meta name="app-version" content="20260601030000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -120,7 +120,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <body>
 <div class="header">
   <div class="role-badge">🧹 Steward</div>
-  <h1>7-Day Incentive Checklist</h1>
+  <h1>6-Day Incentive Checklist</h1>
   <div class="header-sub">Complete tasks • Take photos • Submit each day</div>
   <div class="info-grid">
     <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
@@ -351,7 +351,7 @@ function getTodayDayNumber(weekStartStr) {
     const today = new Date(todayStr + 'T00:00:00');
     const start = new Date(weekStartStr + 'T00:00:00');
     const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    return Math.min(Math.max(diff + 1, 1), 7);
+    return Math.min(Math.max(diff + 1, 1), 6);
   } catch(e) { return 1; }
 }
 
@@ -386,6 +386,8 @@ function showToast(msg, type) {
 function getMonday(date) {
   const d = new Date(date);
   const day = d.getDay();
+  // Sunday (0) = day 7 of current week, go back 6 days to Monday
+  // Monday (1) = day 1, no change
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
   d.setHours(0,0,0,0);
@@ -483,7 +485,7 @@ function buildDayRail() {
   const data = load();
   const weekStart = getWeekStart();
   rail.innerHTML = '';
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 1; i <= 6; i++) {
     const done     = data[`d${i}`]?._done;
     const unlocked = isDayUnlocked(i, weekStart);
     const btn = document.createElement('button');
@@ -511,10 +513,10 @@ function selectShift(shift) {
     if (!openingDone) { showToast('Opening shift must be submitted first 🔒', 'warn'); return; }
     const now = new Date();
     const hourNow = now.getHours();
-    const isNightNow = hourNow >= 23 || hourNow < 6;
+    const isNightNow = (hourNow === 23 && now.getMinutes() >= 30) || hourNow > 23 || hourNow < 6;
     if (!isNightNow) {
       const mLeft = hourNow < 23 ? (23 - hourNow - 1) * 60 + (60 - now.getMinutes()) : 0;
-      showToast(`Closing unlocks at 11:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
+      showToast(`Closing unlocks at 11:30 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
       return;
     }
   }
@@ -565,7 +567,7 @@ function renderDay() {
   // Show shift picker if no shift selected
   if (!currentShift) {
     const nowH = new Date().getHours();
-    const isAfter11 = nowH >= 23 || nowH < 6;
+    const isAfter11 = (nowH === 23 && new Date().getMinutes() >= 30) || nowH > 23 || nowH < 6;
     const closingAvailable = openingDone2 && isAfter11;
     const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const openerName = data[`d${currentDay}`]?._openerName || '';
@@ -690,7 +692,7 @@ function renderDay() {
 
   // 6-day scores — split by opening and closing
   let rdoY=0,rdoM=0,rdcY=0,rdcM=0;
-  for(let d=1;d<=7;d++){
+  for(let d=1;d<=6;d++){
     SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
       const v=getVal(d,t.id,'yn');
       if(v&&v!=='na'){
@@ -711,7 +713,7 @@ function renderDay() {
     <div class="sc-icon">${rdTM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${rdTM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
-    <div class="sc-sub">7-day overall score (target: 95%)</div>
+    <div class="sc-sub">6-day overall score (target: 95%)</div>
     ${rdTM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
@@ -852,7 +854,7 @@ function submitDay() {
 
   // Calc overall — split by opening and closing
   let tY=0,tM=0,oY=0,oM=0,cY=0,cM=0;
-  for(let dd=1;dd<=7;dd++){
+  for(let dd=1;dd<=6;dd++){
     SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
       const v=getVal(dd,t.id,'yn');
       if(v&&v!=='na'){
@@ -880,7 +882,7 @@ function submitDay() {
     qualified:    op>=95,
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=7; dd++) {
+      for (let dd=1; dd<=6; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn   = getVal(dd, t.id, 'yn');
           const pUrl = getVal(dd, t.id, 'photoUrl');
@@ -906,7 +908,7 @@ function submitDay() {
     // Store full task responses for dashboard detail view
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=7; dd++) {
+      for (let dd=1; dd<=6; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn    = getVal(dd, t.id, 'yn');
           const photo = getVal(dd, t.id, 'photo'); // base64 local photo
