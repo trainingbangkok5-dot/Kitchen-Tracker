@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531470000">
+<meta name="app-version" content="20260601030000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531470000';
+  var v = '20260601030000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -355,11 +355,12 @@ function getTodayDayNumber(weekStartStr) {
     const today = new Date(todayStr + 'T00:00:00');
     const start = new Date(weekStartStr + 'T00:00:00');
     const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    return Math.min(Math.max(diff + 1, 1), 7);
+    return Math.min(Math.max(diff + 1, 1), 6);
   } catch(e) { return 1; }
 }
 
 function isDayUnlocked(dayNum, weekStartStr) {
+  if (!weekStartStr) return dayNum === 1;
   return dayNum <= getTodayDayNumber(weekStartStr);
 }
 
@@ -443,6 +444,8 @@ function autoSetAuditorTask(score) {
 function getMonday(date) {
   const d = new Date(date);
   const day = d.getDay();
+  // Sunday (0) = day 7 of current week, go back 6 days to Monday
+  // Monday (1) = day 1, no change
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   d.setDate(diff);
   d.setHours(0,0,0,0);
@@ -535,7 +538,7 @@ function buildDayRail() {
   const data = load();
   const weekStart = getWeekStart();
   rail.innerHTML = '';
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 1; i <= 6; i++) {
     const done     = data[`d${i}`]?._done;
     const unlocked = isDayUnlocked(i, weekStart);
     const btn = document.createElement('button');
@@ -635,7 +638,7 @@ function renderDay() {
 
   // Overall
   let tY=0, tM=0;
-  for (let d=1;d<=7;d++) {
+  for (let d=1;d<=6;d++) {
     SECTIONS.forEach(s=>s.tasks.forEach(t=>{
       const v=getVal(d,t.id,'yn');
       if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
@@ -649,7 +652,7 @@ function renderDay() {
   sc.innerHTML = `<div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
-    <div class="sc-sub">7-day overall score (target: 95%)</div>`;
+    <div class="sc-sub">6-day overall score (target: 95%)</div>`;
   container.appendChild(sc);
 
   // Submit button
@@ -735,7 +738,7 @@ function submitDay() {
 
   // Calc overall
   let tY=0, tM=0;
-  for (let dd=1;dd<=7;dd++) {
+  for (let dd=1;dd<=6;dd++) {
     SECTIONS.forEach(s=>s.tasks.forEach(t=>{
       const v=getVal(dd,t.id,'yn');
       if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
@@ -755,7 +758,7 @@ function submitDay() {
     qualified:  op>=95,
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=7; dd++) {
+      for (let dd=1; dd<=6; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn   = getVal(dd, t.id, 'yn');
           const pUrl = getVal(dd, t.id, 'photoUrl');
@@ -781,7 +784,7 @@ function submitDay() {
     // Store full task responses for dashboard detail view
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=7; dd++) {
+      for (let dd=1; dd<=6; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn    = getVal(dd, t.id, 'yn');
           const photo = getVal(dd, t.id, 'photo'); // base64 local photo
