@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260601060000';
+  var v = '20260601080000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260601060000">
+<meta name="app-version" content="20260601080000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -174,6 +174,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </div>
 <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;position:absolute;left:-9999px;">
 <input type="file" id="galInput" accept="image/*" style="display:none;position:absolute;left:-9999px;">
+<input type="file" id="iosInput" accept="image/*" style="display:none;position:absolute;left:-9999px;">
 
 <script>
 
@@ -1002,20 +1003,48 @@ window.addEventListener('DOMContentLoaded', () => {
   if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
 
   // Photo input listeners
-  document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-  document.getElementById('galInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+  const camIn = document.getElementById('camInput');
+  const galIn = document.getElementById('galInput');
+  
+  camIn.addEventListener('change', function() {
+    if (this.files && this.files[0]) handlePhotoFile(this.files[0]);
+  });
+  galIn.addEventListener('change', function() {
+    if (this.files && this.files[0]) handlePhotoFile(this.files[0]);
+  });
+  
+  const iosIn = document.getElementById('iosInput');
+  iosIn.addEventListener('change', function() {
+    if (this.files && this.files[0]) handlePhotoFile(this.files[0]);
+  });
+
+  // Detect iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
   document.getElementById('mbtnCamera').onclick = function() {
     closePhotoModal();
-    const inp = document.getElementById('camInput');
-    inp.value = '';
-    inp.removeAttribute('capture');
-    setTimeout(() => { inp.setAttribute('capture','environment'); inp.click(); }, 80);
+    if (isIOS) {
+      // iOS: use input with capture attribute
+      iosIn.setAttribute('capture', 'environment');
+      iosIn.value = '';
+      setTimeout(() => { iosIn.click(); }, 150);
+    } else {
+      // Android
+      camIn.value = '';
+      setTimeout(() => { camIn.click(); }, 150);
+    }
   };
   document.getElementById('mbtnGallery').onclick = function() {
     closePhotoModal();
-    const inp = document.getElementById('galInput');
-    inp.value = '';
-    inp.click();
+    if (isIOS) {
+      // iOS: use input without capture for gallery
+      iosIn.removeAttribute('capture');
+      iosIn.value = '';
+      setTimeout(() => { iosIn.click(); }, 150);
+    } else {
+      galIn.value = '';
+      setTimeout(() => { galIn.click(); }, 150);
+    }
   };
   // Auto-set to current Monday
   // Auto-set week to current Monday
