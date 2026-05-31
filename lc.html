@@ -915,7 +915,9 @@ function submitOpening() {
     }
   });
 
-  console.log("KIC DEBUG submitOpening taskData:", JSON.stringify(openingTaskData));
+  // DEBUG: show photo URLs in alert
+  const debugInfo = Object.entries(openingTaskData).map(([k,t]) => k + ': photoUrl="' + (t.photoUrl||'') + '" hasPhoto=' + t.hasPhoto).join('\n');
+  alert('DEBUG PHOTO CHECK:\n' + debugInfo);
   pushToFirebase({
     staffName:   name,
     role:        ROLE,
