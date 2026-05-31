@@ -1540,6 +1540,20 @@ async function exportDetailPDF() {
   var { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('PDF library not loaded.'); return; }
 
+  // Pre-fetch all db: photos from Firebase before building PDF
+  if (s.taskData && db) {
+    const fetchPromises = Object.values(s.taskData).map(async t => {
+      if (t.photoUrl && t.photoUrl.startsWith('db:')) {
+        try {
+          const snap = await db.ref('photos/' + t.photoUrl.slice(3)).once('value');
+          const dataUrl = snap.val();
+          if (dataUrl && dataUrl.startsWith('data:')) t.photoUrl = dataUrl;
+        } catch(e) {}
+      }
+    });
+    await Promise.all(fetchPromises);
+  }
+
   const role = ROLES[s.role]||{label:s.role||'Staff'};
   const sc   = parseFloat(s.overallPct)||0;
   const pass = sc >= 95;
