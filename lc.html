@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script>
 (function() {
-  var v = '20260531490000';
+  var v = '20260531500000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +21,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531490000">
+<meta name="app-version" content="20260531500000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -545,8 +545,9 @@ function selectShift(shift) {
     }
     const now = new Date();
     const hour = now.getHours();
-    if (hour < 23) {
-      const minutesLeft = (23 - hour - 1) * 60 + (60 - now.getMinutes());
+    const isNightTime = hour >= 23 || hour < 6; // 11PM to 6AM
+    if (!isNightTime) {
+      const minutesLeft = hour < 23 ? (23 - hour - 1) * 60 + (60 - now.getMinutes()) : 0;
       const h = Math.floor(minutesLeft / 60);
       const m = minutesLeft % 60;
       showToast(`Closing unlocks at 11:00 PM — ${h}h ${m}m remaining ⏰`, 'warn');
@@ -598,7 +599,7 @@ function renderDay() {
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
     const openerName = data[`d${currentDay}`]?._openerName || '';
     const nowH = new Date().getHours();
-    const isAfter11 = nowH >= 23;
+    const isAfter11 = nowH >= 23 || nowH < 6; // 11PM to 6AM
     const closingAvailable = openingDone && isAfter11;
     const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
@@ -1086,4 +1087,4 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-</html
+</html>
