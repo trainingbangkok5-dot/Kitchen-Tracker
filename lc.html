@@ -204,6 +204,32 @@ const FIREBASE_CONFIG = {
 };
 // ══════════════════════════════════════════════════════════════
 
+// Update photo ref in existing Firebase submission after async upload completes
+async function updatePhotoInSubmission(staffName, taskId, dbRef) {
+  if (!_db || !staffName) return;
+  try {
+    const key = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+    // Find the most recent submission for this staff+role+week and update the task photoUrl
+    const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === ROLE && sub.week === getWeekStart() && sub.taskData) {
+        // Find matching task key (any day)
+        Object.keys(sub.taskData).forEach(k => {
+          if (k.endsWith('_' + taskId)) {
+            updates['submissions/' + child.key + '/taskData/' + k + '/photoUrl'] = dbRef;
+          }
+        });
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      await _db.ref().update(updates);
+    }
+  } catch(e) { console.warn('updatePhotoInSubmission failed:', e); }
+}
+
 // Init Firebase — wait for SDK to be ready
 let _db = null;
 function initFirebase() {
@@ -229,8 +255,21 @@ function pushToFirebase(record) {
               + '_' + record.role
               + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + Date.now();
+    // Strip raw base64 photos from taskData before pushing — too large for Firebase
+    // Photos are stored separately under photos/ node
+    const cleanRecord = { ...record };
+    if (cleanRecord.taskData) {
+      const cleanTasks = {};
+      Object.entries(cleanRecord.taskData).forEach(([k, t]) => {
+        cleanTasks[k] = { ...t };
+        if (cleanTasks[k].photoUrl && cleanTasks[k].photoUrl.startsWith('data:')) {
+          cleanTasks[k].photoUrl = ''; // strip base64, photo is in photos/ node
+        }
+      });
+      cleanRecord.taskData = cleanTasks;
+    }
     _db.ref('submissions/' + key).set({
-      ...record,
+      ...cleanRecord,
       lastUpdated: new Date().toISOString()
     }).then(() => {
       showToast('✓ Synced to dashboard', 'ok');
@@ -862,7 +901,7 @@ function submitOpening() {
         day: currentDay, section: SECTIONS[0].title,
         task: t.text, owner: t.ownerLbl,
         yn: yn||'', comment: comment2,
-        photoUrl: pUrl||'',
+        photoUrl: pUrl||photo||'',
         hasPhoto: !!(pUrl||photo),
       };
     }
@@ -1031,6 +1070,8 @@ function handlePhotoFile(file) {
       if (dbRef) {
         setVal(currentDay, taskId, 'photoUrl', dbRef);
         showToast('Photo synced ✓', 'ok');
+        // Update existing Firebase submission record with the db: photo ref
+        updatePhotoInSubmission(staffName, taskId, dbRef);
       }
     }
   });

@@ -189,6 +189,29 @@ const FIREBASE_CONFIG = {
 };
 // ══════════════════════════════════════════════════════════════
 
+// Update photo ref in existing Firebase submission after async upload completes
+async function updatePhotoInSubmission(staffName, taskId, dbRef) {
+  if (!_db || !staffName) return;
+  try {
+    const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === ROLE && sub.week === getWeekStart() && sub.taskData) {
+        Object.keys(sub.taskData).forEach(k => {
+          if (k.endsWith('_' + taskId)) {
+            updates['submissions/' + child.key + '/taskData/' + k + '/photoUrl'] = dbRef;
+          }
+        });
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      await _db.ref().update(updates);
+    }
+  } catch(e) { console.warn('updatePhotoInSubmission failed:', e); }
+}
+
 // Init Firebase
 let _db = null;
 function initFirebase() {
@@ -207,8 +230,19 @@ function pushToFirebase(record) {
               + '_' + record.role
               + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + Date.now();
+    const cleanRecord = { ...record };
+    if (cleanRecord.taskData) {
+      const cleanTasks = {};
+      Object.entries(cleanRecord.taskData).forEach(([k, t]) => {
+        cleanTasks[k] = { ...t };
+        if (cleanTasks[k].photoUrl && cleanTasks[k].photoUrl.startsWith('data:')) {
+          cleanTasks[k].photoUrl = '';
+        }
+      });
+      cleanRecord.taskData = cleanTasks;
+    }
     _db.ref('submissions/' + key).set({
-      ...record,
+      ...cleanRecord,
       lastUpdated: new Date().toISOString()
     }).then(() => {
       showToast('✓ Synced to dashboard', 'ok');
@@ -990,6 +1024,7 @@ function handlePhotoFile(file) {
       if (dbRef) {
         setVal(currentDay, taskId, 'photoUrl', dbRef);
         showToast('Photo synced ✓', 'ok');
+        updatePhotoInSubmission(staffName, taskId, dbRef);
       }
     }
   });
