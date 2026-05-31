@@ -273,6 +273,14 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   }
 }
 
+// Get the predictable db: photo ref for a task (matches uploadPhotoToFirebase key)
+function getPhotoDbRef(staffName, day, taskId) {
+  const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+            + '_' + ROLE + '_'
+            + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+  return 'db:' + key + '/d' + day + '_' + taskId;
+}
+
 function compressToSize(dataUrl, maxKB) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -854,7 +862,7 @@ function submitOpening() {
     if(yn&&yn!=='na'){oM2++;if(yn==='yes')oY2++;}
     if(yn) openingTaskData['d'+currentDay+'_'+t.id]={
       day:currentDay, section:SECTIONS[0].title, task:t.text, owner:t.ownerLbl,
-      yn:yn||'', photoUrl:pUrl||photo||''
+      yn:yn||'', photoUrl:pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : '')
     };
   });
   const startedAt = (load()[`d${currentDay}`] || {})._start || new Date().toISOString();
@@ -925,7 +933,7 @@ function submitDay() {
           const photo= getVal(dd, t.id, 'photo');
           if (yn) tasks['d'+dd+'_'+t.id] = {
             day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:pUrl||photo||''
+            yn:yn||'', photoUrl:pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : '')
           };
         }));
       }
@@ -957,7 +965,7 @@ function submitDay() {
               owner: t.ownerLbl,
               yn: yn||'',
               comment: getVal(dd, t.id, 'comment')||'',
-              photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
+              photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''), // prefer firebase url, fall back to db ref
             };
           }
         }));

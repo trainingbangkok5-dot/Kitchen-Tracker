@@ -302,6 +302,14 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   }
 }
 
+// Get the predictable db: photo ref for a task (matches uploadPhotoToFirebase key)
+function getPhotoDbRef(staffName, day, taskId) {
+  const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+            + '_' + ROLE + '_'
+            + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+  return 'db:' + key + '/d' + day + '_' + taskId;
+}
+
 // Compress image to target size in KB
 function compressToSize(dataUrl, maxKB) {
   return new Promise((resolve) => {
@@ -901,7 +909,7 @@ function submitOpening() {
         day: currentDay, section: SECTIONS[0].title,
         task: t.text, owner: t.ownerLbl,
         yn: yn||'', comment: comment2,
-        photoUrl: pUrl||photo||'',
+        photoUrl: pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : ''),
         hasPhoto: !!(pUrl||photo),
       };
     }
@@ -1000,7 +1008,7 @@ function submitDay() {
               owner: t.ownerLbl,
               yn: yn||'',
               comment: getVal(dd, t.id, 'comment')||'',
-              photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
+              photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''), // prefer firebase url, fall back to db ref
             };
           }
         }));
