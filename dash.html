@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603010000">
-<meta name="app-version" content="20260603010000">
+<meta http-equiv="Expires" content="20260603020000">
+<meta name="app-version" content="20260603020000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603010000';
+  var v = '20260603020000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -995,7 +995,7 @@ function openStaffDetail(s) {
   // PDF button
   const modalHeader = document.querySelector('#detailModal .modal-header');
   if (modalHeader) {
-    modalHeader.querySelectorAll('.pdf-monthly-btn,.pdf-daily-btn,.pdf-audit-btn').forEach(b=>b.remove());
+    modalHeader.querySelectorAll('.pdf-monthly-btn,.pdf-daily-btn,.pdf-audit-btn,.edit-report-btn').forEach(b=>b.remove());
     const pdfBtn = document.createElement('button');
     pdfBtn.className = 'modal-close pdf-daily-btn';
     pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;';
@@ -2013,33 +2013,39 @@ function toggleStaff(key) {
 let _editMode = false;
 let _editStaffData = null;
 let _editChanges = {}; // taskKey -> new yn value
+let _verifiedByEdit = ''; // verified by field
 
 function toggleEditMode(s) {
-  _editMode = !_editMode;
+  _editMode = true;
   _editStaffData = s;
   _editChanges = {};
+  _verifiedByEdit = s.verifiedBy || '';
   const btn = document.querySelector('.edit-report-btn');
   const body = document.getElementById('modalBody');
+  if (!btn || !body) return;
 
-  if (_editMode) {
-    if (btn) { btn.textContent = '💾 Save Changes'; btn.style.background = '#16A34A'; btn.onclick = () => saveOverwrite(s); }
-    // Show edit buttons, hide display
-    body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = 'none');
-    body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'flex');
-    // Add cancel button
-    const cancelBtn = document.createElement('button');
-    cancelBtn.id = 'cancelEditBtn';
-    cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
-    cancelBtn.textContent = '✕ Cancel Edit';
-    cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; openStaffDetail(s); };
-    body.appendChild(cancelBtn);
-  } else {
-    if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; btn.onclick = () => toggleEditMode(s); }
-    body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = '');
-    body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'none');
-    const cb = document.getElementById('cancelEditBtn');
-    if (cb) cb.remove();
-  }
+  btn.textContent = '💾 Save Changes';
+  btn.style.background = '#16A34A';
+  btn.onclick = () => saveOverwrite(s);
+
+  // Show edit buttons, hide display
+  body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = 'none');
+  body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'flex');
+
+  // Add Verified By field
+  const vbDiv = document.createElement('div');
+  vbDiv.id = 'verifiedByEdit';
+  vbDiv.style.cssText = 'margin-top:10px;padding:10px;background:#F8FAFC;border-radius:8px;border:1px solid #E0DDD4;';
+  vbDiv.innerHTML = '<label style="font-size:11px;color:#6B6B60;display:block;margin-bottom:4px;font-weight:600;">Verified by:</label><input id="verifiedByInput" type="text" value="' + (s.verifiedBy||'') + '" placeholder="Enter verifier name..." style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">';
+  body.appendChild(vbDiv);
+
+  // Add cancel button
+  const cancelBtn = document.createElement('button');
+  cancelBtn.id = 'cancelEditBtn';
+  cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
+  cancelBtn.textContent = '✕ Cancel Edit';
+  cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; openStaffDetail(s); };
+  body.appendChild(cancelBtn);
 }
 
 function setTaskYN(btn, val) {
@@ -2047,7 +2053,6 @@ function setTaskYN(btn, val) {
   if (!row) return;
   const taskKey = row.getAttribute('data-taskkey');
   _editChanges[taskKey] = val;
-  // Update button styles
   const btns = row.querySelectorAll('.task-yn-edit button');
   const labels = ['yes','no','na'];
   const activeBg = ['#15803D','#B91C1C','#374151'];
@@ -2058,14 +2063,14 @@ function setTaskYN(btn, val) {
 }
 
 async function saveOverwrite(s) {
-  if (!Object.keys(_editChanges).length) {
-    showToast('No changes made', 'warn'); return;
-  }
+  const verifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
+  const hasChanges = Object.keys(_editChanges).length > 0 || verifiedBy !== (s.verifiedBy||'');
 
-  // Find Firebase key — try _fbKey first, then search submissions
+  if (!hasChanges) { showToast('No changes made', 'warn'); return; }
+
+  // Find Firebase key
   let fbKey = s._fbKey || '';
   if (!fbKey && db) {
-    // Try to find by staffName + week
     const snap = await db.ref('submissions').once('value');
     if (snap.exists()) {
       snap.forEach(child => {
@@ -2076,19 +2081,19 @@ async function saveOverwrite(s) {
       });
     }
   }
-
   if (!db || !fbKey) {
-    showToast('Cannot save — record not found in Firebase. Please refresh and try again.', 'error');
+    alert('Cannot save — record not found. Please refresh the page and try again.');
     return;
   }
 
-  // Build updates object
+  // Build updates
   const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
   });
+  if (verifiedBy) updates['submissions/' + fbKey + '/verifiedBy'] = verifiedBy;
 
-  // Recalculate score from all tasks with changes applied
+  // Recalculate score
   const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
   Object.entries(_editChanges).forEach(([k, yn]) => {
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
@@ -2104,10 +2109,10 @@ async function saveOverwrite(s) {
     }
   });
 
-  const newScore    = total > 0 ? Math.round((yes/total)*100) : 0;
+  const newScore     = total > 0 ? Math.round((yes/total)*100) : 0;
   const newQualified = newScore >= 95;
-  const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct||null);
-  const clPct = clM > 0 ? Math.round((clY/clM)*100) : (s.closingPct||null);
+  const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : (s.closingPct != null ? parseFloat(s.closingPct) : null);
 
   updates['submissions/' + fbKey + '/overallPct']    = newScore;
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
@@ -2118,21 +2123,27 @@ async function saveOverwrite(s) {
 
   try {
     await db.ref().update(updates);
-    showToast('✓ Saved — score updated to ' + newScore + '%', 'ok');
-    // Reset edit mode FIRST before reopening
-    _editMode = false;
-    _editChanges = {};
     // Update local copy
     s._fbKey = fbKey;
     s.overallPct = newScore;
-    s.taskData = updatedTaskData;
+    s.qualified  = newQualified;
+    s.taskData   = updatedTaskData;
+    if (verifiedBy) s.verifiedBy = verifiedBy;
     if (opPct !== null) s.openingPct = opPct;
     if (clPct !== null) s.closingPct = clPct;
-    // Close and reopen modal in view mode
-    closeModal();
-    setTimeout(() => openStaffDetail(s), 150);
+    // Reset edit state
+    _editMode = false; _editChanges = {};
+    // Show success popup
+    alert('✅ Changes saved successfully!
+
+New score: ' + newScore + '%
+' + (newQualified ? '✅ Qualified' : '❌ Not Qualified'));
+    // Reopen in view mode
+    openStaffDetail(s);
   } catch(e) {
-    showToast('Save failed: ' + e.message, 'error');
+    alert('❌ Save failed: ' + e.message + '
+
+Please try again.');
     console.error('saveOverwrite error:', e);
   }
 }
