@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260531440000">
+<meta http-equiv="Expires" content="20260602180000">
+<meta name="app-version" content="20260602180000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260531440000';
+  var v = '20260602180000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -236,6 +236,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" onclick="showTab(this,'weekly')">📆 Weekly</div>
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
+    <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
   </div>
 
   <div class="page active" id="page-overview">
@@ -287,6 +288,71 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="page" id="page-monthly">
     <div id="monthlyContent"></div>
+  </div>
+
+  <div class="page" id="page-registry">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="sec-title" style="margin:0;">Staff Registry</div>
+      <button onclick="openAddStaffModal()" style="background:#1A3C5E;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">➕ Add Staff</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input id="regSearch" type="text" placeholder="Search name or ID..." oninput="renderRegistry()" style="flex:1;min-width:140px;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+      <select id="regRole" onchange="renderRegistry()" style="padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+        <option value="">All roles</option>
+        <option value="linecook">Line Cook</option>
+        <option value="steward">Steward</option>
+        <option value="kic">KIC</option>
+        <option value="areachef">Area Chef</option>
+      </select>
+      <select id="regOutlet" onchange="renderRegistry()" style="padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+        <option value="">All outlets</option>
+      </select>
+      <select id="regStatus" onchange="renderRegistry()" style="padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+        <option value="">All status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+    <div id="regStats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;"></div>
+    <div id="registryBody"></div>
+  </div>
+
+  <!-- ADD/EDIT STAFF MODAL -->
+  <div class="modal-overlay" id="addStaffModal" style="display:none;">
+    <div class="modal-box" style="max-width:380px;">
+      <div class="modal-header">
+        <h2 id="addStaffTitle">Register New Staff</h2>
+        <button class="modal-close" onclick="closeAddStaffModal()">✕</button>
+      </div>
+      <div style="padding:16px;">
+        <input type="hidden" id="editStaffKey">
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Staff ID</label>
+          <input id="staffIdInput" type="text" placeholder="e.g. CUL-001" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Full Name</label>
+          <input id="staffNameInput" type="text" placeholder="e.g. John Santos" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Role</label>
+          <select id="staffRoleInput" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+            <option value="linecook">Line Cook</option>
+            <option value="steward">Steward</option>
+            <option value="kic">KIC</option>
+            <option value="areachef">Area Chef</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Outlet</label>
+          <input id="staffOutletInput" type="text" placeholder="e.g. LB DHE" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button onclick="closeAddStaffModal()" style="flex:1;padding:9px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;">Cancel</button>
+          <button onclick="saveStaff()" style="flex:1;padding:9px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;">Save Staff</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="page" id="page-audits">
@@ -452,6 +518,7 @@ function doLogin() {
   document.getElementById('mainDash').style.display = 'block';
   // Show Change PIN button for management roles only
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
+  document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
   loadData();
 }
 
@@ -481,7 +548,7 @@ function loadData() {
   if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
   setSyncStatus('syncing','Connecting...');
   db.ref('submissions').on('value', snap => {
-    const raw = snap.val() ? Object.values(snap.val()) : [];
+    const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     allStaff = filterByRole(raw);
     db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
@@ -533,9 +600,10 @@ function showTab(el,id) {
   el.classList.add('active');
   document.getElementById('page-'+id).classList.add('active');
   if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
+  if (id === 'registry') { renderRegistry(); }
 }
 
-function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); }
+function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
 
 // ── KPI ───────────────────────────────────────────────────────
 function renderKPI() {
@@ -932,6 +1000,13 @@ function openStaffDetail(s) {
     pdfBtn.onclick = () => exportDetailPDF();
     const closeBtn = modalHeader.querySelector('.modal-close');
     if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
+    // Edit/Overwrite button — all roles can edit
+    const editBtn = document.createElement('button');
+    editBtn.className = 'modal-close pdf-daily-btn edit-report-btn';
+    editBtn.style.cssText = 'background:#E87722;margin-right:6px;';
+    editBtn.textContent = '✏️ Edit / Overwrite';
+    editBtn.onclick = () => toggleEditMode(s);
+    if (closeBtn) modalHeader.insertBefore(editBtn, pdfBtn);
   }
 
   const body = document.getElementById('modalBody');
@@ -973,7 +1048,8 @@ function openStaffDetail(s) {
   // Task checklist
   if (s.taskData && Object.keys(s.taskData).length > 0) {
     const byDay = {};
-    Object.values(s.taskData).forEach(t => {
+    Object.entries(s.taskData).forEach(([k,t]) => {
+      t.taskKey = k;
       const d = t.day||1;
       if (!byDay[d]) byDay[d] = [];
       byDay[d].push(t);
@@ -998,7 +1074,8 @@ function openStaffDetail(s) {
           const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
           const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
           const isLast = ti===secTasks.length-1;
-          html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;">
+          const taskKey = t.taskKey || (Object.keys(s.taskData||{}).find(k => s.taskData[k] === t) || '');
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-taskkey="${taskKey}">
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
               <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
@@ -1009,7 +1086,14 @@ function openStaffDetail(s) {
                   : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
                 : ``}
             </div>
-            <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+            <div class="task-yn-display">
+              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+            </div>
+            <div class="task-yn-edit" style="display:none;gap:4px;">
+              <button onclick="setTaskYN(this,'yes')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
+              <button onclick="setTaskYN(this,'no')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
+              <button onclick="setTaskYN(this,'na')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
+            </div>
           </div>`;
         });
       });
@@ -1761,6 +1845,269 @@ async function exportDetailPDF() {
 }
 
 // Init Firebase when page loads
+
+// ── Staff Registry ─────────────────────────────────────────────
+let _registry = {}; // key -> {id, name, role, outlet, status, createdAt}
+
+function loadRegistry() {
+  if (!db) return;
+  db.ref('registry').on('value', snap => {
+    _registry = snap.val() || {};
+    renderRegistry();
+    populateRegOutlets();
+  });
+}
+
+function populateRegOutlets() {
+  const outlets = [...new Set(Object.values(_registry).map(s => s.outlet||'').filter(Boolean))].sort();
+  const sel = document.getElementById('regOutlet');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o => `<option value="${o}" ${o===cur?'selected':''}>${o}</option>`).join('');
+}
+
+function renderRegistry() {
+  const search = (document.getElementById('regSearch')||{}).value||'';
+  const roleF  = (document.getElementById('regRole')||{}).value||'';
+  const outletF= (document.getElementById('regOutlet')||{}).value||'';
+  const statusF= (document.getElementById('regStatus')||{}).value||'';
+  const stats  = document.getElementById('regStats');
+  const body   = document.getElementById('registryBody');
+  if (!body) return;
+
+  const all = Object.entries(_registry).map(([k,v]) => ({...v, _key:k}));
+  const filtered = all.filter(s => {
+    if (search && !((s.id||'').toLowerCase().includes(search.toLowerCase()) || (s.name||'').toLowerCase().includes(search.toLowerCase()))) return false;
+    if (roleF && s.role !== roleF) return false;
+    if (outletF && (s.outlet||'').trim().toLowerCase() !== outletF.trim().toLowerCase()) return false;
+    if (statusF && s.status !== statusF) return false;
+    return true;
+  });
+
+  const total    = all.length;
+  const active   = all.filter(s => s.status === 'active').length;
+  const inactive = all.filter(s => s.status !== 'active').length;
+  const outlets  = new Set(all.map(s => s.outlet||'').filter(Boolean)).size;
+
+  if (stats) stats.innerHTML = [
+    {n:total, l:'Total staff', c:'#1A3C5E'},
+    {n:active, l:'Active', c:'#16A34A'},
+    {n:inactive, l:'Inactive', c:'#DC2626'},
+    {n:outlets, l:'Outlets', c:'#D97706'}
+  ].map(x => `<div style="background:#F8F7F2;border-radius:8px;padding:10px;text-align:center;">
+    <div style="font-size:20px;font-weight:600;color:${x.c};">${x.n}</div>
+    <div style="font-size:11px;color:#6B6B60;margin-top:2px;">${x.l}</div>
+  </div>`).join('');
+
+  if (!filtered.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:14px;">No staff found</div>';
+    return;
+  }
+
+  const roleLabels = {linecook:'Line Cook',steward:'Steward',kic:'KIC',areachef:'Area Chef'};
+  const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'};
+
+  body.innerHTML = `<div style="background:#fff;border-radius:10px;border:1px solid #E0DDD4;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:80px 1fr 100px 100px 70px 100px;gap:8px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
+      <div>ID</div><div>Full Name</div><div>Role</div><div>Outlet</div><div>Status</div><div>Action</div>
+    </div>
+    ${filtered.sort((a,b)=>(a.id||'').localeCompare(b.id||'')).map(s => {
+      const isActive = s.status === 'active';
+      return `<div style="display:grid;grid-template-columns:80px 1fr 100px 100px 70px 100px;gap:8px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;">
+        <div style="font-weight:600;font-size:12px;color:#1A3C5E;">${s.id||'—'}</div>
+        <div style="font-size:13px;color:#1A1A18;">${s.name||'—'}</div>
+        <div><span class="role-badge ${roleCls[s.role]||'pill-lc'}" style="font-size:10px;padding:2px 6px;">${roleLabels[s.role]||s.role||'—'}</span></div>
+        <div style="font-size:12px;color:#6B6B60;">${s.outlet||'—'}</div>
+        <div><span style="font-size:11px;font-weight:600;color:${isActive?'#16A34A':'#DC2626'};">${isActive?'● Active':'● Inactive'}</span></div>
+        <div style="display:flex;gap:4px;">
+          <button onclick="editStaff('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid #E0DDD4;border-radius:6px;background:#fff;cursor:pointer;">Edit</button>
+          <button onclick="toggleStaff('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid ${isActive?'#FCA5A5':'#C0DD97'};border-radius:6px;background:#fff;color:${isActive?'#DC2626':'#16A34A'};cursor:pointer;">${isActive?'Deactivate':'Reactivate'}</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function getNextStaffId() {
+  const ids = Object.values(_registry).map(s => {
+    const m = (s.id||'').match(/CUL-(\d+)/);
+    return m ? parseInt(m[1]) : 0;
+  });
+  const max = ids.length ? Math.max(...ids) : 0;
+  return 'CUL-' + String(max + 1).padStart(3, '0');
+}
+
+function openAddStaffModal() {
+  document.getElementById('addStaffTitle').textContent = 'Register New Staff';
+  document.getElementById('editStaffKey').value = '';
+  document.getElementById('staffIdInput').value = getNextStaffId();
+  document.getElementById('staffNameInput').value = '';
+  document.getElementById('staffRoleInput').value = 'linecook';
+  document.getElementById('staffOutletInput').value = '';
+  document.getElementById('staffIdInput').readOnly = false;
+  document.getElementById('addStaffModal').style.display = 'flex';
+}
+
+function editStaff(key) {
+  const s = _registry[key];
+  if (!s) return;
+  document.getElementById('addStaffTitle').textContent = 'Edit Staff';
+  document.getElementById('editStaffKey').value = key;
+  document.getElementById('staffIdInput').value = s.id||'';
+  document.getElementById('staffNameInput').value = s.name||'';
+  document.getElementById('staffRoleInput').value = s.role||'linecook';
+  document.getElementById('staffOutletInput').value = s.outlet||'';
+  document.getElementById('staffIdInput').readOnly = true;
+  document.getElementById('addStaffModal').style.display = 'flex';
+}
+
+function closeAddStaffModal() {
+  document.getElementById('addStaffModal').style.display = 'none';
+}
+
+function saveStaff() {
+  const id     = document.getElementById('staffIdInput').value.trim().toUpperCase();
+  const name   = document.getElementById('staffNameInput').value.trim();
+  const role   = document.getElementById('staffRoleInput').value;
+  const outlet = document.getElementById('staffOutletInput').value.trim();
+  const key    = document.getElementById('editStaffKey').value;
+
+  if (!id || !name || !outlet) { alert('Please fill in all fields.'); return; }
+
+  // Check duplicate ID (for new staff)
+  if (!key) {
+    const duplicate = Object.entries(_registry).find(([k,s]) => s.id === id);
+    if (duplicate) { alert('Staff ID ' + id + ' already exists. Please use a different ID.'); return; }
+  }
+
+  const staffData = { id, name, role, outlet, status: 'active', updatedAt: new Date().toISOString() };
+  if (!key) staffData.createdAt = new Date().toISOString();
+
+  const saveKey = key || db.ref('registry').push().key;
+  db.ref('registry/' + saveKey).update(staffData).then(() => {
+    closeAddStaffModal();
+    showToast(key ? 'Staff updated ✓' : 'Staff registered ✓', 'ok');
+  }).catch(e => alert('Save failed: ' + e.message));
+}
+
+function toggleStaff(key) {
+  const s = _registry[key];
+  if (!s) return;
+  const newStatus = s.status === 'active' ? 'inactive' : 'active';
+  const msg = newStatus === 'inactive'
+    ? `Deactivate ${s.name}? They will no longer be able to submit checklists.`
+    : `Reactivate ${s.name}?`;
+  if (!confirm(msg)) return;
+  db.ref('registry/' + key).update({ status: newStatus, updatedAt: new Date().toISOString() }).then(() => {
+    showToast((newStatus === 'active' ? 'Reactivated' : 'Deactivated') + ' ✓', 'ok');
+  });
+}
+
+
+// ── Overwrite / Edit Mode ──────────────────────────────────────
+let _editMode = false;
+let _editStaffData = null;
+let _editChanges = {}; // taskKey -> new yn value
+
+function toggleEditMode(s) {
+  _editMode = !_editMode;
+  _editStaffData = s;
+  _editChanges = {};
+  const btn = document.querySelector('.edit-report-btn');
+  const body = document.getElementById('modalBody');
+
+  if (_editMode) {
+    if (btn) { btn.textContent = '💾 Save Changes'; btn.style.background = '#16A34A'; btn.onclick = () => saveOverwrite(s); }
+    // Show edit buttons, hide display
+    body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = 'none');
+    body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'flex');
+    // Add cancel button
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancelEditBtn';
+    cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
+    cancelBtn.textContent = '✕ Cancel Edit';
+    cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; openDetail(allStaff.indexOf(s)); };
+    body.appendChild(cancelBtn);
+  } else {
+    if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; btn.onclick = () => toggleEditMode(s); }
+    body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = '');
+    body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'none');
+    const cb = document.getElementById('cancelEditBtn');
+    if (cb) cb.remove();
+  }
+}
+
+function setTaskYN(btn, val) {
+  const row = btn.closest('[data-taskkey]');
+  if (!row) return;
+  const taskKey = row.getAttribute('data-taskkey');
+  _editChanges[taskKey] = val;
+  // Update button styles
+  const btns = row.querySelectorAll('.task-yn-edit button');
+  const labels = ['yes','no','na'];
+  const activeBg = ['#15803D','#B91C1C','#374151'];
+  btns.forEach((b, i) => {
+    b.style.background = labels[i] === val ? activeBg[i] : '#E5E7EB';
+    b.style.color = labels[i] === val ? '#fff' : '#374151';
+  });
+}
+
+async function saveOverwrite(s) {
+  if (!Object.keys(_editChanges).length) {
+    showToast('No changes made', 'warn'); return;
+  }
+  if (!db || !s._fbKey) { showToast('Cannot save — no Firebase key', 'error'); return; }
+
+  const updates = {};
+  Object.entries(_editChanges).forEach(([k, yn]) => {
+    updates['submissions/' + s._fbKey + '/taskData/' + k + '/yn'] = yn;
+  });
+
+  // Recalculate score from all tasks
+  const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
+  Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
+  });
+
+  let yes = 0, total = 0;
+  let opY = 0, opM = 0, clY = 0, clM = 0;
+  Object.values(updatedTaskData).forEach(t => {
+    if (t.yn && t.yn !== 'na') {
+      total++;
+      if (t.yn === 'yes') yes++;
+      if ((t.section||'').toLowerCase().includes('open') || (t.section||'').toLowerCase().includes('opening')) {
+        opM++; if (t.yn === 'yes') opY++;
+      } else {
+        clM++; if (t.yn === 'yes') clY++;
+      }
+    }
+  });
+  const newScore = total > 0 ? Math.round((yes / total) * 100) : 0;
+  const newQualified = newScore >= 95;
+  const opPct = opM > 0 ? Math.round((opY/opM)*100) : null;
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
+
+  updates['submissions/' + s._fbKey + '/overallPct'] = newScore;
+  updates['submissions/' + s._fbKey + '/qualified'] = newQualified;
+  updates['submissions/' + s._fbKey + '/overwrittenBy'] = currentRole;
+  updates['submissions/' + s._fbKey + '/overwrittenAt'] = new Date().toISOString();
+  if (opPct !== null) updates['submissions/' + s._fbKey + '/openingPct'] = opPct;
+  if (clPct !== null) updates['submissions/' + s._fbKey + '/closingPct'] = clPct;
+
+  try {
+    await db.ref().update(updates);
+    showToast('✓ Changes saved — score updated to ' + newScore + '%', 'ok');
+    _editMode = false;
+    _editChanges = {};
+    // Refresh modal
+    const updated = { ...s, overallPct: newScore, taskData: updatedTaskData };
+    allStaff[allStaff.indexOf(s)] = updated;
+    openDetail(allStaff.indexOf(updated));
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+  }
+}
+
 window.addEventListener('DOMContentLoaded', initFirebase);
 // loadData called after login only
 
