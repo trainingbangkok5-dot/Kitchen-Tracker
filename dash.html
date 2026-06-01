@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260602230000">
-<meta name="app-version" content="20260602230000">
+<meta http-equiv="Expires" content="20260602240000">
+<meta name="app-version" content="20260602240000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260602230000';
+  var v = '20260602240000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2053,8 +2053,6 @@ function setTaskYN(btn, val) {
 }
 
 async function saveOverwrite(s) {
-  console.log('saveOverwrite called, changes:', JSON.stringify(_editChanges), 'fbKey:', s._fbKey);
-  alert('DEBUG - Changes: ' + JSON.stringify(_editChanges) + '\nFB Key: ' + (s._fbKey||'MISSING'));
   if (!Object.keys(_editChanges).length) {
     showToast('No changes made', 'warn'); return;
   }
