@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603020000">
-<meta name="app-version" content="20260603020000">
+<meta http-equiv="Expires" content="20260603040000">
+<meta name="app-version" content="20260603040000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603020000';
+  var v = '20260603040000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -188,6 +188,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Admin for your PIN</div>
     </div>
 
+    <input type="text" id="loginName" placeholder="Enter your name..." style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:14px;outline:none;">
     <select class="outlet-sel" id="outletSel">
       <option value="">Select your outlet...</option>
       <optgroup label="🏪 Little Bangkok">
@@ -207,7 +208,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="The Red Door">The Red Door</option>
       </optgroup>
     </select>
-    <input type="text" id="loginName" placeholder="Enter your name..." style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:14px;outline:none;">
     <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
   </div>
 </div>
@@ -2082,7 +2082,7 @@ async function saveOverwrite(s) {
     }
   }
   if (!db || !fbKey) {
-    alert('Cannot save — record not found. Please refresh the page and try again.');
+    alert('Cannot save - record not found. Please refresh the page and try again.');
     return;
   }
 
@@ -2134,16 +2134,11 @@ async function saveOverwrite(s) {
     // Reset edit state
     _editMode = false; _editChanges = {};
     // Show success popup
-    alert('✅ Changes saved successfully!
-
-New score: ' + newScore + '%
-' + (newQualified ? '✅ Qualified' : '❌ Not Qualified'));
+    alert('Changes saved! New score: ' + newScore + '% - ' + (newQualified ? 'QUALIFIED' : 'NOT QUALIFIED'));
     // Reopen in view mode
     openStaffDetail(s);
   } catch(e) {
-    alert('❌ Save failed: ' + e.message + '
-
-Please try again.');
+    alert('Save failed: ' + e.message + '. Please try again.');
     console.error('saveOverwrite error:', e);
   }
 }
