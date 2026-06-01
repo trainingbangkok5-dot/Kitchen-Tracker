@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260602180000">
-<meta name="app-version" content="20260602180000">
+<meta http-equiv="Expires" content="20260602220000">
+<meta name="app-version" content="20260602220000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260602180000';
+  var v = '20260602220000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2056,55 +2056,75 @@ async function saveOverwrite(s) {
   if (!Object.keys(_editChanges).length) {
     showToast('No changes made', 'warn'); return;
   }
-  if (!db || !s._fbKey) { showToast('Cannot save — no Firebase key', 'error'); return; }
 
+  // Find Firebase key — try _fbKey first, then search submissions
+  let fbKey = s._fbKey || '';
+  if (!fbKey && db) {
+    // Try to find by staffName + week
+    const snap = await db.ref('submissions').once('value');
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const v = child.val();
+        if (!fbKey && v.staffName === s.staffName && v.week === s.week && v.role === s.role) {
+          fbKey = child.key;
+        }
+      });
+    }
+  }
+
+  if (!db || !fbKey) {
+    showToast('Cannot save — record not found in Firebase. Please refresh and try again.', 'error');
+    return;
+  }
+
+  // Build updates object
   const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
-    updates['submissions/' + s._fbKey + '/taskData/' + k + '/yn'] = yn;
+    updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
   });
 
-  // Recalculate score from all tasks
+  // Recalculate score from all tasks with changes applied
   const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
   Object.entries(_editChanges).forEach(([k, yn]) => {
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
   });
 
-  let yes = 0, total = 0;
-  let opY = 0, opM = 0, clY = 0, clM = 0;
+  let yes = 0, total = 0, opY = 0, opM = 0, clY = 0, clM = 0;
   Object.values(updatedTaskData).forEach(t => {
     if (t.yn && t.yn !== 'na') {
-      total++;
-      if (t.yn === 'yes') yes++;
-      if ((t.section||'').toLowerCase().includes('open') || (t.section||'').toLowerCase().includes('opening')) {
-        opM++; if (t.yn === 'yes') opY++;
-      } else {
-        clM++; if (t.yn === 'yes') clY++;
-      }
+      total++; if (t.yn === 'yes') yes++;
+      const sec = (t.section||'').toLowerCase();
+      if (sec.includes('open')) { opM++; if (t.yn==='yes') opY++; }
+      else { clM++; if (t.yn==='yes') clY++; }
     }
   });
-  const newScore = total > 0 ? Math.round((yes / total) * 100) : 0;
-  const newQualified = newScore >= 95;
-  const opPct = opM > 0 ? Math.round((opY/opM)*100) : null;
-  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
 
-  updates['submissions/' + s._fbKey + '/overallPct'] = newScore;
-  updates['submissions/' + s._fbKey + '/qualified'] = newQualified;
-  updates['submissions/' + s._fbKey + '/overwrittenBy'] = currentRole;
-  updates['submissions/' + s._fbKey + '/overwrittenAt'] = new Date().toISOString();
-  if (opPct !== null) updates['submissions/' + s._fbKey + '/openingPct'] = opPct;
-  if (clPct !== null) updates['submissions/' + s._fbKey + '/closingPct'] = clPct;
+  const newScore    = total > 0 ? Math.round((yes/total)*100) : 0;
+  const newQualified = newScore >= 95;
+  const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct||null);
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : (s.closingPct||null);
+
+  updates['submissions/' + fbKey + '/overallPct']    = newScore;
+  updates['submissions/' + fbKey + '/qualified']     = newQualified;
+  updates['submissions/' + fbKey + '/overwrittenBy'] = currentRole;
+  updates['submissions/' + fbKey + '/overwrittenAt'] = new Date().toISOString();
+  if (opPct !== null) updates['submissions/' + fbKey + '/openingPct'] = opPct;
+  if (clPct !== null) updates['submissions/' + fbKey + '/closingPct'] = clPct;
 
   try {
     await db.ref().update(updates);
-    showToast('✓ Changes saved — score updated to ' + newScore + '%', 'ok');
-    _editMode = false;
-    _editChanges = {};
-    // Refresh modal
-    const updated = { ...s, overallPct: newScore, taskData: updatedTaskData };
-    allStaff[allStaff.indexOf(s)] = updated;
-    openDetail(allStaff.indexOf(updated));
+    showToast('✓ Saved — score updated to ' + newScore + '%', 'ok');
+    _editMode = false; _editChanges = {};
+    // Update local copy and refresh modal
+    s._fbKey = fbKey;
+    s.overallPct = newScore;
+    s.taskData = updatedTaskData;
+    if (opPct !== null) s.openingPct = opPct;
+    if (clPct !== null) s.closingPct = clPct;
+    openDetail(allStaff.indexOf(s));
   } catch(e) {
     showToast('Save failed: ' + e.message, 'error');
+    console.error('saveOverwrite error:', e);
   }
 }
 
