@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260602240000">
-<meta name="app-version" content="20260602240000">
+<meta http-equiv="Expires" content="20260602250000">
+<meta name="app-version" content="20260602250000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260602240000';
+  var v = '20260602250000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1566,6 +1566,8 @@ function openAuditDetail(a) {
 
 // ── Close modal ───────────────────────────────────────────────
 function closeModal() {
+  _editMode = false;
+  _editChanges = {};
   document.getElementById('detailModal').classList.remove('open');
   // Remove any dynamically added PDF buttons
   const modalHeader = document.querySelector('#detailModal .modal-header');
@@ -2114,14 +2116,18 @@ async function saveOverwrite(s) {
   try {
     await db.ref().update(updates);
     showToast('✓ Saved — score updated to ' + newScore + '%', 'ok');
-    _editMode = false; _editChanges = {};
-    // Update local copy and refresh modal
+    // Reset edit mode FIRST before reopening
+    _editMode = false;
+    _editChanges = {};
+    // Update local copy
     s._fbKey = fbKey;
     s.overallPct = newScore;
     s.taskData = updatedTaskData;
     if (opPct !== null) s.openingPct = opPct;
     if (clPct !== null) s.closingPct = clPct;
-    openDetail(allStaff.indexOf(s));
+    // Close and reopen modal in view mode
+    closeModal();
+    setTimeout(() => openDetail(allStaff.indexOf(s)), 150);
   } catch(e) {
     showToast('Save failed: ' + e.message, 'error');
     console.error('saveOverwrite error:', e);
