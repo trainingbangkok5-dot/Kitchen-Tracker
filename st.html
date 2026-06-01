@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260601120000';
+  var v = '20260601200000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -21,7 +25,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260601120000">
+<meta name="app-version" content="20260601200000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -500,7 +504,7 @@ const SK         = 'kic_steward_data_v2';
 const ALLOW_OVERWRITE = false;
 const OVERWRITE_CODE  = 'KIC2025'; // KIC PIN to overwrite submitted checklist
 
-const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaning tools, dishwashing machine, chemicals, garbage bins, chopping board ready", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area clean, organized, and ready for operation", "photo": true}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: cleaning schedule visible, completed, and followed", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine and sinks in proper working condition", "photo": true}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, washed, organized, and properly stored after operation", "photo": true}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area cleaned, garbage disposed, drains cleaned and area tidy", "photo": true}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing cleaning checklist completed and followed properly", "photo": true}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine, sinks, cleaning equipment cleaned and switched off", "photo": true}]}];
+const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaning tools, dishwashing machine, chemicals, garbage bins, chopping board ready", "photo": true, "translations": {"hi": "उपकरण: सफाई के औजार, बर्तन धोने की मशीन, रसायन, कचरे के डिब्बे, चॉपिंग बोर्ड तैयार", "ne": "औजार: सफाई औजार, भाँडा धुने मेसिन, रसायन, फोहोर डब्बा, काटने बोर्ड तयार", "bn": "সরঞ্জাম: পরিষ্কারের যন্ত্রপাতি, ডিশওয়াশার, রাসায়নিক, ডাস্টবিন, চপিং বোর্ড প্রস্তুত", "ur": "اوزار: صفائی کے اوزار، برتن دھونے کی مشین، کیمیکل، کوڑے دان، چاپنگ بورڈ تیار", "my": "ကိရိယာ: သန့်ရှင်းရေးကိရိယာ၊ ပန်းကန်ဆေးစက်၊ ဆေးဝါး၊ အမှိုက်ပုံး၊ ဖြတ်ပြားများ အဆင်သင့်", "th": "อุปกรณ์: เครื่องมือทำความสะอาด เครื่องล้างจาน สารเคมี ถังขยะ เขียงพร้อมใช้งาน"}}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area clean, organized, and ready for operation", "photo": true, "translations": {"hi": "स्टेशन: बर्तन धोने का क्षेत्र साफ, व्यवस्थित और संचालन के लिए तैयार", "ne": "स्टेशन: भाँडा धुने क्षेत्र सफा, व्यवस्थित र सञ्चालनका लागि तयार", "bn": "স্টেশন: ডিশওয়াশিং এলাকা পরিষ্কার, গোছানো এবং পরিচালনার জন্য প্রস্তুত", "ur": "اسٹیشن: برتن دھونے کا علاقہ صاف، ترتیب سے اور آپریشن کے لیے تیار", "my": "စခန်း: ပန်းကန်ဆေးရာနေရာ သန့်ရှင်း၊ စီစဉ်ထား၊ လုပ်ငန်းအတွက် အဆင်သင့်", "th": "สถานี: พื้นที่ล้างจานสะอาด เป็นระเบียบ พร้อมสำหรับการใช้งาน"}}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: cleaning schedule visible, completed, and followed", "photo": true, "translations": {"hi": "चेकलिस्ट: सफाई का कार्यक्रम दिखाई दे रहा है, पूरा हुआ और पालन किया जा रहा है", "ne": "चेकलिस्ट: सफाई तालिका देखिने, पूरा भरिएको र पालन गरिएको", "bn": "চেকলিস্ট: পরিষ্কারের সময়সূচি দৃশ্যমান, সম্পন্ন এবং অনুসরণ করা হয়েছে", "ur": "چیک لسٹ: صفائی کا شیڈول نظر آ رہا ہے، مکمل ہوا اور اس پر عمل ہوا", "my": "စစ်ဆေးစာရင်း: သန့်ရှင်းရေးအချိန်ဇယား မြင်သာ၊ ပြည့်စုံ၊ လိုက်နာထား", "th": "เช็คลิสต์: ตารางทำความสะอาดมองเห็นได้ เสร็จสมบูรณ์ และปฏิบัติตามแล้ว"}}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine and sinks in proper working condition", "photo": true, "translations": {"hi": "उपकरण: बर्तन धोने की मशीन और सिंक ठीक से काम कर रहे हैं", "ne": "उपकरण: भाँडा धुने मेसिन र सिंक ठीकसँग काम गर्ने अवस्थामा", "bn": "সরঞ্জাম: ডিশওয়াশার এবং সিংক সঠিকভাবে কার্যকর অবস্থায়", "ur": "آلات: برتن دھونے کی مشین اور سنک صحیح کام کرنے کی حالت میں", "my": "စက်ပစ္စည်း: ပန်းကန်ဆေးစက်နှင့် ရေကန်များ မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ", "th": "อุปกรณ์: เครื่องล้างจานและอ่างล้างจานอยู่ในสภาพการทำงานที่ถูกต้อง"}}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, washed, organized, and properly stored after operation", "photo": true, "translations": {"hi": "उपकरण: ऑपरेशन के बाद साफ, धुले, व्यवस्थित और सही तरीके से रखे गए", "ne": "औजार: सञ्चालन पछि सफा, धोएको, व्यवस्थित र राम्ररी राखिएको", "bn": "সরঞ্জাম: অপারেশনের পর পরিষ্কার, ধোয়া, গোছানো এবং সঠিকভাবে সংরক্ষিত", "ur": "اوزار: آپریشن کے بعد صاف، دھوئے، ترتیب سے اور صحیح طریقے سے رکھے گئے", "my": "ကိရိယာ: လုပ်ငန်းပြီးနောက် သန့်ရှင်း၊ ဆေးကြောထား၊ စီစဉ်ထား၊ မှန်ကန်စွာ သိမ်းဆည်း", "th": "อุปกรณ์: ทำความสะอาด ล้าง จัดเก็บอย่างถูกต้องหลังการใช้งาน"}}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area cleaned, garbage disposed, drains cleaned and area tidy", "photo": true, "translations": {"hi": "स्टेशन: बर्तन धोने का क्षेत्र साफ, कचरा फेंका, नाली साफ और क्षेत्र व्यवस्थित", "ne": "स्टेशन: भाँडा धुने क्षेत्र सफा, फोहोर फालिएको, नाली सफा र क्षेत्र मिलाइएको", "bn": "স্টেশন: ডিশওয়াশিং এলাকা পরিষ্কার, ময়লা ফেলা, ড্রেন পরিষ্কার এবং এলাকা গোছানো", "ur": "اسٹیشن: برتن دھونے کا علاقہ صاف، کچرا پھینکا، نالی صاف اور علاقہ ترتیب سے", "my": "စခန်း: ပန်းကန်ဆေးရာနေရာ သန့်ရှင်း၊ အမှိုက်ပစ်ထား၊ မြောင်းများ သန့်ရှင်း", "th": "สถานี: พื้นที่ล้างจานสะอาด ทิ้งขยะแล้ว ท่อระบายน้ำสะอาด พื้นที่เรียบร้อย"}}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing cleaning checklist completed and followed properly", "photo": true, "translations": {"hi": "चेकलिस्ट: समापन सफाई चेकलिस्ट पूरी और सही तरीके से पालन की गई", "ne": "चेकलिस्ट: बन्द सफाई चेकलिस्ट पूरा भरिएको र राम्ररी पालन गरिएको", "bn": "চেকলিস্ট: বন্ধের পরিষ্কার চেকলিস্ট সম্পূর্ণ এবং যথাযথভাবে অনুসরণ করা হয়েছে", "ur": "چیک لسٹ: بندش کی صفائی چیک لسٹ مکمل اور صحیح طریقے سے پالن کی گئی", "my": "စစ်ဆေးစာရင်း: ပိတ်သိမ်းသန့်ရှင်းရေးစစ်ဆေးစာရင်း ပြည့်စုံပြီး မှန်ကန်စွာ လိုက်နာ", "th": "เช็คลิสต์: กรอกเช็คลิสต์ทำความสะอาดปิดร้านครบและปฏิบัติตามอย่างถูกต้อง"}}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine, sinks, cleaning equipment cleaned and switched off", "photo": true, "translations": {"hi": "उपकरण: बर्तन धोने की मशीन, सिंक, सफाई उपकरण साफ और बंद", "ne": "उपकरण: भाँडा धुने मेसिन, सिंक, सफाई उपकरण सफा र बन्द", "bn": "সরঞ্জাম: ডিশওয়াশার, সিংক, পরিষ্কারের যন্ত্রপাতি পরিষ্কার এবং বন্ধ", "ur": "آلات: برتن دھونے کی مشین، سنک، صفائی کے آلات صاف اور بند", "my": "စက်ပစ္စည်း: ပန်းကန်ဆေးစက်၊ ရေကန်၊ သန့်ရှင်းရေးကိရိယာများ သန့်ရှင်းပြီး ပိတ်ထား", "th": "อุปกรณ์: เครื่องล้างจาน อ่างล้างจาน อุปกรณ์ทำความสะอาด ล้างและปิดสวิตช์แล้ว"}}]}];
 
 let currentDay = 1;
 let activePhotoTask = null;
@@ -556,10 +560,10 @@ function selectShift(shift) {
     if (!openingDone) { showToast('Opening shift must be submitted first 🔒', 'warn'); return; }
     const now = new Date();
     const hourNow = now.getHours();
-    const isNightNow = (hourNow === 23 && now.getMinutes() >= 30) || hourNow > 23 || hourNow < 6;
+    const isNightNow = hourNow >= 15; // Closing unlocks at 3:00 PM
     if (!isNightNow) {
       const mLeft = hourNow < 23 ? (23 - hourNow - 1) * 60 + (60 - now.getMinutes()) : 0;
-      showToast(`Closing unlocks at 11:30 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
+      showToast(`Closing unlocks at 3:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
       return;
     }
   }
@@ -629,7 +633,7 @@ function renderDay() {
     } else {
       closingBtnStyle='background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
       closingBtnLabel='🌙 Closing Shift ⏰';
-      closingSubNote=`<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 11:00 PM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
+      closingSubNote=`<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
     }
     const screen = document.createElement('div');
     screen.style.cssText='padding:24px 16px;text-align:center;';
@@ -680,11 +684,17 @@ function renderDay() {
       const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
       let photoHtml = '';
       if (task.photo) {
-        photoHtml = `<div class="photo-row">
-          <button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
-            ${photo ? '✓ Photo saved' : '📷 Tap to take photo'}
+        const photos = [];
+        for (let pi = 0; pi < 5; pi++) {
+          const p = getVal(currentDay, task.id, 'photo_' + pi) || (pi===0 ? getVal(currentDay, task.id, 'photo') : null);
+          if (p) photos.push(p);
+        }
+        const thumbsHtml = photos.map((p,i) => `<img class="photo-thumb" src="${p}" alt="proof" style="cursor:pointer;" onclick="removePhoto('${task.id}',${i})">`).join('');
+        photoHtml = `<div class="photo-row" style="flex-wrap:wrap;">
+          <button class="photo-btn ${photos.length>0?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
+            ${photos.length>0 ? '📷 '+photos.length+' photo'+(photos.length>1?'s':'')+' saved  +add' : '📷 Tap to take photo'}
           </button>
-          ${photo ? `<img class="photo-thumb" src="${photo}" alt="proof">` : ''}
+          ${thumbsHtml}
         </div>`;
       }
       const comment = getVal(currentDay, task.id, 'comment') || '';
@@ -693,6 +703,11 @@ function renderDay() {
         <div class="task-top">
           <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
           <span class="task-text">${task.text}</span>
+          ${task.translations ? Object.entries(task.translations).map(([lang,txt]) => {
+            const flags = {hi:'🇮🇳',ne:'🇳🇵',bn:'🇧🇩',ur:'🇵🇰',my:'🇲🇲',th:'🇹🇭'};
+            const dir = (lang==='ur') ? 'rtl' : 'ltr';
+            return '<div style="font-size:11px;color:#64748B;margin-top:2px;line-height:1.4;direction:'+dir+';">'+(flags[lang]||'')+' '+txt+'</div>';
+          }).join('') : ''}
         </div>
         <div class="yn-row">
           <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
@@ -846,6 +861,9 @@ function submitOpening() {
   const openingTasks = SECTIONS[0].tasks;
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
+  // Mandatory photo check
+  const missingPhoto = openingTasks.filter(t => t.photo && !getVal(currentDay, t.id, 'photo'));
+  if (missingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
   d[`d${currentDay}`]._openDone   = new Date().toISOString();
@@ -1023,7 +1041,15 @@ function handlePhotoFile(file) {
   activePhotoTask = null;
   closePhotoModal();
   compressAndReturn(file, async function(dataUrl) {
-    setVal(currentDay, taskId, 'photo', dataUrl);
+    // Multi-photo: find next empty slot
+    let slotIdx = 0;
+    for (let pi = 0; pi < 5; pi++) {
+      const existing = getVal(currentDay, taskId, 'photo_' + pi) || (pi===0 ? getVal(currentDay, taskId, 'photo') : null);
+      if (!existing) { slotIdx = pi; break; }
+      slotIdx = pi + 1;
+    }
+    const slotKey = slotIdx === 0 ? 'photo' : 'photo_' + slotIdx;
+    setVal(currentDay, taskId, slotKey, dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
     const staffName = getStaffName();
@@ -1047,7 +1073,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Photo input listeners
   // Photo inputs - direct label approach works on all devices
-  document.getElementById('camInput').addEventListener('change', function() {
+  function removePhoto(taskId, idx) {
+  if (!confirm('Remove this photo?')) return;
+  const key = idx === 0 ? 'photo' : 'photo_' + idx;
+  setVal(currentDay, taskId, key, '');
+  // Shift remaining photos down
+  for (let pi = idx; pi < 4; pi++) {
+    const nextKey = (pi+1) === 1 ? 'photo' : 'photo_' + (pi+1);
+    const currentKey = pi === 0 ? 'photo' : 'photo_' + pi;
+    const nextVal = getVal(currentDay, taskId, (pi+1) === 1 ? 'photo' : 'photo_' + (pi+1)) || '';
+    setVal(currentDay, taskId, currentKey, nextVal);
+    setVal(currentDay, taskId, nextKey, '');
+  }
+  renderDay();
+}
+
+document.getElementById('camInput').addEventListener('change', function() {
     if (this.files && this.files[0]) { handlePhotoFile(this.files[0]); this.value=''; }
   });
   document.getElementById('galInput').addEventListener('change', function() {

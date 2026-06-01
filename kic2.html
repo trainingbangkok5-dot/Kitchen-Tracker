@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260601030000">
+<meta name="app-version" content="20260601200000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260601030000';
+  var v = '20260601200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -24,7 +24,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest_kic.json">
-<link rel="apple-touch-icon" href="apple-touch-icon_kic.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="application-name" content="Culex Kitchen">
 <meta name="theme-color" content="#7C2D12">
 <meta name="format-detection" content="telephone=no">
 <title>KIC Checklist</title>
@@ -842,15 +845,19 @@ function closePhotoModal() {
 }
 
 document.getElementById('mbtnCamera').onclick = function() {
+  const tid = activePhotoTask;
+  activePhotoTask = null;
   closePhotoModal();
   const inp = document.getElementById('camInput');
   inp.value = '';
-  // iOS fix: remove then re-add capture attribute
   inp.removeAttribute('capture');
   setTimeout(() => { inp.setAttribute('capture','environment'); inp.click(); }, 80);
+  activePhotoTask = tid;
 };
 document.getElementById('mbtnGallery').onclick = function() {
+  const tid = activePhotoTask;
   closePhotoModal();
+  activePhotoTask = tid;
   const inp = document.getElementById('galInput');
   inp.value = '';
   inp.click();
@@ -858,11 +865,11 @@ document.getElementById('mbtnGallery').onclick = function() {
 
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
+  const taskId = activePhotoTask;
+  activePhotoTask = null;
   compressAndReturn(file, async function(dataUrl) {
     // Save locally first for instant display
-    setVal(currentDay, activePhotoTask, 'photo', dataUrl);
-    const taskId = activePhotoTask;
-    activePhotoTask = null;
+    setVal(currentDay, taskId, 'photo', dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
 

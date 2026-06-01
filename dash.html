@@ -23,7 +23,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Master Kitchen Dashboard</title>
 <link rel="manifest" href="manifest_dashboard.json">
-<link rel="apple-touch-icon" href="apple-touch-icon_dashboard.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="application-name" content="Culex Kitchen">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -158,7 +161,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="role-btn" onclick="selectRole(this,'training')">
         <div class="rb-icon">📚</div>
-        <div class="rb-name">Training</div>
+        <div class="rb-name">Admin</div>
         <div class="rb-lock">🔒</div>
       </div>
       <div class="role-btn" onclick="selectRole(this,'operations')">
@@ -182,7 +185,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <input type="password" id="loginPin" placeholder="Enter PIN code..." maxlength="10"
         style="width:100%;padding:10px 14px;border:2px solid #1A3C5E;border-radius:10px;font-size:16px;letter-spacing:4px;text-align:center;outline:none;margin-bottom:4px;"
         oninput="checkLoginReady()">
-      <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Training Department for your PIN</div>
+      <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Admin for your PIN</div>
     </div>
 
     <select class="outlet-sel" id="outletSel">
@@ -214,7 +217,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="header">
     <div class="header-row">
       <h1>🏠 Kitchen Dashboard</h1>
-      <span class="role-badge" id="roleBadge">Training</span>
+      <span class="role-badge" id="roleBadge">Admin</span>
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
         <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
@@ -230,6 +233,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="tabs">
     <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
     <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
+    <div class="tab" onclick="showTab(this,'weekly')">📆 Weekly</div>
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
   </div>
@@ -254,6 +258,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div id="staffBody"></div>
     </div>
+  </div>
+
+  <div class="page" id="page-weekly">
+    <div class="sec-title">Weekly Report</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A4A42;">
+        <label style="font-weight:500;">From:</label>
+        <input type="date" id="weeklyFrom" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;" onchange="renderWeekly()">
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A4A42;">
+        <label style="font-weight:500;">To:</label>
+        <input type="date" id="weeklyTo" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;" onchange="renderWeekly()">
+      </div>
+      <select id="weeklyRole" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;" onchange="renderWeekly()">
+        <option value="">All roles</option>
+        <option value="linecook">Line Cook</option>
+        <option value="steward">Steward</option>
+        <option value="kic">KIC</option>
+        <option value="areachef">Area Chef</option>
+      </select>
+      <select id="weeklyOutlet" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;" onchange="renderWeekly()">
+        <option value="">All outlets</option>
+      </select>
+    </div>
+    <div id="weeklyContent"></div>
   </div>
 
   <div class="page" id="page-monthly">
@@ -417,12 +446,12 @@ function doLogin() {
   
   currentName = document.getElementById('loginName').value.trim();
   currentOutlet = document.getElementById('outletSel').value;
-  const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Training Dept',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO / GM'};
+  const roleLabels = {kic:'KIC',areachef:'Area Chef',training:'Admin',operations:'Operations Manager',director:'Director of Operations',ceo:'CEO / GM'};
   document.getElementById('roleBadge').textContent = roleLabels[currentRole]||currentRole;
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainDash').style.display = 'block';
   // Show Change PIN button for management roles only
-  document.getElementById('changePinBtn').style.display = currentRole === 'training' ? 'block' : 'none';
+  document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   loadData();
 }
 
@@ -503,6 +532,7 @@ function showTab(el,id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+id).classList.add('active');
+  if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
 }
 
 function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); }
@@ -587,7 +617,7 @@ function renderStaff() {
   }
   body.innerHTML = '';
 
-  const isTraining = currentRole === 'training';
+  const isAdmin = currentRole === 'training';
 
   [...subs].sort((a,b) => new Date(b.lastUpdated||0) - new Date(a.lastUpdated||0)).forEach((s, i) => {
     const role    = ROLES[s.role] || {label:s.role,icon:'',cls:'pill-lc'};
@@ -632,7 +662,7 @@ function renderStaff() {
     wrapper.appendChild(row);
 
     // Delete button — Training only
-    if (isTraining) {
+    if (isAdmin) {
       const staffName = s.staffName || '';
       const week      = s.week || '';
       const delBtn    = document.createElement('button');
@@ -1463,7 +1493,7 @@ function closeModal() {
 // ── Delete staff record functions (Training only) ─────────────
 function confirmDelete(fbKey, staffName, week) {
   if (currentRole !== 'training') {
-    alert('Access denied — only Training Department can delete records.');
+    alert('Access denied — only Admin can delete records.');
     return;
   }
   var confirmed = window.confirm(
@@ -1733,6 +1763,91 @@ async function exportDetailPDF() {
 // Init Firebase when page loads
 window.addEventListener('DOMContentLoaded', initFirebase);
 // loadData called after login only
+
+// ── Weekly Report ──────────────────────────────────────────────
+function renderWeekly() {
+  const fromVal = document.getElementById('weeklyFrom').value;
+  const toVal   = document.getElementById('weeklyTo').value;
+  const roleVal = document.getElementById('weeklyRole').value;
+  const outletVal = document.getElementById('weeklyOutlet').value;
+  const box = document.getElementById('weeklyContent');
+  if (!fromVal || !toVal) {
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:14px;">Select a date range to view the weekly report</div>';
+    return;
+  }
+  const from = new Date(fromVal); from.setHours(0,0,0,0);
+  const to   = new Date(toVal);   to.setHours(23,59,59,999);
+  let filtered = (allStaff||[]).filter(s => {
+    const sub = new Date(s.submittedAt || s.startedAt || '');
+    if (isNaN(sub)) return false;
+    if (sub < from || sub > to) return false;
+    if (roleVal && s.role !== roleVal) return false;
+    if (outletVal && (s.outlet||'').trim().toLowerCase() !== outletVal.trim().toLowerCase()) return false;
+    return true;
+  });
+  filtered = filterByRole(filtered);
+  if (!filtered.length) {
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:14px;">No submissions found for this date range</div>';
+    return;
+  }
+  // Summary stats
+  const avg = Math.round(filtered.reduce((a,s) => a + (parseFloat(s.overallPct)||0), 0) / filtered.length);
+  const qualified = filtered.filter(s => (parseFloat(s.overallPct)||0) >= 95).length;
+  let html = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+    <div style="background:#EFF6FF;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:600;color:#1D4ED8;">${filtered.length}</div>
+      <div style="font-size:11px;color:#3B82F6;">Submissions</div>
+    </div>
+    <div style="background:#F0FDF4;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:600;color:#16A34A;">${avg}%</div>
+      <div style="font-size:11px;color:#16A34A;">Avg Score</div>
+    </div>
+    <div style="background:#FFF7ED;border-radius:10px;padding:12px;text-align:center;">
+      <div style="font-size:22px;font-weight:600;color:#D97706;">${qualified}</div>
+      <div style="font-size:11px;color:#D97706;">Qualified (≥95%)</div>
+    </div>
+  </div>`;
+  // Table
+  html += `<div style="background:#fff;border-radius:10px;border:1px solid #E0DDD4;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:1fr 90px 90px 80px 80px;gap:8px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
+      <div>STAFF / OUTLET</div><div>ROLE</div><div>SCORE</div><div>STATUS</div><div>DATE</div>
+    </div>`;
+  filtered.sort((a,b) => new Date(b.submittedAt||'') - new Date(a.submittedAt||'')).forEach(s => {
+    const pct = parseFloat(s.overallPct)||0;
+    const qualified = pct >= 95;
+    const role = ROLES[s.role]||{label:s.role||'—',cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role]||'pill-lc';
+    const dt = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    html += `<div style="display:grid;grid-template-columns:1fr 90px 90px 80px 80px;gap:8px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;cursor:pointer;" onclick="openDetail(allStaff.indexOf(${JSON.stringify(s)}))">
+      <div><div style="font-weight:500;font-size:13px;color:#1A1A18;">${s.staffName||'—'}</div><div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'}</div></div>
+      <div><span class="role-badge ${roleCls}" style="font-size:10px;padding:2px 6px;">${role.label}</span></div>
+      <div style="font-size:14px;font-weight:600;color:${qualified?'#16A34A':'#DC2626'};">${Math.round(pct)}%</div>
+      <div style="font-size:11px;color:${qualified?'#16A34A':'#DC2626'};">${qualified?'✓ Qualified':'✗ Not Qual'}</div>
+      <div style="font-size:11px;color:#94A3B8;">${dt}</div>
+    </div>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+  // Populate outlet dropdown
+  const outlets = [...new Set((allStaff||[]).map(s => s.outlet||'').filter(Boolean))].sort();
+  const sel = document.getElementById('weeklyOutlet');
+  const curVal = sel.value;
+  sel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o => `<option value="${o}" ${o===curVal?'selected':''}>${o}</option>`).join('');
+}
+
+// Init weekly tab with current week dates
+function initWeeklyDates() {
+  const today = new Date();
+  const day = today.getDay();
+  const mon = new Date(today); mon.setDate(today.getDate() - (day===0?6:day-1));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.toISOString().slice(0,10);
+  const fromEl = document.getElementById('weeklyFrom');
+  const toEl   = document.getElementById('weeklyTo');
+  if (fromEl && !fromEl.value) fromEl.value = fmt(mon);
+  if (toEl   && !toEl.value)   toEl.value   = fmt(sun);
+}
+
 </script>
 
 <!-- CHANGE PIN MODAL -->
@@ -1750,7 +1865,7 @@ window.addEventListener('DOMContentLoaded', initFirebase);
       <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CHANGE PIN FOR ROLE</label>
       <select id="pinRoleSelect" style="width:100%;padding:8px 12px;border:2px solid #E0DDD4;border-radius:8px;font-size:13px;outline:none;">
         <option value="areachef">📊 Area Chef</option>
-        <option value="training">📚 Training (my PIN)</option>
+        <option value="training">🔑 Admin (my PIN)</option>
         <option value="operations">⚙️ Ops Manager</option>
         <option value="director">🎯 Director</option>
         <option value="ceo">👑 CEO</option>
