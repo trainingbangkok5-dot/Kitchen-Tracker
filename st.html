@@ -8,7 +8,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260602120000';
+  var v = '20260603060000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -24,8 +24,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260602120000">
-<meta name="app-version" content="20260602120000">
+<meta http-equiv="Expires" content="20260603060000">
+<meta name="app-version" content="20260603060000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -501,7 +501,7 @@ function clearAllData() {
 }
 const ROLE_LABEL = 'Steward';
 const SK         = 'kic_steward_data_v2';
-const ALLOW_OVERWRITE = true;
+const ALLOW_OVERWRITE = false; // Staff cannot change after submit — overwrite via dashboard only
 // Overwrite PINs fetched from Firebase — KIC, Area Chef, Admin, Director, CEO can overwrite
 let _overwritePins = {};
 function loadOverwritePins() {
@@ -737,11 +737,12 @@ function renderDay() {
     // Submit Opening button
     if (isOpenSection && currentShift === 'opening') {
       const openDoneFlag = !!data[`d${currentDay}`]?._openDone;
+      const wasOverwritten = !!data[`d${currentDay}`]?._overwritten;
       if (!openDoneFlag) {
         const openBtn = document.createElement('button');
         openBtn.className = 'submit-btn';
         openBtn.style.cssText = 'margin:10px 0;background:#16A34A;';
-        openBtn.textContent = 'Submit Opening Tasks ✓';
+        openBtn.textContent = wasOverwritten ? '💾 Resubmit Opening Tasks ✓' : 'Submit Opening Tasks ✓';
         openBtn.onclick = submitOpening;
         container.appendChild(openBtn);
       } else {
@@ -750,6 +751,14 @@ function renderDay() {
         openDoneMsg.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
         openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         container.appendChild(openDoneMsg);
+        // Overwrite panel for opening
+        const owpO = document.createElement('div');
+        owpO.className = 'overwrite-panel';
+        owpO.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
+          <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">KIC / Area Chef / Admin PIN to unlock and edit</div>
+          <input class="overwrite-input" id="owCodeO" type="password" placeholder="Enter PIN...">
+          <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Opening</button>`;
+        container.appendChild(owpO);
       }
     }
   });
@@ -818,7 +827,8 @@ function renderDay() {
         <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
       container.appendChild(owp);
     } else {
-      btn.textContent = 'Submit Closing Tasks ✓';
+      const wasOvr = !!data[`d${currentDay}`]?._overwritten;
+      btn.textContent = wasOvr ? '💾 Resubmit Closing Tasks ✓' : 'Submit Closing Tasks ✓';
       btn.onclick = submitDay;
       container.appendChild(btn);
     }
@@ -879,6 +889,7 @@ function submitOpening() {
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
   d[`d${currentDay}`]._openDone   = new Date().toISOString();
+  delete d[`d${currentDay}`]._overwritten;
   d[`d${currentDay}`]._openerName = name;
   save(d);
 
@@ -1015,19 +1026,30 @@ function submitDay() {
 
 // ── Overwrite (KIC/Area Chef) ─────────────────────────────────
 function doOverwrite() {
-  const code = document.getElementById('owCode')?.value;
+  const code = (document.getElementById('owCode')?.value || document.getElementById('owCodeO')?.value || '').trim();
   if (!checkOverwritePin(code)) { showToast('Wrong PIN — access denied 🔒', 'error'); return; }
   const d = load();
   if (d[`d${currentDay}`]) {
     delete d[`d${currentDay}`]._done;
     delete d[`d${currentDay}`]._closeDone;
     delete d[`d${currentDay}`]._openDone;
+    d[`d${currentDay}`]._overwritten = true;
+    d[`d${currentDay}`]._overwrittenAt = new Date().toISOString();
   }
   save(d);
-  showToast(`Day ${currentDay} unlocked — KIC can now edit ✓`, 'ok');
+  showToast(`Day ${currentDay} unlocked — edit tasks then Resubmit ✓`, 'ok');
   currentShift = null;
   buildDayRail();
   renderDay();
+}
+
+function resubmitAfterOverwrite() {
+  const shift = currentShift || 'opening';
+  if (shift === 'opening') {
+    submitOpening();
+  } else {
+    submitDay();
+  }
 }
 
 // ── Photo ─────────────────────────────────────────────────────
