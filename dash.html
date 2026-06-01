@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260602250000">
-<meta name="app-version" content="20260602250000">
+<meta http-equiv="Expires" content="20260603010000">
+<meta name="app-version" content="20260603010000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260602250000';
+  var v = '20260603010000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -972,6 +972,9 @@ function renderMonthly() {
 
 // ── Open staff detail — All Staff tab ────────────────────────────
 function openStaffDetail(s) {
+  // Always open in view mode
+  _editMode = false;
+  _editChanges = {};
   // Store current staff for PDF export
   _currentStaffData = s;
 
@@ -2028,7 +2031,7 @@ function toggleEditMode(s) {
     cancelBtn.id = 'cancelEditBtn';
     cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
     cancelBtn.textContent = '✕ Cancel Edit';
-    cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; openDetail(allStaff.indexOf(s)); };
+    cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; openStaffDetail(s); };
     body.appendChild(cancelBtn);
   } else {
     if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; btn.onclick = () => toggleEditMode(s); }
@@ -2127,7 +2130,7 @@ async function saveOverwrite(s) {
     if (clPct !== null) s.closingPct = clPct;
     // Close and reopen modal in view mode
     closeModal();
-    setTimeout(() => openDetail(allStaff.indexOf(s)), 150);
+    setTimeout(() => openStaffDetail(s), 150);
   } catch(e) {
     showToast('Save failed: ' + e.message, 'error');
     console.error('saveOverwrite error:', e);
