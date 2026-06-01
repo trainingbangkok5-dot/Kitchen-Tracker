@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603040000">
-<meta name="app-version" content="20260603040000">
+<meta http-equiv="Expires" content="20260603050000">
+<meta name="app-version" content="20260603050000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603040000';
+  var v = '20260603050000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1034,16 +1034,16 @@ function openStaffDetail(s) {
   if (opO !== null || opC !== null) {
     html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
       <div style="background:#EFF6FF;border-radius:10px;padding:10px;">
-        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 Opening</div>
-        <div style="font-size:20px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#D97706':'#B91C1C'}">${opO!=null?opO+'%':'—'}</div>
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Opening</div>
+        <div data-scorebox="opening" style="font-size:20px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#D97706':'#B91C1C'}">${opO!=null?opO+'%':'—'}</div>
       </div>
       <div style="background:#F0FDF4;border-radius:10px;padding:10px;">
-        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 Closing</div>
-        <div style="font-size:20px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C'}">${opC!=null?opC+'%':'—'}</div>
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Closing</div>
+        <div data-scorebox="closing" style="font-size:20px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C'}">${opC!=null?opC+'%':'—'}</div>
       </div>
       <div style="background:${pass?'#F0FDF4':'#FEF2F2'};border-radius:10px;padding:10px;border:2px solid ${pass?'#22C55E':'#EF4444'};">
-        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">📊 Total</div>
-        <div style="font-size:20px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Total</div>
+        <div data-scorebox="total" style="font-size:20px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
       </div>
     </div>`;
   }
@@ -2053,12 +2053,45 @@ function setTaskYN(btn, val) {
   if (!row) return;
   const taskKey = row.getAttribute('data-taskkey');
   _editChanges[taskKey] = val;
+  // Update button styles
   const btns = row.querySelectorAll('.task-yn-edit button');
   const labels = ['yes','no','na'];
   const activeBg = ['#15803D','#B91C1C','#374151'];
   btns.forEach((b, i) => {
     b.style.background = labels[i] === val ? activeBg[i] : '#E5E7EB';
     b.style.color = labels[i] === val ? '#fff' : '#374151';
+  });
+  // Auto-update score display immediately
+  if (_editStaffData) updateLiveScore();
+}
+
+function updateLiveScore() {
+  const s = _editStaffData;
+  if (!s || !s.taskData) return;
+  const updatedTaskData = JSON.parse(JSON.stringify(s.taskData));
+  Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
+  });
+  let yes = 0, total = 0, opY = 0, opM = 0, clY = 0, clM = 0;
+  Object.values(updatedTaskData).forEach(t => {
+    if (t.yn && t.yn !== 'na') {
+      total++; if (t.yn === 'yes') yes++;
+      const sec = (t.section||'').toLowerCase();
+      if (sec.includes('open')) { opM++; if (t.yn==='yes') opY++; }
+      else { clM++; if (t.yn==='yes') clY++; }
+    }
+  });
+  const newScore = total > 0 ? Math.round((yes/total)*100) : 0;
+  const opPct = opM > 0 ? Math.round((opY/opM)*100) : null;
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
+  const pass = newScore >= 95;
+  // Update score boxes in modal
+  const scoreBoxes = document.querySelectorAll('#modalBody [data-scorebox]');
+  scoreBoxes.forEach(el => {
+    const type = el.getAttribute('data-scorebox');
+    if (type === 'total') { el.textContent = newScore + '%'; el.style.color = pass ? '#15803D' : '#B91C1C'; }
+    if (type === 'opening' && opPct !== null) { el.textContent = opPct + '%'; }
+    if (type === 'closing' && clPct !== null) { el.textContent = clPct + '%'; }
   });
 }
 
@@ -2091,7 +2124,7 @@ async function saveOverwrite(s) {
   Object.entries(_editChanges).forEach(([k, yn]) => {
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
   });
-  if (verifiedBy) updates['submissions/' + fbKey + '/verifiedBy'] = verifiedBy;
+  updates['submissions/' + fbKey + '/verifiedBy'] = verifiedBy || '';
 
   // Recalculate score
   const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
