@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604250000">
-<meta name="app-version" content="20260604250000">
+<meta http-equiv="Expires" content="20260604260000">
+<meta name="app-version" content="20260604260000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260604250000';
+  var v = '20260604260000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -581,7 +581,7 @@ function renderDay() {
   container.innerHTML = '';
 
   // Track start time for this day
-  const dayKey = `d${currentDay}`;
+  const dayKey = getTodayKey(); // Date-based key
   const dNow = load();
   if (!dNow[dayKey]) { dNow[dayKey] = {}; }
   // _start set at submit time
