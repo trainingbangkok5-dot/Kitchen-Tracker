@@ -8,27 +8,25 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260604110000';
+  var v = '20260604200000';
   var stored = localStorage.getItem('app_version');
-  if (stored && stored !== v) {
-    // Clear old checklist data on version update
+  if (stored !== v) {
+    // Clear ALL cached data on version update
     Object.keys(localStorage).forEach(function(k) {
-      if (k.startsWith('kic_')) localStorage.removeItem(k);
+      localStorage.removeItem(k);
     });
     localStorage.setItem('app_version', v);
     if (location.search.indexOf('_reloaded') === -1) {
       location.replace(location.pathname + '?_reloaded=1');
     }
-  } else {
-    localStorage.setItem('app_version', v);
   }
 })();
 </script>
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604110000">
-<meta name="app-version" content="20260604110000">
+<meta http-equiv="Expires" content="20260604200000">
+<meta name="app-version" content="20260604200000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
