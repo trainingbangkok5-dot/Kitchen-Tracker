@@ -1324,7 +1324,7 @@ function openStaffDetail(s) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin-bottom:14px;">
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtDT(s.startedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtDT(s.submittedAt)}</div>
-      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Day submitted:</strong> Day ${s.day||1}</div>
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">👤 <strong>Verified by:</strong> ${s.verifiedBy||'—'}</div>
     </div>`;
 
@@ -2079,6 +2079,15 @@ function deleteAllRecords(staffName, role, outlet) {
       .then(function() { showDeleteToast('All ' + count + ' record(s) for ' + staffName + ' deleted'); closeModal(); })
       .catch(function(e) { alert('Delete failed: ' + e.message); });
   });
+}
+
+function showToast(msg, type) {
+  var bg = type === 'ok' ? '#15803D' : type === 'warn' ? '#854D0E' : '#B91C1C';
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + bg + ';color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);white-space:nowrap;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2800);
 }
 
 function showDeleteToast(msg) {

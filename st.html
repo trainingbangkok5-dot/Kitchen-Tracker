@@ -800,7 +800,7 @@ function renderDay() {
     btn.className = 'submit-btn';
     if (closingDone) {
       btn.disabled = true;
-      btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
+      btn.textContent = `✓ Submitted — Locked`;
       container.appendChild(btn);
       const msg = document.createElement('div');
       msg.className = 'synced-msg';
@@ -810,9 +810,9 @@ function renderDay() {
       const owp = document.createElement('div');
       owp.className = 'overwrite-panel';
       owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN (KIC / Area Chef / Admin)</div>
-        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter KIC PIN to unlock and edit Day ${currentDay}</div>
+        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter KIC PIN to unlock and edit</div>
         <input class="overwrite-input" id="owCode" type="password" placeholder="Enter KIC PIN...">
-        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit</button>`;
       container.appendChild(owp);
     } else {
       const wasOvr = !!data[dayKey]?._overwritten;
@@ -1010,7 +1010,7 @@ function submitDay() {
   pushToMasterDashboard(_fbRecord);
   pushToFirebase(_fbRecord);
 
-  showToast(`Day ${currentDay} submitted ✓`, 'ok');
+  showToast('Submitted ✓', 'ok');
   buildDayRail();
   renderDay();
 }
@@ -1028,7 +1028,7 @@ function doOverwrite() {
     d[getTodayKey()]._overwrittenAt = new Date().toISOString();
   }
   save(d);
-  showToast(`Day ${currentDay} unlocked — edit tasks then Resubmit ✓`, 'ok');
+  showToast('Unlocked — edit tasks then Resubmit ✓', 'ok');
   currentShift = null;
   buildDayRail();
   renderDay();
