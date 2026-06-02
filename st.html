@@ -960,17 +960,16 @@ function submitDay() {
     qualified:    op>=95,
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn   = getVal(dd, t.id, 'yn');
-          const pUrl = getVal(dd, t.id, 'photoUrl');
-          const photo= getVal(dd, t.id, 'photo');
-          if (yn) tasks['d'+dd+'_'+t.id] = {
-            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : '')
-          };
-        }));
-      }
+      const dd = currentDay;
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const yn   = getVal(dd, t.id, 'yn');
+        const pUrl = getVal(dd, t.id, 'photoUrl');
+        const photo= getVal(dd, t.id, 'photo');
+        if (yn) tasks['d'+dd+'_'+t.id] = {
+          day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
+          yn:yn||'', photoUrl:pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : '')
+        };
+      }));
       return tasks;
     })(),
     day:        currentDay,
@@ -983,27 +982,26 @@ function submitDay() {
       }));
       return photos;
     })(),
-    // Store full task responses for dashboard detail view
+    // Store full task responses for dashboard detail view — today only
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
-          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
-          if (yn || photo || pUrl) {
-            tasks[`d${dd}_${t.id}`] = {
-              day: dd,
-              section: s.title,
-              task: t.text,
-              owner: t.ownerLbl,
-              yn: yn||'',
-              comment: getVal(dd, t.id, 'comment')||'',
-              photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''), // prefer firebase url, fall back to db ref
-            };
-          }
-        }));
-      }
+      const dd = currentDay;
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const yn    = getVal(dd, t.id, 'yn');
+        const photo = getVal(dd, t.id, 'photo');
+        const pUrl  = getVal(dd, t.id, 'photoUrl');
+        if (yn || photo || pUrl) {
+          tasks[`d${dd}_${t.id}`] = {
+            day: dd,
+            section: s.title,
+            task: t.text,
+            owner: t.ownerLbl,
+            yn: yn||'',
+            comment: getVal(dd, t.id, 'comment')||'',
+            photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''),
+          };
+        }
+      }));
       return tasks;
     })(),
     submittedAt:new Date().toISOString(),
