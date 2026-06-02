@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603950000">
-<meta name="app-version" content="20260603950000">
+<meta http-equiv="Expires" content="20260603960000">
+<meta name="app-version" content="20260603960000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603950000';
+  var v = '20260603960000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -791,6 +791,12 @@ function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // Check correct day
+  const todayDay = getTodayDay(getWeekStart());
+  if (currentDay !== todayDay) {
+    showToast(`Today is Day ${todayDay} — you cannot submit Day ${currentDay} ⚠️`, 'warn');
+    return;
+  }
   const d = load();
   if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
   d[`d${currentDay}`]._done = new Date().toISOString();
