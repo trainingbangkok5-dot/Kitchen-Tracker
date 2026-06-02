@@ -8,7 +8,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260604220000';
+  var v = '20260604240000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -25,8 +25,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604220000">
-<meta name="app-version" content="20260604220000">
+<meta http-equiv="Expires" content="20260604240000">
+<meta name="app-version" content="20260604240000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -442,6 +442,20 @@ function getMonday(date) {
   return d;
 }
 
+
+// ── Dubai Time (UTC+4) — defined first ───────────────────────
+function getDubaiDate() {
+  const now = new Date();
+  const dubaiOffset = 4 * 60;
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (dubaiOffset * 60000));
+}
+function getDubaiDateStr() {
+  const d = getDubaiDate();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function getDubaiHour() { return getDubaiDate().getHours(); }
+// ─────────────────────────────────────────────────────────────
 function getCurrentWeekStart() {
   return getDubaiDateStr(); // Always Dubai date
 }
@@ -449,34 +463,14 @@ function getCurrentWeekStart() {
 function checkAutoReset() {
   const weekField = document.getElementById('fWeek');
   if (!weekField) return;
-
-  const currentWeekStart = getCurrentWeekStart(); // Always Dubai today's date
-  // Always force today's Dubai date — no stored value
-  weekField.value = currentWeekStart;
-  localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
-  if (true) { // always update
-    try { const el = document.getElementById('fWeek'); if(el) el.value = currentWeekStart; } catch(e) {}
-
-    if (storedWeek && storedWeek !== currentWeekStart) {
-      // Clear old week data from localStorage
-      const oldData = JSON.parse(localStorage.getItem(SK) || '{}');
-      const oldWeekKey = 'week_' + storedWeek;
-      
-      // Archive old week data before clearing
-      const archiveKey = SK + '_archive_' + storedWeek;
-      try {
-        localStorage.setItem(archiveKey, JSON.stringify(oldData));
-      } catch(e) {}
-      
-      // Start fresh
-      localStorage.removeItem(SK);
-      showToast('New week started — checklist reset ✓', 'ok');
-    }
-
-    buildDayRail();
-    renderDay();
-  }
+  // Always force today's Dubai date
+  const dubaiToday = getDubaiDateStr();
+  weekField.value = dubaiToday;
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
+  buildDayRail();
+  renderDay();
 }
+
 
 // ── Role config ───────────────────────────────────────────────
 const ROLE       = 'steward';
