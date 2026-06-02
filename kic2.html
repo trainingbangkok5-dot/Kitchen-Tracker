@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603930000">
-<meta name="app-version" content="20260603930000">
+<meta http-equiv="Expires" content="20260603950000">
+<meta name="app-version" content="20260603950000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603930000';
+  var v = '20260603950000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -363,8 +363,16 @@ function getTodayDayNumber(weekStartStr) {
 }
 
 function isDayUnlocked(dayNum, weekStartStr) {
-  if (!weekStartStr) return dayNum === 1;
-  return dayNum <= getTodayDayNumber(weekStartStr);
+  return true; // All days visible — correct day auto-selected
+}
+
+function getTodayDay(weekStartStr) {
+  if (!weekStartStr) return 1;
+  const start = new Date(weekStartStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const diff = Math.floor((today - start) / 86400000);
+  return Math.min(Math.max(diff + 1, 1), 6);
 }
 
 function showToast(msg, type) {
@@ -491,6 +499,9 @@ function checkAutoReset() {
       showToast('New week started — checklist reset ✓', 'ok');
     }
 
+    // Auto-select today's day number
+    const todayDay = getTodayDay(getWeekStart());
+    if (todayDay >= 1 && todayDay <= 6) currentDay = todayDay;
     buildDayRail();
     renderDay();
   }
@@ -558,11 +569,11 @@ function buildDayRail() {
     let cls = 'd-pill day-pill';
     if (i === currentDay) cls += ' active';
     if (done) cls += ' done';
-    if (!unlocked) cls += ' locked';
+    // day pills not locked by date
     btn.className = cls;
     btn.textContent = done ? `Day ${i} ✓` : `Day ${i}`;
     btn.onclick = () => {
-      if (!unlocked) { showToast(`Day ${i} unlocks on the correct date 📅`, 'warn'); return; }
+      // all days accessible
       currentDay = i; buildDayRail(); renderDay();
     };
     rail.appendChild(btn);
@@ -589,13 +600,7 @@ function renderDay() {
   const unlocked = isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
 
-  if (!unlocked) {
-    const locked = document.createElement('div');
-    locked.className = 'locked-msg';
-    locked.textContent = `🔒 Day ${currentDay} is not available yet. It will unlock on the correct date.`;
-    container.appendChild(locked);
-    return;
-  }
+  // All days accessible — no date lock
 
   SECTIONS.forEach((section, si) => {
     const hdr = document.createElement('div');
