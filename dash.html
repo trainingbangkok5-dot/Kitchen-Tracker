@@ -340,7 +340,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div style="margin-bottom:10px;">
           <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Role</label>
-          <select id="staffRoleInput" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+          <select id="staffRoleInput" onchange="toggleOutletField()" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
             <option value="linecook">Line Cook</option>
             <option value="steward">Steward</option>
             <option value="kic">KIC</option>
@@ -351,7 +351,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="training">Admin</option>
           </select>
         </div>
-        <div style="margin-bottom:10px;">
+        <div id="outletFieldWrap" style="margin-bottom:10px;">
           <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Outlet</label>
           <input id="staffOutletInput" type="text" placeholder="e.g. LB DHE" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
         </div>
@@ -1800,15 +1800,6 @@ function showDeleteToast(msg) {
   setTimeout(function(){ t.remove(); }, 3500);
 }
 
-function showToast(msg, type) {
-  var bg = type === 'ok' ? '#15803D' : type === 'warn' ? '#854D0E' : '#B91C1C';
-  var t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + bg + ';color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);white-space:nowrap;';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(function(){ t.remove(); }, 2800);
-}
-
 // ── Export detail PDF (stub — main fn defined above) ──────────
 async function exportDetailPDF() {
   var s = _currentStaffData;
@@ -2240,6 +2231,7 @@ function openAddStaffModal() {
   document.getElementById('staffOutletInput').value = '';
   document.getElementById('staffIdInput').readOnly = false;
   document.getElementById('addStaffModal').style.display = 'flex';
+  toggleOutletField();
 }
 
 function editStaff(key) {
@@ -2253,10 +2245,24 @@ function editStaff(key) {
   document.getElementById('staffOutletInput').value = s.outlet||'';
   document.getElementById('staffIdInput').readOnly = true;
   document.getElementById('addStaffModal').style.display = 'flex';
+  toggleOutletField();
 }
 
 function closeAddStaffModal() {
   document.getElementById('addStaffModal').style.display = 'none';
+}
+
+const NO_OUTLET_ROLES = ['areachef','operations','director','ceo','training'];
+
+function toggleOutletField() {
+  const role = document.getElementById('staffRoleInput').value;
+  const wrap = document.getElementById('outletFieldWrap');
+  if (NO_OUTLET_ROLES.includes(role)) {
+    wrap.style.display = 'none';
+    document.getElementById('staffOutletInput').value = '';
+  } else {
+    wrap.style.display = 'block';
+  }
 }
 
 function saveStaff() {
@@ -2266,7 +2272,9 @@ function saveStaff() {
   const outlet = document.getElementById('staffOutletInput').value.trim();
   const key    = document.getElementById('editStaffKey').value;
 
-  if (!id || !name || !outlet) { alert('Please fill in all fields.'); return; }
+  const noOutletRoles = ['areachef','operations','director','ceo','training'];
+  const outletRequired = !noOutletRoles.includes(role);
+  if (!id || !name || (outletRequired && !outlet)) { alert('Please fill in all fields.'); return; }
 
   // Check duplicate ID (for new staff)
   if (!key) {
