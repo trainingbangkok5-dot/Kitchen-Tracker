@@ -697,7 +697,7 @@ function renderDay() {
   btn.className = 'submit-btn';
   if (isDone && !ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
+    btn.textContent = `✓ Submitted — Locked`;
     const msg = document.createElement('div');
     msg.className = 'synced-msg';
     msg.textContent = '✓ Submitted and synced to dashboard';
@@ -705,21 +705,21 @@ function renderDay() {
     container.appendChild(msg);
   } else if (isDone && ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted`;
+    btn.textContent = `✓ Submitted`;
     container.appendChild(btn);
     // Overwrite panel
     const owp = document.createElement('div');
     owp.className = 'overwrite-panel';
     owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
       <input class="overwrite-input" id="owCode" type="password" placeholder="Enter overwrite code...">
-      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit</button>`;
     container.appendChild(owp);
     const msg2 = document.createElement('div');
     msg2.className = 'synced-msg';
     msg2.textContent = '✓ Submitted and synced to dashboard';
     container.appendChild(msg2);
   } else {
-    btn.textContent = `Submit Day ${currentDay}`;
+    btn.textContent = `Submit`;
     btn.onclick = submitDay;
     container.appendChild(btn);
   }
@@ -784,8 +784,8 @@ function submitDay() {
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
-  d[todayKey2]._start = new Date().toISOString();
-  d[todayKey2]._done = new Date().toISOString();
+  d[getTodayKey()]._start = new Date().toISOString();
+  d[getTodayKey()]._done = new Date().toISOString();
   save(d);
 
   // Calc overall
@@ -861,7 +861,7 @@ function submitDay() {
   pushToMasterDashboard(_fbRecord);
   pushToFirebase(_fbRecord);
 
-  showToast(`Day ${currentDay} submitted ✓`, 'ok');
+  showToast('Submitted ✓', 'ok');
   buildDayRail();
   renderDay();
 }
