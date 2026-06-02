@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604280000">
-<meta name="app-version" content="20260604280000">
+<meta http-equiv="Expires" content="20260605070000">
+<meta name="app-version" content="20260605070000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260604280000';
+  var v = '20260605070000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1125,6 +1125,86 @@ function openStaffDetail(s) {
       });
       html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
     });
+  } else if (s.kpiScores) {
+    // Area Chef KPI Tracker report
+    const kpiNames = {
+      foodCost: 'Outlet Food Cost Optimization',
+      kicAccountability: 'Kitchen Incharge Accountability',
+      staffProficiency: 'Staff Technical Proficiency',
+      webAppIntegrity: 'Web App Data Integrity',
+      internalAudits: 'Internal Audits',
+      assetCare: 'Asset Care & Preventive Maintenance'
+    };
+    const kpiMax = {foodCost:30, kicAccountability:25, staffProficiency:20, webAppIntegrity:10, internalAudits:10, assetCare:5};
+    const kpiBaseline = {foodCost:27, kicAccountability:18, staffProficiency:18, webAppIntegrity:13.5, internalAudits:4, assetCare:4.5};
+
+    html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Area Chef Performance Matrix</div>`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
+    html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">KPI Category</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Max</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Baseline</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
+    let kpiTotal = 0;
+    Object.entries(kpiNames).forEach(([key, label]) => {
+      const score = parseFloat(s.kpiScores[key]||0);
+      kpiTotal += score;
+      const max = kpiMax[key];
+      const pct = score/max;
+      const color = pct>=0.9?'#15803D':pct>=0.7?'#854D0E':'#B91C1C';
+      const bg = pct>=0.9?'#DCFCE7':pct>=0.7?'#FEF9C3':'#FEE2E2';
+      html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+        <td style="padding:7px 8px;font-weight:600;font-size:12px">${label}</td>
+        <td style="padding:7px 8px;text-align:center;color:#64748B">${max}</td>
+        <td style="padding:7px 8px;text-align:center;color:#64748B">${kpiBaseline[key]}</td>
+        <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
+      </tr>`;
+    });
+    const tierColor = kpiTotal>=90?'#15803D':kpiTotal>=80?'#854D0E':'#B91C1C';
+    const tierBg = kpiTotal>=90?'#F0FDF4':kpiTotal>=80?'#FFFBEB':'#FEF2F2';
+    const tierName = kpiTotal>=90?'Tier 1: High Performing':kpiTotal>=80?'Tier 2: Standard Compliance':'Tier 3: Structural Deficiency';
+    html += `<tr style="background:#FFF1F1;font-weight:700"><td style="padding:8px">TOTAL KPI SCORE</td><td style="text-align:center;padding:8px">100</td><td style="text-align:center;padding:8px">78.2</td><td style="text-align:center;padding:8px"><span style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td></tr>`;
+    html += `</table>`;
+    html += `<div style="background:${tierBg};border:2px solid ${tierColor};border-radius:10px;padding:10px;text-align:center;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;color:${tierColor}">${tierName}</div>
+      <div style="font-size:11px;color:#475569;margin-top:4px">Evaluation Period: ${s.period||'—'}</div>
+    </div>`;
+
+    // Food Cost Tracker
+    if (s.fcTracker && s.fcTracker.some(r=>r.fc)) {
+      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Outlet Wise Food Cost %</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
+      html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">FC%</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Status</th></tr>`;
+      s.fcTracker.filter(r=>r.fc).forEach(r => {
+        const f = parseFloat(r.fc);
+        let score, status, color, bg;
+        if (f<=25){score=30;status='Target Achieved';color='#15803D';bg='#DCFCE7';}
+        else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable';color='#854D0E';bg='#FEF9C3';}
+        else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning';color='#B91C1C';bg='#FEE2E2';}
+        else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px;text-align:center">${f}%</td>
+          <td style="padding:7px 8px;text-align:center;font-weight:700">${score.toFixed(1)}</td>
+          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
+        </tr>`;
+      });
+      html += `</table>`;
+    }
+
+    // In-Charge Rollup
+    if (s.icRollup && s.icRollup.some(r=>r.score)) {
+      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">In-Charge Rollup</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
+      html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">In-Charge</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
+      s.icRollup.filter(r=>r.score).forEach(r => {
+        const score = parseFloat(r.score);
+        const color = score>=90?'#15803D':score>=80?'#854D0E':'#B91C1C';
+        const bg = score>=90?'#DCFCE7':score>=80?'#FEF9C3':'#FEE2E2';
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px">${r.name||'—'}</td>
+          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${score}</span></td>
+        </tr>`;
+      });
+      html += `</table>`;
+    }
   } else {
     html += `<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;border:1px dashed #E0DDD4;border-radius:10px;">
       📋 Task details not available for this record.<br>
