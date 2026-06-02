@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603900000">
-<meta name="app-version" content="20260603900000">
+<meta http-equiv="Expires" content="20260603910000">
+<meta name="app-version" content="20260603910000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603900000';
+  var v = '20260603910000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -654,7 +654,7 @@ function renderDay() {
   document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent = pct + '%';
 
-  // Overall — only count submitted days
+  // Overall — only count submitted days for 6-day score
   let tY=0, tM=0;
   const allData = load();
   for (let d=1;d<=6;d++) {
@@ -667,12 +667,34 @@ function renderDay() {
   const op = tM>0 ? Math.round((tY/tM)*100) : 0;
   const pass = op>=95;
 
+  // Current day score — only answered tasks
+  const curAnswered = yes > 0 || (isDone);
+  const curScore = total > 0 ? Math.round((yes/total)*100) : 0;
+
   const sc = document.createElement('div');
-  sc.className = `status-card ${tM>0?(pass?'pass':'fail'):''}`;
-  sc.innerHTML = `<div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
-    <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
-    <div class="sc-sub">6-day overall score (target: 95%)</div>`;
+  if (isDone) {
+    // Show 6-day overall after submission
+    sc.className = `status-card ${tM>0?(pass?'pass':'fail'):''}`;
+    sc.innerHTML = `<div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
+      <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
+      <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+      <div class="sc-sub">6-day overall score (target: 95%)</div>`;
+  } else if (yes > 0) {
+    // Show live current day score while answering
+    const dayPass = curScore>=95;
+    sc.className = `status-card ${dayPass?'pass':'fail'}`;
+    sc.innerHTML = `<div class="sc-icon">${dayPass?'✅':'❌'}</div>
+      <div class="sc-title">${dayPass?'Great job!':'Keep going!'}</div>
+      <div class="sc-score" style="color:${dayPass?'#15803D':'#B91C1C'}">${curScore}%</div>
+      <div class="sc-sub">Day ${currentDay} score so far</div>`;
+  } else {
+    // No answers yet — show blank
+    sc.className = 'status-card';
+    sc.innerHTML = `<div class="sc-icon">📋</div>
+      <div class="sc-title">Fill your checklist</div>
+      <div class="sc-score" style="color:#94A3B8">0%</div>
+      <div class="sc-sub">Day ${currentDay} score (target: 95%)</div>`;
+  }
   container.appendChild(sc);
 
   // Submit button
