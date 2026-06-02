@@ -8,7 +8,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260604260000';
+  var v = '20260604290000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -25,8 +25,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604260000">
-<meta name="app-version" content="20260604260000">
+<meta http-equiv="Expires" content="20260604290000">
+<meta name="app-version" content="20260604290000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -867,7 +867,7 @@ function setComment(taskId, value) {
 
 function tapYN(tid, val, el) {
   const data = load();
-  if (data[dayKey]?._done && !ALLOW_OVERWRITE) {
+  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
     showToast('Day already submitted — cannot edit', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
@@ -877,7 +877,7 @@ function tapYN(tid, val, el) {
   let t=0, y=0;
   const shiftIdx = currentShift==='closing'?1:0;
   const shiftSection = SECTIONS[shiftIdx];
-  if(shiftSection) shiftSection.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;});
+  if(shiftSection) shiftSection.tasks.forEach(tk=>{t++;if(getVal(1,tk.id,'yn')==='yes')y++;});
   const p=t>0?Math.round((y/t)*100):0;
   document.getElementById('scoreFill').style.width=p+'%';
   document.getElementById('scorePct').textContent=p+'%';
@@ -1092,7 +1092,7 @@ function resubmitAfterOverwrite() {
 // ── Photo ─────────────────────────────────────────────────────
 function openPhotoModal(tid, label) {
   const data = load();
-  if (data[dayKey]?._done && !ALLOW_OVERWRITE) {
+  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
     showToast('Day submitted — cannot change photos', 'error'); return;
   }
   activePhotoTask = tid;

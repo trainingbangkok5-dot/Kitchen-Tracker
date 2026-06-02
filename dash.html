@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603990000">
-<meta name="app-version" content="20260603990000">
+<meta http-equiv="Expires" content="20260604280000">
+<meta name="app-version" content="20260604280000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603990000';
+  var v = '20260604280000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -546,9 +546,17 @@ function doLogout() {
 function filterByRole(staff) {
   // Full access roles see everything
   if (FULL_ACCESS.includes(currentRole)) return staff;
-  // KIC sees only their outlet
+  // KIC sees only LC and ST from their outlet
   const myOutlet = (currentOutlet||'').trim().toLowerCase();
-  if (currentRole === 'kic') return staff.filter(s => (s.outlet||'').trim().toLowerCase() === myOutlet);
+  if (currentRole === 'kic') return staff.filter(s =>
+    (s.outlet||'').trim().toLowerCase() === myOutlet &&
+    ['linecook','steward'].includes(s.role)
+  );
+  // Area Chef sees LC, ST, KIC from their outlet
+  if (currentRole === 'areachef') return staff.filter(s =>
+    (s.outlet||'').trim().toLowerCase() === myOutlet &&
+    ['linecook','steward','kic'].includes(s.role)
+  );
   return staff;
 }
 
@@ -1011,13 +1019,20 @@ function openStaffDetail(s) {
     pdfBtn.onclick = () => exportDetailPDF();
     const closeBtn = modalHeader.querySelector('.modal-close');
     if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
-    // Edit/Overwrite button — all roles can edit
-    const editBtn = document.createElement('button');
-    editBtn.className = 'modal-close pdf-daily-btn edit-report-btn';
-    editBtn.style.cssText = 'background:#E87722;margin-right:6px;';
-    editBtn.textContent = '✏️ Edit / Overwrite';
-    editBtn.onclick = () => toggleEditMode(s);
-    if (closeBtn) modalHeader.insertBefore(editBtn, pdfBtn);
+    // Edit/Overwrite button — role-based access
+    const canOverwrite = (
+      (currentRole === 'kic' && ['linecook','steward'].includes(s.role)) ||
+      (currentRole === 'areachef' && ['linecook','steward','kic'].includes(s.role)) ||
+      (['training','operations','director','ceo'].includes(currentRole))
+    );
+    if (canOverwrite) {
+      const editBtn = document.createElement('button');
+      editBtn.className = 'modal-close pdf-daily-btn edit-report-btn';
+      editBtn.style.cssText = 'background:#E87722;margin-right:6px;';
+      editBtn.textContent = '✏️ Edit / Overwrite';
+      editBtn.onclick = () => toggleEditMode(s);
+      if (closeBtn) modalHeader.insertBefore(editBtn, pdfBtn);
+    }
   }
 
   const body = document.getElementById('modalBody');
