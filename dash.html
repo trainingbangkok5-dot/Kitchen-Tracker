@@ -802,6 +802,7 @@ function renderMonthly() {
         scores: [],
         qualified: 0,
         total: 0,
+        allSubs: [],
       };
     }
     const sc = parseFloat(s.overallPct)||0;
@@ -809,6 +810,7 @@ function renderMonthly() {
     byStaff[key].scores.push(sc);
     byStaff[key].total++;
     if (sc >= 95) byStaff[key].qualified++;
+    byStaff[key].allSubs.push(s);
   });
 
   // ── Overall summary ──────────────────────────────────────────
@@ -917,7 +919,7 @@ function renderMonthly() {
     row.style.cssText = `display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;background:${i%2===0?'#fff':'#F9F9F9'};cursor:pointer;transition:background .1s;`;
     row.onmouseover = () => row.style.background='#EFF6FF';
     row.onmouseout  = () => row.style.background = i%2===0?'#fff':'#F9F9F9';
-    row.onclick = () => showStaffWeeklyBreakdown(s);
+    row.onclick = () => openMonthlyDetail(s.staffName, s.allSubs||[]);
     row.innerHTML = `
       <div style="padding:10px 12px;font-weight:600;font-size:13px;color:#1A3C5E">${s.staffName||'—'}</div>
       <div style="padding:10px 12px;"><span class="role-pill ${roleCls}">${role.icon} ${role.label}</span></div>
@@ -987,6 +989,267 @@ function renderMonthly() {
 }
 
 // ── Open staff detail — All Staff tab ────────────────────────────
+
+
+// ── Open monthly detail — all submissions for a staff member in the month ─────
+function openMonthlyDetail(staffName, allSubs) {
+  if (!allSubs || !allSubs.length) return;
+
+  // Sort by week then day
+  const subs = [...allSubs].sort((a,b) => {
+    const wA = a.week||''; const wB = b.week||'';
+    if (wA !== wB) return wA < wB ? -1 : 1;
+    return (a.day||1) - (b.day||1);
+  });
+
+  const first = subs[0];
+  const role = ROLES[first.role]||{label:first.role||'—'};
+  const allScores = subs.map(s => parseFloat(s.overallPct)||0).filter(v=>v>0);
+  const avgScore = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+  const qualified = avgScore >= 95;
+
+  // Group by week
+  const byWeek = {};
+  subs.forEach(sub => {
+    const wk = sub.week||'—';
+    if (!byWeek[wk]) byWeek[wk] = [];
+    byWeek[wk].push(sub);
+  });
+
+  let html = `<div style="background:#F8F7F2;padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;border-bottom:0.5px solid #E0DDD4;">
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Role</span>${role.label}</div>
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Outlet</span>${first.outlet||'—'}</div>
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Monthly avg</span><span style="font-weight:600;color:${qualified?'#15803D':'#B91C1C'}">${avgScore>0?avgScore+'%':'—'}</span></div>
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Total submissions</span>${subs.length}</div>
+  </div>`;
+
+  // Week-by-week summary table
+  html += `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <tr style="background:#F8F7F2;">
+      <th style="padding:6px 10px;text-align:left;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Week of</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Date</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Day</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Score</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Status</th>
+    </tr>`;
+  subs.forEach(sub => {
+    const sc = parseFloat(sub.overallPct)||0;
+    const q = sc >= 95;
+    const wkDt = sub.week ? new Date(sub.week).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    const subDt = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    html += `<tr style="border-bottom:0.5px solid #F1F5F9;">
+      <td style="padding:6px 10px">${wkDt}</td>
+      <td style="padding:6px 10px;text-align:center">${subDt}</td>
+      <td style="padding:6px 10px;text-align:center">Day ${sub.day||1}</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:700;color:${q?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</td>
+      <td style="padding:6px 10px;text-align:center"><span style="background:${q?'#DCFCE7':'#FEE2E2'};color:${q?'#15803D':'#B91C1C'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600">${q?'✓ Qualified':'✗ Not Qualified'}</span></td>
+    </tr>`;
+  });
+  html += `</table></div>`;
+
+  // All weeks — all days with tasks
+  Object.keys(byWeek).sort().forEach(wk => {
+    const weekSubs = byWeek[wk];
+    const wkLabel = wk !== '—' ? new Date(wk).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+    // Week header
+    html += `<div style="background:#1A3C5E;padding:8px 12px;font-size:12px;font-weight:700;color:#fff;margin-top:12px;">📆 Week of ${wkLabel}</div>`;
+
+    // Merge all taskData for this week grouped by day
+    const byDay = {};
+    weekSubs.forEach(sub => {
+      if (!sub.taskData) return;
+      Object.entries(sub.taskData).forEach(([k,t]) => {
+        t.taskKey = k;
+        if (!t.yn || t.yn === '') return;
+        const d = t.day||1;
+        if (!byDay[d]) byDay[d] = [];
+        if (!byDay[d].find(x => x.taskKey === k)) byDay[d].push(t);
+      });
+    });
+
+    Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+      const tasks = byDay[day];
+      const bySec = {};
+      tasks.forEach(t => {
+        const sec = t.section||'Tasks';
+        if (!bySec[sec]) bySec[sec] = [];
+        bySec[sec].push(t);
+      });
+      if (!Object.keys(bySec).length) return;
+
+      const daySub = weekSubs.find(s => (s.day||1) == day);
+      const dayDt = daySub && daySub.submittedAt ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}) : 'Day '+day;
+
+      html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 Day ${day} — ${dayDt}</div>`;
+
+      Object.entries(bySec).forEach(([sec, secTasks]) => {
+        html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^ -]/g,'').trim()||'Tasks'}</div>`;
+        secTasks.forEach((t, ti) => {
+          const yn = t.yn||'';
+          const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+          const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+          const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+          const isLast = ti===secTasks.length-1;
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;">
+            <div style="flex:1;">
+              <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
+              <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
+              ${t.photoUrl
+                ? t.photoUrl.startsWith('db:')
+                  ? `<img data-dbref="${t.photoUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;display:none;">`
+                  : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
+                : ''}
+            </div>
+            <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+          </div>`;
+        });
+      });
+      html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
+    });
+  });
+
+  // Show in modal
+  const titleStr = `${staffName} — ${role.label} • ${first.outlet||'—'} • Monthly Report • Avg ${avgScore>0?avgScore+'%':'—'} ${qualified?'✓ Qualified':'✗ Not Qualified'}`;
+  _currentStaffData = {...first, _monthlyMerged: true, _allSubs: subs};
+  document.getElementById('detailTitle').textContent = titleStr;
+  document.getElementById('detailBody').innerHTML = html;
+
+  // Load db: photos
+  if (window._db || window.db) {
+    const dbRef = window._db || window.db;
+    document.querySelectorAll('#detailBody img[data-dbref]').forEach(img => {
+      dbRef.ref('photos/' + img.dataset.dbref).once('value').then(snap => {
+        if (snap.val()) { img.src = snap.val(); img.style.display = ''; }
+      }).catch(()=>{});
+    });
+  }
+
+  document.getElementById('detailModal').style.display = 'flex';
+}
+
+// ── Open weekly detail — all days for a staff member in a given week ──────────
+function openWeeklyDetail(staffName, week) {
+  // Gather all submissions for this staff + week
+  const subs = (allStaff||[]).filter(s =>
+    s.staffName === staffName && s.week === week
+  ).sort((a,b) => (a.day||1) - (b.day||1));
+
+  if (!subs.length) return;
+
+  // Merge all taskData across all submissions, keyed by day
+  const byDay = {};
+  subs.forEach(sub => {
+    if (!sub.taskData) return;
+    Object.entries(sub.taskData).forEach(([k,t]) => {
+      t.taskKey = k;
+      const d = t.day||1;
+      if (!t.yn || t.yn === '') return; // skip unanswered
+      if (!byDay[d]) byDay[d] = [];
+      // avoid duplicates
+      if (!byDay[d].find(x => x.taskKey === k)) byDay[d].push(t);
+    });
+  });
+
+  // Build a merged record to pass to openStaffDetail-style modal
+  const first = subs[0];
+  const allScores = subs.map(s => parseFloat(s.overallPct)||0).filter(v=>v>0);
+  const avgScore = allScores.length ? Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length) : 0;
+  const qualified = avgScore >= 95;
+
+  // Build HTML for the modal
+  const role = ROLES[first.role]||{label:first.role||'—'};
+  const dt = week ? new Date(week).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+
+  let html = `<div style="background:#F8F7F2;padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;border-bottom:0.5px solid #E0DDD4;">
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Role</span>${role.label}</div>
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Outlet</span>${first.outlet||'—'}</div>
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Week of</span>${dt}</div>
+    <div><span style="font-size:10px;color:#94A3B8;display:block">Days submitted</span>${subs.length} day${subs.length!==1?'s':''}</div>
+  </div>`;
+
+  // Score summary per day
+  html += `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <tr style="background:#F8F7F2;">
+      <th style="padding:6px 10px;text-align:left;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Date</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Day</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Score</th>
+      <th style="padding:6px 10px;text-align:center;font-size:10px;color:#64748B;border-bottom:0.5px solid #E0DDD4">Status</th>
+    </tr>`;
+  subs.forEach(sub => {
+    const sc = parseFloat(sub.overallPct)||0;
+    const q = sc >= 95;
+    const subDt = sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
+    html += `<tr style="border-bottom:0.5px solid #F1F5F9;">
+      <td style="padding:6px 10px">${subDt}</td>
+      <td style="padding:6px 10px;text-align:center">Day ${sub.day||1}</td>
+      <td style="padding:6px 10px;text-align:center;font-weight:700;color:${q?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</td>
+      <td style="padding:6px 10px;text-align:center"><span style="background:${q?'#DCFCE7':'#FEE2E2'};color:${q?'#15803D':'#B91C1C'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600">${q?'✓ Qualified':'✗ Not Qualified'}</span></td>
+    </tr>`;
+  });
+  html += `</table></div>`;
+
+  // All days task details
+  Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+    const tasks = byDay[day];
+    const bySec = {};
+    tasks.forEach(t => {
+      const sec = t.section||'Tasks';
+      if (!bySec[sec]) bySec[sec] = [];
+      bySec[sec].push(t);
+    });
+    if (!Object.keys(bySec).length) return;
+
+    // Find submitted date for this day
+    const daySub = subs.find(s => (s.day||1) == day);
+    const dayDt = daySub && daySub.submittedAt ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}) : 'Day '+day;
+
+    html += `<div style="background:#1A3C5E;padding:7px 12px;font-size:12px;font-weight:600;color:#fff;margin-top:10px;">📅 Day ${day} — ${dayDt}</div>`;
+
+    Object.entries(bySec).forEach(([sec, secTasks]) => {
+      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^ -]/g,'').trim()||'Tasks'}</div>`;
+      secTasks.forEach((t, ti) => {
+        const yn = t.yn||'';
+        const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+        const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+        const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+        const isLast = ti===secTasks.length-1;
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;">
+          <div style="flex:1;">
+            <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
+            <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
+            ${t.photoUrl
+              ? t.photoUrl.startsWith('db:')
+                ? `<img data-dbref="${t.photoUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;display:none;">`
+                : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
+              : ''}
+          </div>
+          <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+        </div>`;
+      });
+    });
+    html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
+  });
+
+  // Show in modal
+  const titleStr = `${staffName} — ${role.label} • ${first.outlet||'—'} • Week of ${dt} • ${avgScore>0?avgScore+'%':'—'} ${qualified?'✓ Qualified':'✗ Not Qualified'}`;
+  _currentStaffData = {...first, _weeklyMerged: true};
+  document.getElementById('detailTitle').textContent = titleStr;
+  document.getElementById('detailBody').innerHTML = html;
+
+  // Load db: photos
+  if (window._db || window.db) {
+    const dbRef = window._db || window.db;
+    document.querySelectorAll('#detailBody img[data-dbref]').forEach(img => {
+      dbRef.ref('photos/' + img.dataset.dbref).once('value').then(snap => {
+        if (snap.val()) { img.src = snap.val(); img.style.display = ''; }
+      }).catch(()=>{});
+    });
+  }
+
+  document.getElementById('detailModal').style.display = 'flex';
+}
+
 function openStaffDetail(s) {
   // Always open in view mode
   _editMode = false;
@@ -1074,9 +1337,13 @@ function openStaffDetail(s) {
   // Task checklist
   if (s.taskData && Object.keys(s.taskData).length > 0) {
     const byDay = {};
+    // Only show tasks for the submitted day — not the full weekly dump
+    const submittedDay = s.day || 1;
     Object.entries(s.taskData).forEach(([k,t]) => {
       t.taskKey = k;
       const d = t.day||1;
+      // Filter to submitted day only
+      if (d !== submittedDay) return;
       if (!byDay[d]) byDay[d] = [];
       byDay[d].push(t);
     });
@@ -1085,10 +1352,15 @@ function openStaffDetail(s) {
       const tasks = byDay[day];
       const bySec = {};
       tasks.forEach(t => {
+        // Only include tasks that were actually answered (yn not empty)
+        if (!t.yn || t.yn === '') return;
         const sec = t.section||'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
       });
+
+      // Skip day entirely if no answered tasks
+      if (Object.keys(bySec).length === 0) return;
 
       html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;">📅 Day ${day}</div>`;
 
@@ -1379,14 +1651,19 @@ function exportStaffMonthlyPDF(s, staffSubs) {
 
     // Group by day
     const byDay2 = {};
+    const submittedDay2 = sub.day || 1;
     Object.values(sub.taskData).forEach(t => {
+      // Only include answered tasks for the submitted day
+      if (!t.yn || t.yn === '') return;
       const d = t.day||1;
+      if (d !== submittedDay2) return;
       if (!byDay2[d]) byDay2[d] = [];
       byDay2[d].push(t);
     });
 
     Object.keys(byDay2).sort((a,b)=>+a-+b).forEach(day => {
       const tasks2 = byDay2[day];
+      if (!tasks2 || tasks2.length === 0) return;
       if (y > pageH - 30) { doc.addPage(); y = 16; }
 
       const rows2 = tasks2.map(t => {
@@ -2530,7 +2807,7 @@ function renderWeekly() {
     const role = ROLES[s.role]||{label:s.role||'—',cls:'pill-lc'};
     const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role]||'pill-lc';
     const dt = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
-    html += `<div style="display:grid;grid-template-columns:1fr 90px 90px 80px 80px;gap:8px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;cursor:pointer;" onclick="openDetail(allStaff.indexOf(${JSON.stringify(s)}))">
+    html += `<div style="display:grid;grid-template-columns:1fr 90px 90px 80px 80px;gap:8px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;cursor:pointer;" onclick="openWeeklyDetail(${JSON.stringify(s.staffName)}, ${JSON.stringify(s.week)})">
       <div><div style="font-weight:500;font-size:13px;color:#1A1A18;">${s.staffName||'—'}</div><div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'}</div></div>
       <div><span class="role-badge ${roleCls}" style="font-size:10px;padding:2px 6px;">${role.label}</span></div>
       <div style="font-size:14px;font-weight:600;color:${qualified?'#16A34A':'#DC2626'};">${Math.round(pct)}%</div>
