@@ -1166,6 +1166,41 @@ function openStaffDetail(s) {
       <div style="font-size:11px;color:#475569;margin-top:4px">Evaluation Period: ${s.period||'—'}</div>
     </div>`;
 
+    // Section 4: Regional Dashboard — Overall KPI Score (matches ac.html)
+    html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Regional Dashboard — Overall KPI Score</div>`;
+    html += `<div style="text-align:center;font-size:11px;color:#64748B;margin-bottom:8px">Target Benchmark Baseline: 90.0 pts</div>`;
+    html += `<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;margin-bottom:10px">
+      <div style="font-size:11px;color:#64748B;margin-bottom:4px">OVERALL AREA CHEF KPI SCORE</div>
+      <div style="font-size:44px;font-weight:700;color:#7F1D1D;line-height:1">${kpiTotal.toFixed(1)}</div>
+      <div style="font-size:11px;color:#94A3B8;margin-top:4px">/ 100 pts</div>
+      <div style="background:${tierBg};border:2px solid ${tierColor};border-radius:10px;padding:10px;margin-top:10px">
+        <div style="font-size:13px;font-weight:700;color:${tierColor}">${kpiTotal>=90?'Tier 1: High Performing Area Chef':kpiTotal>=80?'Tier 2: Standard Target Compliance':'Tier 3: Structural Operational Deficiency'}</div>
+        <div style="font-size:11px;color:#475569;margin-top:4px">${kpiTotal>=90?'Maintain current control frameworks. Highly eligible for growth incentives.':kpiTotal>=80?'Isolate specific underperforming outlets/shifts to move into Tier 1.':'Immediate intervention required to address outlet leaks or performance logging missing gaps.'}</div>
+      </div>
+    </div>`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
+    html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0;text-transform:uppercase;letter-spacing:0.05em">Core Performance Pillar</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Max</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Baseline</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
+    Object.entries(kpiNames).forEach(([key, label]) => {
+      const score = parseFloat(s.kpiScores[key]||0);
+      const max = kpiMax[key];
+      const pct = score/max;
+      const sc = pct>=0.9?'#15803D':pct>=0.7?'#854D0E':'#B91C1C';
+      const sb = pct>=0.9?'#DCFCE7':pct>=0.7?'#FEF9C3':'#FEE2E2';
+      html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+        <td style="padding:7px 8px;font-weight:600">${label}</td>
+        <td style="padding:7px 8px;text-align:center;color:#64748B">${max}</td>
+        <td style="padding:7px 8px;text-align:center;color:#64748B">${kpiBaseline[key]}</td>
+        <td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
+      </tr>`;
+    });
+    html += `<tr style="background:#FFF1F1;font-weight:700">
+      <td style="padding:8px">OVERALL AREA CHEF KPI SCORE</td>
+      <td style="padding:8px;text-align:center">100</td>
+      <td style="padding:8px;text-align:center">78.2</td>
+      <td style="padding:8px;text-align:center"><span style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td>
+    </tr>`;
+    html += `</table>`;
+
     // In-Charge Rollup (Section 2 — matches ac.html order)
     if (s.icRollup && s.icRollup.length) {
       html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Outlet In-Charge Rollup</div>`;
