@@ -8,7 +8,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260603060000';
+  var v = '20260604030000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
     localStorage.setItem('app_version', v);
@@ -24,8 +24,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603060000">
-<meta name="app-version" content="20260603060000">
+<meta http-equiv="Expires" content="20260604030000">
+<meta name="app-version" content="20260604030000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -164,7 +164,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
   <span class="score-pct" id="scorePct">0%</span>
 </div>
-<div class="day-rail" id="dayRail"></div>
+<div class="day-rail" id="dayRail" style="display:none;"></div>
 <div class="content" id="mainContent"></div>
 
 <div class="modal-bg" id="photoModal">
@@ -518,18 +518,28 @@ function checkOverwritePin(code) {
 
 const SECTIONS = [{"title": "🌅 Opening Tasks", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaning tools, dishwashing machine, chemicals, garbage bins, chopping board ready", "photo": true, "translations": {"hi": "उपकरण: सफाई के औजार, बर्तन धोने की मशीन, रसायन, कचरे के डिब्बे, चॉपिंग बोर्ड तैयार", "ne": "औजार: सफाई औजार, भाँडा धुने मेसिन, रसायन, फोहोर डब्बा, काटने बोर्ड तयार", "bn": "সরঞ্জাম: পরিষ্কারের যন্ত্রপাতি, ডিশওয়াশার, রাসায়নিক, ডাস্টবিন, চপিং বোর্ড প্রস্তুত", "ur": "اوزار: صفائی کے اوزار، برتن دھونے کی مشین، کیمیکل، کوڑے دان، چاپنگ بورڈ تیار", "my": "ကိရိယာ: သန့်ရှင်းရေးကိရိယာ၊ ပန်းကန်ဆေးစက်၊ ဆေးဝါး၊ အမှိုက်ပုံး၊ ဖြတ်ပြားများ အဆင်သင့်", "th": "อุปกรณ์: เครื่องมือทำความสะอาด เครื่องล้างจาน สารเคมี ถังขยะ เขียงพร้อมใช้งาน"}}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area clean, organized, and ready for operation", "photo": true, "translations": {"hi": "स्टेशन: बर्तन धोने का क्षेत्र साफ, व्यवस्थित और संचालन के लिए तैयार", "ne": "स्टेशन: भाँडा धुने क्षेत्र सफा, व्यवस्थित र सञ्चालनका लागि तयार", "bn": "স্টেশন: ডিশওয়াশিং এলাকা পরিষ্কার, গোছানো এবং পরিচালনার জন্য প্রস্তুত", "ur": "اسٹیشن: برتن دھونے کا علاقہ صاف، ترتیب سے اور آپریشن کے لیے تیار", "my": "စခန်း: ပန်းကန်ဆေးရာနေရာ သန့်ရှင်း၊ စီစဉ်ထား၊ လုပ်ငန်းအတွက် အဆင်သင့်", "th": "สถานี: พื้นที่ล้างจานสะอาด เป็นระเบียบ พร้อมสำหรับการใช้งาน"}}, {"id": "o3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: cleaning schedule visible, completed, and followed", "photo": true, "translations": {"hi": "चेकलिस्ट: सफाई का कार्यक्रम दिखाई दे रहा है, पूरा हुआ और पालन किया जा रहा है", "ne": "चेकलिस्ट: सफाई तालिका देखिने, पूरा भरिएको र पालन गरिएको", "bn": "চেকলিস্ট: পরিষ্কারের সময়সূচি দৃশ্যমান, সম্পন্ন এবং অনুসরণ করা হয়েছে", "ur": "چیک لسٹ: صفائی کا شیڈول نظر آ رہا ہے، مکمل ہوا اور اس پر عمل ہوا", "my": "စစ်ဆေးစာရင်း: သန့်ရှင်းရေးအချိန်ဇယား မြင်သာ၊ ပြည့်စုံ၊ လိုက်နာထား", "th": "เช็คลิสต์: ตารางทำความสะอาดมองเห็นได้ เสร็จสมบูรณ์ และปฏิบัติตามแล้ว"}}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine and sinks in proper working condition", "photo": true, "translations": {"hi": "उपकरण: बर्तन धोने की मशीन और सिंक ठीक से काम कर रहे हैं", "ne": "उपकरण: भाँडा धुने मेसिन र सिंक ठीकसँग काम गर्ने अवस्थामा", "bn": "সরঞ্জাম: ডিশওয়াশার এবং সিংক সঠিকভাবে কার্যকর অবস্থায়", "ur": "آلات: برتن دھونے کی مشین اور سنک صحیح کام کرنے کی حالت میں", "my": "စက်ပစ္စည်း: ပန်းကန်ဆေးစက်နှင့် ရေကန်များ မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ", "th": "อุปกรณ์: เครื่องล้างจานและอ่างล้างจานอยู่ในสภาพการทำงานที่ถูกต้อง"}}]}, {"title": "🌙 Closing Tasks", "tasks": [{"id": "c1", "owner": "self", "ownerLbl": "Self-report", "text": "Tools: cleaned, washed, organized, and properly stored after operation", "photo": true, "translations": {"hi": "उपकरण: ऑपरेशन के बाद साफ, धुले, व्यवस्थित और सही तरीके से रखे गए", "ne": "औजार: सञ्चालन पछि सफा, धोएको, व्यवस्थित र राम्ररी राखिएको", "bn": "সরঞ্জাম: অপারেশনের পর পরিষ্কার, ধোয়া, গোছানো এবং সঠিকভাবে সংরক্ষিত", "ur": "اوزار: آپریشن کے بعد صاف، دھوئے، ترتیب سے اور صحیح طریقے سے رکھے گئے", "my": "ကိရိယာ: လုပ်ငန်းပြီးနောက် သန့်ရှင်း၊ ဆေးကြောထား၊ စီစဉ်ထား၊ မှန်ကန်စွာ သိမ်းဆည်း", "th": "อุปกรณ์: ทำความสะอาด ล้าง จัดเก็บอย่างถูกต้องหลังการใช้งาน"}}, {"id": "c2", "owner": "self", "ownerLbl": "Self-report", "text": "Station: dishwashing area cleaned, garbage disposed, drains cleaned and area tidy", "photo": true, "translations": {"hi": "स्टेशन: बर्तन धोने का क्षेत्र साफ, कचरा फेंका, नाली साफ और क्षेत्र व्यवस्थित", "ne": "स्टेशन: भाँडा धुने क्षेत्र सफा, फोहोर फालिएको, नाली सफा र क्षेत्र मिलाइएको", "bn": "স্টেশন: ডিশওয়াশিং এলাকা পরিষ্কার, ময়লা ফেলা, ড্রেন পরিষ্কার এবং এলাকা গোছানো", "ur": "اسٹیشن: برتن دھونے کا علاقہ صاف، کچرا پھینکا، نالی صاف اور علاقہ ترتیب سے", "my": "စခန်း: ပန်းကန်ဆေးရာနေရာ သန့်ရှင်း၊ အမှိုက်ပစ်ထား၊ မြောင်းများ သန့်ရှင်း", "th": "สถานี: พื้นที่ล้างจานสะอาด ทิ้งขยะแล้ว ท่อระบายน้ำสะอาด พื้นที่เรียบร้อย"}}, {"id": "c3", "owner": "self", "ownerLbl": "Self-report", "text": "Checklist: closing cleaning checklist completed and followed properly", "photo": true, "translations": {"hi": "चेकलिस्ट: समापन सफाई चेकलिस्ट पूरी और सही तरीके से पालन की गई", "ne": "चेकलिस्ट: बन्द सफाई चेकलिस्ट पूरा भरिएको र राम्ररी पालन गरिएको", "bn": "চেকলিস্ট: বন্ধের পরিষ্কার চেকলিস্ট সম্পূর্ণ এবং যথাযথভাবে অনুসরণ করা হয়েছে", "ur": "چیک لسٹ: بندش کی صفائی چیک لسٹ مکمل اور صحیح طریقے سے پالن کی گئی", "my": "စစ်ဆေးစာရင်း: ပိတ်သိမ်းသန့်ရှင်းရေးစစ်ဆေးစာရင်း ပြည့်စုံပြီး မှန်ကန်စွာ လိုက်နာ", "th": "เช็คลิสต์: กรอกเช็คลิสต์ทำความสะอาดปิดร้านครบและปฏิบัติตามอย่างถูกต้อง"}}, {"id": "c4", "owner": "verify", "ownerLbl": "Verify by KIC", "text": "Equipment: dishwashing machine, sinks, cleaning equipment cleaned and switched off", "photo": true, "translations": {"hi": "उपकरण: बर्तन धोने की मशीन, सिंक, सफाई उपकरण साफ और बंद", "ne": "उपकरण: भाँडा धुने मेसिन, सिंक, सफाई उपकरण सफा र बन्द", "bn": "সরঞ্জাম: ডিশওয়াশার, সিংক, পরিষ্কারের যন্ত্রপাতি পরিষ্কার এবং বন্ধ", "ur": "آلات: برتن دھونے کی مشین، سنک، صفائی کے آلات صاف اور بند", "my": "စက်ပစ္စည်း: ပန်းကန်ဆေးစက်၊ ရေကန်၊ သန့်ရှင်းရေးကိရိယာများ သန့်ရှင်းပြီး ပိတ်ထား", "th": "อุปกรณ์: เครื่องล้างจาน อ่างล้างจาน อุปกรณ์ทำความสะอาด ล้างและปิดสวิตช์แล้ว"}}]}];
 
-let currentDay = 1;
+let currentDay = 1; // Single daily submission — day rail removed
 let activePhotoTask = null;
 
 // ── Storage ───────────────────────────────────────────────────
 function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
 function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
-function getVal(day,tid,field) { return load()[`d${day}`]?.[tid]?.[field]||null; }
+function getTodayKey() {
+  const t = new Date();
+  return 'dt' + t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+}
+function getVal(day,tid,field) {
+  const data = load();
+  // Try date-based key first (new format), fall back to day number
+  const dateKey = getTodayKey();
+  return data[dateKey]?.[tid]?.[field] || data[`d${day}`]?.[tid]?.[field] || null;
+}
 function setVal(day,tid,field,val) {
   const d=load();
-  if(!d[`d${day}`]) d[`d${day}`]={};
-  if(!d[`d${day}`][tid]) d[`d${day}`][tid]={};
-  d[`d${day}`][tid][field]=val;
+  const key = getTodayKey(); // Use today's date as key
+  if(!d[key]) d[key]={};
+  if(!d[key][tid]) d[key][tid]={};
+  d[key][tid][field]=val;
   save(d);
 }
 
@@ -539,35 +549,14 @@ function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; }
 
 // ── Day rail ──────────────────────────────────────────────────
-function buildDayRail() {
-  const rail = document.getElementById('dayRail');
-  const data = load();
-  const weekStart = getWeekStart();
-  rail.innerHTML = '';
-  for (let i = 1; i <= 6; i++) {
-    const done     = data[`d${i}`]?._done;
-    const unlocked = isDayUnlocked(i, weekStart);
-    const btn = document.createElement('button');
-    let cls = 'd-pill day-pill';
-    if (i === currentDay) cls += ' active';
-    if (done) cls += ' done';
-    if (!unlocked) cls += ' locked';
-    btn.className = cls;
-    btn.textContent = done ? `Day ${i} ✓` : `Day ${i}`;
-    btn.onclick = () => {
-      if (!unlocked) { showToast(`Day ${i} unlocks on the correct date 📅`, 'warn'); return; }
-      currentDay = i; buildDayRail(); renderDay();
-    };
-    rail.appendChild(btn);
-  }
-}
+function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Shift selection ───────────────────────────────────────────
 let currentShift = null;
 
 function selectShift(shift) {
   const data = load();
-  const openingDone = !!data[`d${currentDay}`]?._openDone;
+  const openingDone = !!data[dayKey]?._openDone;
   if (shift === 'closing') {
     if (!openingDone) { showToast('Opening shift must be submitted first 🔒', 'warn'); return; }
     const now = new Date();
@@ -608,9 +597,9 @@ function renderDay() {
   }
 
   const data = load();
-  const isDone = !!data[`d${currentDay}`]?._closeDone || !!data[`d${currentDay}`]?._done;
-  const openingDone2 = !!data[`d${currentDay}`]?._openDone;
-  const closingDone  = !!data[`d${currentDay}`]?._closeDone;
+  const isDone = !!data[dayKey]?._closeDone || !!data[dayKey]?._done;
+  const openingDone2 = !!data[dayKey]?._openDone;
+  const closingDone  = !!data[dayKey]?._closeDone;
   const weekStart = getWeekStart();
   const unlocked  = !weekStart || isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
@@ -629,7 +618,7 @@ function renderDay() {
     const isAfter11 = (nowH === 23 && new Date().getMinutes() >= 30) || nowH > 23 || nowH < 6;
     const closingAvailable = openingDone2 && isAfter11;
     const minsLeft = isAfter11 ? 0 : (23 - nowH - 1) * 60 + (60 - new Date().getMinutes());
-    const openerName = data[`d${currentDay}`]?._openerName || '';
+    const openerName = data[dayKey]?._openerName || '';
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
       closingBtnStyle='background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
@@ -677,8 +666,8 @@ function renderDay() {
       ? ' <span style="font-size:10px;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;margin-left:6px;">READ ONLY</span>' : '');
     container.appendChild(hdr);
 
-    const openingSubmitted = !!data[`d${currentDay}`]?._openDone;
-    const closingSubmitted = !!data[`d${currentDay}`]?._closeDone;
+    const openingSubmitted = !!data[dayKey]?._openDone;
+    const closingSubmitted = !!data[dayKey]?._closeDone;
     const sectionReadOnly  = currentShift==='closing' && isOpenSection;
 
     section.tasks.forEach((task, ti) => {
@@ -736,8 +725,8 @@ function renderDay() {
 
     // Submit Opening button
     if (isOpenSection && currentShift === 'opening') {
-      const openDoneFlag = !!data[`d${currentDay}`]?._openDone;
-      const wasOverwritten = !!data[`d${currentDay}`]?._overwritten;
+      const openDoneFlag = !!data[dayKey]?._openDone;
+      const wasOverwritten = !!data[dayKey]?._overwritten;
       if (!openDoneFlag) {
         const openBtn = document.createElement('button');
         openBtn.className = 'submit-btn';
@@ -749,7 +738,7 @@ function renderDay() {
         const openDoneMsg = document.createElement('div');
         openDoneMsg.className = 'synced-msg';
         openDoneMsg.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
-        openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[`d${currentDay}`]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[dayKey]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         container.appendChild(openDoneMsg);
         // Overwrite panel for opening
         const owpO = document.createElement('div');
@@ -827,7 +816,7 @@ function renderDay() {
         <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
       container.appendChild(owp);
     } else {
-      const wasOvr = !!data[`d${currentDay}`]?._overwritten;
+      const wasOvr = !!data[dayKey]?._overwritten;
       btn.textContent = wasOvr ? '💾 Resubmit Closing Tasks ✓' : 'Submit Closing Tasks ✓';
       btn.onclick = submitDay;
       container.appendChild(btn);
@@ -842,7 +831,7 @@ function setComment(taskId, value) {
 
 function tapYN(tid, val, el) {
   const data = load();
-  if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
+  if (data[dayKey]?._done && !ALLOW_OVERWRITE) {
     showToast('Day already submitted — cannot edit', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
@@ -887,10 +876,11 @@ function submitOpening() {
   const missingPhoto = openingTasks.filter(t => t.photo && !getVal(currentDay, t.id, 'photo'));
   if (missingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
   const d = load();
-  if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
-  d[`d${currentDay}`]._openDone   = new Date().toISOString();
-  delete d[`d${currentDay}`]._overwritten;
-  d[`d${currentDay}`]._openerName = name;
+  const todayKey = getTodayKey();
+  if (!d[todayKey]) d[todayKey] = {};
+  d[todayKey]._openDone   = new Date().toISOString();
+  delete d[todayKey]._overwritten;
+  d[todayKey]._openerName = name;
   save(d);
 
   // Push opening to Firebase with taskData
@@ -931,10 +921,11 @@ function submitDay() {
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
   const d = load();
-  if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
-  d[`d${currentDay}`]._closeDone  = new Date().toISOString();
-  d[`d${currentDay}`]._closerName = name;
-  d[`d${currentDay}`]._done       = new Date().toISOString();
+  const todayKey2 = getTodayKey();
+  if (!d[todayKey2]) d[todayKey2] = {};
+  d[todayKey2]._closeDone  = new Date().toISOString();
+  d[todayKey2]._closerName = name;
+  d[todayKey2]._done       = new Date().toISOString();
   save(d);
 
   // Calc overall — split by opening and closing
@@ -981,7 +972,7 @@ function submitDay() {
       return tasks;
     })(),
     day:        currentDay,
-    startedAt:  d[`d${currentDay}`]?._start || new Date().toISOString(),
+    startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     photos: (function() {
       const photos = {};
       SECTIONS.forEach(s => s.tasks.forEach(t => {
@@ -1029,12 +1020,12 @@ function doOverwrite() {
   const code = (document.getElementById('owCode')?.value || document.getElementById('owCodeO')?.value || '').trim();
   if (!checkOverwritePin(code)) { showToast('Wrong PIN — access denied 🔒', 'error'); return; }
   const d = load();
-  if (d[`d${currentDay}`]) {
-    delete d[`d${currentDay}`]._done;
-    delete d[`d${currentDay}`]._closeDone;
-    delete d[`d${currentDay}`]._openDone;
-    d[`d${currentDay}`]._overwritten = true;
-    d[`d${currentDay}`]._overwrittenAt = new Date().toISOString();
+  if (d[getTodayKey()]) {
+    delete d[getTodayKey()]._done;
+    delete d[getTodayKey()]._closeDone;
+    delete d[getTodayKey()]._openDone;
+    d[getTodayKey()]._overwritten = true;
+    d[getTodayKey()]._overwrittenAt = new Date().toISOString();
   }
   save(d);
   showToast(`Day ${currentDay} unlocked — edit tasks then Resubmit ✓`, 'ok');
@@ -1055,7 +1046,7 @@ function resubmitAfterOverwrite() {
 // ── Photo ─────────────────────────────────────────────────────
 function openPhotoModal(tid, label) {
   const data = load();
-  if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
+  if (data[dayKey]?._done && !ALLOW_OVERWRITE) {
     showToast('Day submitted — cannot change photos', 'error'); return;
   }
   activePhotoTask = tid;

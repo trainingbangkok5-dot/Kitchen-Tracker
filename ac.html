@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603980000">
-<meta name="app-version" content="20260603980000">
+<meta http-equiv="Expires" content="20260604030000">
+<meta name="app-version" content="20260604030000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603980000';
+  var v = '20260604030000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -159,7 +159,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
   <span class="score-pct" id="scorePct">0%</span>
 </div>
-<div class="day-rail" id="dayRail"></div>
+<div class="day-rail" id="dayRail" style="display:none;"></div>
 <div class="content" id="mainContent"></div>
 
 <div class="modal-bg" id="photoModal">
@@ -530,18 +530,28 @@ const OVERWRITE_CODE  = 'CHEF2024';
 
 const SECTIONS = [{"title": "Opening Today", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Storage check: stock level, check high value items inventory", "photo": true}, {"id": "o3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: everything in proper running condition", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team briefing: constructive, follow agenda", "photo": false}]}, {"title": "Closing Yesterday", "tasks": [{"id": "cy1", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true}, {"id": "cy2", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Storage check: stock level, next day stock availability", "photo": true}, {"id": "cy3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: any maintenance required", "photo": true}, {"id": "cy4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team debriefing: constructive, follow agenda", "photo": false}]}, {"title": "Food Consistency Today", "tasks": [{"id": "fc1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served cooked as per recipes", "photo": true}, {"id": "fc2", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served presented as per correct presentation", "photo": true}, {"id": "fc3", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Ticket timing as per standard", "photo": false}, {"id": "fc4", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Comments are read and actioned", "photo": false}, {"id": "fc5", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Delivery: packing, customer comments, small sides not missed", "photo": false}]}, {"title": "Leadership Today", "tasks": [{"id": "l1", "owner": "record", "ownerLbl": "Record", "text": "Display professional control of operation flow", "photo": false}, {"id": "l2", "owner": "record", "ownerLbl": "Record", "text": "Display efficient and professional communication skill", "photo": false}, {"id": "l3", "owner": "record", "ownerLbl": "Record", "text": "Display culinary knowledge and integrity", "photo": false}, {"id": "l4", "owner": "record", "ownerLbl": "Record", "text": "Cleanliness of all stations including steward area", "photo": true}, {"id": "l5", "owner": "record", "ownerLbl": "Record", "text": "Storage area neat and clean, items arranged", "photo": true}, {"id": "l6", "owner": "record", "ownerLbl": "Record", "text": "All stations are properly set up and filled", "photo": true}, {"id": "l7", "owner": "record", "ownerLbl": "Record", "text": "Staff are ready physically and mentally motivated", "photo": false}]}, {"title": "Food Cost & Staff", "tasks": [{"id": "cost1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Theory vs actual difference less than 1.5%", "photo": false}, {"id": "sp1", "owner": "record", "ownerLbl": "Record", "text": "Staff monitoring done properly and scored fairly", "photo": false}, {"id": "sp2", "owner": "record", "ownerLbl": "Record", "text": "Overall team score above 80%", "photo": false}, {"id": "cc1", "owner": "record", "ownerLbl": "Record", "text": "Two or fewer genuine food-related customer complaints", "photo": false}, {"id": "aud1", "owner": "auditor", "ownerLbl": "Auditor", "text": "Section audit score on last visit above 80%", "photo": false}]}];
 
-let currentDay = 1;
+let currentDay = 1; // Single daily submission — day rail removed
 let activePhotoTask = null;
 
 // ── Storage ───────────────────────────────────────────────────
 function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
 function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
-function getVal(day,tid,field) { return load()[`d${day}`]?.[tid]?.[field]||null; }
+function getTodayKey() {
+  const t = new Date();
+  return 'dt' + t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0');
+}
+function getVal(day,tid,field) {
+  const data = load();
+  // Try date-based key first (new format), fall back to day number
+  const dateKey = getTodayKey();
+  return data[dateKey]?.[tid]?.[field] || data[`d${day}`]?.[tid]?.[field] || null;
+}
 function setVal(day,tid,field,val) {
   const d=load();
-  if(!d[`d${day}`]) d[`d${day}`]={};
-  if(!d[`d${day}`][tid]) d[`d${day}`][tid]={};
-  d[`d${day}`][tid][field]=val;
+  const key = getTodayKey(); // Use today's date as key
+  if(!d[key]) d[key]={};
+  if(!d[key][tid]) d[key][tid]={};
+  d[key][tid][field]=val;
   save(d);
 }
 
@@ -551,28 +561,7 @@ function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return document.getElementById('fVerified').value.trim(); }
 
 // ── Day rail ──────────────────────────────────────────────────
-function buildDayRail() {
-  const rail = document.getElementById('dayRail');
-  const data = load();
-  const weekStart = getWeekStart();
-  rail.innerHTML = '';
-  for (let i = 1; i <= 6; i++) {
-    const done     = data[`d${i}`]?._done;
-    const unlocked = isDayUnlocked(i, weekStart);
-    const btn = document.createElement('button');
-    let cls = 'd-pill day-pill';
-    if (i === currentDay) cls += ' active';
-    if (done) cls += ' done';
-    // day pills not locked by date
-    btn.className = cls;
-    btn.textContent = done ? `Day ${i} ✓` : `Day ${i}`;
-    btn.onclick = () => {
-      // all days accessible
-      currentDay = i; buildDayRail(); renderDay();
-    };
-    rail.appendChild(btn);
-  }
-}
+function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
@@ -589,7 +578,7 @@ function renderDay() {
   }
 
   const data = load();
-  const isDone = !!data[`d${currentDay}`]?._done;
+  const isDone = !!data[dayKey]?._done;
   const weekStart = getWeekStart();
   const unlocked = isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
@@ -707,7 +696,7 @@ function setComment(taskId, value) {
 
 function tapYN(tid, val, el) {
   const data = load();
-  if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
+  if (data[dayKey]?._done && !ALLOW_OVERWRITE) {
     showToast('Day already submitted — cannot edit', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
@@ -742,16 +731,10 @@ function fmtTimeOnly(iso) {
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
-  // Check correct day
-  const todayDay = getTodayDay(getWeekStart());
-  if (currentDay !== todayDay) {
-    showToast('Today is Day ' + todayDay + ' — you cannot submit Day ' + currentDay + ' ⚠️', 'warn');
-    return;
-  }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
   const d = load();
-  if (!d[`d${currentDay}`]) d[`d${currentDay}`] = {};
-  d[`d${currentDay}`]._done = new Date().toISOString();
+  if (!d[getTodayKey()]) d[getTodayKey()] = {};
+  d[todayKey2]._done = new Date().toISOString();
   save(d);
 
   // Calc overall
@@ -790,7 +773,7 @@ function submitDay() {
       return tasks;
     })(),
     day:        currentDay,
-    startedAt:  d[`d${currentDay}`]?._start || new Date().toISOString(),
+    startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     photos: (function() {
       const photos = {};
       SECTIONS.forEach(s => s.tasks.forEach(t => {
@@ -837,7 +820,7 @@ function doOverwrite() {
   const code = document.getElementById('owCode')?.value;
   if (code !== OVERWRITE_CODE) { showToast('Wrong overwrite code', 'error'); return; }
   const d = load();
-  if (d[`d${currentDay}`]) delete d[`d${currentDay}`]._done;
+  if (d[getTodayKey()]) delete d[getTodayKey()]._done;
   save(d);
   showToast('Day ${currentDay} unlocked — you can now edit', 'ok');
   buildDayRail();
@@ -847,7 +830,7 @@ function doOverwrite() {
 // ── Photo ─────────────────────────────────────────────────────
 function openPhotoModal(tid, label) {
   const data = load();
-  if (data[`d${currentDay}`]?._done && !ALLOW_OVERWRITE) {
+  if (data[dayKey]?._done && !ALLOW_OVERWRITE) {
     showToast('Day submitted — cannot change photos', 'error'); return;
   }
   activePhotoTask = tid;
