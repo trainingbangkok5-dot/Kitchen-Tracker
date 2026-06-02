@@ -1800,6 +1800,15 @@ function showDeleteToast(msg) {
   setTimeout(function(){ t.remove(); }, 3500);
 }
 
+function showToast(msg, type) {
+  var bg = type === 'ok' ? '#15803D' : type === 'warn' ? '#854D0E' : '#B91C1C';
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:' + bg + ';color:#fff;padding:12px 20px;border-radius:30px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);white-space:nowrap;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2800);
+}
+
 // ── Export detail PDF (stub — main fn defined above) ──────────
 async function exportDetailPDF() {
   var s = _currentStaffData;
