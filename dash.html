@@ -1374,7 +1374,8 @@ function openStaffDetail(s) {
       // Skip day entirely if no answered tasks
       if (Object.keys(bySec).length === 0) return;
 
-      html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;">📅 Day ${day}</div>`;
+      const daySubDate = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—';
+      html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;">📅 ${daySubDate}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
       html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim() || 'Tasks'}</div>`;
