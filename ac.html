@@ -408,18 +408,18 @@ function fcScore(fc) {
     status = 'Target Achieved';
     cls = 'g';
   } else if (f <= 25.5) {
-    // Linear sliding scale 29.5 to 27.5
-    score = 30 - ((f - 25.0) / 0.5) * 2.5;
+    // Sliding Scale 29.5 to 27.5 (Excel formula)
+    score = 29.5 - ((f - 25.1) / 0.4) * 2.0;
     status = 'Acceptable Variance';
     cls = 'y';
   } else if (f <= 26.0) {
-    // Linear sliding scale 27.0 to 25.0
-    score = 27 - ((f - 25.5) / 0.5) * 2;
+    // Sliding Scale 27.0 to 25.0 (Excel formula)
+    score = 27.0 - ((f - 25.6) / 0.4) * 2.0;
     status = 'Critical Warning Zone';
     cls = 'r';
   } else {
-    // Linear sliding down to 0
-    score = Math.max(0, 25 - ((f - 26.0) * 5));
+    // Sliding scale down to 0 (Excel formula: 5pts per 1%)
+    score = Math.max(0, 25.0 - ((f - 26.0) * 5));
     status = 'Action Plan Required';
     cls = 'r';
   }
