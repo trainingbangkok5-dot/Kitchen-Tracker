@@ -1166,41 +1166,51 @@ function openStaffDetail(s) {
       <div style="font-size:11px;color:#475569;margin-top:4px">Evaluation Period: ${s.period||'—'}</div>
     </div>`;
 
-    // Food Cost Tracker
-    if (s.fcTracker && s.fcTracker.some(r=>r.fc)) {
-      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Outlet Wise Food Cost %</div>`;
+    // In-Charge Rollup (Section 2 — matches ac.html order)
+    if (s.icRollup && s.icRollup.length) {
+      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Outlet In-Charge Rollup</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
+      html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">In-Charge</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
+      s.icRollup.forEach(r => {
+        const score = parseFloat(r.score);
+        const hasScore = !isNaN(score) && r.score !== '';
+        const color = hasScore ? (score>=90?'#15803D':score>=80?'#854D0E':'#B91C1C') : '#94A3B8';
+        const bg    = hasScore ? (score>=90?'#DCFCE7':score>=80?'#FEF9C3':'#FEE2E2') : '#F1F5F9';
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px">${r.name||'—'}</td>
+          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${hasScore?score:'—'}</span></td>
+        </tr>`;
+      });
+      html += `</table>`;
+    }
+
+    // Food Cost Tracker (Section 3 — matches ac.html order)
+    if (s.fcTracker && s.fcTracker.length) {
+      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Area Chef Outlet Wise Food Cost %</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
       html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">FC%</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Status</th></tr>`;
-      s.fcTracker.filter(r=>r.fc).forEach(r => {
+      s.fcTracker.forEach(r => {
+        if (!r.fc && r.fc !== 0) {
+          html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+            <td style="padding:7px 8px">${r.outlet||'—'}</td>
+            <td style="padding:7px 8px;text-align:center;color:#94A3B8">—</td>
+            <td style="padding:7px 8px;text-align:center;color:#94A3B8">—</td>
+            <td style="padding:7px 8px;text-align:center;color:#94A3B8">—</td>
+          </tr>`;
+          return;
+        }
         const f = parseFloat(r.fc);
         let score, status, color, bg;
         if (f<=25){score=30;status='Target Achieved';color='#15803D';bg='#DCFCE7';}
-        else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable';color='#854D0E';bg='#FEF9C3';}
-        else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning';color='#B91C1C';bg='#FEE2E2';}
+        else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable Variance';color='#854D0E';bg='#FEF9C3';}
+        else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning Zone';color='#B91C1C';bg='#FEE2E2';}
         else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px">${r.outlet||'—'}</td>
           <td style="padding:7px 8px;text-align:center">${f}%</td>
           <td style="padding:7px 8px;text-align:center;font-weight:700">${score.toFixed(1)}</td>
           <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
-        </tr>`;
-      });
-      html += `</table>`;
-    }
-
-    // In-Charge Rollup
-    if (s.icRollup && s.icRollup.some(r=>r.score)) {
-      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">In-Charge Rollup</div>`;
-      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
-      html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">In-Charge</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
-      s.icRollup.filter(r=>r.score).forEach(r => {
-        const score = parseFloat(r.score);
-        const color = score>=90?'#15803D':score>=80?'#854D0E':'#B91C1C';
-        const bg = score>=90?'#DCFCE7':score>=80?'#FEF9C3':'#FEE2E2';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-          <td style="padding:7px 8px">${r.outlet||'—'}</td>
-          <td style="padding:7px 8px">${r.name||'—'}</td>
-          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${score}</span></td>
         </tr>`;
       });
       html += `</table>`;
@@ -1938,6 +1948,131 @@ async function exportDetailPDF() {
         y += 4;
       });
     });
+  } else if (s.kpiScores) {
+    // ── Area Chef KPI Report PDF ──────────────────────────────
+    const kpiNames = {
+      foodCost:'Outlet Food Cost Optimization',
+      kicAccountability:'Kitchen Incharge Accountability',
+      staffProficiency:'Staff Technical Proficiency',
+      webAppIntegrity:'Web App Data Integrity',
+      internalAudits:'Internal Audits',
+      assetCare:'Asset Care & Preventive Maintenance'
+    };
+    const kpiMax = {foodCost:30,kicAccountability:25,staffProficiency:20,webAppIntegrity:10,internalAudits:10,assetCare:5};
+    const kpiBaseline = {foodCost:27,kicAccountability:18,staffProficiency:18,webAppIntegrity:13.5,internalAudits:4,assetCare:4.5};
+
+    // Section 1: Performance Matrix
+    if (y > H-40) { doc.addPage(); y=16; }
+    doc.setFillColor(127,29,29);
+    doc.rect(14,y-3,W-28,7,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('AREA CHEF PERFORMANCE MATRIX', 16, y+2); y+=8;
+
+    let kpiTotal = 0;
+    const kpiRows = Object.entries(kpiNames).map(([key,label]) => {
+      const score = parseFloat(s.kpiScores[key]||0);
+      kpiTotal += score;
+      return [label, kpiMax[key], kpiBaseline[key], score.toFixed(1)];
+    });
+    kpiRows.push(['TOTAL KPI SCORE', 100, 78.2, kpiTotal.toFixed(1)]);
+
+    doc.autoTable({
+      startY: y,
+      head: [['KPI Category','Max','Baseline','Score']],
+      body: kpiRows,
+      styles:{fontSize:9,cellPadding:3},
+      headStyles:{fillColor:[248,250,252],textColor:[100,116,139],fontStyle:'bold',fontSize:9},
+      columnStyles:{0:{cellWidth:90},1:{cellWidth:18,halign:'center'},2:{cellWidth:22,halign:'center'},3:{cellWidth:22,halign:'center',fontStyle:'bold'}},
+      didParseCell:(data)=>{
+        if(data.section==='body'&&data.row.index===kpiRows.length-1){
+          data.cell.styles.fillColor=[255,241,241];data.cell.styles.fontStyle='bold';
+        }
+      },
+      margin:{left:14,right:14},theme:'grid',
+    });
+    y = doc.lastAutoTable.finalY + 4;
+
+    // Tier
+    const tierColor = kpiTotal>=90?[21,128,61]:kpiTotal>=80?[133,77,14]:[185,28,28];
+    const tierName  = kpiTotal>=90?'Tier 1: High Performing':kpiTotal>=80?'Tier 2: Standard Compliance':'Tier 3: Structural Deficiency';
+    doc.setFillColor(...(kpiTotal>=90?[240,253,244]:kpiTotal>=80?[255,251,235]:[254,242,242]));
+    doc.roundedRect(14,y,W-28,12,2,2,'F');
+    doc.setTextColor(...tierColor);
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text(tierName, W/2, y+5, {align:'center'});
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(71,85,105);
+    doc.text('Evaluation Period: '+(s.period||'—'), W/2, y+10, {align:'center'});
+    y += 18;
+
+    // Section 2: In-Charge Rollup
+    if (s.icRollup && s.icRollup.length) {
+      if (y > H-40) { doc.addPage(); y=16; }
+      doc.setFillColor(127,29,29);
+      doc.rect(14,y-3,W-28,7,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.text('OUTLET IN-CHARGE ROLLUP', 16, y+2); y+=8;
+
+      doc.autoTable({
+        startY: y,
+        head: [['Outlet','In-Charge','Score']],
+        body: s.icRollup.map(r => {
+          const sc = parseFloat(r.score);
+          return [r.outlet||'—', r.name||'—', !isNaN(sc)&&r.score!==''?sc:'—'];
+        }),
+        styles:{fontSize:9,cellPadding:3},
+        headStyles:{fillColor:[248,250,252],textColor:[100,116,139],fontStyle:'bold',fontSize:9},
+        columnStyles:{0:{cellWidth:55},1:{cellWidth:80},2:{cellWidth:25,halign:'center',fontStyle:'bold'}},
+        didParseCell:(data)=>{
+          if(data.column.index===2&&data.section==='body'){
+            const v=parseFloat(data.cell.raw)||0;
+            if(v>0) data.cell.styles.textColor=v>=90?[21,128,61]:v>=80?[133,77,14]:[185,28,28];
+          }
+        },
+        margin:{left:14,right:14},theme:'grid',
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    }
+
+    // Section 3: Food Cost Tracker
+    if (s.fcTracker && s.fcTracker.length) {
+      if (y > H-40) { doc.addPage(); y=16; }
+      doc.setFillColor(127,29,29);
+      doc.rect(14,y-3,W-28,7,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.text('AREA CHEF OUTLET WISE FOOD COST %', 16, y+2); y+=8;
+
+      doc.autoTable({
+        startY: y,
+        head: [['Outlet','FC%','Score','Status']],
+        body: s.fcTracker.map(r => {
+          if (!r.fc && r.fc!==0) return [r.outlet||'—','—','—','—'];
+          const f=parseFloat(r.fc);
+          let score,status;
+          if(f<=25){score=30;status='Target Achieved';}
+          else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable Variance';}
+          else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning Zone';}
+          else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';}
+          return [r.outlet||'—',f+'%',score.toFixed(1),status];
+        }),
+        styles:{fontSize:9,cellPadding:3},
+        headStyles:{fillColor:[248,250,252],textColor:[100,116,139],fontStyle:'bold',fontSize:9},
+        columnStyles:{0:{cellWidth:55},1:{cellWidth:20,halign:'center'},2:{cellWidth:20,halign:'center',fontStyle:'bold'},3:{cellWidth:65}},
+        didParseCell:(data)=>{
+          if(data.column.index===3&&data.section==='body'){
+            const v=data.cell.raw||'';
+            if(v==='Target Achieved')data.cell.styles.textColor=[21,128,61];
+            else if(v==='Acceptable Variance')data.cell.styles.textColor=[133,77,14];
+            else if(v!=='—')data.cell.styles.textColor=[185,28,28];
+          }
+        },
+        margin:{left:14,right:14},theme:'grid',
+      });
+      y = doc.lastAutoTable.finalY + 4;
+    }
+
   } else {
     doc.setFontSize(10); doc.setTextColor(150,150,150);
     doc.text('Task details not available for this record.', W/2, y+10, {align:'center'});
@@ -1945,8 +2080,15 @@ async function exportDetailPDF() {
   }
 
   // Footer
-  doc.setFontSize(8); doc.setTextColor(150,150,150);
-  doc.text('needs to export via pdf.', W/2, H-8, {align:'center'});
+  const totalPagesAC = doc.internal.getNumberOfPages();
+  for(let i=1;i<=totalPagesAC;i++){
+    doc.setPage(i);
+    doc.setFillColor(245,243,238);
+    doc.rect(0,H-8,W,8,'F');
+    doc.setTextColor(120,120,120); doc.setFontSize(7);
+    doc.text('Culex Hospitality -- Area Chef KPI Report -- Confidential', 14, H-2);
+    doc.text('Page '+i+' of '+totalPagesAC, W-14, H-2, {align:'right'});
+  }
 
   const fname = (s.staffName||'staff').replace(/\s+/g,'_')+'_'+(s.week||'')+'.pdf';
   doc.save(fname);
