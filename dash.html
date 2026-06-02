@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260603050000">
-<meta name="app-version" content="20260603050000">
+<meta http-equiv="Expires" content="20260603990000">
+<meta name="app-version" content="20260603990000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260603050000';
+  var v = '20260603990000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -303,6 +303,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="steward">Steward</option>
         <option value="kic">KIC</option>
         <option value="areachef">Area Chef</option>
+        <option value="operations">Operations Manager</option>
+        <option value="director">Director</option>
+        <option value="ceo">CEO</option>
+        <option value="training">Admin</option>
       </select>
       <select id="regOutlet" onchange="renderRegistry()" style="padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
         <option value="">All outlets</option>
@@ -341,6 +345,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <option value="steward">Steward</option>
             <option value="kic">KIC</option>
             <option value="areachef">Area Chef</option>
+            <option value="operations">Operations Manager</option>
+            <option value="director">Director</option>
+            <option value="ceo">CEO</option>
+            <option value="training">Admin</option>
           </select>
         </div>
         <div style="margin-bottom:10px;">
@@ -1909,8 +1917,8 @@ function renderRegistry() {
     return;
   }
 
-  const roleLabels = {linecook:'Line Cook',steward:'Steward',kic:'KIC',areachef:'Area Chef'};
-  const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'};
+  const roleLabels = {linecook:'Line Cook',steward:'Steward',kic:'KIC',areachef:'Area Chef',operations:'Operations Manager',director:'Director',ceo:'CEO',training:'Admin'};
+  const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac',operations:'pill-ac',director:'pill-ac',ceo:'pill-ac',training:'pill-ac'};
 
   body.innerHTML = `<div style="background:#fff;border-radius:10px;border:1px solid #E0DDD4;overflow:hidden;">
     <div style="display:grid;grid-template-columns:80px 1fr 100px 100px 70px 100px;gap:8px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
