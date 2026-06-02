@@ -434,7 +434,7 @@ function renderFC() {
     const tr = document.createElement('tr');
     tr.innerHTML =
       '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="fcData[' + i + '].outlet=this.value" style="width:100%"></td>' +
-      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="100" step="0.1" placeholder="25.0" value="' + r.fc + '" oninput="fcData[' + i + '].fc=this.value;renderFC()" style="width:65px"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="100" step="0.1" placeholder="e.g. 23" value="' + r.fc + '" oninput="fcData[' + i + '].fc=this.value;renderFC()" style="width:80px;font-size:13px"></td>' +
       '<td style="text-align:center">25%</td>' +
       '<td style="text-align:center;font-weight:700">' + (res.score !== null ? res.score.toFixed(1) : '—') + '</td>' +
       '<td style="text-align:center">' + (res.score !== null ? '<span class="pill ' + res.cls + '">' + res.status + '</span>' : '—') + '</td>';
