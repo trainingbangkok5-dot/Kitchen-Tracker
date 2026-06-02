@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604290000">
-<meta name="app-version" content="20260604290000">
+<meta http-equiv="Expires" content="20260604310000">
+<meta name="app-version" content="20260604310000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260604290000';
+  var v = '20260604310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -736,8 +736,9 @@ function setComment(taskId, value) {
 
 function tapYN(tid, val, el) {
   const data = load();
-  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
-    showToast('Day already submitted — cannot edit', 'error'); return;
+  const todayData = data[getTodayKey()] || {};
+  if ((todayData._done || todayData._openDone) && !ALLOW_OVERWRITE) {
+    showToast('Already submitted — cannot edit 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));

@@ -8,7 +8,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260604290000';
+  var v = '20260604310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -25,8 +25,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604290000">
-<meta name="app-version" content="20260604290000">
+<meta http-equiv="Expires" content="20260604310000">
+<meta name="app-version" content="20260604310000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -737,7 +737,7 @@ function renderDay() {
         const openDoneMsg = document.createElement('div');
         openDoneMsg.className = 'synced-msg';
         openDoneMsg.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
-        openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[dayKey]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        openDoneMsg.textContent = '✓ Opening Submitted — ' + new Date(data[getTodayKey()]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         container.appendChild(openDoneMsg);
         // Overwrite panel for opening
         const owpO = document.createElement('div');
@@ -830,8 +830,9 @@ function setComment(taskId, value) {
 
 function tapYN(tid, val, el) {
   const data = load();
-  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
-    showToast('Day already submitted — cannot edit', 'error'); return;
+  const todayData = data[getTodayKey()] || {};
+  if ((todayData._openDone || todayData._done) && !ALLOW_OVERWRITE) {
+    showToast('Already submitted — cannot edit 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
