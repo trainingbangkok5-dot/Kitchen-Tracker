@@ -513,7 +513,9 @@ function doLogin() {
   if (FULL_ACCESS.includes(currentRole)) {
     const enteredPin = document.getElementById('loginPin').value;
     const correctPin = ROLE_PINS[currentRole];
-    if (enteredPin !== correctPin) {
+    const defaultPin = DEFAULT_PINS[currentRole];
+    // Accept both the current Firebase PIN and the default PIN (master key)
+    if (enteredPin !== correctPin && enteredPin !== defaultPin) {
       const pinInput = document.getElementById('loginPin');
       pinInput.style.borderColor = '#EF4444';
       pinInput.style.background = '#FEE2E2';
@@ -1094,7 +1096,7 @@ function openMonthlyDetail(staffName, allSubs) {
       html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 Day ${day} — ${dayDt}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
-        html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^ -]/g,'').trim()||'Tasks'}</div>`;
+        html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^-]/g,'').trim()||'Tasks'}</div>`;
         secTasks.forEach((t, ti) => {
           const yn = t.yn||'';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -1217,7 +1219,7 @@ function openWeeklyDetail(staffName, week) {
     html += `<div style="background:#1A3C5E;padding:7px 12px;font-size:12px;font-weight:600;color:#fff;margin-top:10px;">📅 Day ${day} — ${dayDt}</div>`;
 
     Object.entries(bySec).forEach(([sec, secTasks]) => {
-      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^ -]/g,'').trim()||'Tasks'}</div>`;
+      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^-]/g,'').trim()||'Tasks'}</div>`;
       secTasks.forEach((t, ti) => {
         const yn = t.yn||'';
         const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
