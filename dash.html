@@ -1093,7 +1093,7 @@ function openMonthlyDetail(staffName, allSubs) {
       const daySub = weekSubs.find(s => (s.day||1) == day);
       const dayDt = daySub && daySub.submittedAt ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}) : 'Day '+day;
 
-      html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 Day ${day} — ${dayDt}</div>`;
+      html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 ${dayDt}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
         html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^-]/g,'').trim()||'Tasks'}</div>`;
@@ -1216,7 +1216,7 @@ function openWeeklyDetail(staffName, week) {
     const daySub = subs.find(s => (s.day||1) == day);
     const dayDt = daySub && daySub.submittedAt ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}) : 'Day '+day;
 
-    html += `<div style="background:#1A3C5E;padding:7px 12px;font-size:12px;font-weight:600;color:#fff;margin-top:10px;">📅 Day ${day} — ${dayDt}</div>`;
+    html += `<div style="background:#1A3C5E;padding:7px 12px;font-size:12px;font-weight:600;color:#fff;margin-top:10px;">📅 ${dayDt}</div>`;
 
     Object.entries(bySec).forEach(([sec, secTasks]) => {
       html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^-]/g,'').trim()||'Tasks'}</div>`;
