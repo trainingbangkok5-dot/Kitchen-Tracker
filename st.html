@@ -8,11 +8,14 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260604050000';
+  var v = '20260604060000';
   var stored = localStorage.getItem('app_version');
   if (stored && stored !== v) {
+    // Clear old checklist data on version update
+    Object.keys(localStorage).forEach(function(k) {
+      if (k.startsWith('kic_')) localStorage.removeItem(k);
+    });
     localStorage.setItem('app_version', v);
-    // Only reload if not already reloading (check URL param)
     if (location.search.indexOf('_reloaded') === -1) {
       location.replace(location.pathname + '?_reloaded=1');
     }
@@ -24,8 +27,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604050000">
-<meta name="app-version" content="20260604050000">
+<meta http-equiv="Expires" content="20260604060000">
+<meta name="app-version" content="20260604060000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A4731">
@@ -164,7 +167,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
   <span class="score-pct" id="scorePct">0%</span>
 </div>
-<div class="day-rail" id="dayRail" style="display:none;"></div>
+
 <div class="content" id="mainContent"></div>
 
 <div class="modal-bg" id="photoModal">
