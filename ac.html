@@ -4,19 +4,13 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604310000">
-<meta name="app-version" content="20260604310000">
+<meta name="app-version" content="20260605020000">
 <script>
-// Force fresh load — clear old cached version
 (function() {
-  var v = '20260604310000';
-  var stored = localStorage.getItem('app_version');
+  var v = '20260605020000';
+  var stored = localStorage.getItem('app_version_ac_kpi2');
   if (stored !== v) {
-    // Clear ALL cached data on version update
-    Object.keys(localStorage).forEach(function(k) {
-      localStorage.removeItem(k);
-    });
-    localStorage.setItem('app_version', v);
+    localStorage.setItem('app_version_ac_kpi2', v);
     if (location.search.indexOf('_reloaded') === -1) {
       location.replace(location.pathname + '?_reloaded=1');
     }
@@ -26,160 +20,255 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest_areachef.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Culex Kitchen">
-<meta name="application-name" content="Culex Kitchen">
 <meta name="theme-color" content="#7F1D1D">
-<meta name="format-detection" content="telephone=no">
-<title>Area Chef KPI Checklist</title>
+<title>Area Chef KPI Tracker</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body { height:100%; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#F8FAFC; color:#0F172A; padding-bottom:60px; -webkit-font-smoothing:antialiased; }
-.header { background:#7F1D1D; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
-.role-badge { display:inline-block; background:#DC2626; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
-.header h1 { color:#fff; font-size:17px; font-weight:700; }
-.header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
-.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:10px; }
-.info-field { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:7px 10px; }
-.info-field label { display:block; font-size:9px; color:rgba(255,255,255,0.55); font-weight:700; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
-.info-field input { background:transparent; border:none; outline:none; color:#fff; font-size:13px; font-weight:500; width:100%; -webkit-appearance:none; }
-.info-field input::placeholder { color:rgba(255,255,255,0.3); }
-.score-bar { background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; display:flex; align-items:center; gap:10px; }
-.score-track { flex:1; height:5px; background:#E2E8F0; border-radius:3px; overflow:hidden; }
-.score-fill { height:100%; border-radius:3px; background:#DC2626; transition:width 0.4s; }
-.score-pct { font-size:13px; font-weight:700; color:#7F1D1D; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
-.day-rail { background:#fff; border-bottom:1px solid #E2E8F0; padding:9px 14px; display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
-.day-rail::-webkit-scrollbar { display:none; }
-.day-pill { flex-shrink:0; padding:5px 14px; border-radius:20px; border:1.5px solid #E2E8F0; background:#fff; font-size:12px; font-weight:700; color:#64748B; cursor:pointer; white-space:nowrap; -webkit-appearance:none; transition:all 0.15s; }
-.day-pill.active { background:#7F1D1D; border-color:#7F1D1D; color:#fff; }
-.day-pill.done { border-color:#22C55E; color:#15803D; }
-.day-pill.done.active { background:#7F1D1D; color:#fff; }
-.day-pill.locked { opacity:0.35; cursor:not-allowed; }
-.content { padding:12px 16px; }
-.section-hdr { background:#DC2626; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
-.task-card { background:#fff; border:1px solid #E2E8F0; border-top:none; padding:12px 13px; }
-.task-card:last-child { border-radius:0 0 10px 10px; }
-.task-card.locked-card { opacity:0.7; pointer-events:none; }
-.task-top { display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; }
-.owner-tag { font-size:8px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; padding:2px 6px; border-radius:4px; white-space:nowrap; margin-top:2px; flex-shrink:0; }
-.ot-self { background:#FEF3C7; color:#92400E; }
-.ot-verify { background:#DBEAFE; color:#1E40AF; }
-.ot-monitor { background:#D1FAE5; color:#065F46; }
-.ot-record { background:#EDE9FE; color:#5B21B6; }
-.ot-auditor { background:#FCE7F3; color:#9D174D; }
-.task-text { font-size:13px; font-weight:500; line-height:1.4; flex:1; }
-.yn-row { display:flex; gap:6px; }
-.yn { flex:1; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
-.yn:active { transform:scale(0.96); }
-.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
-.yn.no.on  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
-.yn.na.on  { background:#F3F4F6; border-color:#9CA3AF; color:#374151; }
-.photo-row { margin-top:9px; display:flex; align-items:center; gap:8px; }
-.photo-btn { display:flex; align-items:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; }
-.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
-.photo-btn:active { transform:scale(0.97); }
-.photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
-.status-card { margin:16px 0 0; border-radius:12px; padding:16px; text-align:center; border:2px solid #E2E8F0; background:#fff; }
-.status-card.pass { background:#F0FDF4; border-color:#22C55E; }
-.status-card.fail { background:#FEF2F2; border-color:#EF4444; }
-.sc-icon { font-size:28px; margin-bottom:5px; }
-.sc-title { font-size:16px; font-weight:700; margin-bottom:3px; }
-.sc-score { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; margin:6px 0; }
-.sc-sub { font-size:12px; color:#64748B; }
-.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#7F1D1D; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
-.submit-btn:active { opacity:0.85; }
-.submit-btn:disabled { background:#94A3B8; cursor:not-allowed; }
-
-.time-stamp-card { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:11px 14px; margin-top:10px; display:flex; gap:14px; }
-.ts-block { flex:1; text-align:center; }
-.ts-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#94A3B8; margin-bottom:3px; }
-.ts-value { font-size:13px; font-weight:700; color:#0F172A; }
-.ts-date  { font-size:10px; color:#64748B; margin-top:1px; }
-.ts-divider { width:1px; background:#E2E8F0; flex-shrink:0; }
-
-.synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
-.comment-field { width:100%; margin-top:6px; padding:6px 10px; border:1px solid #E0DDD4; border-radius:8px; font-size:12px; color:#374151; background:#F8FAFC; resize:none; font-family:inherit; }
-.comment-field:focus { outline:none; border-color:#94A3B8; background:#fff; }
-.locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
-/* OVERWRITE PANEL (KIC & Area Chef only) */
-.overwrite-panel { background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:10px; padding:12px 14px; margin-top:14px; }
-.overwrite-title { font-size:12px; font-weight:700; color:#B91C1C; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
-.overwrite-input { width:100%; padding:8px 11px; border:1.5px solid #FCA5A5; border-radius:8px; font-size:13px; background:#fff; outline:none; -webkit-appearance:none; margin-bottom:8px; }
-.overwrite-input:focus { border-color:#EF4444; }
-.overwrite-btn { width:100%; padding:10px; background:#EF4444; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; -webkit-appearance:none; }
-/* PHOTO MODAL */
-.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:999; align-items:flex-end; justify-content:center; }
-.modal-bg.open { display:flex; }
-.modal-box { background:#fff; border-radius:20px 20px 0 0; padding:22px 18px 36px; width:100%; max-width:440px; }
-.modal-title { font-size:16px; font-weight:700; margin-bottom:4px; }
-.modal-sub { font-size:12px; color:#64748B; margin-bottom:18px; }
-.mbtn { display:block; width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; -webkit-appearance:none; }
-.mbtn-cam { background:#7F1D1D; color:#fff; }
-.mbtn-gal { background:#EFF6FF; color:#DC2626; }
-.mbtn-cancel { background:#F8FAFC; color:#64748B; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding-bottom:80px;-webkit-font-smoothing:antialiased}
+.header{background:#7F1D1D;padding:16px 16px 14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.role-badge{display:inline-block;background:#DC2626;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:8px}
+.header h1{color:#fff;font-size:17px;font-weight:700}
+.header-sub{color:rgba(255,255,255,0.6);font-size:11px;margin-top:2px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.info-field{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:7px 10px}
+.info-field label{display:block;font-size:9px;color:rgba(255,255,255,0.55);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:2px}
+.info-field input,.info-field select{background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;-webkit-appearance:none}
+.info-field input::placeholder{color:rgba(255,255,255,0.3)}
+.info-field select option{color:#000;background:#fff}
+.section{margin:14px 16px 0}
+.section-title{background:#7F1D1D;color:#fff;padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:10px 10px 0 0}
+.section-body{background:#fff;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 10px 10px;padding:14px}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t th{background:#F8FAFC;padding:7px 10px;text-align:left;font-weight:600;color:#64748B;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #E2E8F0}
+table.t td{padding:9px 10px;border-bottom:0.5px solid #F1F5F9;vertical-align:middle}
+table.t tr:last-child td{border-bottom:none}
+.lbl{font-weight:600;color:#1E293B;font-size:12px}
+.desc{font-size:10px;color:#94A3B8;margin-top:2px;line-height:1.4}
+input.si{width:70px;padding:6px 8px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;text-align:center;background:#F8FAFC;-webkit-appearance:none}
+input.si:focus{outline:none;border-color:#7F1D1D;background:#fff}
+input.si-sm{width:60px;padding:5px 6px;border:1px solid #E2E8F0;border-radius:7px;font-size:12px;text-align:center;background:#F8FAFC;-webkit-appearance:none}
+input.outlet-input{padding:5px 8px;border:1px solid #E2E8F0;border-radius:7px;font-size:12px;background:#F8FAFC;width:100%;-webkit-appearance:none}
+input.outlet-input:focus{outline:none;border-color:#7F1D1D}
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.g{background:#DCFCE7;color:#15803D}
+.y{background:#FEF9C3;color:#854D0E}
+.r{background:#FEE2E2;color:#B91C1C}
+.total-row td{background:#FFF1F1;font-weight:700;font-size:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 75px;gap:6px;align-items:center;padding:7px 0;border-bottom:0.5px solid #F1F5F9}
+.row3:last-child{border-bottom:none}
+.dashboard-score{text-align:center;padding:16px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:12px}
+.big-score{font-size:44px;font-weight:700;color:#7F1D1D;line-height:1}
+.tier-card{border-radius:10px;padding:14px;margin-top:10px;text-align:center;border:2px solid #EF4444;background:#FEF2F2}
+.tier-card.t1{border-color:#22C55E;background:#F0FDF4}
+.tier-card.t2{border-color:#F59E0B;background:#FFFBEB}
+.tier-card.t3{border-color:#EF4444;background:#FEF2F2}
+.tier-title{font-size:14px;font-weight:700}
+.tier-action{font-size:11px;color:#475569;margin-top:6px;line-height:1.5}
+.submit-btn{display:block;width:calc(100% - 32px);margin:16px 16px 0;padding:14px;background:#7F1D1D;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.submit-btn:active{opacity:0.85}
+.synced-msg{background:#DCFCE7;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;font-weight:600;color:#15803D;margin:10px 16px 0}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1E293B;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;display:none;white-space:nowrap}
+.add-btn{width:100%;margin-top:8px;padding:7px;border:1px dashed #CBD5E1;border-radius:8px;background:none;color:#64748B;font-size:12px;cursor:pointer}
+.ref-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px}
+.ref-table th{background:#F8FAFC;padding:6px 8px;font-size:10px;font-weight:600;color:#64748B;border-bottom:1px solid #E2E8F0;text-align:left}
+.ref-table td{padding:6px 8px;border-bottom:0.5px solid #F1F5F9}
 </style>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
+
 <div class="header">
-  <div class="role-badge">📊 Area Chef</div>
-  <h1>Area Chef KPI Checklist</h1>
-  <div class="header-sub">KPI verification • Team performance</div>
+  <div class="role-badge">AREA CHEF</div>
+  <h1>KPI Performance Tracker</h1>
+  <div class="header-sub">Regional Operations Executive Dashboard</div>
   <div class="info-grid">
-    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
-    <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;cursor:pointer;">
-<option value="" style="color:#000">Select outlet...</option>
-<optgroup label="Little Bangkok" style="color:#000">
-<option value="LB DSO" style="color:#000">LB DSO</option>
-<option value="LB Tower" style="color:#000">LB Tower</option>
-<option value="LB Hamra" style="color:#000">LB Hamra</option>
-<option value="LB JLT" style="color:#000">LB JLT</option>
-<option value="LB OM" style="color:#000">LB OM</option>
-<option value="LB DHE" style="color:#000">LB DHE</option>
-<option value="LB MTC" style="color:#000">LB MTC</option>
-</optgroup>
-<optgroup label="Superbowl" style="color:#000">
-<option value="SB Deira" style="color:#000">SB Deira</option>
-<option value="SB DG" style="color:#000">SB DG</option>
-</optgroup>
-<optgroup label="The Red Door" style="color:#000">
-<option value="The Red Door" style="color:#000">The Red Door</option>
-</optgroup>
-</select></div>
-    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
-    <div class="info-field"><label>Verified By (Area Chef)</label><input id="fVerified" type="text" placeholder="Area Chef name..." autocorrect="off"></div>
-  </div>
-  <div style="margin-top:4px;text-align:right;padding-right:4px;">
-    <span onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;user-select:none;">⚙</span>
+    <div class="info-field"><label>Area Chef Name</label><input id="fName" type="text" placeholder="Your full name..."></div>
+    <div class="info-field"><label>Outlet / Region</label>
+      <select id="fOutlet">
+        <option value="">Select outlet...</option>
+        <optgroup label="Little Bangkok">
+          <option>LB DSO</option><option>LB Tower</option><option>LB Hamra</option>
+          <option>LB JLT</option><option>LB OM</option><option>LB DHE</option><option>LB MTC</option>
+        </optgroup>
+        <optgroup label="Superbowl">
+          <option>SB Deira</option><option>SB DG</option>
+        </optgroup>
+        <optgroup label="The Red Door">
+          <option>The Red Door</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="info-field"><label>Evaluation Period</label><input id="fPeriod" type="text" placeholder="e.g. Week 23 / Q3 2026"></div>
+    <div class="info-field"><label>Today's Date</label><input id="fDate" type="text" readonly style="opacity:0.8"></div>
   </div>
 </div>
-<div class="score-bar">
-  <span style="font-size:12px;color:#64748B;font-weight:500;">Today's score</span>
-  <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
-  <span class="score-pct" id="scorePct">0%</span>
-</div>
-<div class="day-rail" id="dayRail" style="display:none;"></div>
-<div class="content" id="mainContent"></div>
 
-<div class="modal-bg" id="photoModal">
-  <div class="modal-box">
-    <div class="modal-title">📷 Photo Proof</div>
-    <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
-    <button class="mbtn mbtn-cam" id="mbtnCamera">📸 Take Photo Now</button>
-    <button class="mbtn mbtn-gal" id="mbtnGallery">🖼 Choose from Gallery</button>
-    <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
+<!-- SECTION 1: Performance Matrix -->
+<div class="section">
+  <div class="section-title">Area Chef Performance Matrix</div>
+  <div class="section-body">
+    <table class="t">
+      <tr><th style="width:35%">KPI Metric</th><th>Goals & Verification Source</th><th style="text-align:center">Max</th><th style="text-align:center">Score</th></tr>
+      <tr>
+        <td><div class="lbl">Outlet Food Cost Optimization</div><div class="desc">Monthly COGS vs theoretical menu specs</div></td>
+        <td><div class="desc">Theoretical vs Actual variance gap under 1.0% averaged across all assigned units.</div></td>
+        <td style="text-align:center;font-weight:700">30</td>
+        <td style="text-align:center"><input class="si" id="m1" type="number" min="0" max="30" step="0.1" placeholder="0" oninput="calcAll()"></td>
+      </tr>
+      <tr>
+        <td><div class="lbl">Kitchen Incharge Accountability</div><div class="desc">Linked from In-Charge Rollup below</div></td>
+        <td><div class="desc">Performance validation across all In-Charges; target average > 85.</div></td>
+        <td style="text-align:center;font-weight:700">25</td>
+        <td style="text-align:center"><input class="si" id="m2" type="number" min="0" max="25" step="0.1" placeholder="0" oninput="calcAll()"></td>
+      </tr>
+      <tr>
+        <td><div class="lbl">Staff Technical Proficiency</div><div class="desc">Regional training tracker logs</div></td>
+        <td><div class="desc">Controls team performance across outlets; drives technical milestones for KIC.</div></td>
+        <td style="text-align:center;font-weight:700">20</td>
+        <td style="text-align:center"><input class="si" id="m3" type="number" min="0" max="20" step="0.1" placeholder="0" oninput="calcAll()"></td>
+      </tr>
+      <tr>
+        <td><div class="lbl">Web App Data Integrity</div><div class="desc">Weekly field validation logs</div></td>
+        <td><div class="desc">Correct data entry; cross-audits daily waste vs physical stock parameters.</div></td>
+        <td style="text-align:center;font-weight:700">10</td>
+        <td style="text-align:center"><input class="si" id="m4" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="calcAll()"></td>
+      </tr>
+      <tr>
+        <td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td>
+        <td><div class="desc">High pass rate on internal monthly audits across all outlets.</div></td>
+        <td style="text-align:center;font-weight:700">10</td>
+        <td style="text-align:center"><input class="si" id="m5" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="calcAll()"></td>
+      </tr>
+      <tr>
+        <td><div class="lbl">Asset Care & Preventive Maintenance</div><div class="desc">Bi-weekly facility maintenance reports</div></td>
+        <td><div class="desc">Zero critical equipment downtime across all production facilities.</div></td>
+        <td style="text-align:center;font-weight:700">5</td>
+        <td style="text-align:center"><input class="si" id="m6" type="number" min="0" max="5" step="0.1" placeholder="0" oninput="calcAll()"></td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="2">TOTAL REGIONAL KPI SCORE</td>
+        <td style="text-align:center">100</td>
+        <td style="text-align:center;font-size:15px;color:#7F1D1D" id="m-total">0.0</td>
+      </tr>
+    </table>
   </div>
 </div>
-<input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;position:absolute;left:-9999px;">
-<input type="file" id="galInput" accept="image/*" style="display:none;position:absolute;left:-9999px;">
 
+<!-- SECTION 2: In-Charge Rollup -->
+<div class="section">
+  <div class="section-title">Outlet In-Charge Rollup</div>
+  <div class="section-body">
+    <div style="font-size:11px;color:#64748B;margin-bottom:10px">Enter KIC overall KPI score (out of 100) for each In-Charge per outlet:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 75px;gap:6px;padding:0 0 6px;border-bottom:1px solid #E2E8F0;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em">
+      <div>Outlet</div><div>In-Charge Name</div><div style="text-align:center">Score /100</div>
+    </div>
+    <div id="ic-rows"></div>
+    <button class="add-btn" onclick="addIC()">+ Add In-Charge</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #E2E8F0">
+      <div>
+        <div style="font-size:12px;font-weight:700">Average KIC Score</div>
+        <div style="font-size:10px;color:#64748B;margin-top:2px">Suggested Accountability Score (/ 25 pts):</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:700;color:#7F1D1D" id="ic-avg">—</div>
+        <div style="font-size:13px;font-weight:700;color:#7F1D1D" id="ic-suggested">— / 25 pts</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: Food Cost Tracker -->
+<div class="section">
+  <div class="section-title">Area Chef Outlet Wise Food Cost %</div>
+  <div class="section-body">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:10px">
+      <span>Target Baseline: <strong style="color:#0F172A">25.0%</strong></span>
+      <span>Max KPI Weight: <strong style="color:#0F172A">30 pts</strong></span>
+    </div>
+    <table class="t">
+      <tr><th>Outlet</th><th style="text-align:center">Actual FC%</th><th style="text-align:center">Target</th><th style="text-align:center">Score /30</th><th style="text-align:center">Status</th></tr>
+      <tbody id="fc-rows"></tbody>
+      <tr class="total-row">
+        <td colspan="2">Average Scoring Level</td>
+        <td style="text-align:center">25%</td>
+        <td style="text-align:center" id="fc-avg-score">—</td>
+        <td style="text-align:center" id="fc-avg-status">—</td>
+      </tr>
+    </table>
+    <button class="add-btn" onclick="addFC()">+ Add Outlet</button>
+    <div style="margin-top:12px">
+      <div style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">KPI Model Logic Reference</div>
+      <table class="ref-table">
+        <tr><th>Performance Tier</th><th>Food Cost Variance</th><th>Score</th></tr>
+        <tr><td style="color:#15803D;font-weight:600">Meets/Exceeds Target</td><td>≤ 25.0%</td><td style="font-weight:700">30 pts (Max)</td></tr>
+        <tr><td style="color:#854D0E;font-weight:600">Acceptable Variance</td><td>25.1% – 25.5%</td><td>25 pts</td></tr>
+        <tr><td style="color:#B91C1C;font-weight:600">Critical Warning Zone</td><td>25.6% – 26.0%</td><td>15 pts</td></tr>
+        <tr><td style="color:#B91C1C;font-weight:600">Action Plan Required</td><td>> 26.0%</td><td>0 – 14 pts (sliding)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 4: Regional Dashboard -->
+<div class="section">
+  <div class="section-title">Regional Dashboard — Overall KPI Score</div>
+  <div class="section-body">
+    <div style="font-size:11px;color:#64748B;text-align:center;margin-bottom:6px">Target Benchmark Baseline: 90.0 pts</div>
+    <div class="dashboard-score">
+      <div style="font-size:12px;color:#64748B;margin-bottom:6px">OVERALL AREA CHEF KPI SCORE</div>
+      <div class="big-score" id="d-total">0.0</div>
+      <div style="font-size:12px;color:#94A3B8;margin-top:4px">/ 100 pts</div>
+      <div class="tier-card t3" id="d-tier">
+        <div class="tier-title" id="d-tier-title" style="color:#B91C1C">Tier 3: Structural Operational Deficiency</div>
+        <div class="tier-action" id="d-tier-action">Immediate intervention required to address outlet leaks or performance logging missing gaps.</div>
+      </div>
+    </div>
+
+    <table class="t" style="margin-bottom:10px">
+      <tr><th>Core Performance Pillar</th><th style="text-align:center">Max</th><th style="text-align:center">Baseline</th><th style="text-align:center">Score</th></tr>
+      <tr><td><div class="lbl">Outlet Food Cost Optimization</div></td><td style="text-align:center">30</td><td style="text-align:center">27</td><td style="text-align:center"><span class="pill r" id="d-p1">0.0</span></td></tr>
+      <tr><td><div class="lbl">Kitchen Incharge Accountability</div></td><td style="text-align:center">25</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p2">0.0</span></td></tr>
+      <tr><td><div class="lbl">Staff Technical Proficiency</div></td><td style="text-align:center">20</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p3">0.0</span></td></tr>
+      <tr><td><div class="lbl">Web App Data Integrity</div></td><td style="text-align:center">10</td><td style="text-align:center">13.5</td><td style="text-align:center"><span class="pill r" id="d-p4">0.0</span></td></tr>
+      <tr><td><div class="lbl">Internal Audits</div></td><td style="text-align:center">10</td><td style="text-align:center">4</td><td style="text-align:center"><span class="pill r" id="d-p5">0.0</span></td></tr>
+      <tr><td><div class="lbl">Asset Care & Preventive Maintenance</div></td><td style="text-align:center">5</td><td style="text-align:center">4.5</td><td style="text-align:center"><span class="pill r" id="d-p6">0.0</span></td></tr>
+      <tr class="total-row"><td>OVERALL AREA CHEF KPI SCORE</td><td style="text-align:center">100</td><td style="text-align:center">78.2</td><td style="text-align:center"><span class="pill r" id="d-total2">0.0</span></td></tr>
+    </table>
+
+    <div style="margin-top:10px">
+      <div style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Regional Strategic Performance Tiers</div>
+      <table class="ref-table">
+        <tr><th>Score Range</th><th>Classification</th><th>Action Required</th></tr>
+        <tr><td><strong>90.0 – 100.0</strong></td><td style="color:#15803D;font-weight:600">Tier 1: High Performing</td><td>Maintain frameworks. Eligible for growth incentives.</td></tr>
+        <tr><td><strong>80.0 – 89.9</strong></td><td style="color:#854D0E;font-weight:600">Tier 2: Standard Compliance</td><td>Isolate underperforming outlets to move into Tier 1.</td></tr>
+        <tr><td><strong>Below 80.0</strong></td><td style="color:#B91C1C;font-weight:600">Tier 3: Structural Deficiency</td><td>Immediate intervention required.</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<button class="submit-btn" onclick="submitKPI()">📊 Submit to Dashboard</button>
+<div id="synced-msg" style="display:none" class="synced-msg">✓ KPI submitted to dashboard successfully</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
+// ── Dubai Time ──────────────────────────────────────────────
+function getDubaiDate() {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (4 * 60 * 60000));
+}
+function getDubaiDateStr() {
+  const d = getDubaiDate();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 
-// ══ FIREBASE CONFIG ════════════════════════════════════════════
+// ── Firebase ────────────────────────────────────────────────
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
   authDomain:        "kitchen-tracker-35293.firebaseapp.com",
@@ -189,739 +278,239 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "608954017135",
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
-// ══════════════════════════════════════════════════════════════
-
-// Init Firebase
 let _db = null;
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     _db = firebase.database();
-  } catch(e) { console.error('Firebase init error:', e); }
+  } catch(e) {}
 }
 initFirebase();
 
-function pushToFirebase(record) {
-  if (!_db) { setTimeout(()=>pushToFirebase(record), 500); return; }
-  try {
-    const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + record.role
-              + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + Date.now();
-    _db.ref('submissions/' + key).set({
-      ...record,
-      lastUpdated: new Date().toISOString()
-    }).then(() => {
-      showToast('✓ Synced to dashboard', 'ok');
-    }).catch(e => {
-      console.warn('Firebase write failed:', e);
-      showToast('⚠ Sync failed: ' + e.message, 'error');
-    });
-  } catch(e) {
-    console.warn('Firebase error:', e);
-    showToast('⚠ Firebase error: ' + e.message, 'error');
-  }
-}
-
-
-async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
-  try {
-    if (!_db || !dataUrl) return null;
-    // Compress photo before saving to Realtime Database
-    const compressed = await compressToSize(dataUrl, 150); // max 150KB
-    const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + ROLE + '_'
-              + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
-    const photoKey = `d${day}_${taskId}`;
-    await _db.ref(`photos/${key}/${photoKey}`).set(compressed);
-    // Return a special marker URL so we know photo is in database
-    return `db:${key}/${photoKey}`;
-  } catch(e) {
-    console.warn('Photo save failed:', e);
-    return null;
-  }
-}
-
-// Compress image to target size in KB
-function compressToSize(dataUrl, maxKB) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      // Scale down if too large
-      const maxDim = 800;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) { h = Math.round(h * maxDim/w); w = maxDim; }
-        else { w = Math.round(w * maxDim/h); h = maxDim; }
-      }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      // Try quality 0.7 first
-      let result = canvas.toDataURL('image/jpeg', 0.7);
-      if (result.length > maxKB * 1024 * 1.37) {
-        result = canvas.toDataURL('image/jpeg', 0.4);
-      }
-      resolve(result);
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-}
-
-function pushAuditToFirebase(record) {
-  try {
-    const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + record.auditType
-              + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
-    _db.ref('audits/' + key).set({
-      ...record,
-      lastUpdated: new Date().toISOString()
-    }).catch(e => console.warn('Audit write failed:', e));
-  } catch(e) { console.warn('Firebase audit error:', e); }
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// SHARED DATABASE — all checklists write to same localStorage key
-// so master dashboard can read all submissions
-// ══════════════════════════════════════════════════════════════
-const SHARED_DB_KEY = 'KIC_SHARED_DB_V2';
-
-function loadSharedDB() {
-  try { return JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || { submissions: [] }; }
-  catch(e) { return { submissions: [] }; }
-}
-function saveSharedDB(db) {
-  try { localStorage.setItem(SHARED_DB_KEY, JSON.stringify(db)); } catch(e) {}
-}
-
-function pushToMasterDashboard(record) {
-  // record: { staffName, role, outlet, week, day, overallPct, qualified, submittedAt, verifiedBy }
-  const db = loadSharedDB();
-  // Find existing entry for this staff + week and update, or add new
-  const idx = db.submissions.findIndex(
-    s => s.staffName === record.staffName &&
-         s.role === record.role &&
-         s.week === record.week &&
-         s.outlet === record.outlet
-  );
-  if (idx >= 0) {
-    db.submissions[idx] = { ...db.submissions[idx], ...record };
-  } else {
-    db.submissions.push(record);
-  }
-  saveSharedDB(db);
-}
-
-// ── iOS Safari fix: use blob URL for camera capture ──────────────────────────
-function iosPhotoFix(inputEl, onDataUrl) {
-  // iOS Safari needs special handling — no capture attribute workaround
-  inputEl.removeAttribute('capture');
-  inputEl.setAttribute('accept', 'image/*');
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isIOS) {
-    // On iOS we add capture back AFTER a small delay so Safari registers it
-    setTimeout(() => inputEl.setAttribute('capture', 'environment'), 50);
-  }
-}
-
-function compressAndReturn(file, callback) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      const MAX = 600;
-      let w = img.width, h = img.height;
-      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
-      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', 0.75));
-    };
-    img.onerror = function() { callback(ev.target.result); };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-// ── Day unlock logic — only unlock next day, not future days ─────────────────
-function getTodayDayNumber(weekStartStr) {
-  if (!weekStartStr) return 1;
-  try {
-    // Use local calendar date (midnight-based, not 24hr rolling)
-    const now = new Date();
-    const todayStr = now.getFullYear() + '-' + 
-      String(now.getMonth()+1).padStart(2,'0') + '-' + 
-      String(now.getDate()).padStart(2,'0');
-    const today = new Date(todayStr + 'T00:00:00');
-    const start = new Date(weekStartStr + 'T00:00:00');
-    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-    return Math.min(Math.max(diff + 1, 1), 6);
-  } catch(e) { return 1; }
-}
-
-function isDayUnlocked(dayNum, weekStartStr) {
-  return true; // All days visible — correct day auto-selected
-}
-
-function getTodayDay(weekStartStr) {
-  if (!weekStartStr) return 1;
-  try {
-    const parts = weekStartStr.split('-');
-    if (parts.length !== 3) return 1;
-    const start = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-    const today = getDubaiDate();
-    today.setHours(0,0,0,0);
-    start.setHours(0,0,0,0);
-    const diff = Math.floor((today - start) / (1000*60*60*24));
-    return Math.min(Math.max(diff + 1, 1), 6);
-  } catch(e) { return 1; }
-}
-
+// ── Toast ───────────────────────────────────────────────────
 function showToast(msg, type) {
-  let t = document.getElementById('_toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = '_toast';
-    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;z-index:9999;white-space:nowrap;pointer-events:none;';
-    document.body.appendChild(t);
-  }
+  const t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.background = type === 'error' ? '#EF4444' : type === 'warn' ? '#F59E0B' : '#0F172A';
-  t.style.color = '#fff';
-  t.style.opacity = '1';
-  t.style.transform = 'translateX(-50%) translateY(0)';
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => {
-    t.style.opacity = '0';
-    t.style.transform = 'translateX(-50%) translateY(20px)';
-  }, 2800);
+  t.style.display = 'block';
+  t.style.background = type==='ok'?'#15803D':type==='warn'?'#854D0E':'#B91C1C';
+  clearTimeout(t._tmr);
+  t._tmr = setTimeout(()=>{t.style.display='none';}, 2800);
 }
 
+// ── KPI Max values ──────────────────────────────────────────
+const MAX = [30, 25, 20, 10, 10, 5];
 
-
-// ── Auto-fill audit score for KIC's outlet ───────────────────────────────────
-function getLatestAuditForOutlet(outlet) {
-  if (!outlet) return null;
-  try {
-    const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{}');
-    const audits = db.audits || [];
-    const outletAudits = audits.filter(a =>
-      a.outlet && a.outlet.trim().toLowerCase() === outlet.trim().toLowerCase()
-    );
-    if (outletAudits.length === 0) return null;
-    // Get most recent
-    return outletAudits.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0];
-  } catch(e) { return null; }
-}
-
-function showAuditBanner() {
-  const outlet = document.getElementById('fOutlet')?.value?.trim();
-  const audit = getLatestAuditForOutlet(outlet);
-  let banner = document.getElementById('_auditBanner');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = '_auditBanner';
-    banner.style.cssText = 'margin:10px 16px 0;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;';
-    const content = document.getElementById('mainContent');
-    if (content) content.parentNode.insertBefore(banner, content);
+// ── Main Calculation ────────────────────────────────────────
+function calcAll() {
+  let total = 0;
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById('m' + i);
+    const val = Math.min(parseFloat(el?.value) || 0, MAX[i-1]);
+    total += val;
+    // Update dashboard pills
+    const pill = document.getElementById('d-p' + i);
+    if (pill) {
+      pill.textContent = val.toFixed(1);
+      const pct = val / MAX[i-1];
+      pill.className = 'pill ' + (pct >= 0.9 ? 'g' : pct >= 0.7 ? 'y' : 'r');
+    }
   }
-  if (!outlet) {
-    banner.style.display = 'none';
+  total = Math.round(total * 10) / 10;
+  document.getElementById('m-total').textContent = total.toFixed(1);
+  document.getElementById('d-total').textContent = total.toFixed(1);
+  const d2 = document.getElementById('d-total2');
+  d2.textContent = total.toFixed(1);
+  d2.className = 'pill ' + (total >= 90 ? 'g' : total >= 80 ? 'y' : 'r');
+
+  // Tier
+  const tc = document.getElementById('d-tier');
+  const tt = document.getElementById('d-tier-title');
+  const ta = document.getElementById('d-tier-action');
+  if (total >= 90) {
+    tc.className = 'tier-card t1';
+    tt.style.color = '#15803D';
+    tt.textContent = 'Tier 1: High Performing Area Chef';
+    ta.textContent = 'Maintain current control frameworks. Highly eligible for growth incentives.';
+  } else if (total >= 80) {
+    tc.className = 'tier-card t2';
+    tt.style.color = '#854D0E';
+    tt.textContent = 'Tier 2: Standard Target Compliance';
+    ta.textContent = 'Isolate specific underperforming outlets/shifts to move into Tier 1.';
+  } else {
+    tc.className = 'tier-card t3';
+    tt.style.color = '#B91C1C';
+    tt.textContent = 'Tier 3: Structural Operational Deficiency';
+    ta.textContent = 'Immediate intervention required to address outlet leaks or performance logging missing gaps.';
+  }
+}
+
+// ── In-Charge Rollup ────────────────────────────────────────
+let icData = [
+  {outlet:'',name:'In-Charge 1',score:''},
+  {outlet:'',name:'In-Charge 2',score:''},
+];
+
+function renderIC() {
+  const c = document.getElementById('ic-rows');
+  c.innerHTML = '';
+  icData.forEach((r, i) => {
+    const d = document.createElement('div');
+    d.className = 'row3';
+    d.innerHTML =
+      '<input class="outlet-input" placeholder="Outlet..." value="' + r.outlet + '" oninput="icData[' + i + '].outlet=this.value">' +
+      '<input class="outlet-input" placeholder="Name..." value="' + r.name + '" oninput="icData[' + i + '].name=this.value">' +
+      '<input class="si-sm" type="number" min="0" max="100" step="0.5" placeholder="0" value="' + r.score + '" oninput="icData[' + i + '].score=this.value;calcIC()">';
+    c.appendChild(d);
+  });
+  calcIC();
+}
+
+function addIC() {
+  icData.push({outlet:'', name:'In-Charge '+(icData.length+1), score:''});
+  renderIC();
+}
+
+function calcIC() {
+  const scores = icData.map(r => parseFloat(r.score)||0).filter(s => s > 0);
+  if (!scores.length) {
+    document.getElementById('ic-avg').textContent = '—';
+    document.getElementById('ic-suggested').textContent = '— / 25 pts';
     return;
   }
-  if (!audit) {
-    banner.style.cssText += 'background:#FEF9C3;border:1px solid #FDE68A;color:#92400E;display:block;';
-    banner.textContent = '⏳ ' + outlet + ' — No audit submitted yet (Pending)';
+  const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+  document.getElementById('ic-avg').textContent = avg.toFixed(2) + '%';
+  // Convert KIC avg to accountability score (max 25) — same formula as Excel
+  let s;
+  if (avg >= 95) s = 25;
+  else if (avg >= 85) s = 20 + ((avg - 85) / 10) * 5;
+  else if (avg >= 75) s = 15 + ((avg - 75) / 10) * 5;
+  else s = (avg / 75) * 15;
+  s = Math.round(s * 100) / 100;
+  document.getElementById('ic-suggested').textContent = s.toFixed(2) + ' / 25 pts';
+}
+
+// ── Food Cost Tracker ────────────────────────────────────────
+let fcData = [
+  {outlet:'', fc:''},
+  {outlet:'', fc:''},
+  {outlet:'', fc:''},
+  {outlet:'', fc:''},
+];
+
+function fcScore(fc) {
+  if (fc === '' || isNaN(parseFloat(fc))) return {score: null, status: '—', cls: ''};
+  const f = parseFloat(fc);
+  let score, status, cls;
+  // Exact Excel formula
+  if (f <= 25.0) {
+    score = 30;
+    status = 'Target Achieved';
+    cls = 'g';
+  } else if (f <= 25.5) {
+    // Linear sliding scale 29.5 to 27.5
+    score = 30 - ((f - 25.0) / 0.5) * 2.5;
+    status = 'Acceptable Variance';
+    cls = 'y';
+  } else if (f <= 26.0) {
+    // Linear sliding scale 27.0 to 25.0
+    score = 27 - ((f - 25.5) / 0.5) * 2;
+    status = 'Critical Warning Zone';
+    cls = 'r';
   } else {
-    const pass = audit.score >= 80;
-    banner.style.cssText += (pass
-      ? 'background:#DCFCE7;border:1px solid #22C55E;color:#15803D;display:block;'
-      : 'background:#FEE2E2;border:1px solid #EF4444;color:#B91C1C;display:block;');
-    const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
-    banner.textContent = (pass ? '✅' : '❌') + ' ' + outlet + ' ' + audit.auditType +
-      ' Audit: ' + audit.score + '% (' + audit.rawScore + '/' + audit.maxScore + ' pts)' +
-      ' — Auditor: ' + audit.auditor + ' — ' + d;
-    // Also auto-set the auditor section task yn if score >= 80
-    autoSetAuditorTask(audit.score);
+    // Linear sliding down to 0
+    score = Math.max(0, 25 - ((f - 26.0) * 5));
+    status = 'Action Plan Required';
+    cls = 'r';
   }
+  return {score: Math.round(score * 100) / 100, status, cls};
 }
 
-function autoSetAuditorTask(score) {
-  // Find the aud1 task and auto-set it
-  const val = score >= 80 ? 'yes' : 'no';
-  setVal(currentDay, 'aud1', 'yn', val);
-}
-
-
-// ── Auto-reset: detect new week and start fresh cycle ────────
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  // Sunday (0) = day 7 of current week, go back 6 days to Monday
-  // Monday (1) = day 1, no change
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-
-// ── Dubai Time (UTC+4) — defined first ───────────────────────
-function getDubaiDate() {
-  const now = new Date();
-  const dubaiOffset = 4 * 60;
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (dubaiOffset * 60000));
-}
-function getDubaiDateStr() {
-  const d = getDubaiDate();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function getDubaiHour() { return getDubaiDate().getHours(); }
-// ─────────────────────────────────────────────────────────────
-function getCurrentWeekStart() {
-  return getDubaiDateStr(); // Always Dubai date
-}
-
-function checkAutoReset() {
-  const weekField = document.getElementById('fWeek');
-  if (!weekField) return;
-  // Always force today's Dubai date
-  const dubaiToday = getDubaiDateStr();
-  weekField.value = dubaiToday;
-  localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
-  buildDayRail();
-  renderDay();
-}
-
-
-// ── Role config ───────────────────────────────────────────────
-const ROLE       = 'areachef';
-
-function clearAllData() {
-  const pin = prompt('Enter Training PIN to reset checklist:');
-  if (pin === null) return;
-  if (pin !== 'TRAIN2025') { showToast('Incorrect PIN — reset not allowed 🔒', 'error'); return; }
-  if (!confirm('Clear ALL checklist data for this week? This cannot be undone.')) return;
-  localStorage.removeItem(SK);
-  showToast('Data cleared — fresh start ✓', 'ok');
-  buildDayRail(); renderDay();
-}
-const ROLE_LABEL = 'Area Chef';
-const SK         = 'kic_areachef_data_v2';
-const ALLOW_OVERWRITE = false; // Lock after submit — overwrite via dashboard only
-const OVERWRITE_CODE  = 'CHEF2024';
-
-const SECTIONS = [{"title": "Opening Today", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-report", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true}, {"id": "o2", "owner": "self", "ownerLbl": "Self-report", "text": "Storage check: stock level, check high value items inventory", "photo": true}, {"id": "o3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: everything in proper running condition", "photo": true}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team briefing: constructive, follow agenda", "photo": false}]}, {"title": "Closing Yesterday", "tasks": [{"id": "cy1", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true}, {"id": "cy2", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Storage check: stock level, next day stock availability", "photo": true}, {"id": "cy3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: any maintenance required", "photo": true}, {"id": "cy4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team debriefing: constructive, follow agenda", "photo": false}]}, {"title": "Food Consistency Today", "tasks": [{"id": "fc1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served cooked as per recipes", "photo": true}, {"id": "fc2", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served presented as per correct presentation", "photo": true}, {"id": "fc3", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Ticket timing as per standard", "photo": false}, {"id": "fc4", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Comments are read and actioned", "photo": false}, {"id": "fc5", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Delivery: packing, customer comments, small sides not missed", "photo": false}]}, {"title": "Leadership Today", "tasks": [{"id": "l1", "owner": "record", "ownerLbl": "Record", "text": "Display professional control of operation flow", "photo": false}, {"id": "l2", "owner": "record", "ownerLbl": "Record", "text": "Display efficient and professional communication skill", "photo": false}, {"id": "l3", "owner": "record", "ownerLbl": "Record", "text": "Display culinary knowledge and integrity", "photo": false}, {"id": "l4", "owner": "record", "ownerLbl": "Record", "text": "Cleanliness of all stations including steward area", "photo": true}, {"id": "l5", "owner": "record", "ownerLbl": "Record", "text": "Storage area neat and clean, items arranged", "photo": true}, {"id": "l6", "owner": "record", "ownerLbl": "Record", "text": "All stations are properly set up and filled", "photo": true}, {"id": "l7", "owner": "record", "ownerLbl": "Record", "text": "Staff are ready physically and mentally motivated", "photo": false}]}, {"title": "Food Cost & Staff", "tasks": [{"id": "cost1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Theory vs actual difference less than 1.5%", "photo": false}, {"id": "sp1", "owner": "record", "ownerLbl": "Record", "text": "Staff monitoring done properly and scored fairly", "photo": false}, {"id": "sp2", "owner": "record", "ownerLbl": "Record", "text": "Overall team score above 80%", "photo": false}, {"id": "cc1", "owner": "record", "ownerLbl": "Record", "text": "Two or fewer genuine food-related customer complaints", "photo": false}, {"id": "aud1", "owner": "auditor", "ownerLbl": "Auditor", "text": "Section audit score on last visit above 80%", "photo": false}]}];
-
-let currentDay = 1; // Single daily submission — day rail removed
-let activePhotoTask = null;
-
-// ── Storage ───────────────────────────────────────────────────
-function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
-function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
-function getTodayKey() {
-  return 'dt' + getDubaiDateStr(); // Dubai date key
-}
-function getVal(day,tid,field) {
-  const data = load();
-  // Try date-based key first (new format), fall back to day number
-  const dateKey = getTodayKey();
-  return data[dateKey]?.[tid]?.[field] || data[`d${day}`]?.[tid]?.[field] || null;
-}
-function setVal(day,tid,field,val) {
-  const d=load();
-  const key = getTodayKey(); // Use today's date as key
-  if(!d[key]) d[key]={};
-  if(!d[key][tid]) d[key][tid]={};
-  d[key][tid][field]=val;
-  save(d);
-}
-
-
-// ── Dubai Time (UTC+4) ────────────────────────────────────────
-function getDubaiDate() {
-  const now = new Date();
-  const dubaiOffset = 4 * 60; // UTC+4 in minutes
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (dubaiOffset * 60000));
-}
-function getDubaiDateStr() {
-  const d = getDubaiDate();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  return y + '-' + m + '-' + dd;
-}
-function getDubaiHour() {
-  return getDubaiDate().getHours();
-}
-function getWeekStart() { return document.getElementById('fWeek').value; }
-function getStaffName() { return document.getElementById('fName').value.trim(); }
-function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
-function getVerified() { return document.getElementById('fVerified').value.trim(); }
-
-// ── Day rail ──────────────────────────────────────────────────
-function buildDayRail() {} // Day rail removed — single daily submission
-
-// ── Render day ────────────────────────────────────────────────
-function renderDay() {
-  const container = document.getElementById('mainContent');
-  container.innerHTML = '';
-
-  // Track start time for this day
-  const dayKey = getTodayKey(); // Date-based key
-  const dNow = load();
-  if (!dNow[dayKey]) { dNow[dayKey] = {}; }
-  // _start set at submit time
-
-  const data = load();
-  const isDone = !!data[dayKey]?._done;
-  const weekStart = getWeekStart();
-  const unlocked = isDayUnlocked(currentDay, weekStart);
-  let total = 0, yes = 0;
-
-  // All days accessible — no date lock
-
-  SECTIONS.forEach((section, si) => {
-    const hdr = document.createElement('div');
-    hdr.className = 'section-hdr';
-    hdr.textContent = section.title;
-    container.appendChild(hdr);
-
-    section.tasks.forEach((task, ti) => {
-      total++;
-      const val = getVal(currentDay, task.id, 'yn');
-      if (val === 'yes') yes++;
-      const photo = getVal(currentDay, task.id, 'photo');
-
-      const card = document.createElement('div');
-      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '');
-      if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
-
-      const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
-      let photoHtml = '';
-      if (task.photo) {
-        photoHtml = `<div class="photo-row">
-          <button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
-            ${photo ? '✓ Photo saved' : '📷 Tap to take photo'}
-          </button>
-          ${photo ? `<img class="photo-thumb" src="${photo}" alt="proof">` : ''}
-        </div>`;
-      }
-      const cmnt = getVal(currentDay, task.id, 'comment') || '';
-      card.innerHTML = `
-        <div class="task-top">
-          <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
-          <span class="task-text">${task.text}</span>
-        </div>
-        <div class="yn-row">
-          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
-          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
-          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">— N/A</div>
-        </div>
-        <textarea class="comment-field" rows="1" placeholder="Add comment (optional)..."
-          onchange="setComment('${task.id}', this.value)"
-          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-        >${cmnt}</textarea>
-        ${photoHtml}`;
-      container.appendChild(card);
-    });
+function renderFC() {
+  const tbody = document.getElementById('fc-rows');
+  tbody.innerHTML = '';
+  fcData.forEach((r, i) => {
+    const res = fcScore(r.fc);
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="fcData[' + i + '].outlet=this.value" style="width:100%"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="100" step="0.1" placeholder="25.0" value="' + r.fc + '" oninput="fcData[' + i + '].fc=this.value;renderFC()" style="width:65px"></td>' +
+      '<td style="text-align:center">25%</td>' +
+      '<td style="text-align:center;font-weight:700">' + (res.score !== null ? res.score.toFixed(1) : '—') + '</td>' +
+      '<td style="text-align:center">' + (res.score !== null ? '<span class="pill ' + res.cls + '">' + res.status + '</span>' : '—') + '</td>';
+    tbody.appendChild(tr);
   });
+  calcFCAvg();
+}
 
-  // Score
-  const pct = total > 0 ? Math.round((yes/total)*100) : 0;
-  document.getElementById('scoreFill').style.width = pct + '%';
-  document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
-  document.getElementById('scorePct').textContent = pct + '%';
+function addFC() {
+  fcData.push({outlet:'', fc:''});
+  renderFC();
+}
 
-  // Overall
-  let tY=0, tM=0;
-  for (let d=1;d<=6;d++) {
-    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
-      const v=getVal(d,t.id,'yn');
-      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
-    }));
+function calcFCAvg() {
+  const valid = fcData.filter(r => r.fc !== '' && !isNaN(parseFloat(r.fc)));
+  if (!valid.length) {
+    document.getElementById('fc-avg-score').textContent = '—';
+    document.getElementById('fc-avg-status').textContent = '—';
+    return;
   }
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
-  const pass = op>=95;
+  const scores = valid.map(r => fcScore(r.fc).score);
+  const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+  const avgFC = valid.map(r => parseFloat(r.fc)).reduce((a,b) => a+b, 0) / valid.length;
+  const avgRes = fcScore(avgFC.toFixed(2));
+  document.getElementById('fc-avg-score').textContent = avg.toFixed(2) + ' pts';
+  document.getElementById('fc-avg-status').innerHTML = '<span class="pill ' + avgRes.cls + '">' + avgRes.status + '</span>';
+}
 
-  const sc = document.createElement('div');
-  sc.className = `status-card ${tM>0?(pass?'pass':'fail'):''}`;
-  sc.innerHTML = `<div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
-    <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
-    <div class="sc-sub">6-day overall score (target: 95%)</div>`;
-  container.appendChild(sc);
+// ── Submit ──────────────────────────────────────────────────
+function submitKPI() {
+  const name = document.getElementById('fName').value.trim();
+  const outlet = document.getElementById('fOutlet').value;
+  const period = document.getElementById('fPeriod').value.trim();
+  if (!name) { showToast('Please enter your name', 'warn'); return; }
+  if (!outlet) { showToast('Please select your outlet', 'warn'); return; }
 
-  // Submit button
-  const btn = document.createElement('button');
-  btn.className = 'submit-btn';
-  if (isDone && !ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
-    const msg = document.createElement('div');
-    msg.className = 'synced-msg';
-    msg.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(btn);
-    container.appendChild(msg);
-  } else if (isDone && ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted`;
-    container.appendChild(btn);
-    // Overwrite panel
-    const owp = document.createElement('div');
-    owp.className = 'overwrite-panel';
-    owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access (KIC/Area Chef only)</div>
-      <input class="overwrite-input" id="owCode" type="password" placeholder="Enter overwrite code...">
-      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
-    container.appendChild(owp);
-    const msg2 = document.createElement('div');
-    msg2.className = 'synced-msg';
-    msg2.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(msg2);
-  } else {
-    btn.textContent = `Submit Day ${currentDay}`;
-    btn.onclick = submitDay;
-    container.appendChild(btn);
+  const kpiScores = {};
+  const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
+  let total = 0;
+  for (let i = 1; i <= 6; i++) {
+    const val = Math.min(parseFloat(document.getElementById('m'+i)?.value)||0, MAX[i-1]);
+    kpiScores[kpiNames[i-1]] = val;
+    total += val;
   }
-}
+  total = Math.round(total * 10) / 10;
 
-// ── Tap YES/NO/NA ─────────────────────────────────────────────
-function setComment(taskId, value) {
-  setVal(currentDay, taskId, 'comment', value);
-}
-
-function tapYN(tid, val, el) {
-  const data = load();
-  const todayData = data[getTodayKey()] || {};
-  if ((todayData._done || todayData._openDone) && !ALLOW_OVERWRITE) {
-    showToast('Already submitted — cannot edit 🔒', 'error'); return;
-  }
-  setVal(currentDay, tid, 'yn', val);
-  el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  // update score bar
-  let t=0, y=0;
-  SECTIONS.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(1,tk.id,'yn')==='yes')y++;}));
-  const p=t>0?Math.round((y/t)*100):0;
-  document.getElementById('scoreFill').style.width=p+'%';
-  document.getElementById('scorePct').textContent=p+'%';
-}
-
-
-function fmtDateTime(iso) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
-    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
-    return date + ' ' + time;
-  } catch(e) { return iso; }
-}
-function fmtTimeOnly(iso) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
-  } catch(e) { return '—'; }
-}
-
-// ── Submit day ────────────────────────────────────────────────
-function submitDay() {
-  const name = getStaffName();
-  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
-  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
-  const d = load();
-  if (!d[getTodayKey()]) d[getTodayKey()] = {};
-  d[todayKey2]._start = new Date().toISOString();
-  d[todayKey2]._done = new Date().toISOString();
-  save(d);
-
-  // Calc overall
-  let tY=0, tM=0;
-  for (let dd=1;dd<=6;dd++) {
-    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
-      const v=getVal(dd,t.id,'yn');
-      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
-    }));
-  }
-  const op = tM>0?Math.round((tY/tM)*100):0;
-
-  // Push to master dashboard
-  const _fbRecord = {
-    staffName:  name,
-    role:       ROLE,
-    roleLabel:  ROLE_LABEL,
-    outlet:     getOutlet(),
-    week:       getWeekStart(),
-    verifiedBy: getVerified(),
-    overallPct: op,
-    qualified:  op>=95,
-    taskData: (function() {
-      const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn   = getVal(dd, t.id, 'yn');
-          const pUrl = getVal(dd, t.id, 'photoUrl');
-          const photo= getVal(dd, t.id, 'photo');
-          if (yn) tasks['d'+dd+'_'+t.id] = {
-            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:pUrl||photo||''
-          };
-        }));
-      }
-      return tasks;
-    })(),
-    day:        currentDay,
-    startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
-    photos: (function() {
-      const photos = {};
-      SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const url = getVal(currentDay, t.id, 'photoUrl');
-        if (url) photos[t.id + '_day' + currentDay] = url;
-      }));
-      return photos;
-    })(),
-    // Store full task responses for dashboard detail view
-    taskData: (function() {
-      const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
-          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
-          if (yn || photo || pUrl) {
-            tasks[`d${dd}_${t.id}`] = {
-              day: dd,
-              section: s.title,
-              task: t.text,
-              owner: t.ownerLbl,
-              yn: yn||'',
-              photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
-            };
-          }
-        }));
-      }
-      return tasks;
-    })(),
-    submittedAt:new Date().toISOString(),
-    lastUpdated:new Date().toISOString(),
+  const record = {
+    staffName:   name,
+    role:        'areachef',
+    outlet:      outlet,
+    week:        getDubaiDateStr(),
+    period:      period,
+    overallPct:  total,
+    qualified:   total >= 90,
+    kpiScores:   kpiScores,
+    icRollup:    icData,
+    fcTracker:   fcData,
+    submittedAt: new Date().toISOString(),
+    lastUpdated: new Date().toISOString(),
   };
-  pushToMasterDashboard(_fbRecord);
-  pushToFirebase(_fbRecord);
 
-  showToast(`Day ${currentDay} submitted ✓`, 'ok');
-  buildDayRail();
-  renderDay();
+  if (!_db) { showToast('Firebase not ready — try again', 'warn'); return; }
+  const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areachef_' + getDubaiDateStr() + '_' + Date.now();
+  _db.ref('submissions/' + key).set(record)
+    .then(() => {
+      document.getElementById('synced-msg').style.display = 'block';
+      showToast('KPI submitted successfully ✓', 'ok');
+    })
+    .catch(e => showToast('Submit failed: ' + e.message, 'error'));
 }
 
-// ── Overwrite (KIC/Area Chef) ─────────────────────────────────
-function doOverwrite() {
-  const code = document.getElementById('owCode')?.value;
-  if (code !== OVERWRITE_CODE) { showToast('Wrong overwrite code', 'error'); return; }
-  const d = load();
-  if (d[getTodayKey()]) delete d[getTodayKey()]._done;
-  save(d);
-  showToast('Day ${currentDay} unlocked — you can now edit', 'ok');
-  buildDayRail();
-  renderDay();
-}
-
-// ── Photo ─────────────────────────────────────────────────────
-function openPhotoModal(tid, label) {
-  const data = load();
-  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
-    showToast('Day submitted — cannot change photos', 'error'); return;
-  }
-  activePhotoTask = tid;
-  document.getElementById('modalLabel').textContent = label;
-  document.getElementById('photoModal').classList.add('open');
-}
-function closePhotoModal() {
-  document.getElementById('photoModal').classList.remove('open');
-  activePhotoTask = null;
-}
-
-document.getElementById('mbtnCamera').onclick = function() {
-  closePhotoModal();
-  const inp = document.getElementById('camInput');
-  inp.value = '';
-  // iOS fix: remove then re-add capture attribute
-  inp.removeAttribute('capture');
-  setTimeout(() => { inp.setAttribute('capture','environment'); inp.click(); }, 80);
-};
-document.getElementById('mbtnGallery').onclick = function() {
-  closePhotoModal();
-  const inp = document.getElementById('galInput');
-  inp.value = '';
-  inp.click();
-};
-
-function handlePhotoFile(file) {
-  if (!file || !activePhotoTask) return;
-  compressAndReturn(file, async function(dataUrl) {
-    // Save locally first for instant display
-    setVal(currentDay, activePhotoTask, 'photo', dataUrl);
-    const taskId = activePhotoTask;
-    activePhotoTask = null;
-    renderDay();
-    showToast('Photo saved ✓', 'ok');
-
-    // Save compressed photo to Firebase Realtime Database
-    const staffName = getStaffName();
-    if (staffName && _db) {
-      const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
-      if (dbRef) {
-        setVal(currentDay, taskId, 'photoUrl', dbRef);
-        showToast('Photo synced ✓', 'ok');
-      }
-    }
-  });
-}
-document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-document.getElementById('galInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-
-// ── Persist info fields ───────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  checkAutoReset(); // Set Dubai date immediately
-  // Auto-set to current Monday
-  // Auto-set week to current Monday
-  if (typeof getMonday === 'function') {
-    const monday = getMonday(new Date());
-    // Format as YYYY-MM-DD for date input
-    const y = monday.getFullYear();
-    const m = String(monday.getMonth()+1).padStart(2,'0');
-    const d = String(monday.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  } else {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    now.setDate(diff);
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,'0');
-    const d = String(now.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  }
-  ['fName','fOutlet','fWeek','fVerified'].forEach(id => {
-    const el = document.getElementById(id);
-    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
-    if (saved) el.value = saved;
-    el.addEventListener('input', () => {
-      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
-      buildDayRail(); renderDay();
-    });
-  });
-  buildDayRail();
-  renderDay();
-  showAuditBanner();
-});
+// ── Init ────────────────────────────────────────────────────
+document.getElementById('fDate').value = getDubaiDateStr();
+renderIC();
+renderFC();
+calcAll();
 </script>
 </body>
 </html>
