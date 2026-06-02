@@ -8,7 +8,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260604200000';
+  var v = '20260604220000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -25,8 +25,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260604200000">
-<meta name="app-version" content="20260604200000">
+<meta http-equiv="Expires" content="20260604220000">
+<meta name="app-version" content="20260604220000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1A3C5E">
@@ -484,15 +484,11 @@ function checkAutoReset() {
   const weekField = document.getElementById('fWeek');
   if (!weekField) return;
 
-  const currentWeekStart = getCurrentWeekStart();
-  const storedWeek = localStorage.getItem('kic_info_' + ROLE + '_fWeek') || '';
-
-  // Auto-set week to current Monday if not set or if it's a new week
-  if (!storedWeek || storedWeek !== currentWeekStart) {
-    // New week detected — auto reset
-    weekField.value = currentWeekStart;
-    localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
-    // Also update the week label display
+  const currentWeekStart = getCurrentWeekStart(); // Always Dubai today's date
+  // Always force today's Dubai date — no stored value
+  weekField.value = currentWeekStart;
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', currentWeekStart);
+  if (true) { // always update
     try { const el = document.getElementById('fWeek'); if(el) el.value = currentWeekStart; } catch(e) {}
 
     if (storedWeek && storedWeek !== currentWeekStart) {
