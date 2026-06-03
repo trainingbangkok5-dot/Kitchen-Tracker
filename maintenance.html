@@ -470,7 +470,7 @@ function loadLogs() {
       snap.forEach(child => {
         const v = child.val(); v._key = child.key;
         allLogs.push(v);
-        const n = parseInt((v.logId||'').replace('M-',''));
+        const n = parseInt((v.logId||'').replace('M-','')) || 0;
         if (n >= logCounter) logCounter = n + 1;
       });
       allLogs.sort((a,b) => new Date(b.loggedAt||0) - new Date(a.loggedAt||0));
@@ -489,6 +489,7 @@ function updateStats() {
 
 // ── Render Table ─────────────────────────────────────────────
 function renderTable() {
+  const canManage = ['areachef','areamanager','operations','director','ceo','training'].includes(currentRole);
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   document.getElementById('tableEmpty').style.display = allLogs.length ? 'none' : 'block';
@@ -544,9 +545,9 @@ function renderTable() {
         </div>
       </td>
       <td style="white-space:nowrap">
-        ${log.status!=='Yes' ? `<button class="done-btn" onclick="markDone('\${log._key}')">✅ Done</button>` : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Resolved</span>'}
-        <button onclick="openOverwrite('\${log._key}')" style="margin-left:4px;font-size:11px;padding:5px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;">✏️</button>
-        <button class="del-btn" onclick="deleteLog('\${log._key}')" style="margin-left:4px">🗑</button>
+        ${log.status!=='Yes' ? `<button class="done-btn" onclick="markDone('` + log._key + `')">✅ Done</button>` : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Resolved</span>'}
+        ${canManage ? `<button onclick="openOverwrite('` + log._key + `')" style="margin-left:4px;font-size:11px;padding:5px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;">✏️</button>
+        <button class="del-btn" onclick="deleteLog('` + log._key + `')" style="margin-left:4px">🗑</button>` : ''}
       </td>
     `;
     tbody.appendChild(tr);
@@ -661,7 +662,7 @@ function saveNewRow(tempKey) {
   if (!beforePhoto) { showToast('Please attach a before photo','warn'); return; }
   if (!db)       { showToast('Firebase not ready','warn'); return; }
 
-  const logId = 'M-' + logCounter++;
+  const logId = 'M-' + String(logCounter++).padStart(4,'0');
   const record = {
     logId, dateReported: date, reportedBy: reporter, reportedByRole: currentRole,
     outlet, description: desc, priority, assignedTo: assigned,
@@ -844,7 +845,7 @@ function submitStaffReport() {
   if (!srPhoto)     { showToast('Please attach a photo', 'warn'); return; }
   if (!db)          { showToast('Firebase not ready', 'warn'); return; }
 
-  const logId = 'M-' + logCounter++;
+  const logId = 'M-' + String(logCounter++).padStart(4,'0');
   const record = {
     logId, dateReported: date, reportedBy: reporter, reportedByRole: currentRole,
     outlet, description: desc, priority: srPriority, assignedTo: 'Unassigned',
