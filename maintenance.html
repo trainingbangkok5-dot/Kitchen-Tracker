@@ -201,7 +201,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
           <button type="button" onclick="document.getElementById('sr_galleryInput').click()" style="flex:1;padding:10px;border:1.5px solid #1A3C5E;border-radius:8px;background:#fff;color:#1A3C5E;font-size:12px;font-weight:600;cursor:pointer;">🖼️ Gallery</button>
         </div>
       </div>
-      <input type="file" id="sr_cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleSRPhoto(this)">
+      <input type="file" id="sr_cameraInput" accept="image/*" style="display:none" onchange="handleSRPhoto(this)">
       <input type="file" id="sr_galleryInput" accept="image/*" style="display:none" onchange="handleSRPhoto(this)">
     </div>
     <div style="margin-bottom:14px;">
@@ -211,13 +211,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <button onclick="submitStaffReport()" style="width:100%;padding:13px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">📝 Submit Report</button>
   </div>
 
-  <!-- Submitted confirmation -->
-  <div id="sr_success" style="display:none;margin-top:14px;background:#DCFCE7;border:1px solid #86EFAC;border-radius:10px;padding:16px;text-align:center;">
-    <div style="font-size:24px;margin-bottom:6px;">✅</div>
-    <div style="font-weight:700;color:#15803D;margin-bottom:4px;">Issue Reported Successfully!</div>
-    <div style="font-size:12px;color:#166534;" id="sr_successMsg"></div>
-    <button onclick="resetStaffForm()" style="margin-top:12px;padding:8px 20px;background:#15803D;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;">Report Another Issue</button>
-  </div>
+
 </div>
 
 <!-- APP -->
@@ -452,12 +446,25 @@ function renderTable() {
           ${log.beforePhoto ? `<img class="photo-thumb before-img" src="${log.beforePhoto}" onclick="showPhoto('${log.beforePhoto}')" title="Before photo">` : ''}
           <button class="attach-btn" onclick="document.getElementById('bc_${log._key}').click()">📷</button>
           <button class="attach-btn" onclick="document.getElementById('bp_${log._key}').click()">🖼️</button>
-          <input type="file" id="bc_${log._key}" accept="image/*" capture="environment" style="display:none" onchange="uploadPhoto(this,'${log._key}','before')">
+          <input type="file" id="bc_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','before')">
           <input type="file" id="bp_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','before')">
         </div>
       </td>
       <td>${priPill(log.priority)}</td>
-      <td style="white-space:nowrap">${log.assignedTo||'—'}</td>
+      <td>
+        <select id="asel_\${log._key}" onchange="handleAssignChange('\${log._key}', this)" style="padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
+          <option value="Unassigned" \${!log.assignedTo||log.assignedTo==='Unassigned'?'selected':''}>Unassigned</option>
+          <option value="Baldev" \${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
+          <option value="Angelo" \${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
+          <option value="Asad" \${log.assignedTo==='Asad'?'selected':''}>Asad</option>
+          <option value="Shridhar" \${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
+          <option value="Awais" \${log.assignedTo==='Awais'?'selected':''}>Awais</option>
+          \${!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? '<option value="'+log.assignedTo+'" selected>'+log.assignedTo+'</option>' : ''}
+          <option value="__other__">Other (type name)...</option>
+        </select>
+        <input type="text" id="aother_\${log._key}" placeholder="Enter name..." style="display:none;width:100%;margin-top:4px;padding:5px 8px;border:1.5px solid #7F1D1D;border-radius:6px;font-size:11px;outline:none;"
+          onkeydown="if(event.key==='Enter'){updateAssigned('\${log._key}',this.value);this.style.display='none';}">
+      </td>
       <td>${statusPill(log.status)}</td>
       <td style="max-width:160px;font-size:11px;color:#475569">${log.remarks||'—'}</td>
       <td style="white-space:nowrap;font-size:11px">${log.dateResolved||'—'}</td>
@@ -465,7 +472,7 @@ function renderTable() {
       <td>
         <div class="photo-cell">
           ${log.afterPhoto ? `<img class="photo-thumb after-img" src="${log.afterPhoto}" onclick="showPhoto('${log.afterPhoto}')" title="After photo">` : ''}
-          ${log.status!=='Yes' ? `<button class="attach-btn" onclick="document.getElementById('ac_${log._key}').click()">📷</button><button class="attach-btn" onclick="document.getElementById('ap_${log._key}').click()">🖼️</button><input type="file" id="ac_${log._key}" accept="image/*" capture="environment" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')"><input type="file" id="ap_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')">` : ''}
+          ${log.status!=='Yes' ? `<button class="attach-btn" onclick="document.getElementById('ac_${log._key}').click()">📷</button><button class="attach-btn" onclick="document.getElementById('ap_${log._key}').click()">🖼️</button><input type="file" id="ac_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')"><input type="file" id="ap_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')">` : ''}
         </div>
       </td>
       <td>
@@ -500,7 +507,7 @@ function addRow() {
       <div class="photo-cell">
         <button class="attach-btn" onclick="document.getElementById('nr_camera_${tempKey}').click()">📷 Camera</button>
         <button class="attach-btn" onclick="document.getElementById('nr_bp_${tempKey}').click()">🖼️ Gallery</button>
-        <input type="file" id="nr_camera_${tempKey}" accept="image/*" capture="environment" style="display:none" onchange="handleNewPhoto(this,'before','${tempKey}')">
+        <input type="file" id="nr_camera_${tempKey}" accept="image/*" style="display:none" onchange="handleNewPhoto(this,'before','${tempKey}')">
         <input type="file" id="nr_bp_${tempKey}" accept="image/*" style="display:none" onchange="handleNewPhoto(this,'before','${tempKey}')">
         <img id="nr_bprev_${tempKey}" class="photo-thumb before-img" src="" style="display:none">
       </div>
@@ -512,10 +519,12 @@ function addRow() {
       </select>
     </td>
     <td>
-      <select class="cell-inp" id="nr_assigned_${tempKey}" style="min-width:100px">
+      <select class="cell-inp" id="nr_assigned_${tempKey}" style="min-width:100px" onchange="if(this.value==='__other__'){document.getElementById('nr_aother_${tempKey}').style.display='block';document.getElementById('nr_aother_${tempKey}').focus();}else{document.getElementById('nr_aother_${tempKey}').style.display='none';}">
         <option value="">Select...</option>
         ${TEAM.map(t=>`<option>${t}</option>`).join('')}
+        <option value="__other__">Other (type name)...</option>
       </select>
+      <input type="text" id="nr_aother_${tempKey}" placeholder="Enter name..." style="display:none;width:100%;margin-top:4px;padding:5px 8px;border:1.5px solid #7F1D1D;border-radius:6px;font-size:12px;outline:none;">
     </td>
     <td><span class="pill pill-pending">Pending</span></td>
     <td><input class="cell-inp" id="nr_remarks_${tempKey}" type="text" placeholder="Remarks..." style="min-width:120px"></td>
@@ -570,7 +579,10 @@ function saveNewRow(tempKey) {
   const outlet   = document.getElementById('nr_outlet_'+tempKey)?.value;
   const desc     = document.getElementById('nr_desc_'+tempKey)?.value.trim();
   const priority = document.getElementById('nr_priority_'+tempKey)?.value;
-  const assigned = document.getElementById('nr_assigned_'+tempKey)?.value || 'Unassigned';
+  let assigned = document.getElementById('nr_assigned_'+tempKey)?.value || 'Unassigned';
+  if (assigned === '__other__') {
+    assigned = document.getElementById('nr_aother_'+tempKey)?.value.trim() || 'Unassigned';
+  }
   const remarks  = document.getElementById('nr_remarks_'+tempKey)?.value.trim();
   const beforePhoto = _newPhotos[tempKey+'_before'] || '';
 
@@ -639,6 +651,36 @@ function deleteLog(key) {
     .catch(e => showToast('Delete failed: ' + e.message,'error'));
 }
 
+// ── Update Assigned To ──────────────────────────────────────
+function handleAssignChange(key, sel) {
+  if (sel.value === '__other__') {
+    const inp = document.getElementById('aother_' + key);
+    if (inp) {
+      inp.style.display = 'block';
+      inp.focus();
+      inp.onblur = function() {
+        if (this.value.trim()) {
+          updateAssigned(key, this.value.trim());
+        } else {
+          sel.value = 'Unassigned';
+          this.style.display = 'none';
+        }
+      };
+    }
+  } else {
+    const inp = document.getElementById('aother_' + key);
+    if (inp) inp.style.display = 'none';
+    updateAssigned(key, sel.value);
+  }
+}
+
+function updateAssigned(key, value) {
+  if (!db) return;
+  db.ref('maintenanceLogs/' + key).update({assignedTo: value})
+    .then(() => showToast('Assigned to ' + value + ' ✓', 'ok'))
+    .catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
 // ── Staff Report (KIC/OIC) ───────────────────────────────────
 let srPriority = '';
 let srPhoto = '';
@@ -684,9 +726,8 @@ function submitStaffReport() {
   const key = logId + '_' + Date.now();
   db.ref('maintenanceLogs/' + key).set(record).then(() => {
     logCounter++;
-    document.getElementById('sr_success').style.display = 'block';
-    document.getElementById('sr_successMsg').textContent = logId + ' logged — management has been notified.';
-    document.getElementById('staffScreen').querySelector('div:nth-child(2)').style.display = 'none';
+    showToast(logId + ' logged ✓ — management notified', 'ok');
+    resetStaffForm();
   }).catch(e => showToast('Save failed: ' + e.message, 'error'));
 }
 
@@ -701,8 +742,7 @@ function resetStaffForm() {
   document.getElementById('sr_photoPlaceholder').style.display = 'block';
   document.getElementById('sr_photoInput').value = '';
   document.querySelectorAll('#staffScreen .pri-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('sr_success').style.display = 'none';
-  document.getElementById('staffScreen').querySelector('div:nth-child(2)').style.display = 'block';
+  // form already visible - just clear fields
 }
 
 window.addEventListener('DOMContentLoaded', initFirebase);
