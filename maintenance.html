@@ -198,12 +198,10 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <div id="sr_photoBox" style="border:2px dashed #E0DDD4;border-radius:10px;padding:12px;text-align:center;">
         <img id="sr_photoPreview" style="max-width:100%;max-height:160px;border-radius:8px;display:none;margin-bottom:8px;">
         <div id="sr_photoPlaceholder" style="display:flex;gap:8px;justify-content:center;">
-          <button type="button" onclick="document.getElementById('sr_cameraInput').click()" style="flex:1;padding:10px;border:1.5px solid #7F1D1D;border-radius:8px;background:#fff;color:#7F1D1D;font-size:12px;font-weight:600;cursor:pointer;">📷 Camera</button>
-          <button type="button" onclick="document.getElementById('sr_galleryInput').click()" style="flex:1;padding:10px;border:1.5px solid #1A3C5E;border-radius:8px;background:#fff;color:#1A3C5E;font-size:12px;font-weight:600;cursor:pointer;">🖼️ Gallery</button>
+          <button type="button" onclick="openCamera(f=>compressPhoto(f,b=>{srPhoto=b;document.getElementById('sr_photoPreview').src=b;document.getElementById('sr_photoPreview').style.display='block';document.getElementById('sr_photoPlaceholder').style.display='none';}))" style="flex:1;padding:10px;border:1.5px solid #7F1D1D;border-radius:8px;background:#fff;color:#7F1D1D;font-size:12px;font-weight:600;cursor:pointer;">📷 Camera</button>
+          <button type="button" onclick="openGallery(f=>compressPhoto(f,b=>{srPhoto=b;document.getElementById('sr_photoPreview').src=b;document.getElementById('sr_photoPreview').style.display='block';document.getElementById('sr_photoPlaceholder').style.display='none';}))" style="flex:1;padding:10px;border:1.5px solid #1A3C5E;border-radius:8px;background:#fff;color:#1A3C5E;font-size:12px;font-weight:600;cursor:pointer;">🖼️ Gallery</button>
         </div>
       </div>
-      <input type="file" id="sr_cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleSRPhoto(this)">
-      <input type="file" id="sr_galleryInput" accept="image/*" style="display:none" onchange="handleSRPhoto(this)">
     </div>
     <div style="margin-bottom:14px;">
       <label class="f-lbl">Reason / Remarks <span style="color:#94A3B8;font-weight:400">(optional)</span></label>
@@ -508,9 +506,9 @@ function renderTable() {
       <td>
         <div class="photo-cell">
           ${log.beforePhoto ? `<img class="photo-thumb before-img" src="${log.beforePhoto}" onclick="showPhoto('${log.beforePhoto}')" title="Before photo">` : ''}
-          <button class="attach-btn" onclick="document.getElementById('bc_${log._key}').click()">📷</button>
-          <button class="attach-btn" onclick="document.getElementById('bp_${log._key}').click()">🖼️</button>
-          <input type="file" id="bc_${log._key}" accept="image/*" capture="environment" style="display:none" onchange="uploadPhoto(this,'${log._key}','before')">
+          <button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','before'))">📷</button>
+          <button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','before'))">🖼️</button>
+
           <input type="file" id="bp_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','before')">
         </div>
       </td>
@@ -541,7 +539,7 @@ function renderTable() {
       <td>
         <div class="photo-cell">
           ${log.afterPhoto ? `<img class="photo-thumb after-img" src="${log.afterPhoto}" onclick="showPhoto('${log.afterPhoto}')" title="After photo">` : ''}
-          ${log.status!=='Yes' ? `<button class="attach-btn" onclick="document.getElementById('ac_${log._key}').click()">📷</button><button class="attach-btn" onclick="document.getElementById('ap_${log._key}').click()">🖼️</button><input type="file" id="ac_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')"><input type="file" id="ap_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')">` : ''}
+          ${log.status!=='Yes' ? `<button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','after'))">📷</button><button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','after'))">🖼️</button>` : ''}
         </div>
       </td>
       <td style="white-space:nowrap">
@@ -575,10 +573,10 @@ function addRow() {
     <td><textarea class="cell-inp" id="nr_desc_${tempKey}" placeholder="Describe issue..."></textarea></td>
     <td>
       <div class="photo-cell">
-        <button class="attach-btn" onclick="document.getElementById('nr_camera_${tempKey}').click()">📷 Camera</button>
-        <button class="attach-btn" onclick="document.getElementById('nr_bp_${tempKey}').click()">🖼️ Gallery</button>
-        <input type="file" id="nr_camera_${tempKey}" accept="image/*" capture="environment" style="display:none" onchange="handleNewPhoto(this,'before','${tempKey}')">
-        <input type="file" id="nr_bp_${tempKey}" accept="image/*" style="display:none" onchange="handleNewPhoto(this,'before','${tempKey}')">
+        <button class="attach-btn" onclick="openCamera(f=>handleNewPhotoFile(f,'before','${tempKey}'))">📷 Camera</button>
+        <button class="attach-btn" onclick="openGallery(f=>handleNewPhotoFile(f,'before','${tempKey}'))">🖼️ Gallery</button>
+
+
         <img id="nr_bprev_${tempKey}" class="photo-thumb before-img" src="" style="display:none">
       </div>
     </td>
@@ -684,7 +682,27 @@ function cancelNewRow(tempKey) {
   if (!allLogs.length) document.getElementById('tableEmpty').style.display = 'block';
 }
 
-// ── Upload Photo (existing row) ──────────────────────────────
+// ── Photo file helpers ──────────────────────────────────────
+function uploadPhotoFile(file, key, type) {
+  compressPhoto(file, base64 => {
+    if (!db) return;
+    const updates = {};
+    updates[type + 'Photo'] = base64;
+    db.ref('maintenanceLogs/' + key).update(updates)
+      .then(() => showToast((type==='before'?'Before':'After') + ' photo saved ✓', 'ok'))
+      .catch(e => showToast('Upload failed: ' + e.message, 'error'));
+  });
+}
+
+function handleNewPhotoFile(file, type, tempKey) {
+  compressPhoto(file, base64 => {
+    _newPhotos[tempKey + '_' + type] = base64;
+    const prev = document.getElementById('nr_bprev_' + tempKey);
+    if (type === 'before' && prev) { prev.src = base64; prev.style.display = 'block'; }
+  });
+}
+
+// ── Upload Photo (existing row) ──────────────────────────────────────────────────────────────────
 function uploadPhoto(input, key, type) {
   const file = input.files[0];
   if (!file) return;
@@ -809,6 +827,34 @@ function updateAssigned(key, value) {
   db.ref('maintenanceLogs/' + key).update({assignedTo: value})
     .then(() => showToast('Assigned to ' + value + ' ✓', 'ok'))
     .catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
+// ── Camera Helper — creates fresh input to force camera on iOS/Android ─────
+function openCamera(callback) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = function() {
+    if (this.files && this.files[0]) callback(this.files[0]);
+    document.body.removeChild(input);
+  };
+  input.click();
+}
+
+function openGallery(callback) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = function() {
+    if (this.files && this.files[0]) callback(this.files[0]);
+    document.body.removeChild(input);
+  };
+  input.click();
 }
 
 // ── Staff Report (KIC/OIC) ───────────────────────────────────
