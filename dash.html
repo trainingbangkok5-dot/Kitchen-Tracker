@@ -21,7 +21,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Master Kitchen Dashboard</title>
+<title>Master Dashboard</title>
 <link rel="manifest" href="manifest_dashboard.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
@@ -147,7 +147,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
     <div class="login-logo">🍳</div>
-    <div class="login-title">Kitchen Dashboard</div>
+    <div class="login-title">Master Dashboard</div>
     <div class="login-sub">Select your role to continue</div>
     <div class="role-grid">
       <div class="role-btn" onclick="selectRole(this,'kic')">
@@ -210,6 +210,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </optgroup>
     </select>
     <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
+    <a href="maintenance.html" style="display:block;text-align:center;margin-top:10px;padding:10px;background:#7F1D1D;color:#fff;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;">🔧 Maintenance Log</a>
   </div>
 </div>
 
@@ -217,7 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="mainDash" style="display:none;">
   <div class="header">
     <div class="header-row">
-      <h1>🏠 Kitchen Dashboard</h1>
+      <h1>🏠 Master Dashboard</h1>
       <span class="role-badge" id="roleBadge">Admin</span>
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
