@@ -237,6 +237,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" onclick="showTab(this,'weekly')">📆 Weekly</div>
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
+    <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
   </div>
 
@@ -374,6 +375,66 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="auditBody"></div>
     </div>
   </div>
+
+  <!-- MAINTENANCE PAGE -->
+  <div class="page" id="page-maintenance">
+    <div class="sec-title" style="background:#7F1D1D;color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <span>🔧 Maintenance Log</span>
+      <span id="maintStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#1A3C5E" id="mStatTotal">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;">Total</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#B91C1C" id="mStatUrgent">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;">Urgent</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#D97706" id="mStatPending">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;">Pending</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#15803D" id="mStatDone">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.04em;margin-top:2px;">Resolved</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:900px;font-size:12px;">
+        <thead>
+          <tr style="background:#F8F7F2;">
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;">Issue</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Priority</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Photos</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date Resolved</th>
+          </tr>
+        </thead>
+        <tbody id="maintTableBody"></tbody>
+      </table>
+      <div id="maintEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No maintenance issues logged yet</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MAINTENANCE PHOTO MODAL -->
+<div id="maintPhotoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:600;align-items:center;justify-content:center;padding:20px;" onclick="this.style.display='none'">
+  <div style="background:#fff;border-radius:14px;padding:16px;max-width:500px;width:100%;text-align:center;">
+    <img id="maintPhotoImg" src="" style="max-width:100%;border-radius:8px;margin-bottom:12px;">
+    <div><button onclick="document.getElementById('maintPhotoModal').style.display='none'" style="padding:8px 20px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;cursor:pointer;">Close</button></div>
+  </div>
 </div>
 
 <!-- DETAIL MODAL -->
@@ -398,7 +459,19 @@ const FIREBASE_CONFIG = {
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
 
+const MAINTENANCE_CONFIG = {
+  apiKey: "AIzaSyB03RQapvBzUACmSRnwBJUgVkPHSLgms5M",
+  authDomain: "culex-maintenance.firebaseapp.com",
+  databaseURL: "https://culex-maintenance-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "culex-maintenance",
+  storageBucket: "culex-maintenance.firebasestorage.app",
+  messagingSenderId: "637531785335",
+  appId: "1:637531785335:web:cf8ab63e781c8f0686de72"
+};
+
 let db = null;
+let maintenanceDb = null;
+let allMaintenanceLogs = [];
 let allStaff = [], allAudits = [];
 let currentRole = '', currentOutlet = '', currentName = '';
 let selectedRoleBtn = null;
@@ -411,6 +484,12 @@ function initFirebase() {
     loadPins();
   } catch(e) {
     console.error('Firebase init error:', e);
+  }
+  try {
+    const maintApp = firebase.initializeApp(MAINTENANCE_CONFIG, 'maintenance');
+    maintenanceDb = maintApp.database();
+  } catch(e) {
+    console.error('Maintenance Firebase init error:', e);
   }
 }
 
@@ -629,6 +708,7 @@ function showTab(el,id) {
   document.getElementById('page-'+id).classList.add('active');
   if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
   if (id === 'registry') { renderRegistry(); }
+  if (id === 'maintenance') { loadMaintenanceLogs(); }
 }
 
 function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
@@ -2837,6 +2917,79 @@ async function saveOverwrite(s) {
     alert('Save failed: ' + e.message + '. Please try again.');
     console.error('saveOverwrite error:', e);
   }
+}
+
+// ── Maintenance Log ──────────────────────────────────────────
+function loadMaintenanceLogs() {
+  if (!maintenanceDb) {
+    document.getElementById('maintStatus').textContent = '❌ Not connected';
+    return;
+  }
+  document.getElementById('maintStatus').textContent = '⏳ Loading...';
+  maintenanceDb.ref('maintenanceLogs').once('value', snap => {
+    allMaintenanceLogs = [];
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const v = child.val(); v._key = child.key;
+        allMaintenanceLogs.push(v);
+      });
+      allMaintenanceLogs.sort((a,b) => new Date(b.loggedAt||0) - new Date(a.loggedAt||0));
+    }
+    document.getElementById('maintStatus').textContent = '✅ ' + allMaintenanceLogs.length + ' records';
+    renderMaintenanceLogs();
+  }).catch(e => {
+    document.getElementById('maintStatus').textContent = '❌ Error loading';
+    console.error('Maintenance load error:', e);
+  });
+}
+
+function renderMaintenanceLogs() {
+  // Update stats
+  document.getElementById('mStatTotal').textContent = allMaintenanceLogs.length;
+  document.getElementById('mStatUrgent').textContent = allMaintenanceLogs.filter(l=>l.priority==='Urgent').length;
+  document.getElementById('mStatPending').textContent = allMaintenanceLogs.filter(l=>l.status==='Pending').length;
+  document.getElementById('mStatDone').textContent = allMaintenanceLogs.filter(l=>l.status==='Yes').length;
+
+  const tbody = document.getElementById('maintTableBody');
+  tbody.innerHTML = '';
+  document.getElementById('maintEmpty').style.display = allMaintenanceLogs.length ? 'none' : 'block';
+
+  allMaintenanceLogs.forEach(log => {
+    // Days pending
+    const start = log.dateReported ? new Date(log.dateReported) : null;
+    const end = log.status === 'Yes' && log.dateResolved ? new Date(log.dateResolved) : new Date();
+    const days = start ? Math.floor((end - start) / (1000*60*60*24)) : null;
+    const daysCls = log.status==='Yes' ? 'background:#DCFCE7;color:#15803D' : days >= 3 ? 'background:#FEE2E2;color:#B91C1C' : 'background:#FEF3C7;color:#D97706';
+
+    // Priority pill
+    const priColors = {Urgent:'#FEE2E2;color:#B91C1C',High:'#FEF3C7;color:#D97706',Medium:'#E0F2FE;color:#0891B2',Low:'#DCFCE7;color:#15803D',Preventive:'#EDE9FE;color:#7C3AED'};
+    const priStyle = priColors[log.priority] || '#F1F5F9;color:#64748B';
+    const stsColors = {Yes:'#DCFCE7;color:#15803D',No:'#FEE2E2;color:#B91C1C',Pending:'#FEF3C7;color:#D97706'};
+    const stsStyle = stsColors[log.status] || '#FEF3C7;color:#D97706';
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    tr.innerHTML = `
+      <td style="padding:8px 10px;font-weight:700;color:#7F1D1D;font-size:11px;white-space:nowrap">${log.logId||'—'}</td>
+      <td style="padding:8px 10px;font-size:11px;white-space:nowrap">${log.dateReported||'—'}</td>
+      <td style="padding:8px 10px;white-space:nowrap">${log.reportedBy||'—'}<br><span style="font-size:10px;color:#94A3B8">${(log.reportedByRole||'').toUpperCase()}</span></td>
+      <td style="padding:8px 10px;white-space:nowrap;font-size:12px">${log.outlet||'—'}</td>
+      <td style="padding:8px 10px;max-width:200px;font-size:12px">${log.description||'—'}${log.remarks?'<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>':''}</td>
+      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${priStyle}">${log.priority||'—'}</span></td>
+      <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${log.assignedTo||'—'}</td>
+      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsStyle}">${log.status||'—'}</span></td>
+      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days !== null ? days+'d' : '—'}</span></td>
+      <td style="padding:8px 10px">
+        <div style="display:flex;gap:4px;">
+          ${log.beforePhoto ? `<img src="${log.beforePhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #D97706;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.beforePhoto}'" title="Before">` : ''}
+          ${log.afterPhoto ? `<img src="${log.afterPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #15803D;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.afterPhoto}'" title="After">` : ''}
+          ${!log.beforePhoto && !log.afterPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
+        </div>
+      </td>
+      <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 window.addEventListener('DOMContentLoaded', initFirebase);
