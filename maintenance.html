@@ -115,7 +115,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
   <div style="display:flex;align-items:center;">
     <span class="fb-dot" id="fbDot"></span>
     <span style="color:rgba(255,255,255,0.6);font-size:10px;" id="fbLbl">Connecting...</span>
-    <button class="hdr-btn" id="logoutBtn" style="display:none" onclick="doLogout()">Logout</button>
+    <button class="hdr-btn" id="logoutBtn" style="display:none" onclick="doLogout()">✕ Exit</button>
   </div>
 </div>
 
@@ -468,7 +468,12 @@ function renderTable() {
           onkeydown="if(event.key==='Enter'){updateAssigned('\${log._key}',this.value);this.style.display='none';}">
       </td>
       <td>${statusPill(log.status)}</td>
-      <td style="max-width:160px;font-size:11px;color:#475569">${log.remarks||'—'}</td>
+      <td style="max-width:140px;">
+        <input type="text" value="${log.remarks||''}" placeholder="Add remarks..." 
+          style="width:100%;padding:4px 7px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;outline:none;"
+          onblur="updateRemarks('${log._key}', this.value)"
+          onkeydown="if(event.key==='Enter') this.blur()">
+      </td>
       <td style="white-space:nowrap;font-size:11px">${log.dateResolved||'—'}</td>
       <td><span class="days-badge ${daysCls}">${daysLbl}</span></td>
       <td>
@@ -674,6 +679,13 @@ function handleAssignChange(key, sel) {
     if (inp) inp.style.display = 'none';
     updateAssigned(key, sel.value);
   }
+}
+
+function updateRemarks(key, value) {
+  if (!db) return;
+  db.ref('maintenanceLogs/' + key).update({remarks: value})
+    .then(() => showToast('Remarks saved ✓', 'ok'))
+    .catch(e => showToast('Update failed: ' + e.message, 'error'));
 }
 
 function updateAssigned(key, value) {
