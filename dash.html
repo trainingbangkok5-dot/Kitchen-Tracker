@@ -2609,12 +2609,14 @@ function toggleStaff(key) {
 let _editMode = false;
 let _editStaffData = null;
 let _editChanges = {}; // taskKey -> new yn value
+let _editPhotoChanges = {}; // taskKey -> base64 photo
 let _verifiedByEdit = ''; // verified by field
 
 function toggleEditMode(s) {
   _editMode = true;
   _editStaffData = s;
   _editChanges = {};
+  _editPhotoChanges = {};
   _verifiedByEdit = s.verifiedBy || '';
   const btn = document.querySelector('.edit-report-btn');
   const body = document.getElementById('modalBody');
@@ -2628,6 +2630,48 @@ function toggleEditMode(s) {
   body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = 'none');
   body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'flex');
 
+  // Show photo + comment fields for each task
+  body.querySelectorAll('[data-taskkey]').forEach(row => {
+    const taskKey = row.getAttribute('data-taskkey');
+    if (!taskKey) return;
+    // Skip if already added
+    if (row.querySelector('.edit-extra-fields')) return;
+    const task = s.taskData && s.taskData[taskKey];
+    const existingComment = task ? (task.comment || '') : '';
+    const existingPhoto = task ? (task.photoUrl || '') : '';
+    const extraDiv = document.createElement('div');
+    extraDiv.className = 'edit-extra-fields';
+    extraDiv.style.cssText = 'margin-top:8px;padding-top:8px;border-top:0.5px solid #E0DDD4;';
+    extraDiv.innerHTML = `
+      <div style="margin-bottom:6px;">
+        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Comment</label>
+        <textarea class="edit-comment" data-taskkey="${taskKey}" placeholder="Add comment..." rows="2"
+          style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;resize:vertical;font-family:inherit;">${existingComment}</textarea>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo</label>
+        ${existingPhoto ? `<img src="${existingPhoto.startsWith('db:')?'':existingPhoto}" style="max-width:80px;max-height:60px;border-radius:6px;margin-bottom:4px;border:2px solid #22C55E;${existingPhoto.startsWith('db:')?'display:none;':''}">` : ''}
+        <input type="file" accept="image/*" class="edit-photo-input" data-taskkey="${taskKey}"
+          style="font-size:11px;width:100%;color:var(--color-text-secondary);">
+        <div class="edit-photo-preview" data-taskkey="${taskKey}" style="margin-top:4px;"></div>
+      </div>`;
+    row.appendChild(extraDiv);
+
+    // Photo preview handler
+    const fileInput = extraDiv.querySelector('.edit-photo-input');
+    fileInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = row.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
+        preview.innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;">`;
+        _editPhotoChanges[taskKey] = e.target.result; // store base64
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
   // Add Verified By field
   const vbDiv = document.createElement('div');
   vbDiv.id = 'verifiedByEdit';
@@ -2640,7 +2684,7 @@ function toggleEditMode(s) {
   cancelBtn.id = 'cancelEditBtn';
   cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
   cancelBtn.textContent = '✕ Cancel Edit';
-  cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; openStaffDetail(s); };
+  cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; _editPhotoChanges = {}; openStaffDetail(s); };
   body.appendChild(cancelBtn);
 }
 
@@ -2693,7 +2737,13 @@ function updateLiveScore() {
 
 async function saveOverwrite(s) {
   const verifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
-  const hasChanges = Object.keys(_editChanges).length > 0 || verifiedBy !== (s.verifiedBy||'');
+  // Check for any comment changes
+  const commentChanges = Array.from(document.querySelectorAll('.edit-comment')).some(el => {
+    const k = el.getAttribute('data-taskkey');
+    const orig = (s.taskData && s.taskData[k] && s.taskData[k].comment) || '';
+    return el.value.trim() !== orig;
+  });
+  const hasChanges = Object.keys(_editChanges).length > 0 || Object.keys(_editPhotoChanges).length > 0 || commentChanges || verifiedBy !== (s.verifiedBy||'');
 
   if (!hasChanges) { showToast('No changes made', 'warn'); return; }
 
@@ -2720,6 +2770,23 @@ async function saveOverwrite(s) {
   Object.entries(_editChanges).forEach(([k, yn]) => {
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
   });
+
+  // Save comments
+  document.querySelectorAll('.edit-comment').forEach(el => {
+    const k = el.getAttribute('data-taskkey');
+    const val = el.value.trim();
+    if (k) updates['submissions/' + fbKey + '/taskData/' + k + '/comment'] = val;
+  });
+
+  // Save photos — upload base64 to Firebase storage path
+  const photoPromises = Object.entries(_editPhotoChanges).map(([k, base64]) => {
+    const photoRef = 'photos/' + s.staffName.replace(/\s+/g,'_') + '_' + k + '_' + Date.now();
+    return db.ref(photoRef).set(base64).then(() => {
+      updates['submissions/' + fbKey + '/taskData/' + k + '/photoUrl'] = 'db:' + photoRef;
+    });
+  });
+  await Promise.all(photoPromises);
+
   updates['submissions/' + fbKey + '/verifiedBy'] = verifiedBy || '';
 
   // Recalculate score
@@ -2761,7 +2828,7 @@ async function saveOverwrite(s) {
     if (opPct !== null) s.openingPct = opPct;
     if (clPct !== null) s.closingPct = clPct;
     // Reset edit state
-    _editMode = false; _editChanges = {};
+    _editMode = false; _editChanges = {}; _editPhotoChanges = {};
     // Show success popup
     alert('Changes saved! New score: ' + newScore + '% - ' + (newQualified ? 'QUALIFIED' : 'NOT QUALIFIED'));
     // Reopen in view mode
