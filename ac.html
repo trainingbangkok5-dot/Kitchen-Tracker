@@ -266,7 +266,7 @@ function calcAll() {
     }
   }
   total = Math.round(total * 10) / 10;
-  document.getElementById('m-total').textContent = total.toFixed(1);
+  const mTotal = document.getElementById('m-total'); if (mTotal) mTotal.textContent = total.toFixed(1);
   document.getElementById('d-total').textContent = total.toFixed(1);
   const d2 = document.getElementById('d-total2');
   d2.textContent = total.toFixed(1);
@@ -337,10 +337,14 @@ function calcIC() {
   else s = (avg / 75) * 15;
   s = Math.round(s * 100) / 100;
   document.getElementById('ic-suggested').textContent = s.toFixed(2) + ' / 25 pts';
-  // Auto-populate m2 in Performance Matrix
-  document.getElementById('m2').value = s;
+  // Auto-populate m2 and reflect to Regional Dashboard
+  const m2el = document.getElementById('m2');
+  if (m2el) m2el.value = s;
   const m2d = document.getElementById('m2-display');
   if (m2d) { m2d.textContent = s.toFixed(2); m2d.style.color = s>=20?'#15803D':s>=15?'#854D0E':'#B91C1C'; }
+  // Update Regional Dashboard d-p2
+  const dp2 = document.getElementById('d-p2');
+  if (dp2) { dp2.textContent = s.toFixed(1); dp2.className = 'pill ' + (s>=20?'g':s>=15?'y':'r'); }
   calcAll();
 }
 
@@ -415,11 +419,15 @@ function calcFCAvg() {
   const avgRes = fcScore(avgFC.toFixed(2));
   document.getElementById('fc-avg-score').textContent = avg.toFixed(2) + ' pts';
   document.getElementById('fc-avg-status').innerHTML = '<span class="pill ' + avgRes.cls + '">' + avgRes.status + '</span>';
-  // Auto-populate m1 in Performance Matrix
+  // Auto-populate m1 and reflect to Regional Dashboard
   const m1val = Math.round(avg * 100) / 100;
-  document.getElementById('m1').value = m1val;
+  const m1el = document.getElementById('m1');
+  if (m1el) m1el.value = m1val;
   const m1d = document.getElementById('m1-display');
   if (m1d) { m1d.textContent = m1val.toFixed(2); m1d.style.color = m1val>=27?'#15803D':m1val>=20?'#854D0E':'#B91C1C'; }
+  // Update Regional Dashboard d-p1
+  const dp1 = document.getElementById('d-p1');
+  if (dp1) { dp1.textContent = m1val.toFixed(1); dp1.className = 'pill ' + (m1val>=27?'g':m1val>=20?'y':'r'); }
   calcAll();
 }
 
