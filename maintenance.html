@@ -671,6 +671,22 @@ function saveNewRow(tempKey) {
   const key = logId + '_' + Date.now();
   db.ref('maintenanceLogs/' + key).set(record).then(() => {
     showToast('Issue logged ✓ ' + logId, 'ok');
+    // WhatsApp notification
+    const waMsg2 = encodeURIComponent(
+      '🔧 *New Maintenance Issue*\n' +
+      '📋 Ref#: ' + logId + '\n' +
+      '📍 Outlet: ' + outlet + '\n' +
+      '⚠️ Priority: ' + priority + '\n' +
+      '📝 Issue: ' + desc + '\n' +
+      '👤 Reported by: ' + reporter + '\n' +
+      '🔧 Assigned to: ' + assigned + '\n' +
+      '📅 Date: ' + date
+    );
+    const waBtn2 = document.createElement('div');
+    waBtn2.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;';
+    waBtn2.innerHTML = '<a href="https://wa.me/971553740327?text=' + waMsg2 + '" target="_blank" style="display:block;background:#25D366;color:#fff;padding:12px 24px;border-radius:30px;font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">📲 Notify Maintenance via WhatsApp</a>';
+    document.body.appendChild(waBtn2);
+    setTimeout(() => waBtn2.remove(), 8000);
     delete _newPhotos[tempKey+'_before'];
   }).catch(e => showToast('Save failed: ' + e.message, 'error'));
 }
@@ -902,6 +918,21 @@ function submitStaffReport() {
   const key = logId + '_' + Date.now();
   db.ref('maintenanceLogs/' + key).set(record).then(() => {
     showToast(logId + ' logged ✓ — management notified', 'ok');
+    // WhatsApp notification
+    const waMsg = encodeURIComponent(
+      '🔧 *New Maintenance Issue*\n' +
+      '📋 Ref#: ' + logId + '\n' +
+      '📍 Outlet: ' + outlet + '\n' +
+      '⚠️ Priority: ' + srPriority + '\n' +
+      '📝 Issue: ' + desc + '\n' +
+      '👤 Reported by: ' + reporter + ' (' + currentRole.toUpperCase() + ')\n' +
+      '📅 Date: ' + date
+    );
+    const waBtn = document.createElement('div');
+    waBtn.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;';
+    waBtn.innerHTML = '<a href="https://wa.me/971553740327?text=' + waMsg + '" target="_blank" style="display:block;background:#25D366;color:#fff;padding:12px 24px;border-radius:30px;font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">📲 Notify Maintenance via WhatsApp</a>';
+    document.body.appendChild(waBtn);
+    setTimeout(() => waBtn.remove(), 8000);
     resetStaffForm();
   }).catch(e => showToast('Save failed: ' + e.message, 'error'));
 }
