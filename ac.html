@@ -105,57 +105,6 @@ input.outlet-input:focus{outline:none;border-color:#7F1D1D}
   </div>
 </div>
 
-<!-- SECTION 1: Performance Matrix -->
-<div class="section">
-  <div class="section-title">Area Chef Performance Matrix</div>
-  <div class="section-body">
-    <table class="t">
-      <tr><th style="width:35%">KPI Metric</th><th>Goals & Verification Source</th><th style="text-align:center">Max</th><th style="text-align:center">Score</th></tr>
-      <tr>
-        <td><div class="lbl">Outlet Food Cost Optimization</div><div class="desc">Monthly COGS vs theoretical menu specs</div></td>
-        <td><div class="desc">Theoretical vs Actual variance gap under 1.0% averaged across all assigned units.</div></td>
-        <td style="text-align:center;font-weight:700">30</td>
-        <td style="text-align:center"><input class="si" id="m1" type="number" min="0" max="30" step="0.1" placeholder="0" oninput="calcAll()"></td>
-      </tr>
-      <tr>
-        <td><div class="lbl">Kitchen Incharge Accountability</div><div class="desc">Linked from In-Charge Rollup below</div></td>
-        <td><div class="desc">Performance validation across all In-Charges; target average > 85.</div></td>
-        <td style="text-align:center;font-weight:700">25</td>
-        <td style="text-align:center"><input class="si" id="m2" type="number" min="0" max="25" step="0.1" placeholder="0" oninput="calcAll()"></td>
-      </tr>
-      <tr>
-        <td><div class="lbl">Staff Technical Proficiency</div><div class="desc">Regional training tracker logs</div></td>
-        <td><div class="desc">Controls team performance across outlets; drives technical milestones for KIC.</div></td>
-        <td style="text-align:center;font-weight:700">20</td>
-        <td style="text-align:center"><input class="si" id="m3" type="number" min="0" max="20" step="0.1" placeholder="0" oninput="calcAll()"></td>
-      </tr>
-      <tr>
-        <td><div class="lbl">Web App Data Integrity</div><div class="desc">Weekly field validation logs</div></td>
-        <td><div class="desc">Correct data entry; cross-audits daily waste vs physical stock parameters.</div></td>
-        <td style="text-align:center;font-weight:700">10</td>
-        <td style="text-align:center"><input class="si" id="m4" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="calcAll()"></td>
-      </tr>
-      <tr>
-        <td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td>
-        <td><div class="desc">High pass rate on internal monthly audits across all outlets.</div></td>
-        <td style="text-align:center;font-weight:700">10</td>
-        <td style="text-align:center"><input class="si" id="m5" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="calcAll()"></td>
-      </tr>
-      <tr>
-        <td><div class="lbl">Asset Care & Preventive Maintenance</div><div class="desc">Bi-weekly facility maintenance reports</div></td>
-        <td><div class="desc">Zero critical equipment downtime across all production facilities.</div></td>
-        <td style="text-align:center;font-weight:700">5</td>
-        <td style="text-align:center"><input class="si" id="m6" type="number" min="0" max="5" step="0.1" placeholder="0" oninput="calcAll()"></td>
-      </tr>
-      <tr class="total-row">
-        <td colspan="2">TOTAL REGIONAL KPI SCORE</td>
-        <td style="text-align:center">100</td>
-        <td style="text-align:center;font-size:15px;color:#7F1D1D" id="m-total">0.0</td>
-      </tr>
-    </table>
-  </div>
-</div>
-
 <!-- SECTION 2: In-Charge Rollup -->
 <div class="section">
   <div class="section-title">Outlet In-Charge Rollup</div>
@@ -388,6 +337,11 @@ function calcIC() {
   else s = (avg / 75) * 15;
   s = Math.round(s * 100) / 100;
   document.getElementById('ic-suggested').textContent = s.toFixed(2) + ' / 25 pts';
+  // Auto-populate m2 in Performance Matrix
+  document.getElementById('m2').value = s;
+  const m2d = document.getElementById('m2-display');
+  if (m2d) { m2d.textContent = s.toFixed(2); m2d.style.color = s>=20?'#15803D':s>=15?'#854D0E':'#B91C1C'; }
+  calcAll();
 }
 
 // ── Food Cost Tracker ────────────────────────────────────────
@@ -461,6 +415,12 @@ function calcFCAvg() {
   const avgRes = fcScore(avgFC.toFixed(2));
   document.getElementById('fc-avg-score').textContent = avg.toFixed(2) + ' pts';
   document.getElementById('fc-avg-status').innerHTML = '<span class="pill ' + avgRes.cls + '">' + avgRes.status + '</span>';
+  // Auto-populate m1 in Performance Matrix
+  const m1val = Math.round(avg * 100) / 100;
+  document.getElementById('m1').value = m1val;
+  const m1d = document.getElementById('m1-display');
+  if (m1d) { m1d.textContent = m1val.toFixed(2); m1d.style.color = m1val>=27?'#15803D':m1val>=20?'#854D0E':'#B91C1C'; }
+  calcAll();
 }
 
 // ── Submit ──────────────────────────────────────────────────
@@ -476,7 +436,7 @@ function submitKPI() {
   let total = 0;
   for (let i = 1; i <= 6; i++) {
     const val = Math.min(parseFloat(document.getElementById('m'+i)?.value)||0, MAX[i-1]);
-    kpiScores[kpiNames[i-1]] = val;
+    kpiScores[kpiNames[i-1]] = Math.round(val * 100) / 100;
     total += val;
   }
   total = Math.round(total * 10) / 10;
