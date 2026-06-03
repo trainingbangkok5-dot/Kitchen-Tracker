@@ -21,7 +21,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Master Kitchen Dashboard</title>
+<title>Master Dashboard</title>
 <link rel="manifest" href="manifest_dashboard.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
@@ -147,7 +147,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
     <div class="login-logo">🍳</div>
-    <div class="login-title">Kitchen Dashboard</div>
+    <div class="login-title">Master Dashboard</div>
     <div class="login-sub">Select your role to continue</div>
     <div class="role-grid">
       <div class="role-btn" onclick="selectRole(this,'kic')">
@@ -217,7 +217,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="mainDash" style="display:none;">
   <div class="header">
     <div class="header-row">
-      <h1>🏠 Kitchen Dashboard</h1>
+      <h1>🏠 Master Dashboard</h1>
       <span class="role-badge" id="roleBadge">Admin</span>
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
@@ -3050,13 +3050,37 @@ function renderMaintenanceLogs() {
           ${!log.beforePhoto && !log.afterPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
         </div>
       </td>
-      <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">\${log.dateResolved||'—'}</td>
-      <td style="padding:8px 10px;white-space:nowrap">' +
-        (log.status!=='Yes' ? '<button onclick="maintMarkDone(\'' + log._key + '\')" style="font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Done</button>' : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Done</span>') +
-        ' <button onclick="maintOverwrite(\'' + log._key + '\')" style="font-size:11px;padding:4px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;">✏️</button>' +
-        ' <button onclick="maintDelete(\'' + log._key + '\')" style="font-size:11px;padding:4px 8px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;">🗑</button>' +
-      '</td>
+      <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
     `;
+    // Action cell built separately to avoid template literal nesting issues
+    const actionTd = document.createElement('td');
+    actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
+    const actionDiv = document.createElement('div');
+    actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
+    if (log.status !== 'Yes') {
+      const doneBtn = document.createElement('button');
+      doneBtn.textContent = '✅';
+      doneBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;';
+      doneBtn.onclick = () => maintMarkDone(log._key);
+      actionDiv.appendChild(doneBtn);
+    } else {
+      const doneSpan = document.createElement('span');
+      doneSpan.textContent = '✓';
+      doneSpan.style.cssText = 'font-size:10px;color:#15803D;font-weight:600;';
+      actionDiv.appendChild(doneSpan);
+    }
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️';
+    editBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;';
+    editBtn.onclick = () => maintOverwrite(log._key);
+    actionDiv.appendChild(editBtn);
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;';
+    delBtn.onclick = () => maintDelete(log._key);
+    actionDiv.appendChild(delBtn);
+    actionTd.appendChild(actionDiv);
+    tr.appendChild(actionTd);
     tbody.appendChild(tr);
   });
 }
