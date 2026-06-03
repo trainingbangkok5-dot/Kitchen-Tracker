@@ -234,7 +234,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <table id="mainTable">
       <thead>
         <tr>
-          <th>Log ID</th>
+          <th>Ref #</th>
           <th>Date Reported</th>
           <th>Reported By</th>
           <th>Outlet / Location</th>
@@ -253,6 +253,67 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <tbody id="tableBody"></tbody>
     </table>
     <div id="tableEmpty" style="text-align:center;padding:30px;color:#94A3B8;">No issues logged yet — click "+ Add New Issue" to start</div>
+  </div>
+</div>
+
+<!-- Overwrite Modal -->
+<div id="overwriteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:20px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;color:#7F1D1D;">✏️ Edit Issue</div>
+      <button onclick="document.getElementById('overwriteModal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94A3B8;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Date Reported</label>
+        <input type="date" id="ow_date" class="cell-inp" style="width:100%">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Reported By</label>
+        <input type="text" id="ow_reporter" class="cell-inp" style="width:100%" placeholder="Name...">
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Outlet</label>
+      <select id="ow_outlet" class="cell-inp" style="width:100%">
+        <option value="">Select outlet...</option>
+        <option>Head Office</option><option>Central Kitchen</option><option>Accommodation</option>
+        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
+        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
+        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Issue / Description</label>
+      <textarea id="ow_desc" class="cell-inp" rows="3" style="width:100%;resize:vertical;" placeholder="Describe issue..."></textarea>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Priority</label>
+      <select id="ow_priority" class="cell-inp" style="width:100%">
+        <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option><option>Preventive</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Assigned To</label>
+      <select id="ow_assigned" class="cell-inp" style="width:100%">
+        <option value="Unassigned">Unassigned</option>
+        <option>Baldev</option><option>Angelo</option><option>Asad</option><option>Shridhar</option><option>Awais</option>
+        <option value="__other__">Other (type name)...</option>
+      </select>
+      <input type="text" id="ow_assigned_other" placeholder="Enter name..." style="display:none;width:100%;margin-top:6px;padding:7px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Status</label>
+      <select id="ow_status" class="cell-inp" style="width:100%">
+        <option>Pending</option><option>Yes</option><option>No</option>
+      </select>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">Reason / Remarks</label>
+      <input type="text" id="ow_remarks" class="cell-inp" style="width:100%" placeholder="Remarks...">
+    </div>
+    <input type="hidden" id="ow_key">
+    <button onclick="saveOverwrite()" style="width:100%;padding:12px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">💾 Save Changes</button>
   </div>
 </div>
 
@@ -482,9 +543,10 @@ function renderTable() {
           ${log.status!=='Yes' ? `<button class="attach-btn" onclick="document.getElementById('ac_${log._key}').click()">📷</button><button class="attach-btn" onclick="document.getElementById('ap_${log._key}').click()">🖼️</button><input type="file" id="ac_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')"><input type="file" id="ap_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','after')">` : ''}
         </div>
       </td>
-      <td>
-        ${log.status!=='Yes' ? `<button class="done-btn" onclick="markDone('${log._key}')">✅ Done</button>` : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Resolved</span>'}
-        <button class="del-btn" onclick="deleteLog('${log._key}')" style="margin-left:4px">🗑</button>
+      <td style="white-space:nowrap">
+        ${log.status!=='Yes' ? `<button class="done-btn" onclick="markDone('\${log._key}')">✅ Done</button>` : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Resolved</span>'}
+        <button onclick="openOverwrite('\${log._key}')" style="margin-left:4px;font-size:11px;padding:5px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;">✏️</button>
+        <button class="del-btn" onclick="deleteLog('\${log._key}')" style="margin-left:4px">🗑</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -599,7 +661,7 @@ function saveNewRow(tempKey) {
   if (!beforePhoto) { showToast('Please attach a before photo','warn'); return; }
   if (!db)       { showToast('Firebase not ready','warn'); return; }
 
-  const logId = 'M-' + logCounter;
+  const logId = 'M-' + logCounter++;
   const record = {
     logId, dateReported: date, reportedBy: reporter, reportedByRole: currentRole,
     outlet, description: desc, priority, assignedTo: assigned,
@@ -681,6 +743,59 @@ function handleAssignChange(key, sel) {
   }
 }
 
+// ── Overwrite ────────────────────────────────────────────────
+function openOverwrite(key) {
+  const log = allLogs.find(l => l._key === key);
+  if (!log) return;
+  document.getElementById('ow_key').value = key;
+  document.getElementById('ow_date').value = log.dateReported || '';
+  document.getElementById('ow_reporter').value = log.reportedBy || '';
+  document.getElementById('ow_outlet').value = log.outlet || '';
+  document.getElementById('ow_desc').value = log.description || '';
+  document.getElementById('ow_priority').value = log.priority || 'Medium';
+  document.getElementById('ow_status').value = log.status || 'Pending';
+  document.getElementById('ow_remarks').value = log.remarks || '';
+  // Assigned
+  const knownTeam = ['Unassigned','Baldev','Angelo','Asad','Shridhar','Awais'];
+  const sel = document.getElementById('ow_assigned');
+  if (knownTeam.includes(log.assignedTo)) {
+    sel.value = log.assignedTo || 'Unassigned';
+    document.getElementById('ow_assigned_other').style.display = 'none';
+  } else {
+    sel.value = '__other__';
+    document.getElementById('ow_assigned_other').style.display = 'block';
+    document.getElementById('ow_assigned_other').value = log.assignedTo || '';
+  }
+  document.getElementById('ow_assigned').onchange = function() {
+    document.getElementById('ow_assigned_other').style.display = this.value === '__other__' ? 'block' : 'none';
+  };
+  document.getElementById('overwriteModal').style.display = 'flex';
+}
+
+function saveOverwrite() {
+  const key = document.getElementById('ow_key').value;
+  if (!key || !db) return;
+  let assigned = document.getElementById('ow_assigned').value;
+  if (assigned === '__other__') assigned = document.getElementById('ow_assigned_other').value.trim() || 'Unassigned';
+  const updates = {
+    dateReported: document.getElementById('ow_date').value,
+    reportedBy: document.getElementById('ow_reporter').value.trim(),
+    outlet: document.getElementById('ow_outlet').value,
+    description: document.getElementById('ow_desc').value.trim(),
+    priority: document.getElementById('ow_priority').value,
+    assignedTo: assigned,
+    status: document.getElementById('ow_status').value,
+    remarks: document.getElementById('ow_remarks').value.trim(),
+  };
+  if (updates.status === 'Yes' && !allLogs.find(l=>l._key===key)?.dateResolved) {
+    updates.dateResolved = getDubaiDate();
+  }
+  db.ref('maintenanceLogs/' + key).update(updates).then(() => {
+    showToast('Issue updated ✓', 'ok');
+    document.getElementById('overwriteModal').style.display = 'none';
+  }).catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
 function updateRemarks(key, value) {
   if (!db) return;
   db.ref('maintenanceLogs/' + key).update({remarks: value})
@@ -729,7 +844,7 @@ function submitStaffReport() {
   if (!srPhoto)     { showToast('Please attach a photo', 'warn'); return; }
   if (!db)          { showToast('Firebase not ready', 'warn'); return; }
 
-  const logId = 'M-' + logCounter;
+  const logId = 'M-' + logCounter++;
   const record = {
     logId, dateReported: date, reportedBy: reporter, reportedByRole: currentRole,
     outlet, description: desc, priority: srPriority, assignedTo: 'Unassigned',
@@ -739,7 +854,6 @@ function submitStaffReport() {
 
   const key = logId + '_' + Date.now();
   db.ref('maintenanceLogs/' + key).set(record).then(() => {
-    logCounter++;
     showToast(logId + ' logged ✓ — management notified', 'ok');
     resetStaffForm();
   }).catch(e => showToast('Save failed: ' + e.message, 'error'));
