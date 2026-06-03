@@ -21,7 +21,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Master Dashboard</title>
+<title>Master Kitchen Dashboard</title>
 <link rel="manifest" href="manifest_dashboard.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
@@ -147,7 +147,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
     <div class="login-logo">🍳</div>
-    <div class="login-title">Master Dashboard</div>
+    <div class="login-title">Kitchen Dashboard</div>
     <div class="login-sub">Select your role to continue</div>
     <div class="role-grid">
       <div class="role-btn" onclick="selectRole(this,'kic')">
@@ -210,7 +210,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </optgroup>
     </select>
     <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
-    <a href="maintenance.html" style="display:block;text-align:center;margin-top:10px;padding:10px;background:#7F1D1D;color:#fff;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;">🔧 Maintenance Log</a>
   </div>
 </div>
 
@@ -218,7 +217,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="mainDash" style="display:none;">
   <div class="header">
     <div class="header-row">
-      <h1>🏠 Master Dashboard</h1>
+      <h1>🏠 Kitchen Dashboard</h1>
       <span class="role-badge" id="roleBadge">Admin</span>
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
@@ -381,7 +380,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="page" id="page-maintenance">
     <div class="sec-title" style="background:#7F1D1D;color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
       <span>🔧 Maintenance Log</span>
-      <span id="maintStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="maintStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
+        <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -420,6 +422,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Photos</th>
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date Resolved</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Action</th>
           </tr>
         </thead>
         <tbody id="maintTableBody"></tbody>
@@ -428,6 +431,66 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
+</div>
+
+<!-- MAINTENANCE OVERWRITE MODAL -->
+<div id="maintOverwriteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:20px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;color:#7F1D1D;">✏️ Edit Maintenance Issue</div>
+      <button onclick="document.getElementById('maintOverwriteModal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94A3B8;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Date Reported</label>
+        <input type="date" id="mow_date" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Reported By</label>
+        <input type="text" id="mow_reporter" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;" placeholder="Name...">
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Outlet</label>
+      <select id="mow_outlet" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
+        <option>Head Office</option><option>Central Kitchen</option><option>Accommodation</option>
+        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
+        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
+        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Issue / Description</label>
+      <textarea id="mow_desc" rows="3" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;resize:vertical;font-family:inherit;" placeholder="Describe issue..."></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Priority</label>
+        <select id="mow_priority" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
+          <option>Urgent</option><option>High</option><option>Medium</option><option>Low</option><option>Preventive</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Status</label>
+        <select id="mow_status" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
+          <option>Pending</option><option>Yes</option><option>No</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Assigned To</label>
+      <select id="mow_assigned" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
+        <option value="Unassigned">Unassigned</option>
+        <option>Baldev</option><option>Angelo</option><option>Asad</option><option>Shridhar</option><option>Awais</option>
+      </select>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Reason / Remarks</label>
+      <input type="text" id="mow_remarks" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;" placeholder="Remarks...">
+    </div>
+    <input type="hidden" id="mow_key">
+    <button onclick="saveMaintOverwrite()" style="width:100%;padding:12px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">💾 Save Changes</button>
+  </div>
 </div>
 
 <!-- MAINTENANCE PHOTO MODAL -->
@@ -2987,10 +3050,76 @@ function renderMaintenanceLogs() {
           ${!log.beforePhoto && !log.afterPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
         </div>
       </td>
-      <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
+      <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">\${log.dateResolved||'—'}</td>
+      <td style="padding:8px 10px;white-space:nowrap">' +
+        (log.status!=='Yes' ? '<button onclick="maintMarkDone(\'' + log._key + '\')" style="font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Done</button>' : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Done</span>') +
+        ' <button onclick="maintOverwrite(\'' + log._key + '\')" style="font-size:11px;padding:4px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;">✏️</button>' +
+        ' <button onclick="maintDelete(\'' + log._key + '\')" style="font-size:11px;padding:4px 8px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;">🗑</button>' +
+      '</td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+// ── Maintenance Actions (dash) ───────────────────────────────
+function maintMarkDone(key) {
+  if (!maintenanceDb) return;
+  const log = allMaintenanceLogs.find(l => l._key === key);
+  if (!log) return;
+  if (!confirm('Mark this issue as resolved?')) return;
+  maintenanceDb.ref('maintenanceLogs/' + key).update({
+    status: 'Yes',
+    dateResolved: new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'})
+  }).then(() => { showToast('Marked as resolved ✓', 'ok'); loadMaintenanceLogs(); })
+    .catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
+function maintDelete(key) {
+  if (!maintenanceDb) return;
+  if (!confirm('Delete this maintenance log entry?')) return;
+  maintenanceDb.ref('maintenanceLogs/' + key).remove()
+    .then(() => { showToast('Deleted ✓', 'ok'); loadMaintenanceLogs(); })
+    .catch(e => showToast('Delete failed: ' + e.message, 'error'));
+}
+
+function maintOverwrite(key) {
+  const log = allMaintenanceLogs.find(l => l._key === key);
+  if (!log) return;
+  document.getElementById('mow_key').value = key;
+  document.getElementById('mow_date').value = log.dateReported || '';
+  document.getElementById('mow_reporter').value = log.reportedBy || '';
+  document.getElementById('mow_outlet').value = log.outlet || '';
+  document.getElementById('mow_desc').value = log.description || '';
+  document.getElementById('mow_priority').value = log.priority || 'Medium';
+  document.getElementById('mow_assigned').value = log.assignedTo || 'Unassigned';
+  document.getElementById('mow_status').value = log.status || 'Pending';
+  document.getElementById('mow_remarks').value = log.remarks || '';
+  document.getElementById('maintOverwriteModal').style.display = 'flex';
+}
+
+function saveMaintOverwrite() {
+  const key = document.getElementById('mow_key').value;
+  if (!key || !maintenanceDb) return;
+  const updates = {
+    dateReported: document.getElementById('mow_date').value,
+    reportedBy: document.getElementById('mow_reporter').value.trim(),
+    outlet: document.getElementById('mow_outlet').value,
+    description: document.getElementById('mow_desc').value.trim(),
+    priority: document.getElementById('mow_priority').value,
+    assignedTo: document.getElementById('mow_assigned').value,
+    status: document.getElementById('mow_status').value,
+    remarks: document.getElementById('mow_remarks').value.trim(),
+  };
+  if (updates.status === 'Yes') {
+    const log = allMaintenanceLogs.find(l => l._key === key);
+    if (!log?.dateResolved) updates.dateResolved = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
+  }
+  maintenanceDb.ref('maintenanceLogs/' + key).update(updates)
+    .then(() => {
+      showToast('Updated ✓', 'ok');
+      document.getElementById('maintOverwriteModal').style.display = 'none';
+      loadMaintenanceLogs();
+    }).catch(e => showToast('Update failed: ' + e.message, 'error'));
 }
 
 window.addEventListener('DOMContentLoaded', initFirebase);
