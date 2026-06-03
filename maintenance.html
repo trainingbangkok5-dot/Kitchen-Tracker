@@ -955,8 +955,7 @@ function resetStaffForm() {
   document.getElementById('sr_desc').value = '';
   document.getElementById('sr_remarks').value = '';
   document.getElementById('sr_photoPreview').style.display = 'none';
-  document.getElementById('sr_photoPlaceholder').style.display = 'block';
-  document.getElementById('sr_photoInput').value = '';
+  document.getElementById('sr_photoPlaceholder').style.display = 'flex';
   document.querySelectorAll('#staffScreen .pri-btn').forEach(b => b.classList.remove('active'));
   // form already visible - just clear fields
 }
