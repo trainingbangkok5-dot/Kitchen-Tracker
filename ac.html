@@ -179,10 +179,10 @@ input.outlet-input:focus{outline:none;border-color:#7F1D1D}
       <tr><th>Core Performance Pillar</th><th style="text-align:center">Max</th><th style="text-align:center">Baseline</th><th style="text-align:center">Score</th></tr>
       <tr><td><div class="lbl">Outlet Food Cost Optimization</div></td><td style="text-align:center">30</td><td style="text-align:center">27</td><td style="text-align:center"><span class="pill r" id="d-p1">0.0</span></td></tr>
       <tr><td><div class="lbl">Kitchen Incharge Accountability</div></td><td style="text-align:center">25</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p2">0.0</span></td></tr>
-      <tr><td><div class="lbl">Staff Technical Proficiency</div></td><td style="text-align:center">20</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p3">0.0</span></td></tr>
-      <tr><td><div class="lbl">Web App Data Integrity</div></td><td style="text-align:center">10</td><td style="text-align:center">13.5</td><td style="text-align:center"><span class="pill r" id="d-p4">0.0</span></td></tr>
-      <tr><td><div class="lbl">Internal Audits</div></td><td style="text-align:center">10</td><td style="text-align:center">4</td><td style="text-align:center"><span class="pill r" id="d-p5">0.0</span></td></tr>
-      <tr><td><div class="lbl">Asset Care & Preventive Maintenance</div></td><td style="text-align:center">5</td><td style="text-align:center">4.5</td><td style="text-align:center"><span class="pill r" id="d-p6">0.0</span></td></tr>
+      <tr><td><div class="lbl">Staff Technical Proficiency</div><div class="desc">Regional training tracker logs</div></td><td style="text-align:center">20</td><td style="text-align:center">18</td><td style="text-align:center"><input class="si" id="m3" type="number" min="0" max="20" step="0.1" placeholder="0" oninput="kpiVals[2]=Math.min(parseFloat(this.value)||0,20);calcAll()"></td></tr>
+      <tr><td><div class="lbl">Web App Data Integrity</div><div class="desc">Weekly field validation logs</div></td><td style="text-align:center">10</td><td style="text-align:center">13.5</td><td style="text-align:center"><input class="si" id="m4" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="kpiVals[3]=Math.min(parseFloat(this.value)||0,10);calcAll()"></td></tr>
+      <tr><td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td><td style="text-align:center">10</td><td style="text-align:center">4</td><td style="text-align:center"><input class="si" id="m5" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="kpiVals[4]=Math.min(parseFloat(this.value)||0,10);calcAll()"></td></tr>
+      <tr><td><div class="lbl">Asset Care & Preventive Maintenance</div><div class="desc">Bi-weekly facility maintenance reports</div></td><td style="text-align:center">5</td><td style="text-align:center">4.5</td><td style="text-align:center"><input class="si" id="m6" type="number" min="0" max="5" step="0.1" placeholder="0" oninput="kpiVals[5]=Math.min(parseFloat(this.value)||0,5);calcAll()"></td></tr>
       <tr class="total-row"><td>OVERALL AREA CHEF KPI SCORE</td><td style="text-align:center">100</td><td style="text-align:center">78.2</td><td style="text-align:center"><span class="pill r" id="d-total2">0.0</span></td></tr>
     </table>
 
@@ -251,11 +251,13 @@ function showToast(msg, type) {
 const MAX = [30, 25, 20, 10, 10, 5];
 
 // ── Main Calculation ────────────────────────────────────────
+// Store KPI scores directly
+const kpiVals = [0, 0, 0, 0, 0, 0]; // m1-m6
+
 function calcAll() {
   let total = 0;
   for (let i = 1; i <= 6; i++) {
-    const el = document.getElementById('m' + i);
-    const val = Math.min(parseFloat(el?.value) || 0, MAX[i-1]);
+    const val = Math.min(kpiVals[i-1] || 0, MAX[i-1]);
     total += val;
     // Update dashboard pills
     const pill = document.getElementById('d-p' + i);
@@ -337,14 +339,8 @@ function calcIC() {
   else s = (avg / 75) * 15;
   s = Math.round(s * 100) / 100;
   document.getElementById('ic-suggested').textContent = s.toFixed(2) + ' / 25 pts';
-  // Auto-populate m2 and reflect to Regional Dashboard
-  const m2el = document.getElementById('m2');
-  if (m2el) m2el.value = s;
-  const m2d = document.getElementById('m2-display');
-  if (m2d) { m2d.textContent = s.toFixed(2); m2d.style.color = s>=20?'#15803D':s>=15?'#854D0E':'#B91C1C'; }
-  // Update Regional Dashboard d-p2
-  const dp2 = document.getElementById('d-p2');
-  if (dp2) { dp2.textContent = s.toFixed(1); dp2.className = 'pill ' + (s>=20?'g':s>=15?'y':'r'); }
+  // Store KIC Accountability score and update Regional Dashboard
+  kpiVals[1] = Math.round(s * 100) / 100;
   calcAll();
 }
 
@@ -419,15 +415,9 @@ function calcFCAvg() {
   const avgRes = fcScore(avgFC.toFixed(2));
   document.getElementById('fc-avg-score').textContent = avg.toFixed(2) + ' pts';
   document.getElementById('fc-avg-status').innerHTML = '<span class="pill ' + avgRes.cls + '">' + avgRes.status + '</span>';
-  // Auto-populate m1 and reflect to Regional Dashboard
+  // Store Food Cost score and update Regional Dashboard
   const m1val = Math.round(avg * 100) / 100;
-  const m1el = document.getElementById('m1');
-  if (m1el) m1el.value = m1val;
-  const m1d = document.getElementById('m1-display');
-  if (m1d) { m1d.textContent = m1val.toFixed(2); m1d.style.color = m1val>=27?'#15803D':m1val>=20?'#854D0E':'#B91C1C'; }
-  // Update Regional Dashboard d-p1
-  const dp1 = document.getElementById('d-p1');
-  if (dp1) { dp1.textContent = m1val.toFixed(1); dp1.className = 'pill ' + (m1val>=27?'g':m1val>=20?'y':'r'); }
+  kpiVals[0] = m1val;
   calcAll();
 }
 
@@ -442,9 +432,9 @@ function submitKPI() {
   const kpiScores = {};
   const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
   let total = 0;
-  for (let i = 1; i <= 6; i++) {
-    const val = Math.min(parseFloat(document.getElementById('m'+i)?.value)||0, MAX[i-1]);
-    kpiScores[kpiNames[i-1]] = Math.round(val * 100) / 100;
+  for (let i = 0; i < 6; i++) {
+    const val = Math.min(kpiVals[i] || 0, MAX[i]);
+    kpiScores[kpiNames[i]] = Math.round(val * 100) / 100;
     total += val;
   }
   total = Math.round(total * 10) / 10;
