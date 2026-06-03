@@ -140,6 +140,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <option value="director">Director</option>
       <option value="ceo">CEO</option>
       <option value="training">Admin</option>
+      <option value="maintenance">Maintenance Team</option>
     </select>
 
     <div class="pin-row" id="pinRow">
@@ -327,6 +328,7 @@ function doLogin() {
   document.getElementById('logoutBtn').style.display = 'block';
 
   const staffRoles = ['kic','oic'];
+  const maintTeamRoles = ['maintenance'];
   if (staffRoles.includes(role)) {
     document.getElementById('staffScreen').style.display = 'block';
     document.getElementById('appScreen').style.display = 'none';
