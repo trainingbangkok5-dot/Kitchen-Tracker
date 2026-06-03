@@ -160,6 +160,34 @@ input.outlet-input:focus{outline:none;border-color:#7F1D1D}
   </div>
 </div>
 
+<!-- SECTION 3b: Internal Audit Tracker -->
+<div class="section">
+  <div class="section-title">Area Chef Outlet Wise Internal Audit</div>
+  <div class="section-body">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748B;margin-bottom:10px;">
+      <span>Enter actual audit result per outlet</span>
+      <span>Max KPI Weight: <strong style="color:#7F1D1D">10 pts</strong></span>
+    </div>
+    <table class="t" id="audit-table">
+      <tr>
+        <th style="width:50%">Outlet</th>
+        <th style="text-align:center">Actual Score</th>
+        <th style="text-align:center">Max</th>
+      </tr>
+    </table>
+    <div style="margin-top:6px">
+      <button onclick="addAuditRow()" style="width:100%;padding:8px;border:1.5px dashed #CBD5E1;background:none;border-radius:8px;color:#64748B;font-size:12px;cursor:pointer;">+ Add Outlet</button>
+    </div>
+    <table class="t" style="margin-top:8px">
+      <tr class="total-row">
+        <td><strong>Average Score</strong></td>
+        <td style="text-align:center" id="audit-avg-score">—</td>
+        <td style="text-align:center">10</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
 <!-- SECTION 4: Regional Dashboard -->
 <div class="section">
   <div class="section-title">Regional Dashboard — Overall KPI Score</div>
@@ -179,10 +207,7 @@ input.outlet-input:focus{outline:none;border-color:#7F1D1D}
       <tr><th>Core Performance Pillar</th><th style="text-align:center">Max</th><th style="text-align:center">Baseline</th><th style="text-align:center">Score</th></tr>
       <tr><td><div class="lbl">Outlet Food Cost Optimization</div></td><td style="text-align:center">30</td><td style="text-align:center">27</td><td style="text-align:center"><span class="pill r" id="d-p1">0.0</span></td></tr>
       <tr><td><div class="lbl">Kitchen Incharge Accountability</div></td><td style="text-align:center">25</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p2">0.0</span></td></tr>
-      <tr><td><div class="lbl">Staff Technical Proficiency</div><div class="desc">Regional training tracker logs</div></td><td style="text-align:center">20</td><td style="text-align:center">18</td><td style="text-align:center"><input class="si" id="m3" type="number" min="0" max="20" step="0.1" placeholder="0" oninput="kpiVals[2]=Math.min(parseFloat(this.value)||0,20);calcAll()"></td></tr>
-      <tr><td><div class="lbl">Web App Data Integrity</div><div class="desc">Weekly field validation logs</div></td><td style="text-align:center">10</td><td style="text-align:center">13.5</td><td style="text-align:center"><input class="si" id="m4" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="kpiVals[3]=Math.min(parseFloat(this.value)||0,10);calcAll()"></td></tr>
-      <tr><td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td><td style="text-align:center">10</td><td style="text-align:center">4</td><td style="text-align:center"><input class="si" id="m5" type="number" min="0" max="10" step="0.1" placeholder="0" oninput="kpiVals[4]=Math.min(parseFloat(this.value)||0,10);calcAll()"></td></tr>
-      <tr><td><div class="lbl">Asset Care & Preventive Maintenance</div><div class="desc">Bi-weekly facility maintenance reports</div></td><td style="text-align:center">5</td><td style="text-align:center">4.5</td><td style="text-align:center"><input class="si" id="m6" type="number" min="0" max="5" step="0.1" placeholder="0" oninput="kpiVals[5]=Math.min(parseFloat(this.value)||0,5);calcAll()"></td></tr>
+      <tr><td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td><td style="text-align:center">10</td><td style="text-align:center">4</td><td style="text-align:center"><span class="pill r" id="d-p5">0.0</span><div style="font-size:9px;color:#94A3B8;margin-top:2px;">Auto from Audit Tracker</div></td></tr>
       <tr class="total-row"><td>OVERALL AREA CHEF KPI SCORE</td><td style="text-align:center">100</td><td style="text-align:center">78.2</td><td style="text-align:center"><span class="pill r" id="d-total2">0.0</span></td></tr>
     </table>
 
@@ -380,6 +405,48 @@ function fcScore(fc) {
   return {score: Math.round(score * 100) / 100, status, cls};
 }
 
+// ── Internal Audit Tracker ──────────────────────────────────
+let auditData = [
+  {outlet:'', score:''},
+  {outlet:'', score:''},
+  {outlet:'', score:''},
+  {outlet:'', score:''},
+];
+
+function renderAudit() {
+  const tbody = document.getElementById('audit-table');
+  while (tbody.rows.length > 1) tbody.deleteRow(1);
+  auditData.forEach((r, i) => {
+    const tr = tbody.insertRow();
+    tr.innerHTML =
+      '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="auditData[' + i + '].outlet=this.value" style="width:100%"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="10" step="0.1" placeholder="0" value="' + r.score + '" oninput="auditData[' + i + '].score=this.value;calcAuditAvg()" style="width:80px;font-size:13px"></td>' +
+      '<td style="text-align:center;color:#64748B">10</td>';
+  });
+  calcAuditAvg();
+}
+
+function addAuditRow() {
+  auditData.push({outlet:'', score:''});
+  renderAudit();
+}
+
+function calcAuditAvg() {
+  const valid = auditData.filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
+  if (!valid.length) {
+    document.getElementById('audit-avg-score').textContent = '—';
+    return;
+  }
+  const avg = valid.map(r => parseFloat(r.score)).reduce((a,b) => a+b, 0) / valid.length;
+  const avgVal = Math.min(Math.round(avg * 100) / 100, 10);
+  document.getElementById('audit-avg-score').textContent = avgVal.toFixed(2) + ' pts';
+  // Reflect to Regional Dashboard
+  kpiVals[4] = avgVal;
+  const dp5 = document.getElementById('d-p5');
+  if (dp5) { dp5.textContent = avgVal.toFixed(1); dp5.className = 'pill ' + (avgVal>=9?'g':avgVal>=7?'y':'r'); }
+  calcAll();
+}
+
 function renderFC() {
   const tbody = document.getElementById('fc-rows');
   tbody.innerHTML = '';
@@ -400,6 +467,7 @@ function renderFC() {
 function addFC() {
   fcData.push({outlet:'', fc:''});
   renderFC();
+renderAudit();
 }
 
 function calcFCAvg() {
