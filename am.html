@@ -423,6 +423,8 @@ function renderFC() {
 }
 
 function updateFCRow(i) {
+  const row = document.getElementById('fc-row-' + i);
+  if (row) { const inp = row.querySelectorAll('input'); if (inp[1]) fcData[i].fc = inp[1].value; }
   const res = fcScore(fcData[i].fc);
   const scoreEl  = document.getElementById('fc-score-'  + i);
   const statusEl = document.getElementById('fc-status-' + i);
@@ -509,8 +511,8 @@ function renderSales() {
     const {achPct, score, status, cls} = calcSalesRow(i);
     tr.innerHTML =
       '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="salesData[' + i + '].outlet=this.value" style="width:100%"></td>' +
-      '<td style="text-align:center"><input class="si-sm" type="number" min="0" step="100" placeholder="0" value="' + r.target + '" oninput="salesData[' + i + '].target=this.value;updateSalesRow(' + i + ')" style="width:80px;font-size:12px"></td>' +
-      '<td style="text-align:center"><input class="si-sm" type="number" min="0" step="100" placeholder="0" value="' + r.actual + '" oninput="salesData[' + i + '].actual=this.value;updateSalesRow(' + i + ')" style="width:80px;font-size:12px"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" step="100" placeholder="0" value="' + r.target + '" oninput="setSalesData(' + i + ',\'target\',this.value)" style="width:80px;font-size:12px"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" step="100" placeholder="0" value="' + r.actual + '" oninput="setSalesData(' + i + ',\'actual\',this.value)" style="width:80px;font-size:12px"></td>' +
       '<td style="text-align:center;font-weight:700" id="sales-pct-' + i + '">' + (achPct !== null ? achPct.toFixed(1) + '%' : '—') + '</td>' +
       '<td style="text-align:center" id="sales-status-' + i + '">' + (cls ? '<span class="pill ' + cls + '">' + status + '</span>' : '—') + '</td>';
     tbody.appendChild(tr);
@@ -538,13 +540,18 @@ function updateSalesRow(i) {
   calcSalesAvg();
 }
 
+function setSalesData(i, field, val) {
+  salesData[i][field] = val;
+  updateSalesRow(i);
+}
+
 function addSales() {
   salesData.push({outlet:'', target:'', actual:''});
   renderSales();
 }
 
 function calcSalesAvg() {
-  const valid = salesData.filter(r => r.target !== '' && r.actual !== '' && !isNaN(parseFloat(r.target)) && parseFloat(r.target) > 0);
+  const valid = salesData.filter(r => r.target !== '' && r.actual !== '' && !isNaN(parseFloat(r.target)) && parseFloat(r.target) > 0 && !isNaN(parseFloat(r.actual)));
   if (!valid.length) {
     document.getElementById('sales-avg-pct').textContent = '—';
     document.getElementById('sales-avg-score').textContent = '—';
