@@ -329,8 +329,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <button onclick="exportFOHDetailPDF()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">📄 PDF</button>
+          <button id="fohEditBtn" onclick="toggleFOHEditMode()" style="display:none;background:#E87722;border:none;color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">✏️ Edit / Overwrite</button>
           <button onclick="deleteFOHRecord()" style="background:#B91C1C;border:none;color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">🗑 Delete</button>
-          <button onclick="document.getElementById('fohDetailModal').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 6px;">✕</button>
+          <button onclick="closeFOHDetailModal()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 6px;">✕</button>
         </div>
       </div>
       <div id="fohDetailBody" style="padding:16px;"></div>
@@ -830,9 +831,9 @@ function selectRole(btn, role) {
   selectedRoleBtn = btn;
   currentRole = role;
 
-  // Outlet dropdown — only for KIC
+  // Outlet dropdown — for KIC, OIC and Maint. Supervisor
   const outletSel = document.getElementById('outletSel');
-  if (role === 'kic') {
+  if (role === 'kic' || role === 'oic' || role === 'maintsupervisor') {
     outletSel.classList.add('show');
   } else {
     outletSel.classList.remove('show');
@@ -859,7 +860,7 @@ function selectRole(btn, role) {
 function checkLoginReady() {
   const name = document.getElementById('loginName').value.trim();
   // Outlet only needed for KIC
-  const outletNeeded = currentRole === 'kic';
+  const outletNeeded = currentRole === 'kic' || currentRole === 'oic' || currentRole === 'maintsupervisor';
   const outletOk = !outletNeeded || document.getElementById('outletSel').value;
   // PIN needed for management roles
   const pinNeeded = FULL_ACCESS.includes(currentRole);
@@ -3783,6 +3784,11 @@ function openFOHDetail(idx) {
     </div>
   `;
 
+  // Show Edit button only for roles allowed to overwrite FOH records
+  const fohCanEdit = ['oic','areamanager','training','operations','director','ceo'].includes(currentRole);
+  const fohEditBtn = document.getElementById('fohEditBtn');
+  if (fohEditBtn) fohEditBtn.style.display = fohCanEdit ? 'block' : 'none';
+
   document.getElementById('fohDetailModal').style.display = 'flex';
 
   // Fetch full submissions from FOH Firebase to render checklist
@@ -3879,7 +3885,8 @@ function openFOHDetail(idx) {
             'Auditor':'background:#EDE9FE;color:#5B21B6',
           };
           const ownerStyle = ownerCols[t.owner] || 'background:#F3F4F6;color:#374151';
-          html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;">
+          const taskKey = t._key || '';
+          html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${taskKey}">
             <div style="flex:1;">
               ${t.owner ? `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;${ownerStyle};white-space:nowrap;">${t.owner}</span>` : ''}
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.task || t.text || '—'}</div>
@@ -3890,7 +3897,14 @@ function openFOHDetail(idx) {
                   : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
                 : ''}
             </div>
-            <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+            <div class="foh-yn-display" style="flex-shrink:0;">
+              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+            </div>
+            <div class="foh-yn-edit" style="display:none;gap:4px;flex-shrink:0;">
+              <button onclick="setFOHTaskYN(this,'yes')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
+              <button onclick="setFOHTaskYN(this,'no')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
+              <button onclick="setFOHTaskYN(this,'na')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
+            </div>
           </div>`;
         });
       });
@@ -3939,6 +3953,135 @@ function deleteFOHRecord() {
   const staff = _fohFiltered[_fohDetailIdx];
   if (!staff) return;
   deleteFOHStaff(staff.staffName, staff.role, staff.week);
+}
+
+function closeFOHDetailModal() {
+  _fohEditMode = false;
+  _fohEditChanges = {};
+  const btn = document.getElementById('fohEditBtn');
+  if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
+  document.getElementById('fohDetailModal').style.display = 'none';
+}
+
+// ── FOH Task YN setter ───────────────────────────────────────
+function setFOHTaskYN(btn, val) {
+  const row = btn.closest('[data-fohtaskkey]');
+  if (!row) return;
+  const taskKey = row.getAttribute('data-fohtaskkey');
+  _fohEditChanges[taskKey] = val;
+  // Update button styles
+  const btns = row.querySelectorAll('.foh-yn-edit button');
+  const labels = ['yes','no','na'];
+  const activeBg = ['#15803D','#B91C1C','#374151'];
+  btns.forEach((b, i) => {
+    b.style.background = labels[i] === val ? activeBg[i] : '#E5E7EB';
+    b.style.color = labels[i] === val ? '#fff' : '#374151';
+  });
+}
+
+// ── FOH Overwrite / Edit Mode ─────────────────────────────────
+let _fohEditMode = false;
+let _fohEditChanges = {}; // taskKey -> new yn value
+
+function toggleFOHEditMode() {
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (!staff) return;
+
+  if (_fohEditMode) {
+    // Already in edit mode — save
+    saveFOHOverwrite(staff);
+    return;
+  }
+
+  _fohEditMode = true;
+  _fohEditChanges = {};
+
+  const btn = document.getElementById('fohEditBtn');
+  if (btn) { btn.textContent = '💾 Save Changes'; btn.style.background = '#16A34A'; }
+
+  const area = document.getElementById('fohChecklistArea');
+  if (!area) return;
+
+  // Show yn edit buttons, hide display badges
+  area.querySelectorAll('.foh-yn-display').forEach(el => el.style.display = 'none');
+  area.querySelectorAll('.foh-yn-edit').forEach(el => el.style.display = 'flex');
+
+  // Add cancel button
+  let cancelBtn = document.getElementById('fohCancelEditBtn');
+  if (!cancelBtn) {
+    cancelBtn = document.createElement('button');
+    cancelBtn.id = 'fohCancelEditBtn';
+    cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
+    cancelBtn.textContent = '✕ Cancel Edit';
+    cancelBtn.onclick = () => {
+      _fohEditMode = false; _fohEditChanges = {};
+      const b = document.getElementById('fohEditBtn');
+      if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
+      openFOHDetail(_fohDetailIdx);
+    };
+    area.appendChild(cancelBtn);
+  }
+}
+
+async function saveFOHOverwrite(staff) {
+  if (!Object.keys(_fohEditChanges).length) {
+    showToast('No changes made', 'warn');
+    _fohEditMode = false;
+    const btn = document.getElementById('fohEditBtn');
+    if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
+    return;
+  }
+  if (!fohDb) { alert('FOH Firebase not ready.'); return; }
+
+  // Find all Firebase keys for this staff+role+week
+  const snap = await fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value');
+  if (!snap.exists()) { alert('Submissions not found.'); return; }
+
+  const updates = {};
+  snap.forEach(child => {
+    const sub = child.val();
+    if (sub.role !== staff.role || sub.week !== staff.week) return;
+    // Apply yn changes to matching task keys
+    Object.entries(_fohEditChanges).forEach(([taskKey, yn]) => {
+      if (sub.taskData && sub.taskData[taskKey] !== undefined) {
+        updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
+      }
+    });
+    // Recalculate score for this submission
+    if (sub.taskData) {
+      const updatedTasks = {...sub.taskData};
+      Object.entries(_fohEditChanges).forEach(([k, yn]) => {
+        if (updatedTasks[k]) updatedTasks[k] = {...updatedTasks[k], yn};
+      });
+      let yes = 0, total = 0;
+      Object.values(updatedTasks).forEach(t => {
+        if (t.yn && t.yn !== 'na') { total++; if (t.yn === 'yes') yes++; }
+      });
+      const newPct = total > 0 ? Math.round((yes/total)*100) : 0;
+      updates['submissions/' + child.key + '/overallPct'] = newPct;
+      updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
+      updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
+      updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
+    }
+  });
+
+  if (!Object.keys(updates).length) { showToast('No matching tasks found', 'warn'); return; }
+
+  try {
+    await fohDb.ref().update(updates);
+    _fohEditMode = false; _fohEditChanges = {};
+    const btn = document.getElementById('fohEditBtn');
+    if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
+    showToast('Changes saved ✓', 'ok');
+    // Reload FOH data and reopen detail
+    await new Promise(resolve => {
+      loadFOHData();
+      setTimeout(resolve, 800);
+    });
+    openFOHDetail(_fohDetailIdx);
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+  }
 }
 
 async function exportFOHDetailPDF() {
@@ -4029,6 +4172,19 @@ async function exportFOHDetailPDF() {
           });
         });
 
+        // Pre-fetch all db: photos from fohDb before building PDF
+        const allFohTasks = Object.values(byDay).flat();
+        await Promise.all(allFohTasks
+          .filter(t => t.photoUrl && t.photoUrl.startsWith('db:'))
+          .map(async t => {
+            try {
+              const pSnap = await fohDb.ref('photos/' + t.photoUrl.slice(3)).once('value');
+              const dataUrl = pSnap.val();
+              if (dataUrl && dataUrl.startsWith('data:')) t.photoUrl = dataUrl;
+            } catch(e) {}
+          })
+        );
+
         if (Object.keys(byDay).length) {
           if (y > H-30) { doc.addPage(); y=16; }
           doc.setFillColor(123,45,66);
@@ -4096,6 +4252,28 @@ async function exportFOHDetailPDF() {
                 margin:{left:14,right:14},
               });
               y = doc.lastAutoTable.finalY + 2;
+
+              // Render photos for tasks in this section
+              const photoTasksFoh = secTasks.filter(t => t.photoUrl && t.photoUrl.startsWith('data:'));
+              if (photoTasksFoh.length > 0) {
+                if (y > H - 50) { doc.addPage(); y = 16; }
+                doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
+                doc.text('Photo Evidence:', 14, y + 4); y += 9;
+                let px = 14;
+                for (const t of photoTasksFoh) {
+                  try {
+                    if (y > H - 50) { doc.addPage(); y = 16; px = 14; }
+                    const fmt = t.photoUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                    doc.addImage(t.photoUrl, fmt, px, y, 42, 32);
+                    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+                    const label = (t.task || t.text || '').substring(0, 28);
+                    doc.text(label, px, y + 35);
+                    px += 48;
+                    if (px > W - 48) { px = 14; y += 42; }
+                  } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
+                }
+                y += 42;
+              }
             }
             y += 4;
           }
