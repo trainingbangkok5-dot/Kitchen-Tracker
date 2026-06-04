@@ -260,8 +260,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
-    <div class="tab" id="tabBOH" onclick="showTab(this,'boh')">🍳 BOH</div>
-    <div class="tab" id="tabFOH" onclick="showTab(this,'foh')">🛎️ FOH</div>
+    <div class="tab" id="tabBOH" onclick="showTab(this,'boh')" style="display:none;">🍳 BOH</div>
+    <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
   </div>
 
@@ -992,7 +992,7 @@ function populateWeekFilter() {
   const options = getWeekOptions();
   sel.innerHTML = '<option value="all">📋 All Weeks</option>' +
     options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-  sel.value = getCurrentWeekStart();
+  sel.value = 'all'; // Default to all weeks so no data is hidden
 }
 
 function getSelectedWeek() {
@@ -1566,7 +1566,7 @@ function openMonthlyDetail(staffName, allSubs) {
           html += `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;">
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
-              <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
+              <div style="font-size:12px;font-weight:500;">${t.task||t.text||'—'}</div>
               ${t.photoUrl
                 ? t.photoUrl.startsWith('db:')
                   ? `<img data-dbref="${t.photoUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;display:none;">`
@@ -1810,12 +1810,10 @@ function openStaffDetail(s) {
   if (s.taskData && Object.keys(s.taskData).length > 0) {
     const byDay = {};
     // Only show tasks for the submitted day — not the full weekly dump
-    const submittedDay = s.day || 1;
     Object.entries(s.taskData).forEach(([k,t]) => {
       t.taskKey = k;
       const d = t.day||1;
-      // Filter to submitted day only
-      if (d !== submittedDay) return;
+      // Show all answered tasks
       if (!byDay[d]) byDay[d] = [];
       byDay[d].push(t);
     });
@@ -1838,7 +1836,7 @@ function openStaffDetail(s) {
       html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;">📅 ${daySubDate}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
-      html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim() || 'Tasks'}</div>`;
+      html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec || 'Tasks'}</div>`;
         secTasks.forEach((t,ti) => {
           const yn    = t.yn||'';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
