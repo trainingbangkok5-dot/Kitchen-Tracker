@@ -215,6 +215,16 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
 
 <!-- APP -->
 <div id="appScreen">
+  <!-- New Issues Alert (maintenance team only) -->
+  <div id="newIssuesAlert" style="display:none;background:#FEE2E2;border:1.5px solid #B91C1C;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:13px;font-weight:700;color:#B91C1C;" id="alertTitle">🔴 New Unassigned Issues!</div>
+      <button onclick="document.getElementById('newIssuesAlert').style.display='none'" style="background:none;border:none;color:#B91C1C;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div id="alertList" style="margin-bottom:10px;"></div>
+    <button onclick="showTab('tracker');document.getElementById('newIssuesAlert').style.display='none';" style="width:100%;padding:8px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">👀 View All Issues</button>
+  </div>
+
   <!-- Stats -->
   <div class="stats-grid">
     <div class="stat"><div class="stat-n" id="sTotal" style="color:#1A3C5E">0</div><div class="stat-l">Total Logged</div></div>
@@ -406,6 +416,8 @@ function doLogout() {
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('staffScreen').style.display = 'none';
   document.getElementById('logoutBtn').style.display = 'none';
+  document.title = 'Outlet Maintenance Master Log';
+  if (_autoRefreshTimer) { clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
   document.getElementById('loginName').value = '';
   document.getElementById('loginRole').value = '';
   document.getElementById('loginPin').value = '';
@@ -459,8 +471,16 @@ function optHtml(arr, selected) {
 }
 
 // ── Load Logs ────────────────────────────────────────────────
+let _autoRefreshTimer = null;
+
 function loadLogs() {
   if (!db) return;
+  // Auto-refresh every 5 minutes
+  if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+  _autoRefreshTimer = setInterval(() => {
+    if (currentRole) loadLogs();
+  }, 5 * 60 * 1000);
+
   db.ref('maintenanceLogs').on('value', snap => {
     allLogs = [];
     logCounter = 1001;
@@ -475,6 +495,7 @@ function loadLogs() {
     }
     updateStats();
     renderTable();
+    showNewIssuesAlert();
   });
 }
 
@@ -848,6 +869,71 @@ function updateAssigned(key, value) {
   db.ref('maintenanceLogs/' + key).update({assignedTo: value})
     .then(() => showToast('Assigned to ' + value + ' ✓', 'ok'))
     .catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
+// ── New Issues Alert ────────────────────────────────────────
+function showNewIssuesAlert() {
+  // Update browser tab badge for all roles
+  const pendingCount = allLogs.filter(l => l.status === 'Pending').length;
+  document.title = pendingCount > 0 ? '(' + pendingCount + ') Maintenance Log' : 'Outlet Maintenance Master Log';
+
+  // Only show alert for maintenance team
+  if (currentRole !== 'maintenance') return;
+
+  const unassigned = allLogs.filter(l => 
+    l.status === 'Pending' && (!l.assignedTo || l.assignedTo === 'Unassigned')
+  );
+  const assignedToMe = allLogs.filter(l =>
+    l.status === 'Pending' && l.assignedTo && 
+    l.assignedTo.toLowerCase() === currentName.toLowerCase()
+  );
+
+  const allAlert = [...new Map([...unassigned, ...assignedToMe].map(l => [l._key, l])).values()];
+
+  if (!allAlert.length) {
+    document.getElementById('newIssuesAlert').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('alertTitle').textContent = 
+    '🔴 ' + allAlert.length + ' Pending Issue' + (allAlert.length !== 1 ? 's' : '') + '!';
+
+  const priColors = {Urgent:'#B91C1C',High:'#D97706',Medium:'#0891B2',Low:'#15803D',Preventive:'#7C3AED'};
+
+  document.getElementById('alertList').innerHTML = allAlert.slice(0,5).map(l => {
+    const days = l.dateReported ? Math.floor((new Date() - new Date(l.dateReported)) / (1000*60*60*24)) : 0;
+    const color = priColors[l.priority] || '#64748B';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid #FECACA;">
+      <div>
+        <span style="font-size:11px;font-weight:700;color:#7F1D1D">${l.logId}</span>
+        <span style="font-size:11px;color:#475569;margin-left:6px">${l.outlet||'—'}</span>
+        ${l.assignedTo && l.assignedTo !== 'Unassigned' ? '<span style="font-size:10px;color:#15803D;margin-left:4px">→ '+l.assignedTo+'</span>' : '<span style="font-size:10px;color:#B91C1C;margin-left:4px">Unassigned</span>'}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;font-weight:700;color:${color}">${l.priority}</span>
+        <span style="font-size:10px;background:#FEF3C7;color:#D97706;padding:2px 6px;border-radius:10px;">${days}d</span>
+      </div>
+    </div>`;
+  }).join('') + (allAlert.length > 5 ? `<div style="font-size:11px;color:#B91C1C;text-align:center;margin-top:6px;">+${allAlert.length-5} more issues</div>` : '');
+
+  document.getElementById('newIssuesAlert').style.display = 'block';
+
+  // Play alert sound for maintenance team
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.15, 0.3].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.2);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.2);
+    });
+  } catch(e) {}
 }
 
 // ── Camera Helper — creates fresh input to force camera on iOS/Android ─────
