@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="application-name" content="Culex Kitchen">
+<script>
+(function() {
+  var v = '20260604310000';
+  var stored = localStorage.getItem('app_version');
+  if (stored !== v) {
+    // Clear ALL cached data on version update
+    Object.keys(localStorage).forEach(function(k) {
+      localStorage.removeItem(k);
+    });
+    localStorage.setItem('app_version', v);
+    if (location.search.indexOf('_reloaded') === -1) {
+      location.replace(location.pathname + '?_reloaded=1');
+    }
+  }
+})();
+</script>
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="20260604310000">
+<meta name="app-version" content="20260604310000">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1A3C5E">
+<meta name="format-detection" content="telephone=no">
+<title>Service Checklist</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#F8FAFC; color:#0F172A; padding-bottom:60px; -webkit-font-smoothing:antialiased; }
+.header { background:#1A3C5E; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
+.role-badge { display:inline-block; background:#2E6DA4; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
+.header h1 { color:#fff; font-size:17px; font-weight:700; }
+.header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:10px; }
+.info-field { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:7px 10px; }
+.info-field label { display:block; font-size:9px; color:rgba(255,255,255,0.55); font-weight:700; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
+.info-field input { background:transparent; border:none; outline:none; color:#fff; font-size:13px; font-weight:500; width:100%; -webkit-appearance:none; }
+.info-field input::placeholder { color:rgba(255,255,255,0.3); }
+.score-bar { background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+.score-track { flex:1; height:5px; background:#E2E8F0; border-radius:3px; overflow:hidden; }
+.score-fill { height:100%; border-radius:3px; background:#2E6DA4; transition:width 0.4s; }
+.score-pct { font-size:13px; font-weight:700; color:#1A3C5E; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
+.day-rail { background:#fff; border-bottom:1px solid #E2E8F0; padding:9px 14px; display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.day-rail::-webkit-scrollbar { display:none; }
+.day-pill { flex-shrink:0; padding:5px 14px; border-radius:20px; border:1.5px solid #E2E8F0; background:#fff; font-size:12px; font-weight:700; color:#64748B; cursor:pointer; white-space:nowrap; -webkit-appearance:none; transition:all 0.15s; }
+.day-pill.active { background:#1A3C5E; border-color:#1A3C5E; color:#fff; }
+.day-pill.done { border-color:#22C55E; color:#15803D; }
+.day-pill.done.active { background:#1A3C5E; color:#fff; }
+.day-pill.locked { opacity:0.35; cursor:not-allowed; }
+.content { padding:12px 16px; }
+.section-hdr { background:#2E6DA4; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
+.task-card { background:#fff; border:1px solid #E2E8F0; border-top:none; padding:12px 13px; }
+.task-card:last-child { border-radius:0 0 10px 10px; }
+.task-card.locked-card { opacity:0.7; pointer-events:none; }
+.task-card.locked-card .photo-btn { pointer-events:all; opacity:1; }
+.task-top { display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; }
+.owner-tag { font-size:8px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; padding:2px 6px; border-radius:4px; white-space:nowrap; margin-top:2px; flex-shrink:0; }
+.ot-self { background:#FEF3C7; color:#92400E; }
+.ot-verify { background:#DBEAFE; color:#1E40AF; }
+.ot-monitor { background:#D1FAE5; color:#065F46; }
+.ot-record { background:#EDE9FE; color:#5B21B6; }
+.ot-auditor { background:#FCE7F3; color:#9D174D; }
+.task-text { font-size:13px; font-weight:500; line-height:1.4; flex:1; }
+.yn-row { display:flex; gap:6px; }
+.yn { flex:1; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
+.yn:active { transform:scale(0.96); }
+.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
+.yn.no.on  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
+.yn.na.on  { background:#F3F4F6; border-color:#9CA3AF; color:#374151; }
+.photo-row { margin-top:9px; display:flex; align-items:center; gap:8px; }
+.photo-btn { display:flex; align-items:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; }
+.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
+.photo-btn:active { transform:scale(0.97); }
+.photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
+.status-card { margin:16px 0 0; border-radius:12px; padding:16px; text-align:center; border:2px solid #E2E8F0; background:#fff; }
+.status-card.pass { background:#F0FDF4; border-color:#22C55E; }
+.status-card.fail { background:#FEF2F2; border-color:#EF4444; }
+.sc-icon { font-size:28px; margin-bottom:5px; }
+.sc-title { font-size:16px; font-weight:700; margin-bottom:3px; }
+.sc-score { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; margin:6px 0; }
+.sc-sub { font-size:12px; color:#64748B; }
+.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#1A3C5E; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
+.submit-btn:active { opacity:0.85; }
+.submit-btn:disabled { background:#94A3B8; cursor:not-allowed; }
+
+.time-stamp-card { background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:11px 14px; margin-top:10px; display:flex; gap:14px; }
+.ts-block { flex:1; text-align:center; }
+.ts-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#94A3B8; margin-bottom:3px; }
+.ts-value { font-size:13px; font-weight:700; color:#0F172A; }
+.ts-date  { font-size:10px; color:#64748B; margin-top:1px; }
+.ts-divider { width:1px; background:#E2E8F0; flex-shrink:0; }
+
+.synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
+.comment-field { width:100%; margin-top:6px; padding:6px 10px; border:1px solid #E0DDD4; border-radius:8px; font-size:12px; color:#374151; background:#F8FAFC; resize:none; font-family:inherit; }
+.comment-field:focus { outline:none; border-color:#94A3B8; background:#fff; }
+.locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
+.closing-locked-banner { background:#F1F5F9; border:1.5px dashed #94A3B8; border-radius:10px; padding:14px; text-align:center; margin-top:16px; }
+.closing-locked-banner .cl-icon { font-size:28px; margin-bottom:4px; }
+.closing-locked-banner .cl-text { font-size:13px; font-weight:600; color:#475569; }
+.closing-locked-banner .cl-sub { font-size:11px; color:#94A3B8; margin-top:3px; }
+.shift-active { background:rgba(255,255,255,0.95) !important; color:#1A3C5E !important; border-color:#fff !important; }
+.shift-screen { padding:24px 16px; text-align:center; }
+.shift-screen h2 { font-size:16px; font-weight:700; color:#1A3C5E; margin-bottom:6px; }
+.shift-screen p { font-size:13px; color:#64748B; margin-bottom:20px; }
+.shift-btn-big { display:block; width:100%; padding:18px; border-radius:14px; border:none; font-size:16px; font-weight:700; cursor:pointer; margin-bottom:12px; }
+.shift-btn-opening { background:linear-gradient(135deg,#1A3C5E,#2E6DA4); color:#fff; }
+.shift-btn-closing { background:linear-gradient(135deg,#1A4731,#16A34A); color:#fff; }
+.shift-btn-closing.locked { background:#E2E8F0; color:#94A3B8; cursor:not-allowed; }
+.readonly-section { opacity:0.55; pointer-events:none; }
+.readonly-badge { display:inline-block; background:#E2E8F0; color:#64748B; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:middle; }
+/* OVERWRITE PANEL (KIC & Area Chef only) */
+.overwrite-panel { background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:10px; padding:12px 14px; margin-top:14px; }
+.overwrite-title { font-size:12px; font-weight:700; color:#B91C1C; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.overwrite-input { width:100%; padding:8px 11px; border:1.5px solid #FCA5A5; border-radius:8px; font-size:13px; background:#fff; outline:none; -webkit-appearance:none; margin-bottom:8px; }
+.overwrite-input:focus { border-color:#EF4444; }
+.overwrite-btn { width:100%; padding:10px; background:#EF4444; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; -webkit-appearance:none; }
+/* PHOTO MODAL */
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:999; align-items:flex-end; justify-content:center; }
+.modal-bg.open { display:flex; }
+.modal-box { background:#fff; border-radius:20px 20px 0 0; padding:22px 18px 36px; width:100%; max-width:440px; }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:4px; }
+.modal-sub { font-size:12px; color:#64748B; margin-bottom:18px; }
+.mbtn { display:block; width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; -webkit-appearance:none; }
+.mbtn-cam { background:#1A3C5E; color:#fff; }
+.mbtn-gal { background:#EFF6FF; color:#2E6DA4; }
+.mbtn-cancel { background:#F8FAFC; color:#64748B; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<div class="header">
+  <div class="role-badge">🛎️ Service</div>
+  <h1>6-Day Incentive Checklist</h1>
+  <div class="header-sub">Complete tasks • Take photos • Submit each day</div>
+  <div class="info-grid">
+    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
+    <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;cursor:pointer;">
+<option value="" style="color:#000">Select outlet...</option>
+<optgroup label="Little Bangkok" style="color:#000">
+<option value="LB DSO" style="color:#000">LB DSO</option>
+<option value="LB Tower" style="color:#000">LB Tower</option>
+<option value="LB Hamra" style="color:#000">LB Hamra</option>
+<option value="LB JLT" style="color:#000">LB JLT</option>
+<option value="LB OM" style="color:#000">LB OM</option>
+<option value="LB DHE" style="color:#000">LB DHE</option>
+<option value="LB MTC" style="color:#000">LB MTC</option>
+</optgroup>
+<optgroup label="Superbowl" style="color:#000">
+<option value="SB Deira" style="color:#000">SB Deira</option>
+<option value="SB DG" style="color:#000">SB DG</option>
+</optgroup>
+<optgroup label="The Red Door" style="color:#000">
+<option value="The Red Door" style="color:#000">The Red Door</option>
+</optgroup>
+</select></div>
+    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Week starting date"></div>
+    <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
+      <label onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;font-weight:400;user-select:none;" title="">⚙</label>
+    </div>
+    </div>
+  <!-- Shift selector bar -->
+  <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
+    <button id="btnOpenShift" onclick="selectShift('opening')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌅 Opening Shift</button>
+    <button id="btnCloseShift" onclick="selectShift('closing')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌙 Closing Shift</button>
+  </div>
+<script>function selectShift(s){window._pendingShift=s;if(window._selectShiftReady)window._selectShiftReady(s);}</script>
+</div>
+<div class="score-bar">
+  <span style="font-size:12px;color:#64748B;font-weight:500;">Today's score</span>
+  <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
+  <span class="score-pct" id="scorePct">0%</span>
+</div>
+
+<div class="content" id="mainContent"></div>
+
+<div class="modal-bg" id="photoModal">
+  <div class="modal-box">
+    <div class="modal-title">📷 Photo Proof</div>
+    <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
+    <label class="mbtn mbtn-cam" for="camInput">📸 Take Photo Now</label>
+    <label class="mbtn mbtn-gal" for="galInput">🖼 Choose from Gallery</label>
+    <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
+  </div>
+</div>
+<input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;" onchange="if(this.files&&this.files[0])handlePhotoFile(this.files[0])">
+<input type="file" id="galInput" accept="image/*" style="display:none;" onchange="if(this.files&&this.files[0])handlePhotoFile(this.files[0])">
+
+<script>
+
+// ══ FIREBASE CONFIG ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDxc1zrvdv65kIzfP63CId2MdcoOCmIQPU",
+  authDomain:        "culex-foh.firebaseapp.com",
+  databaseURL:       "https://culex-foh-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "culex-foh",
+  storageBucket:     "culex-foh.firebasestorage.app",
+  messagingSenderId: "571343979493",
+  appId:             "1:571343979493:web:ae4a6f75106bc87a1be50c"
+};
+// ══════════════════════════════════════════════════════════════
+
+// Update photo ref in existing Firebase submission after async upload completes
+async function updatePhotoInSubmission(staffName, taskId, dbRef) {
+  if (!_db || !staffName) return;
+  try {
+    const key = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+    // Find the most recent submission for this staff+role+week and update the task photoUrl
+    const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === ROLE && sub.week === getWeekStart() && sub.taskData) {
+        // Find matching task key (any day)
+        Object.keys(sub.taskData).forEach(k => {
+          if (k.endsWith('_' + taskId)) {
+            updates['submissions/' + child.key + '/taskData/' + k + '/photoUrl'] = dbRef;
+          }
+        });
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      await _db.ref().update(updates);
+    }
+  } catch(e) { console.warn('updatePhotoInSubmission failed:', e); }
+}
+
+// Init Firebase — wait for SDK to be ready
+let _db = null;
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') {
+      setTimeout(initFirebase, 100); return;
+    }
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    _db = firebase.database();
+    console.log('Firebase ready ✓');
+  } catch(e) {
+    console.error('Firebase init error:', e);
+  }
+}
+initFirebase();
+
+function pushToFirebase(record) {
+  if (!_db) { console.warn('Firebase not ready'); setTimeout(()=>pushToFirebase(record), 500); return; }
+  try {
+    const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.role
+              + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + Date.now();
+    // Strip raw base64 photos from taskData before pushing — too large for Firebase
+    // Photos are stored separately under photos/ node
+    const cleanRecord = { ...record };
+    if (cleanRecord.taskData) {
+      const cleanTasks = {};
+      Object.entries(cleanRecord.taskData).forEach(([k, t]) => {
+        cleanTasks[k] = { ...t };
+        if (cleanTasks[k].photoUrl && cleanTasks[k].photoUrl.startsWith('data:')) {
+          cleanTasks[k].photoUrl = ''; // strip base64, photo is in photos/ node
+        }
+      });
+      cleanRecord.taskData = cleanTasks;
+    }
+    _db.ref('submissions/' + key).set({
+      ...cleanRecord,
+      lastUpdated: new Date().toISOString()
+    }).then(() => {
+      showToast('✓ Synced to dashboard', 'ok');
+    }).catch(e => {
+      console.warn('Firebase write failed:', e);
+      showToast('⚠ Sync failed: ' + e.message, 'error');
+    });
+  } catch(e) {
+    console.warn('Firebase error:', e);
+    showToast('⚠ Firebase error: ' + e.message, 'error');
+  }
+}
+
+
+async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
+  try {
+    if (!_db || !dataUrl) return null;
+    // Compress photo before saving to Realtime Database
+    const compressed = await compressToSize(dataUrl, 150); // max 150KB
+    const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + ROLE + '_'
+              + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+    const photoKey = `d${day}_${taskId}`;
+    await _db.ref(`photos/${key}/${photoKey}`).set(compressed);
+    // Return a special marker URL so we know photo is in database
+    return `db:${key}/${photoKey}`;
+  } catch(e) {
+    console.warn('Photo save failed:', e);
+    return null;
+  }
+}
+
+// Get the predictable db: photo ref for a task (matches uploadPhotoToFirebase key)
+function getPhotoDbRef(staffName, day, taskId) {
+  const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+            + '_' + ROLE + '_'
+            + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+  return 'db:' + key + '/d' + day + '_' + taskId;
+}
+
+// Compress image to target size in KB
+function compressToSize(dataUrl, maxKB) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      // Scale down if too large
+      const maxDim = 800;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim/w); w = maxDim; }
+        else { w = Math.round(w * maxDim/h); h = maxDim; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      // Try quality 0.7 first
+      let result = canvas.toDataURL('image/jpeg', 0.7);
+      if (result.length > maxKB * 1024 * 1.37) {
+        result = canvas.toDataURL('image/jpeg', 0.4);
+      }
+      resolve(result);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function pushAuditToFirebase(record) {
+  try {
+    const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.auditType
+              + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+    _db.ref('audits/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).catch(e => console.warn('Audit write failed:', e));
+  } catch(e) { console.warn('Firebase audit error:', e); }
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// SHARED DATABASE — all checklists write to same localStorage key
+// so master dashboard can read all submissions
+// ══════════════════════════════════════════════════════════════
+const SHARED_DB_KEY = 'KIC_SHARED_DB_V2';
+
+function loadSharedDB() {
+  try { return JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || { submissions: [] }; }
+  catch(e) { return { submissions: [] }; }
+}
+function saveSharedDB(db) {
+  try { localStorage.setItem(SHARED_DB_KEY, JSON.stringify(db)); } catch(e) {}
+}
+
+function pushToMasterDashboard(record) {
+  // record: { staffName, role, outlet, week, day, overallPct, qualified, submittedAt, verifiedBy }
+  const db = loadSharedDB();
+  // Find existing entry for this staff + week and update, or add new
+  const idx = db.submissions.findIndex(
+    s => s.staffName === record.staffName &&
+         s.role === record.role &&
+         s.week === record.week &&
+         s.outlet === record.outlet
+  );
+  if (idx >= 0) {
+    db.submissions[idx] = { ...db.submissions[idx], ...record };
+  } else {
+    db.submissions.push(record);
+  }
+  saveSharedDB(db);
+}
+
+// ── iOS Safari fix: use blob URL for camera capture ──────────────────────────
+function iosPhotoFix(inputEl, onDataUrl) {
+  // iOS Safari needs special handling — no capture attribute workaround
+  inputEl.removeAttribute('capture');
+  inputEl.setAttribute('accept', 'image/*');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    // On iOS we add capture back AFTER a small delay so Safari registers it
+    setTimeout(() => inputEl.setAttribute('capture', 'environment'), 50);
+  }
+}
+
+function compressAndReturn(file, callback) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX = 600;
+      let w = img.width, h = img.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = function() { callback(ev.target.result); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Day unlock logic — only unlock next day, not future days ─────────────────
+function getTodayDayNumber(weekStartStr) {
+  if (!weekStartStr) return 1;
+  try {
+    // Use local calendar date (midnight-based, not 24hr rolling)
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + 
+      String(now.getMonth()+1).padStart(2,'0') + '-' + 
+      String(now.getDate()).padStart(2,'0');
+    const today = new Date(todayStr + 'T00:00:00');
+    const start = new Date(weekStartStr + 'T00:00:00');
+    const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
+    return Math.min(Math.max(diff + 1, 1), 6);
+  } catch(e) { return 1; }
+}
+
+function isDayUnlocked(dayNum, weekStartStr) {
+  if (!weekStartStr) return dayNum === 1; // allow day 1 even if week not set yet
+  return dayNum <= getTodayDayNumber(weekStartStr);
+}
+
+function showToast(msg, type) {
+  let t = document.getElementById('_toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 18px;border-radius:30px;font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;z-index:9999;white-space:nowrap;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#EF4444' : type === 'warn' ? '#F59E0B' : '#0F172A';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 2800);
+}
+
+
+
+// ── Auto-reset: detect new week and start fresh cycle ────────
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  // Sunday (0) = day 7 of current week, go back 6 days to Monday
+  // Monday (1) = day 1, no change
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+
+// ── Dubai Time (UTC+4) — defined first ───────────────────────
+function getDubaiDate() {
+  const now = new Date();
+  const dubaiOffset = 4 * 60;
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (dubaiOffset * 60000));
+}
+function getDubaiDateStr() {
+  const d = getDubaiDate();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function getDubaiHour() { return getDubaiDate().getHours(); }
+// ─────────────────────────────────────────────────────────────
+function getCurrentWeekStart() {
+  return getDubaiDateStr(); // Always Dubai date
+}
+
+function checkAutoReset() {
+  const weekField = document.getElementById('fWeek');
+  if (!weekField) return;
+  // Always force today's Dubai date
+  const dubaiToday = getDubaiDateStr();
+  weekField.value = dubaiToday;
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
+  buildDayRail();
+  renderDay();
+}
+
+
+// ── Role config ───────────────────────────────────────────────
+const ROLE       = 'service';
+
+// ── Clear all local data ──────────────────────────────────────
+function clearAllData() {
+  const pin = prompt('Enter Training PIN to reset checklist:');
+  if (pin === null) return; // cancelled
+  if (pin !== 'TRAIN2025') {
+    showToast('Incorrect PIN — reset not allowed 🔒', 'error');
+    return;
+  }
+  if (!confirm('Clear ALL checklist data for this week? This cannot be undone.')) return;
+  localStorage.removeItem(SK);
+  showToast('Data cleared — fresh start ✓', 'ok');
+  currentShift = null;
+  buildDayRail();
+  renderDay();
+}
+const ROLE_LABEL = 'Service';
+const SK_BASE    = 'kic_linecook_data_v2';
+const SK         = SK_BASE;
+const ALLOW_OVERWRITE = false; // Staff cannot change after submit — overwrite via dashboard only
+// Overwrite PINs fetched from Firebase — KIC, Area Chef, Admin, Director, CEO can overwrite
+let _overwritePins = {};
+function loadOverwritePins() {
+  if (!_db) return;
+  _db.ref('settings/pins').once('value', snap => {
+    _overwritePins = snap.val() || {};
+  });
+}
+function checkOverwritePin(code) {
+  // KIC, Area Chef, Admin (training), Operations, Director, CEO pins all valid
+  const validRoles = ['kic','areachef','training','operations','director','ceo'];
+  return validRoles.some(r => _overwritePins[r] && _overwritePins[r] === code);
+}
+
+const SECTIONS = [
+  {"title":"🌅 Opening Responsibilities","tasks":[
+    {"id":"o1","owner":"self","ownerLbl":"Self-report","text":"Service station / table setup / outdoor area set in tidy condition","photo":true,"translations":{}},
+    {"id":"o2","owner":"self","ownerLbl":"Self-report","text":"Menu / promo material cleaned and in good condition","photo":true,"translations":{}},
+    {"id":"o3","owner":"self","ownerLbl":"Self-report","text":"Bar: all ingredients filled, FIFOed, clean and tidy, no 86","photo":true,"translations":{}},
+    {"id":"o4","owner":"verify","ownerLbl":"Verify by OIC","text":"Equipment / furniture clean and in good working condition","photo":true,"translations":{}},
+    {"id":"o5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Decorative items clean and properly aligned, AC set to correct temperature, perfume diffuser functioning properly","photo":true,"translations":{}}
+  ]},
+  {"title":"🌙 Closing Responsibilities","tasks":[
+    {"id":"c1","owner":"verify","ownerLbl":"Verify by OIC","text":"Service Station / Tables / Outdoor Area: Cleaned, reset, and left tidy for the next operation","photo":true,"translations":{}},
+    {"id":"c2","owner":"verify","ownerLbl":"Verify by OIC","text":"Menu / Promo Materials: Cleaned, organized, and stored properly","photo":true,"translations":{}},
+    {"id":"c3","owner":"verify","ownerLbl":"Verify by OIC","text":"Bar: All ingredients covered, labeled, FIFOed, stored properly, and no unnecessary wastage","photo":true,"translations":{}},
+    {"id":"c4","owner":"verify","ownerLbl":"Verify by OIC","text":"Maintenance: Any equipment or furniture issues reported to the OIC or maintenance team","photo":true,"translations":{}},
+    {"id":"c5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Furniture, decorative items, and guest areas cleaned, organized, and left in good condition","photo":true,"translations":{}}
+  ]}
+]
+function getTodayKey() {
+  return 'dt' + getDubaiDateStr(); // Dubai date key
+}
+function getVal(day,tid,field) {
+  const data = load();
+  // Try date-based key first (new format), fall back to day number
+  const dateKey = getTodayKey();
+  return data[dateKey]?.[tid]?.[field] || data[`d${day}`]?.[tid]?.[field] || null;
+}
+function setVal(day,tid,field,val) {
+  const d=load();
+  const key = getTodayKey(); // Use today's date as key
+  if(!d[key]) d[key]={};
+  if(!d[key][tid]) d[key][tid]={};
+  d[key][tid][field]=val;
+  save(d);
+}
+
+
+// ── Dubai Time (UTC+4) ────────────────────────────────────────
+function getDubaiDate() {
+  const now = new Date();
+  const dubaiOffset = 4 * 60; // UTC+4 in minutes
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (dubaiOffset * 60000));
+}
+function getDubaiDateStr() {
+  const d = getDubaiDate();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return y + '-' + m + '-' + dd;
+}
+function getDubaiHour() {
+  return getDubaiDate().getHours();
+}
+function getWeekStart() { return document.getElementById('fWeek').value; }
+function getStaffName() { return document.getElementById('fName').value.trim(); }
+function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
+function getVerified() { return ''; }
+
+// ── Day rail ──────────────────────────────────────────────────
+function buildDayRail() {} // Day rail removed — single daily submission
+
+// ── Shift selection ───────────────────────────────────────────
+let currentShift = null; // 'opening' or 'closing'
+
+function selectShift(shift) {
+  const data = load();
+  const openingDone = !!data[getTodayKey()]?._openDone;
+
+  if (shift === 'closing') {
+    const now = new Date();
+    const hour = getDubaiHour();
+    const isAfter3pm = hour >= 15; // Closing unlocks at 3:00 PM
+    if (!isAfter3pm) {
+      const minutesLeft = (15 - hour - 1) * 60 + (60 - now.getMinutes());
+      const h = Math.floor(minutesLeft / 60);
+      const m = minutesLeft % 60;
+      showToast(`Closing unlocks at 3:00 PM — ${h}h ${m}m remaining ⏰`, 'warn');
+      return;
+    }
+    // After 3PM — closing available regardless of opening status
+  }
+  currentShift = shift;
+  window._selectShiftReady = null;
+  window._pendingShift = null;
+  const btnO = document.getElementById('btnOpenShift');
+  const btnC = document.getElementById('btnCloseShift');
+  if (btnO) btnO.style.cssText = shift === 'opening'
+    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#1A3C5E;font-size:12px;font-weight:700;cursor:pointer;'
+    : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
+  if (btnC) btnC.style.cssText = shift === 'closing'
+    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #22C55E;background:rgba(34,197,94,0.25);color:#fff;font-size:12px;font-weight:700;cursor:pointer;'
+    : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
+  renderDay();
+}
+
+// ── Render day ────────────────────────────────────────────────
+function renderDay() {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = '';
+
+  const dayKey = getTodayKey(); // Date-based key
+  const dNow = load();
+  if (!dNow[dayKey]) { dNow[dayKey] = {}; }
+  // _start set at submit time, not on open
+
+  const data = load();
+  const isDone     = !!data[dayKey]?._openDone && !!data[dayKey]?._closeDone;
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const weekStart  = getWeekStart();
+  const unlocked   = !weekStart || isDayUnlocked(currentDay, weekStart);
+
+  if (!unlocked) {
+    const locked = document.createElement('div');
+    locked.className = 'locked-msg';
+    locked.textContent = `🔒 Day ${currentDay} is not available yet.`;
+    container.appendChild(locked);
+    return;
+  }
+
+  // No shift chosen — show shift picker
+  if (!currentShift) {
+    const screen = document.createElement('div');
+    screen.style.cssText = 'padding:24px 16px;text-align:center;';
+    const openerName = data[dayKey]?._openerName || '';
+    const nowH = getDubaiHour();
+    const isAfter3pm = nowH >= 15; // Closing unlocks at 3:00 PM
+    const minsLeft = isAfter3pm ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+    const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
+    let closingBtnStyle, closingBtnLabel, closingSubNote;
+    if (closingDone) {
+      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel = '🌙 Closing Shift ✓';
+      closingSubNote = '';
+    } else if (isAfter3pm) {
+      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnLabel = '🌙 Closing Shift';
+      closingSubNote = '<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
+    } else {
+      closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      closingBtnLabel = '🌙 Closing Shift ⏰';
+      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM — ${hLeft}h ${mLeft}m remaining</div>`;
+    }
+    screen.innerHTML = `
+      <div style="font-size:32px;margin-bottom:8px;">👋</div>
+      <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">Which shift are you on?</h2>
+      <p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>
+      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;">
+        🌅 Opening Shift ${openingDone ? '✓' : ''}
+      </button>
+      <button onclick="selectShift('closing')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;margin-bottom:4px;${closingBtnStyle}">
+        ${closingBtnLabel}
+      </button>
+      ${closingSubNote}
+      ${openerName ? `<p style="font-size:11px;color:#64748B;margin-top:12px;">Opening submitted by <b>${openerName}</b></p>` : ''}
+    `;
+    container.appendChild(screen);
+    return;
+  }
+
+  let total = 0, yes = 0;
+
+  SECTIONS.forEach((section, si) => {
+    const isOpenSection  = si === 0;
+    const isCloseSection = si === 1;
+
+    // Opening shift: only show opening tasks
+    if (currentShift === 'opening' && isCloseSection) return;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'section-hdr';
+    hdr.innerHTML = section.title + (currentShift === 'closing' && isOpenSection
+      ? ' <span style="font-size:10px;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;margin-left:6px;">READ ONLY</span>' : '');
+    container.appendChild(hdr);
+
+    const sectionReadOnly = currentShift === 'closing' && isOpenSection;
+    const sectionLocked   = (isOpenSection && openingDone && !ALLOW_OVERWRITE) || sectionReadOnly
+                          || (isCloseSection && closingDone && !ALLOW_OVERWRITE);
+
+    section.tasks.forEach((task, ti) => {
+      total++;
+      const val   = getVal(currentDay, task.id, 'yn');
+      if (val === 'yes') yes++;
+      const photo = getVal(currentDay, task.id, 'photo');
+      const card  = document.createElement('div');
+      card.className = 'task-card' + (sectionLocked ? ' locked-card' : '');
+      if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
+      const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
+      let photoHtml = '';
+      if (task.photo) {
+        const photos = [];
+        for (let pi = 0; pi < 5; pi++) {
+          const p = getVal(currentDay, task.id, 'photo_' + pi) || (pi===0 ? getVal(currentDay, task.id, 'photo') : null);
+          if (p) photos.push(p);
+        }
+        const thumbsHtml = photos.map((p,i) => `<img class="photo-thumb" src="${p}" alt="proof" style="cursor:pointer;" onclick="removePhoto('${task.id}',${i})">`).join('');
+        photoHtml = `<div class="photo-row" style="flex-wrap:wrap;">
+          <button class="photo-btn ${photos.length>0?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
+            ${photos.length>0 ? '📷 '+photos.length+' photo'+(photos.length>1?'s':'')+' saved  +add' : '📷 Tap to take photo'}
+          </button>
+          ${thumbsHtml}
+        </div>`;
+      }
+      const comment = getVal(currentDay, task.id, 'comment') || '';
+      const commentDisabled = sectionLocked ? 'disabled' : '';
+      card.innerHTML = `
+        <div class="task-top">
+          <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
+          <span class="task-text">${task.text}</span>
+          ${task.translations ? '<div style="margin-top:6px;border-top:1px dashed #E2E8F0;padding-top:6px;">' + Object.entries(task.translations).map(([lang,txt]) => {
+            const flags = {hi:'🇮🇳',ne:'🇳🇵',bn:'🇧🇩',ur:'🇵🇰',my:'🇲🇲',th:'🇹🇭'};
+            const dir = (lang==='ur') ? 'rtl' : 'ltr';
+            return '<div style="font-size:11px;color:#64748B;margin-top:3px;line-height:1.5;direction:'+dir+';text-align:'+(lang==='ur'?'right':'left')+';">'+(flags[lang]||'')+' '+txt+'</div>';
+          }).join('') + '</div>' : ''}
+        </div>
+        <div class="yn-row">
+          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
+          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
+          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">— N/A</div>
+        </div>
+        <textarea class="comment-field" rows="1" placeholder="Add comment (optional)..." ${commentDisabled}
+          onchange="setComment('${task.id}', this.value)"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+        >${comment}</textarea>
+        ${photoHtml}`;
+      container.appendChild(card);
+    });
+
+    // Submit Opening button
+    if (isOpenSection && currentShift === 'opening') {
+      const wasOverwritten = !!data[dayKey]?._overwritten;
+      if (!openingDone) {
+        const ob = document.createElement('button');
+        ob.className = 'submit-btn';
+        ob.style.cssText = 'margin:10px 0;background:#2E6DA4;';
+        ob.textContent = wasOverwritten ? '💾 Resubmit Opening Tasks ✓' : 'Submit Opening Tasks ✓';
+        ob.onclick = submitOpening;
+        container.appendChild(ob);
+      } else {
+        const om = document.createElement('div');
+        om.className = 'synced-msg';
+        om.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
+        om.textContent = '✓ Opening Submitted — ' + new Date(data[getTodayKey()]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        container.appendChild(om);
+        // Overwrite panel for opening
+        const owpO = document.createElement('div');
+        owpO.className = 'overwrite-panel';
+        owpO.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
+          <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">KIC / Area Chef / Admin PIN to unlock and edit</div>
+          <input class="overwrite-input" id="owCodeO" type="password" placeholder="Enter PIN...">
+          <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Opening</button>`;
+        container.appendChild(owpO);
+      }
+    }
+  });
+
+  // Score bar — today's shift score
+  const pct = total > 0 ? Math.round((yes/total)*100) : 0;
+  document.getElementById('scoreFill').style.width = pct + '%';
+  document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
+  document.getElementById('scorePct').textContent = pct + '%';
+
+  // 6-day scores — split by opening and closing
+  let oY=0,oM=0,cY=0,cM=0;
+  for(let d=1;d<=6;d++){
+    SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
+      const v=getVal(d,t.id,'yn');
+      if(v&&v!=='na'){
+        if(si===0){oM++;if(v==='yes')oY++;}
+        else{cM++;if(v==='yes')cY++;}
+      }
+    });});
+  }
+  const opO=oM>0?Math.round((oY/oM)*100):null;
+  const opC=cM>0?Math.round((cY/cM)*100):null;
+  const tM=oM+cM, tY=oY+cY;
+  const op=tM>0?Math.round((tY/tM)*100):0, pass=op>=95;
+
+  const sc=document.createElement('div');
+  sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
+  sc.innerHTML=`
+    <div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
+    <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
+    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+    <div class="sc-sub">6-day overall score (target: 95%)</div>
+    ${tM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+      <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
+        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+      </div>
+      <div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌙 Closing</div>
+        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+      </div>
+    </div>`:''}
+  `;
+  container.appendChild(sc);
+
+  // Submit closing button
+  if (currentShift === 'closing') {
+    const btn = document.createElement('button');
+    btn.className = 'submit-btn';
+    if (closingDone) {
+      btn.disabled = true;
+      btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
+      container.appendChild(btn);
+      const msg = document.createElement('div');
+      msg.className = 'synced-msg';
+      msg.textContent = '✓ Submitted and synced to dashboard';
+      container.appendChild(msg);
+      // KIC overwrite panel
+      const owp = document.createElement('div');
+      owp.className = 'overwrite-panel';
+      owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN (OIC / Area Manager / Admin)</div>
+        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter OIC/Manager PIN to unlock and edit Day ${currentDay}</div>
+        <input class="overwrite-input" id="owCode" type="password" placeholder="Enter OIC/Manager PIN...">
+        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      container.appendChild(owp);
+    } else {
+      const wasOvr = !!data[dayKey]?._overwritten;
+      btn.textContent = wasOvr ? '💾 Resubmit Closing Tasks ✓' : 'Submit Closing Tasks ✓';
+      btn.onclick = submitDay;
+      container.appendChild(btn);
+    }
+  }
+}
+
+// ── Tap YES/NO/NA ─────────────────────────────────────────────
+function setComment(taskId, value) {
+  setVal(currentDay, taskId, 'comment', value);
+}
+
+function tapYN(tid, val, el) {
+  const data = load();
+  const todayData = data[getTodayKey()] || {};
+  if ((todayData._openDone || todayData._done) && !ALLOW_OVERWRITE) {
+    showToast('Already submitted — cannot edit 🔒', 'error'); return;
+  }
+  setVal(currentDay, tid, 'yn', val);
+  el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  // update score bar
+  let t=0, y=0;
+  const shiftIdx = currentShift==='closing'?1:0;
+  const shiftSection = SECTIONS[shiftIdx];
+  if(shiftSection) shiftSection.tasks.forEach(tk=>{t++;if(getVal(1,tk.id,'yn')==='yes')y++;});
+  const p=t>0?Math.round((y/t)*100):0;
+  document.getElementById('scoreFill').style.width=p+'%';
+  document.getElementById('scorePct').textContent=p+'%';
+}
+
+
+function fmtDateTime(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
+    return date + ' ' + time;
+  } catch(e) { return iso; }
+}
+function fmtTimeOnly(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
+  } catch(e) { return '—'; }
+}
+
+// ── Submit day ────────────────────────────────────────────────
+function submitOpening() {
+  const name = getStaffName();
+  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
+  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  const openingTasks = SECTIONS[0].tasks;
+  const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
+  if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
+  // Mandatory photo check
+  const missingPhoto = openingTasks.filter(t => t.photo && !getVal(currentDay, t.id, 'photo'));
+  if (missingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
+  const d = load();
+  const todayKey = getTodayKey();
+  if (!d[todayKey]) d[todayKey] = {};
+  d[todayKey]._start      = new Date().toISOString();
+  d[todayKey]._openDone   = new Date().toISOString();
+  delete d[todayKey]._overwritten;
+  d[todayKey]._openerName = name;
+  save(d);
+
+  // Push opening record to Firebase so dashboard shows partial data
+  let oY2=0,oM2=0;
+  SECTIONS[0].tasks.forEach(t=>{
+    const v=getVal(currentDay,t.id,'yn');
+    if(v&&v!=='na'){oM2++;if(v==='yes')oY2++;}
+  });
+  const opO2=oM2>0?Math.round((oY2/oM2)*100):0;
+
+  // Build taskData for opening tasks only
+  const openingTaskData = {};
+  SECTIONS[0].tasks.forEach(t=>{
+    const yn   = getVal(currentDay, t.id, 'yn');
+    const pUrl = getVal(currentDay, t.id, 'photoUrl');
+    const photo= getVal(currentDay, t.id, 'photo');
+    const comment2 = getVal(currentDay, t.id, 'comment') || '';
+    if (yn) {
+      openingTaskData[`d1_${t.id}`] = {
+        day: currentDay, section: SECTIONS[0].title,
+        task: t.text, owner: t.ownerLbl,
+        yn: yn||'', comment: comment2,
+        photoUrl: pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : ''),
+        hasPhoto: !!(pUrl||photo),
+      };
+    }
+  });
+
+  pushToFirebase({
+    staffName:   name,
+    role:        ROLE,
+    roleLabel:   ROLE_LABEL,
+    outlet:      getOutlet(),
+    week:        getWeekStart(),
+    overallPct:  opO2,
+    openingPct:  opO2,
+    closingPct:  null,
+    qualified:   false,
+    day:         currentDay,
+    status:      'opening_submitted',
+    startedAt:   d[getTodayKey()]?._start || new Date().toISOString(),
+    submittedAt: new Date().toISOString(),
+    lastUpdated: new Date().toISOString(),
+    taskData:    openingTaskData,
+  });
+  showToast('Opening tasks submitted ✓', 'ok');
+  currentShift = null; // reset so closing staff sees shift picker
+  buildDayRail(); renderDay();
+}
+
+function submitDay() {
+  const name = getStaffName();
+  const closerName = name; // closing staff enters their own name in the Staff Name field
+  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
+  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  const closingTasks = SECTIONS[1].tasks;
+  const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
+  if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
+  const d = load();
+  const todayKey2 = getTodayKey();
+  if (!d[todayKey2]) d[todayKey2] = {};
+  d[todayKey2]._closeDone  = new Date().toISOString();
+  d[todayKey2]._closerName = closerName;
+  d[todayKey2]._done       = new Date().toISOString(); // keep _done for compatibility
+  save(d);
+
+  // Calc overall — split by opening and closing
+  let tY=0,tM=0,oY=0,oM=0,cY=0,cM=0;
+  for(let dd=1;dd<=6;dd++){
+    SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
+      const v=getVal(dd,t.id,'yn');
+      if(v&&v!=='na'){
+        tM++;if(v==='yes')tY++;
+        if(si===0){oM++;if(v==='yes')oY++;}
+        else{cM++;if(v==='yes')cY++;}
+      }
+    }));
+  }
+  const op=tM>0?Math.round((tY/tM)*100):0;
+  const opO=oM>0?Math.round((oY/oM)*100):null;
+  const opC=cM>0?Math.round((cY/cM)*100):null;
+
+  // Push to master dashboard
+  const _fbRecord = {
+    staffName:    d[getTodayKey()]._openerName || name,
+    closingStaff: closerName,
+    role:         ROLE,
+    roleLabel:    ROLE_LABEL,
+    outlet:       getOutlet(),
+    week:         getWeekStart(),
+    verifiedBy:   '',
+    overallPct:   op,
+    openingPct:   opO,
+    closingPct:   opC,
+    qualified:    op>=95,
+    day:        currentDay,
+    startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
+    photos: (function() {
+      const photos = {};
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const url = getVal(currentDay, t.id, 'photoUrl');
+        if (url) photos[t.id + '_day' + currentDay] = url;
+      }));
+      return photos;
+    })(),
+    // Store full task responses for dashboard detail view
+    taskData: (function() {
+      const tasks = {};
+      for (let dd=1; dd<=6; dd++) {
+        SECTIONS.forEach(s => s.tasks.forEach(t => {
+          const yn    = getVal(dd, t.id, 'yn');
+          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
+          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
+          if (yn || photo || pUrl) {
+            tasks[`d${dd}_${t.id}`] = {
+              day: dd,
+              section: s.title,
+              task: t.text,
+              owner: t.ownerLbl,
+              yn: yn||'',
+              comment: getVal(dd, t.id, 'comment')||'',
+              photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''), // prefer firebase url, fall back to db ref
+            };
+          }
+        }));
+      }
+      return tasks;
+    })(),
+    submittedAt:new Date().toISOString(),
+    lastUpdated:new Date().toISOString(),
+  };
+  pushToMasterDashboard(_fbRecord);
+  pushToFirebase(_fbRecord);
+
+  showToast(`Day ${currentDay} submitted ✓`, 'ok');
+  buildDayRail();
+  renderDay();
+}
+
+// ── Overwrite (KIC/Area Chef) ─────────────────────────────────
+function doOverwrite() {
+  // Check both possible PIN input IDs (opening and closing panels)
+  const code = (document.getElementById('owCode')?.value || document.getElementById('owCodeO')?.value || '').trim();
+  if (!checkOverwritePin(code)) { showToast('Wrong PIN — access denied 🔒', 'error'); return; }
+  const d = load();
+  if (d[getTodayKey()]) {
+    delete d[getTodayKey()]._done;
+    delete d[getTodayKey()]._closeDone;
+    delete d[getTodayKey()]._openDone;
+    d[getTodayKey()]._overwritten = true;
+    d[getTodayKey()]._overwrittenAt = new Date().toISOString();
+  }
+  save(d);
+  showToast(`Day ${currentDay} unlocked — edit tasks then Resubmit ✓`, 'ok');
+  currentShift = null;
+  buildDayRail();
+  renderDay();
+}
+
+function resubmitAfterOverwrite() {
+  // Recalculate score and push to Firebase
+  const shift = currentShift || 'opening';
+  if (shift === 'opening') {
+    submitOpening();
+  } else {
+    submitDay();
+  }
+}
+
+// ── Photo ─────────────────────────────────────────────────────
+function openPhotoModal(tid, label) {
+  const data = load();
+  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
+    showToast('Day submitted — cannot change photos', 'error'); return;
+  }
+  activePhotoTask = tid;
+  document.getElementById('modalLabel').textContent = label;
+  document.getElementById('photoModal').classList.add('open');
+}
+function closePhotoModal() {
+  document.getElementById('photoModal').classList.remove('open');
+  activePhotoTask = null;
+}
+
+
+
+function handlePhotoFile(file) {
+  if (!file || !activePhotoTask) return;
+  const taskId = activePhotoTask;
+  activePhotoTask = null;
+  closePhotoModal();
+  compressAndReturn(file, async function(dataUrl) {
+    // Save locally first for instant display — multi-photo: find next empty slot
+    let slotIdx = 0;
+    for (let pi = 0; pi < 5; pi++) {
+      const existing = getVal(currentDay, taskId, 'photo_' + pi) || (pi===0 ? getVal(currentDay, taskId, 'photo') : null);
+      if (!existing) { slotIdx = pi; break; }
+      slotIdx = pi + 1;
+    }
+    const slotKey = slotIdx === 0 ? 'photo' : 'photo_' + slotIdx;
+    setVal(currentDay, taskId, slotKey, dataUrl);
+    renderDay();
+    showToast('Photo saved ✓', 'ok');
+
+    // Save compressed photo to Firebase Realtime Database
+    const staffName = getStaffName();
+    if (staffName && _db) {
+      const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
+      if (dbRef) {
+        setVal(currentDay, taskId, 'photoUrl', dbRef);
+        showToast('Photo synced ✓', 'ok');
+        // Update existing Firebase submission record with the db: photo ref
+        updatePhotoInSubmission(staffName, taskId, dbRef);
+      }
+    }
+  });
+}
+// Photo input listeners moved to DOMContentLoaded
+
+// ── Persist info fields ───────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  checkAutoReset(); // Set Dubai date immediately
+  window._selectShiftReady = selectShift;
+  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
+
+  // Photo input listeners
+  // Photo inputs - direct label approach works on all devices
+  function removePhoto(taskId, idx) {
+  if (!confirm('Remove this photo?')) return;
+  const key = idx === 0 ? 'photo' : 'photo_' + idx;
+  setVal(currentDay, taskId, key, '');
+  // Shift remaining photos down
+  for (let pi = idx; pi < 4; pi++) {
+    const nextKey = (pi+1) === 1 ? 'photo' : 'photo_' + (pi+1);
+    const currentKey = pi === 0 ? 'photo' : 'photo_' + pi;
+    const nextVal = getVal(currentDay, taskId, (pi+1) === 1 ? 'photo' : 'photo_' + (pi+1)) || '';
+    setVal(currentDay, taskId, currentKey, nextVal);
+    setVal(currentDay, taskId, nextKey, '');
+  }
+  renderDay();
+}
+
+document.getElementById('camInput').addEventListener('change', function() {
+    if (this.files && this.files[0]) { handlePhotoFile(this.files[0]); this.value=''; }
+  });
+  document.getElementById('galInput').addEventListener('change', function() {
+    if (this.files && this.files[0]) { handlePhotoFile(this.files[0]); this.value=''; }
+  });
+  // Auto-set to current Monday
+  // Auto-set week to current Monday
+  if (typeof getMonday === 'function') {
+    const monday = getMonday(new Date());
+    // Format as YYYY-MM-DD for date input
+    const y = monday.getFullYear();
+    const m = String(monday.getMonth()+1).padStart(2,'0');
+    const d = String(monday.getDate()).padStart(2,'0');
+    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', y + '-' + m + '-' + d);
+  } else {
+    const now = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Dubai'}));
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    now.setDate(diff);
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', y + '-' + m + '-' + d);
+  }
+  ['fName','fOutlet','fWeek'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
+    if (saved) el.value = saved;
+    el.addEventListener('input', () => {
+      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      buildDayRail(); renderDay();
+    });
+  });
+  buildDayRail();
+  try { renderDay(); } catch(e) {
+    document.getElementById('mainContent').innerHTML = '<div style="padding:20px;color:red;font-size:12px;">Error: ' + e.message + '</div>';
+  }
+});
+</script>
+</body>
+</html>
