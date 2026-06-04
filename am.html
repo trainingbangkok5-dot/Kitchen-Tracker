@@ -305,15 +305,11 @@ function calcAll() {
   for (let i = 0; i < 4; i++) {
     const val = Math.min(kpiVals[i] || 0, MAX[i]);
     total += val;
-    // d-p3 (audit) and d-p4 (sales) are updated by their own trackers
-    // only update d-p1 and d-p2 here to avoid overwrite race
-    if (i < 2) {
-      const pill = document.getElementById('d-p' + (i+1));
-      if (pill) {
-        pill.textContent = val.toFixed(1);
-        const pct = val / MAX[i];
-        pill.className = 'pill ' + (pct >= 0.9 ? 'g' : pct >= 0.7 ? 'y' : 'r');
-      }
+    const pill = document.getElementById('d-p' + (i+1));
+    if (pill) {
+      pill.textContent = val.toFixed(1);
+      const pct = val / MAX[i];
+      pill.className = 'pill ' + (pct >= 0.9 ? 'g' : pct >= 0.7 ? 'y' : 'r');
     }
   }
   total = Math.round(total * 10) / 10;
@@ -574,7 +570,7 @@ function calcSalesAvg() {
   document.getElementById('sales-avg-score').textContent = score.toFixed(1) + ' pts';
   // Set kpiVals THEN call calcAll so dashboard reads correct value
   kpiVals[3] = score;
-  calcAll();
+  calcAll(); // calcAll reads kpiVals[3] and updates d-p4 + total
 }
 
 // ── Submit ──────────────────────────────────────────────────
