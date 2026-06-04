@@ -253,6 +253,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
+    <div class="tab" id="tabFOH" onclick="showTab(this,'foh')">🛎️ FOH</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
   </div>
 
@@ -305,6 +306,71 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="page" id="page-monthly">
     <div id="monthlyContent"></div>
+  </div>
+
+
+  <!-- FOH PAGE -->
+  <div class="page" id="page-foh">
+    <div style="background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <span>🛎️ FOH Reports</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="fohStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
+        <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button id="fohSubAll" onclick="setFOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
+      <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🛎️ Service</button>
+      <button id="fohSubOIC" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
+      <select id="fohOutletFilter" onchange="renderFOHStaff()" style="margin-left:auto;padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;outline:none;cursor:pointer;">
+        <option value="">All Outlets</option>
+        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
+        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
+        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#7B2D42" id="fohStatTotal">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Total</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#0F766E" id="fohStatPass">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Qualified</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#B91C1C" id="fohStatFail">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Below Target</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#D97706" id="fohStatAvg">—</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Avg Score</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#F8F7F2;">
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Staff</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D1</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D2</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D3</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D4</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="fohTableBody"></tbody>
+        </table>
+      </div>
+      <div id="fohEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No FOH submissions found</div>
+    </div>
   </div>
 
   <div class="page" id="page-registry">
@@ -563,6 +629,16 @@ const FIREBASE_CONFIG = {
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
 
+const FOH_FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDxc1zrvdv65kIzfP63CId2MdcoOCmIQPU",
+  authDomain:        "culex-foh.firebaseapp.com",
+  databaseURL:       "https://culex-foh-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "culex-foh",
+  storageBucket:     "culex-foh.firebasestorage.app",
+  messagingSenderId: "571343979493",
+  appId:             "1:571343979493:web:ae4a6f75106bc87a1be50c"
+};
+
 const MAINTENANCE_CONFIG = {
   apiKey: "AIzaSyB03RQapvBzUACmSRnwBJUgVkPHSLgms5M",
   authDomain: "culex-maintenance.firebaseapp.com",
@@ -578,10 +654,17 @@ let maintenanceDb = null;
 let allMaintenanceLogs = [];
 let allStaff = [], allAudits = [];
 let currentRole = '', currentOutlet = '', currentName = '';
+let fohDb = null;
+let allFOHStaff = [];
 let selectedRoleBtn = null;
 
 // Initialize Firebase after page loads
 function initFirebase() {
+  // Init FOH Firebase
+  try {
+    const fohApp = firebase.apps.find(a=>a.name==='foh') || firebase.initializeApp(FOH_FIREBASE_CONFIG,'foh');
+    fohDb = fohApp.database();
+  } catch(e) { console.error('FOH Firebase init error:', e); }
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.database();
@@ -723,6 +806,13 @@ function doLogin() {
   // Show Change PIN button for management roles only
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
+  // FOH tab — visible to OIC, Area Manager and full access roles
+  const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
+  document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
+  // If OIC — default to FOH tab
+  if (currentRole === 'oic') {
+    setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
+  }
   loadData();
 }
 
@@ -821,6 +911,7 @@ function showTab(el,id) {
   if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
   if (id === 'registry') { renderRegistry(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
+  if (id === 'foh') { loadFOHData(); }
 }
 
 function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
@@ -3186,6 +3277,120 @@ function exportMaintPDF() {
     doc.text('Page '+i+' of '+pages+' — Culex Hospitality Maintenance — Confidential',148,205,{align:'center'});
   }
   doc.save('Maintenance_'+new Date().toLocaleDateString('en-CA')+'.pdf');
+}
+
+// ── FOH Reports ──────────────────────────────────────────────
+let allFOHData = [];
+let currentFOHSub = 'all';
+
+function loadFOHData() {
+  if (!fohDb) {
+    document.getElementById('fohStatus').textContent = '❌ Not connected';
+    return;
+  }
+  document.getElementById('fohStatus').textContent = '⏳ Loading...';
+  fohDb.ref('submissions').once('value', snap => {
+    allFOHData = [];
+    if (snap.exists()) {
+      // Group by staffName + role + week
+      const grouped = {};
+      snap.forEach(child => {
+        const sub = child.val();
+        if (!sub.staffName || !sub.role || !sub.week) return;
+        const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
+        if (!grouped[gKey]) {
+          grouped[gKey] = {
+            staffName: sub.staffName,
+            role: sub.role,
+            outlet: sub.outlet || '—',
+            week: sub.week,
+            days: {},
+            overallPct: 0,
+            qualified: false
+          };
+        }
+        // Store day score
+        if (sub.date) {
+          const weekStart = new Date(sub.week);
+          const subDate = new Date(sub.date);
+          const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
+          if (diffDays >= 1 && diffDays <= 6) {
+            grouped[gKey].days[diffDays] = sub.overallPct || 0;
+          }
+        }
+        // Use latest overallPct
+        if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
+        if (sub.qualified) grouped[gKey].qualified = sub.qualified;
+      });
+      allFOHData = Object.values(grouped);
+      allFOHData.sort((a,b) => b.overallPct - a.overallPct);
+    }
+    document.getElementById('fohStatus').textContent = '✅ ' + allFOHData.length + ' records';
+    renderFOHStaff();
+  }).catch(e => {
+    document.getElementById('fohStatus').textContent = '❌ Error';
+    console.error('FOH load error:', e);
+  });
+}
+
+function setFOHSub(sub) {
+  currentFOHSub = sub;
+  ['all','service','oic'].forEach(s => {
+    const btn = document.getElementById('fohSub' + s.charAt(0).toUpperCase() + s.slice(1));
+    if (btn) {
+      btn.style.background = s === sub ? '#7B2D42' : '#fff';
+      btn.style.color = s === sub ? '#fff' : '#475569';
+      btn.style.border = s === sub ? 'none' : '1.5px solid #E0DDD4';
+    }
+  });
+  renderFOHStaff();
+}
+
+function renderFOHStaff() {
+  const outlet = document.getElementById('fohOutletFilter')?.value || '';
+  let filtered = allFOHData.filter(s => {
+    if (currentFOHSub !== 'all' && s.role !== currentFOHSub) return false;
+    if (outlet && s.outlet !== outlet) return false;
+    return true;
+  });
+
+  // Update stats
+  document.getElementById('fohStatTotal').textContent = filtered.length;
+  document.getElementById('fohStatPass').textContent = filtered.filter(s=>s.qualified).length;
+  document.getElementById('fohStatFail').textContent = filtered.filter(s=>!s.qualified&&s.overallPct>0).length;
+  const avg = filtered.length ? Math.round(filtered.reduce((a,s)=>a+s.overallPct,0)/filtered.length) : 0;
+  document.getElementById('fohStatAvg').textContent = filtered.length ? avg + '%' : '—';
+
+  const tbody = document.getElementById('fohTableBody');
+  tbody.innerHTML = '';
+  document.getElementById('fohEmpty').style.display = filtered.length ? 'none' : 'block';
+
+  const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚗 Del.co', bartender:'🍹 Bartender'};
+  const scoreColor = p => p >= 95 ? '#0F766E' : p >= 70 ? '#D97706' : '#B91C1C';
+  const scoreBg = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
+
+  filtered.forEach(staff => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    let daysHtml = '';
+    for (let d = 1; d <= 6; d++) {
+      const p = staff.days[d];
+      daysHtml += p !== undefined
+        ? `<td style="padding:6px 8px;text-align:center;"><span style="display:inline-block;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:${scoreBg(p)};color:${scoreColor(p)}">${p}%</span></td>`
+        : `<td style="padding:6px 8px;text-align:center;color:#E0DDD4;font-size:12px;">—</td>`;
+    }
+    const op = staff.overallPct;
+    tr.innerHTML = `
+      <td style="padding:8px 12px;font-size:12px;font-weight:600">${staff.staffName}</td>
+      <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
+      ${daysHtml}
+      <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
+      <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified ? '✅' : op > 0 ? '❌' : '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 // ── Maintenance Log ──────────────────────────────────────────
