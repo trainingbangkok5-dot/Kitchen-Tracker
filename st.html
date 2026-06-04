@@ -235,7 +235,7 @@ function pushToFirebase(record) {
     const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.role
               + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + Date.now();
+              + (record.day ? '_d' + record.day : '');
     const cleanRecord = { ...record };
     if (cleanRecord.taskData) {
       const cleanTasks = {};
@@ -649,7 +649,7 @@ function selectShift(shift) {
     const isNightNow = hourNow >= 15 || hourNow < 2; // Closing window: 3:00 PM – 2:00 AM
     if (!isNightNow) {
       const mLeft = hourNow < 15 ? (15 - hourNow - 1) * 60 + (60 - now.getMinutes()) : 0;
-      showToast(`Closing unlocks at 3:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
+      showToast(`Closing unlocks at 3:00 PM until 2:00 AM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
       return;
     }
     // After 3PM — closing available regardless of opening status
@@ -952,8 +952,9 @@ function submitOpening() {
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
   // Mandatory photo check
-  const missingPhoto = openingTasks.filter(t => t.photo && !getVal(currentDay, t.id, 'photo'));
-  if (missingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
+  const hasPhotoForTask = (tid) => !!(getVal(currentDay, tid, 'photo') || getVal(currentDay, tid, 'photo_0') || getVal(currentDay, tid, 'photoUrl'));
+  const missingPhoto = openingTasks.filter(t => t.photo && !hasPhotoForTask(t.id));
+  if (missingPhoto.length > 0) { showToast('📷 Photo required for all opening tasks before submitting', 'warn'); return; }
   const d = load();
   const todayKey = getTodayKey();
   if (!d[todayKey]) d[todayKey] = {};
@@ -1000,6 +1001,9 @@ function submitDay() {
   const closingTasks = SECTIONS[1].tasks;
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
+  const hasPhotoForClosingTask = (tid) => !!(getVal(currentDay, tid, 'photo') || getVal(currentDay, tid, 'photo_0') || getVal(currentDay, tid, 'photoUrl'));
+  const missingClosingPhoto = closingTasks.filter(t => t.photo && !hasPhotoForClosingTask(t.id));
+  if (missingClosingPhoto.length > 0) { showToast('📷 Photo required for all closing tasks before submitting', 'warn'); return; }
   const d = load();
   const todayKey2 = getTodayKey();
   if (!d[todayKey2]) d[todayKey2] = {};
