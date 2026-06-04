@@ -552,13 +552,14 @@ function calcSalesAvg() {
   }
   const achs = valid.map(r => (parseFloat(r.actual)/parseFloat(r.target))*100);
   const avgAch = achs.reduce((a,b) => a+b, 0) / achs.length;
-  // Excel: IF(average >= 100, 30, 0)
-  const score = avgAch >= 100 ? 30 : 0;
+  // Per-outlet: 30 if >=100%, else 0 — average across outlets for total score
+  const perOutletScores = achs.map(a => a >= 100 ? 30 : 0);
+  const score = Math.round((perOutletScores.reduce((a,b) => a+b, 0) / perOutletScores.length) * 10) / 10;
   document.getElementById('sales-avg-pct').textContent = avgAch.toFixed(1) + '%';
-  document.getElementById('sales-avg-score').textContent = score + ' pts';
+  document.getElementById('sales-avg-score').textContent = score.toFixed(1) + ' pts';
   kpiVals[3] = score;
   const dp4 = document.getElementById('d-p4');
-  if (dp4) { dp4.textContent = score.toFixed(1); dp4.className = 'pill ' + (score === 30 ? 'g' : 'r'); }
+  if (dp4) { dp4.textContent = score.toFixed(1); dp4.className = 'pill ' + (score >= 27 ? 'g' : score >= 15 ? 'y' : 'r'); }
   calcAll();
 }
 
