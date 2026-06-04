@@ -305,11 +305,15 @@ function calcAll() {
   for (let i = 0; i < 4; i++) {
     const val = Math.min(kpiVals[i] || 0, MAX[i]);
     total += val;
-    const pill = document.getElementById('d-p' + (i+1));
-    if (pill) {
-      pill.textContent = val.toFixed(1);
-      const pct = val / MAX[i];
-      pill.className = 'pill ' + (pct >= 0.9 ? 'g' : pct >= 0.7 ? 'y' : 'r');
+    // d-p3 (audit) and d-p4 (sales) are updated by their own trackers
+    // only update d-p1 and d-p2 here to avoid overwrite race
+    if (i < 2) {
+      const pill = document.getElementById('d-p' + (i+1));
+      if (pill) {
+        pill.textContent = val.toFixed(1);
+        const pct = val / MAX[i];
+        pill.className = 'pill ' + (pct >= 0.9 ? 'g' : pct >= 0.7 ? 'y' : 'r');
+      }
     }
   }
   total = Math.round(total * 10) / 10;
@@ -551,22 +555,25 @@ function addSales() {
 }
 
 function calcSalesAvg() {
-  const valid = salesData.filter(r => r.target !== '' && r.actual !== '' && !isNaN(parseFloat(r.target)) && parseFloat(r.target) > 0 && !isNaN(parseFloat(r.actual)));
+  const valid = salesData.filter(r => {
+    const t = parseFloat(r.target), a = parseFloat(r.actual);
+    return r.target !== '' && r.actual !== '' && !isNaN(t) && t > 0 && !isNaN(a);
+  });
   if (!valid.length) {
     document.getElementById('sales-avg-pct').textContent = '—';
     document.getElementById('sales-avg-score').textContent = '—';
-    kpiVals[3] = 0; calcAll(); return;
+    kpiVals[3] = 0;
+    calcAll();
+    return;
   }
-  const achs = valid.map(r => (parseFloat(r.actual)/parseFloat(r.target))*100);
+  const achs = valid.map(r => (parseFloat(r.actual) / parseFloat(r.target)) * 100);
   const avgAch = achs.reduce((a,b) => a+b, 0) / achs.length;
-  // Per-outlet: 30 if >=100%, else 0 — average across outlets for total score
   const perOutletScores = achs.map(a => a >= 100 ? 30 : 0);
   const score = Math.round((perOutletScores.reduce((a,b) => a+b, 0) / perOutletScores.length) * 10) / 10;
   document.getElementById('sales-avg-pct').textContent = avgAch.toFixed(1) + '%';
   document.getElementById('sales-avg-score').textContent = score.toFixed(1) + ' pts';
+  // Set kpiVals THEN call calcAll so dashboard reads correct value
   kpiVals[3] = score;
-  const dp4 = document.getElementById('d-p4');
-  if (dp4) { dp4.textContent = score.toFixed(1); dp4.className = 'pill ' + (score >= 27 ? 'g' : score >= 15 ? 'y' : 'r'); }
   calcAll();
 }
 
