@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta name="app-version" content="20260605030000">
+<script>
+(function() {
+  var v = '20260605030000';
+  var stored = localStorage.getItem('app_version_am_kpi');
+  if (stored !== v) {
+    localStorage.setItem('app_version_am_kpi', v);
+    if (location.search.indexOf('_reloaded') === -1) {
+      location.replace(location.pathname + '?_reloaded=1');
+    }
+  }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="theme-color" content="#1A3C5E">
+<title>Area Manager KPI Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#F8FAFC;color:#0F172A;padding-bottom:80px;-webkit-font-smoothing:antialiased}
+.header{background:#1A3C5E;padding:16px 16px 14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.2)}
+.role-badge{display:inline-block;background:#2E6DA4;color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;padding:3px 10px;border-radius:20px;text-transform:uppercase;margin-bottom:8px}
+.header h1{color:#fff;font-size:17px;font-weight:700}
+.header-sub{color:rgba(255,255,255,0.6);font-size:11px;margin-top:2px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.info-field{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:7px 10px}
+.info-field label{display:block;font-size:9px;color:rgba(255,255,255,0.55);font-weight:700;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:2px}
+.info-field input,.info-field select{background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;-webkit-appearance:none}
+.info-field input::placeholder{color:rgba(255,255,255,0.3)}
+.info-field select option{color:#000;background:#fff}
+.section{margin:14px 16px 0}
+.section-title{background:#1A3C5E;color:#fff;padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:10px 10px 0 0}
+.section-body{background:#fff;border:1px solid #E2E8F0;border-top:none;border-radius:0 0 10px 10px;padding:14px}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t th{background:#F8FAFC;padding:7px 10px;text-align:left;font-weight:600;color:#64748B;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid #E2E8F0}
+table.t td{padding:9px 10px;border-bottom:0.5px solid #F1F5F9;vertical-align:middle}
+table.t tr:last-child td{border-bottom:none}
+.lbl{font-weight:600;color:#1E293B;font-size:12px}
+.desc{font-size:10px;color:#94A3B8;margin-top:2px;line-height:1.4}
+input.si{width:70px;padding:6px 8px;border:1px solid #E2E8F0;border-radius:8px;font-size:13px;text-align:center;background:#F8FAFC;-webkit-appearance:none}
+input.si:focus{outline:none;border-color:#1A3C5E;background:#fff}
+input.si-sm{width:60px;padding:5px 6px;border:1px solid #E2E8F0;border-radius:7px;font-size:12px;text-align:center;background:#F8FAFC;-webkit-appearance:none}
+input.outlet-input{padding:5px 8px;border:1px solid #E2E8F0;border-radius:7px;font-size:12px;background:#F8FAFC;width:100%;-webkit-appearance:none}
+input.outlet-input:focus{outline:none;border-color:#1A3C5E}
+select.outlet-sel{padding:5px 8px;border:1px solid #E2E8F0;border-radius:7px;font-size:12px;background:#F8FAFC;width:100%;-webkit-appearance:none}
+select.outlet-sel:focus{outline:none;border-color:#1A3C5E}
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.g{background:#DCFCE7;color:#15803D}
+.y{background:#FEF9C3;color:#854D0E}
+.r{background:#FEE2E2;color:#B91C1C}
+.total-row td{background:#EFF6FF;font-weight:700;font-size:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 75px;gap:6px;align-items:center;padding:7px 0;border-bottom:0.5px solid #F1F5F9}
+.row3:last-child{border-bottom:none}
+.dashboard-score{text-align:center;padding:16px;background:#fff;border:1px solid #E2E8F0;border-radius:10px;margin-bottom:12px}
+.big-score{font-size:44px;font-weight:700;color:#1A3C5E;line-height:1}
+.tier-card{border-radius:10px;padding:14px;margin-top:10px;text-align:center;border:2px solid #EF4444;background:#FEF2F2}
+.tier-card.t1{border-color:#22C55E;background:#F0FDF4}
+.tier-card.t2{border-color:#F59E0B;background:#FFFBEB}
+.tier-card.t3{border-color:#EF4444;background:#FEF2F2}
+.tier-title{font-size:14px;font-weight:700}
+.tier-action{font-size:11px;color:#475569;margin-top:6px;line-height:1.5}
+.submit-btn{display:block;width:calc(100% - 32px);margin:16px 16px 0;padding:14px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.submit-btn:active{opacity:0.85}
+.synced-msg{background:#DCFCE7;border-radius:8px;padding:10px 14px;text-align:center;font-size:13px;font-weight:600;color:#15803D;margin:10px 16px 0}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1E293B;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;display:none;white-space:nowrap}
+.add-btn{width:100%;margin-top:8px;padding:7px;border:1px dashed #CBD5E1;border-radius:8px;background:none;color:#64748B;font-size:12px;cursor:pointer}
+.ref-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px}
+.ref-table th{background:#F8FAFC;padding:6px 8px;font-size:10px;font-weight:600;color:#64748B;border-bottom:1px solid #E2E8F0;text-align:left}
+.ref-table td{padding:6px 8px;border-bottom:0.5px solid #F1F5F9}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="role-badge">AREA MANAGER</div>
+  <h1>KPI Performance Tracker</h1>
+  <div class="header-sub">Regional Operations Executive Dashboard</div>
+  <div class="info-grid">
+    <div class="info-field"><label>Area Manager Name</label><input id="fName" type="text" placeholder="Your full name..."></div>
+    <div class="info-field"><label>Evaluation Period</label><input id="fPeriod" type="text" placeholder="e.g. Week 23 / Q3 2026"></div>
+    <div class="info-field"><label>Scope of Control</label><input id="fScope" type="text" placeholder="e.g. 4 Outlets / 8 Supervisors..."></div>
+    <div class="info-field"><label>Today's Date</label><input id="fDate" type="text" readonly style="opacity:0.8"></div>
+  </div>
+</div>
+
+<!-- SECTION 1: Supervisor In-Charge Rollup -->
+<div class="section">
+  <div class="section-title">Outlet Supervisor Rollup</div>
+  <div class="section-body">
+    <div style="font-size:11px;color:#64748B;margin-bottom:10px">Enter overall KPI score (out of 100) for each Supervisor per outlet:</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 75px;gap:6px;padding:0 0 6px;border-bottom:1px solid #E2E8F0;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em">
+      <div>Outlet</div><div>Supervisor Name</div><div style="text-align:center">Score /100</div>
+    </div>
+    <div id="ic-rows"></div>
+    <button class="add-btn" onclick="addIC()">+ Add Supervisor</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid #E2E8F0">
+      <div>
+        <div style="font-size:12px;font-weight:700">Average Supervisor Score</div>
+        <div style="font-size:10px;color:#64748B;margin-top:2px">Accountability Score (/ 25 pts) = Avg × 0.2:</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:700;color:#1A3C5E" id="ic-avg">—</div>
+        <div style="font-size:13px;font-weight:700;color:#1A3C5E" id="ic-suggested">— / 25 pts</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: Bar Cost Tracker -->
+<div class="section">
+  <div class="section-title">Outlet Wise Bar Cost %</div>
+  <div class="section-body">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:10px">
+      <span>Target Baseline: <strong style="color:#0F172A">25.0%</strong></span>
+      <span>Max KPI Weight: <strong style="color:#0F172A">30 pts</strong></span>
+    </div>
+    <table class="t">
+      <tr><th>Outlet</th><th style="text-align:center">Actual BC%</th><th style="text-align:center">Target</th><th style="text-align:center">Score /30</th><th style="text-align:center">Status</th></tr>
+      <tbody id="fc-rows"></tbody>
+      <tr class="total-row">
+        <td colspan="2">Average Scoring Level</td>
+        <td style="text-align:center">25%</td>
+        <td style="text-align:center" id="fc-avg-score">—</td>
+        <td style="text-align:center" id="fc-avg-status">—</td>
+      </tr>
+    </table>
+    <button class="add-btn" onclick="addFC()">+ Add Outlet</button>
+    <div style="margin-top:12px">
+      <div style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">KPI Model Logic Reference</div>
+      <table class="ref-table">
+        <tr><th>Performance Tier</th><th>Bar Cost Variance</th><th>Score</th></tr>
+        <tr><td style="color:#15803D;font-weight:600">Meets/Exceeds Target</td><td>≤ 25.0%</td><td style="font-weight:700">30 pts (Max)</td></tr>
+        <tr><td style="color:#854D0E;font-weight:600">Acceptable Variance</td><td>25.1% – 25.5%</td><td>Sliding (29.5–27.5)</td></tr>
+        <tr><td style="color:#B91C1C;font-weight:600">Action Plan Required</td><td>> 25.5%</td><td>Sliding down to 0</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: Internal Audit Tracker -->
+<div class="section">
+  <div class="section-title">Outlet Wise Internal Audit</div>
+  <div class="section-body">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748B;margin-bottom:10px;">
+      <span>Enter actual audit score per outlet (out of 100)</span>
+      <span>Max KPI Weight: <strong style="color:#1A3C5E">10 pts</strong></span>
+    </div>
+    <table class="t" id="audit-table">
+      <tr>
+        <th style="width:50%">Outlet</th>
+        <th style="text-align:center">Actual Score</th>
+        <th style="text-align:center">Max</th>
+      </tr>
+    </table>
+    <div style="margin-top:6px">
+      <button onclick="addAuditRow()" style="width:100%;padding:8px;border:1.5px dashed #CBD5E1;background:none;border-radius:8px;color:#64748B;font-size:12px;cursor:pointer;">+ Add Outlet</button>
+    </div>
+    <table class="t" style="margin-top:8px">
+      <tr class="total-row">
+        <td><strong>Average Score</strong></td>
+        <td style="text-align:center" id="audit-avg-score">—</td>
+        <td style="text-align:center">10 pts</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 4: Sales Target -->
+<div class="section">
+  <div class="section-title">Outlet Wise Sales Target</div>
+  <div class="section-body">
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748B;margin-bottom:10px">
+      <span>Target: 100% achievement = full 30 pts</span>
+      <span>Max KPI Weight: <strong style="color:#0F172A">30 pts</strong></span>
+    </div>
+    <table class="t">
+      <tr>
+        <th>Outlet</th>
+        <th style="text-align:center">Target (AED)</th>
+        <th style="text-align:center">Actual (AED)</th>
+        <th style="text-align:center">Ach %</th>
+        <th style="text-align:center">Status</th>
+      </tr>
+      <tbody id="sales-rows"></tbody>
+      <tr class="total-row">
+        <td colspan="3">Average Achievement</td>
+        <td style="text-align:center" id="sales-avg-pct">—</td>
+        <td style="text-align:center" id="sales-avg-score">—</td>
+      </tr>
+    </table>
+    <button class="add-btn" onclick="addSales()">+ Add Outlet</button>
+    <div style="margin-top:12px">
+      <div style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">KPI Model Logic Reference</div>
+      <table class="ref-table">
+        <tr><th>Achievement</th><th>Score</th></tr>
+        <tr><td style="color:#15803D;font-weight:600">≥ 100% (Target Met)</td><td style="font-weight:700">30 pts (Full)</td></tr>
+        <tr><td style="color:#B91C1C;font-weight:600">< 100% (Target Missed)</td><td style="font-weight:700">0 pts</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: Regional Dashboard -->
+<div class="section">
+  <div class="section-title">Regional Dashboard — Overall KPI Score</div>
+  <div class="section-body">
+    <div style="font-size:11px;color:#64748B;text-align:center;margin-bottom:6px">Target Benchmark Baseline: 80.0 pts</div>
+    <div class="dashboard-score">
+      <div style="font-size:12px;color:#64748B;margin-bottom:6px">OVERALL AREA MANAGER KPI SCORE</div>
+      <div class="big-score" id="d-total">0.0</div>
+      <div style="font-size:12px;color:#94A3B8;margin-top:4px">/ 95 pts</div>
+      <div class="tier-card t3" id="d-tier">
+        <div class="tier-title" id="d-tier-title" style="color:#B91C1C">Tier 3: Structural Operational Deficiency</div>
+        <div class="tier-action" id="d-tier-action">Immediate intervention required to address outlet leaks or performance logging missing gaps.</div>
+      </div>
+    </div>
+
+    <table class="t" style="margin-bottom:10px">
+      <tr><th>Core Performance Pillar</th><th style="text-align:center">Max</th><th style="text-align:center">Baseline</th><th style="text-align:center">Score</th></tr>
+      <tr><td><div class="lbl">Bar Cost Optimization</div></td><td style="text-align:center">30</td><td style="text-align:center">27</td><td style="text-align:center"><span class="pill r" id="d-p1">0.0</span></td></tr>
+      <tr><td><div class="lbl">Supervisor Accountability</div><div class="desc">Avg IC Score × 0.2</div></td><td style="text-align:center">25</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p2">0.0</span></td></tr>
+      <tr><td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td><td style="text-align:center">10</td><td style="text-align:center">7</td><td style="text-align:center"><span class="pill r" id="d-p3">0.0</span><div style="font-size:9px;color:#94A3B8;margin-top:2px;">Auto from Audit Tracker</div></td></tr>
+      <tr><td><div class="lbl">Sales Target Achievement</div><div class="desc">Full 30 pts if ≥100% achieved</div></td><td style="text-align:center">30</td><td style="text-align:center">24</td><td style="text-align:center"><span class="pill r" id="d-p4">0.0</span><div style="font-size:9px;color:#94A3B8;margin-top:2px;">Auto from Sales Tracker</div></td></tr>
+      <tr class="total-row"><td>OVERALL AREA MANAGER KPI SCORE</td><td style="text-align:center">95</td><td style="text-align:center">76</td><td style="text-align:center"><span class="pill r" id="d-total2">0.0</span></td></tr>
+    </table>
+
+    <div style="margin-top:10px">
+      <div style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Regional Strategic Performance Tiers</div>
+      <table class="ref-table">
+        <tr><th>Score Range</th><th>Classification</th><th>Action Required</th></tr>
+        <tr><td><strong>85.5 – 95.0</strong></td><td style="color:#15803D;font-weight:600">Tier 1: High Performing</td><td>Maintain frameworks. Eligible for growth incentives.</td></tr>
+        <tr><td><strong>76.0 – 85.4</strong></td><td style="color:#854D0E;font-weight:600">Tier 2: Standard Compliance</td><td>Isolate underperforming outlets to move into Tier 1.</td></tr>
+        <tr><td><strong>Below 76.0</strong></td><td style="color:#B91C1C;font-weight:600">Tier 3: Structural Deficiency</td><td>Immediate intervention required.</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<button class="submit-btn" onclick="submitKPI()">📊 Submit to Dashboard</button>
+<div id="synced-msg" style="display:none" class="synced-msg">✓ KPI submitted to dashboard successfully</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+// ── Dubai Time ──────────────────────────────────────────────
+function getDubaiDate() {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (4 * 60 * 60000));
+}
+function getDubaiDateStr() {
+  const d = getDubaiDate();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// ── Firebase ────────────────────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+let _db = null;
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+  } catch(e) {}
+}
+initFirebase();
+
+// ── Toast ───────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  t.style.background = type==='ok'?'#15803D':type==='warn'?'#854D0E':'#B91C1C';
+  clearTimeout(t._tmr);
+  t._tmr = setTimeout(()=>{t.style.display='none';}, 2800);
+}
+
+// ── KPI store ───────────────────────────────────────────────
+// [0]=barCost, [1]=supervisorAcct, [2]=internalAudits, [3]=salesTarget
+const kpiVals = [0, 0, 0, 0];
+const MAX = [30, 25, 10, 30];
+
+function calcAll() {
+  let total = 0;
+  for (let i = 0; i < 4; i++) {
+    const val = Math.min(kpiVals[i] || 0, MAX[i]);
+    total += val;
+    const pill = document.getElementById('d-p' + (i+1));
+    if (pill) {
+      pill.textContent = val.toFixed(1);
+      const pct = val / MAX[i];
+      pill.className = 'pill ' + (pct >= 0.9 ? 'g' : pct >= 0.7 ? 'y' : 'r');
+    }
+  }
+  total = Math.round(total * 10) / 10;
+  document.getElementById('d-total').textContent = total.toFixed(1);
+  const d2 = document.getElementById('d-total2');
+  d2.textContent = total.toFixed(1);
+  d2.className = 'pill ' + (total >= 85.5 ? 'g' : total >= 76 ? 'y' : 'r');
+
+  // Tier
+  const tc = document.getElementById('d-tier');
+  const tt = document.getElementById('d-tier-title');
+  const ta = document.getElementById('d-tier-action');
+  if (total >= 85.5) {
+    tc.className = 'tier-card t1'; tt.style.color = '#15803D';
+    tt.textContent = 'Tier 1: High Performing Area Manager';
+    ta.textContent = 'Maintain current control frameworks. Highly eligible for growth incentives.';
+  } else if (total >= 76) {
+    tc.className = 'tier-card t2'; tt.style.color = '#854D0E';
+    tt.textContent = 'Tier 2: Standard Target Compliance';
+    ta.textContent = 'Isolate specific underperforming outlets/shifts to move into Tier 1.';
+  } else {
+    tc.className = 'tier-card t3'; tt.style.color = '#B91C1C';
+    tt.textContent = 'Tier 3: Structural Operational Deficiency';
+    ta.textContent = 'Immediate intervention required to address outlet leaks or performance logging missing gaps.';
+  }
+}
+
+// ── Outlets ─────────────────────────────────────────────────
+const OUTLETS = ['LB DSO','LB Tower','LB Hamra','LB JLT','LB OM','LB DHE','LB MTC','SB Deira','SB DG','The Red Door'];
+function outletSel(val) {
+  return '<select class="outlet-sel"><option value="">Outlet...</option>' +
+    OUTLETS.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('') + '</select>';
+}
+
+// ── In-Charge Rollup ────────────────────────────────────────
+let icData = [
+  {outlet:'',name:'Supervisor 1',score:''},
+  {outlet:'',name:'Supervisor 2',score:''},
+];
+
+function renderIC() {
+  const c = document.getElementById('ic-rows');
+  c.innerHTML = '';
+  icData.forEach((r, i) => {
+    const d = document.createElement('div');
+    d.className = 'row3';
+    d.innerHTML =
+      '<input class="outlet-input" placeholder="Outlet..." value="' + r.outlet + '" oninput="icData[' + i + '].outlet=this.value">' +
+      '<input class="outlet-input" placeholder="Name..." value="' + r.name + '" oninput="icData[' + i + '].name=this.value">' +
+      '<input class="si-sm" type="number" min="0" max="100" step="0.5" placeholder="0" value="' + r.score + '" oninput="icData[' + i + '].score=this.value;calcIC()">';
+    c.appendChild(d);
+  });
+  calcIC();
+}
+
+function addIC() {
+  icData.push({outlet:'', name:'Supervisor '+(icData.length+1), score:''});
+  renderIC();
+}
+
+function calcIC() {
+  const scores = icData.map(r => parseFloat(r.score)||0).filter(s => s > 0);
+  if (!scores.length) {
+    document.getElementById('ic-avg').textContent = '—';
+    document.getElementById('ic-suggested').textContent = '— / 25 pts';
+    kpiVals[1] = 0; calcAll(); return;
+  }
+  const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+  document.getElementById('ic-avg').textContent = avg.toFixed(2);
+  // Excel formula: =AVERAGE(scores) * 0.2, capped at 25
+  const s = Math.min(25, Math.max(0, Math.round(avg * 0.2 * 100) / 100));
+  document.getElementById('ic-suggested').textContent = s.toFixed(2) + ' / 25 pts';
+  kpiVals[1] = s;
+  calcAll();
+}
+
+// ── Bar Cost Tracker ─────────────────────────────────────────
+let fcData = [
+  {outlet:'',fc:''},{outlet:'',fc:''},{outlet:'',fc:''},{outlet:'',fc:''},
+];
+
+function fcScore(fc) {
+  if (fc === '' || isNaN(parseFloat(fc))) return {score:null, status:'—', cls:''};
+  const f = parseFloat(fc);
+  // Excel: MAX(0, MIN(30, 30 - ((actual - 0.25) * 100 * 5)))
+  // actual = f/100 (user enters e.g. 25.3 meaning 25.3%)
+  const actual = f / 100;
+  const score = Math.max(0, Math.min(30, Math.round((30 - ((actual - 0.25) * 100 * 5)) * 100) / 100));
+  // Excel status: IF(actual<=0.25,"Target Achieved", IF(actual<=0.255,"Acceptable Variance","Action Plan Required"))
+  const status = actual <= 0.25 ? 'Target Achieved' : actual <= 0.255 ? 'Acceptable Variance' : 'Action Plan Required';
+  const cls    = actual <= 0.25 ? 'g' : actual <= 0.255 ? 'y' : 'r';
+  return {score, status, cls};
+}
+
+function renderFC() {
+  const tbody = document.getElementById('fc-rows');
+  tbody.innerHTML = '';
+  fcData.forEach((r, i) => {
+    const res = fcScore(r.fc);
+    const tr = document.createElement('tr');
+    tr.id = 'fc-row-' + i;
+    tr.innerHTML =
+      '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="fcData[' + i + '].outlet=this.value" style="width:100%"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="100" step="0.1" placeholder="e.g. 24.5" value="' + r.fc + '" oninput="fcData[' + i + '].fc=this.value;updateFCRow(' + i + ')" style="width:80px;font-size:13px"></td>' +
+      '<td style="text-align:center">25%</td>' +
+      '<td style="text-align:center;font-weight:700" id="fc-score-' + i + '">' + (res.score !== null ? res.score.toFixed(1) : '—') + '</td>' +
+      '<td style="text-align:center" id="fc-status-' + i + '">' + (res.score !== null ? '<span class="pill ' + res.cls + '">' + res.status + '</span>' : '—') + '</td>';
+    tbody.appendChild(tr);
+  });
+  calcFCAvg();
+}
+
+function updateFCRow(i) {
+  const res = fcScore(fcData[i].fc);
+  const scoreEl  = document.getElementById('fc-score-'  + i);
+  const statusEl = document.getElementById('fc-status-' + i);
+  if (scoreEl)  scoreEl.textContent  = res.score !== null ? res.score.toFixed(1) : '—';
+  if (statusEl) statusEl.innerHTML   = res.score !== null ? '<span class="pill ' + res.cls + '">' + res.status + '</span>' : '—';
+  calcFCAvg();
+}
+
+function addFC() {
+  fcData.push({outlet:'', fc:''});
+  renderFC();
+}
+
+function calcFCAvg() {
+  const valid = fcData.filter(r => r.fc !== '' && !isNaN(parseFloat(r.fc)));
+  if (!valid.length) {
+    document.getElementById('fc-avg-score').textContent = '—';
+    document.getElementById('fc-avg-status').textContent = '—';
+    kpiVals[0] = 0; calcAll(); return;
+  }
+  const scores = valid.map(r => fcScore(r.fc).score);
+  const avg = Math.round((scores.reduce((a,b) => a+b, 0) / scores.length) * 100) / 100;
+  const avgFC = valid.map(r => parseFloat(r.fc)).reduce((a,b) => a+b, 0) / valid.length;
+  const avgRes = fcScore(avgFC.toFixed(2));
+  document.getElementById('fc-avg-score').textContent = avg.toFixed(2) + ' pts';
+  document.getElementById('fc-avg-status').innerHTML = '<span class="pill ' + avgRes.cls + '">' + avgRes.status + '</span>';
+  kpiVals[0] = avg;
+  calcAll();
+}
+
+// ── Internal Audit Tracker ──────────────────────────────────
+let auditData = [
+  {outlet:'',score:''},{outlet:'',score:''},{outlet:'',score:''},{outlet:'',score:''},
+];
+
+function renderAudit() {
+  const tbody = document.getElementById('audit-table');
+  while (tbody.rows.length > 1) tbody.deleteRow(1);
+  auditData.forEach((r, i) => {
+    const tr = tbody.insertRow();
+    tr.innerHTML =
+      '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="auditData[' + i + '].outlet=this.value" style="width:100%"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="100" step="0.5" placeholder="0–100" value="' + r.score + '" oninput="auditData[' + i + '].score=this.value;calcAuditAvg()" style="width:80px;font-size:13px"></td>' +
+      '<td style="text-align:center;color:#64748B">100</td>';
+  });
+  calcAuditAvg();
+}
+
+function addAuditRow() {
+  auditData.push({outlet:'', score:''});
+  renderAudit();
+}
+
+function calcAuditAvg() {
+  const valid = auditData.filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
+  if (!valid.length) {
+    document.getElementById('audit-avg-score').textContent = '—';
+    kpiVals[2] = 0; calcAll(); return;
+  }
+  const avg = valid.map(r => parseFloat(r.score)).reduce((a,b) => a+b, 0) / valid.length;
+  // Scale: user enters 0–100 (%), convert to 0–10 pts
+  const avgVal = Math.min(Math.round((avg / 100) * 10 * 100) / 100, 10);
+  document.getElementById('audit-avg-score').textContent = avgVal.toFixed(2) + ' pts';
+  kpiVals[2] = avgVal;
+  const dp3 = document.getElementById('d-p3');
+  if (dp3) { dp3.textContent = avgVal.toFixed(1); dp3.className = 'pill ' + (avgVal>=9?'g':avgVal>=7?'y':'r'); }
+  calcAll();
+}
+
+// ── Sales Target Tracker ────────────────────────────────────
+let salesData = [
+  {outlet:'',target:'',actual:''},
+  {outlet:'',target:'',actual:''},
+  {outlet:'',target:'',actual:''},
+  {outlet:'',target:'',actual:''},
+];
+
+function renderSales() {
+  const tbody = document.getElementById('sales-rows');
+  tbody.innerHTML = '';
+  salesData.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.id = 'sales-row-' + i;
+    const {achPct, score, status, cls} = calcSalesRow(i);
+    tr.innerHTML =
+      '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="salesData[' + i + '].outlet=this.value" style="width:100%"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" step="100" placeholder="0" value="' + r.target + '" oninput="salesData[' + i + '].target=this.value;updateSalesRow(' + i + ')" style="width:80px;font-size:12px"></td>' +
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" step="100" placeholder="0" value="' + r.actual + '" oninput="salesData[' + i + '].actual=this.value;updateSalesRow(' + i + ')" style="width:80px;font-size:12px"></td>' +
+      '<td style="text-align:center;font-weight:700" id="sales-pct-' + i + '">' + (achPct !== null ? achPct.toFixed(1) + '%' : '—') + '</td>' +
+      '<td style="text-align:center" id="sales-status-' + i + '">' + (cls ? '<span class="pill ' + cls + '">' + status + '</span>' : '—') + '</td>';
+    tbody.appendChild(tr);
+  });
+  calcSalesAvg();
+}
+
+function calcSalesRow(i) {
+  const r = salesData[i];
+  const target = parseFloat(r.target), actual = parseFloat(r.actual);
+  const hasData = !isNaN(target) && !isNaN(actual) && target > 0;
+  const achPct  = hasData ? Math.round((actual/target)*100*10)/10 : null;
+  const score   = achPct !== null ? (achPct >= 100 ? 30 : 0) : null;
+  const status  = achPct !== null ? (achPct >= 100 ? 'Target Achieved' : 'Action Plan Required') : '—';
+  const cls     = achPct !== null ? (achPct >= 100 ? 'g' : 'r') : '';
+  return {achPct, score, status, cls};
+}
+
+function updateSalesRow(i) {
+  const {achPct, status, cls} = calcSalesRow(i);
+  const pctEl    = document.getElementById('sales-pct-'    + i);
+  const statusEl = document.getElementById('sales-status-' + i);
+  if (pctEl)    pctEl.textContent  = achPct !== null ? achPct.toFixed(1) + '%' : '—';
+  if (statusEl) statusEl.innerHTML = cls ? '<span class="pill ' + cls + '">' + status + '</span>' : '—';
+  calcSalesAvg();
+}
+
+function addSales() {
+  salesData.push({outlet:'', target:'', actual:''});
+  renderSales();
+}
+
+function calcSalesAvg() {
+  const valid = salesData.filter(r => r.target !== '' && r.actual !== '' && !isNaN(parseFloat(r.target)) && parseFloat(r.target) > 0);
+  if (!valid.length) {
+    document.getElementById('sales-avg-pct').textContent = '—';
+    document.getElementById('sales-avg-score').textContent = '—';
+    kpiVals[3] = 0; calcAll(); return;
+  }
+  const achs = valid.map(r => (parseFloat(r.actual)/parseFloat(r.target))*100);
+  const avgAch = achs.reduce((a,b) => a+b, 0) / achs.length;
+  // Excel: IF(average >= 100, 30, 0)
+  const score = avgAch >= 100 ? 30 : 0;
+  document.getElementById('sales-avg-pct').textContent = avgAch.toFixed(1) + '%';
+  document.getElementById('sales-avg-score').textContent = score + ' pts';
+  kpiVals[3] = score;
+  const dp4 = document.getElementById('d-p4');
+  if (dp4) { dp4.textContent = score.toFixed(1); dp4.className = 'pill ' + (score === 30 ? 'g' : 'r'); }
+  calcAll();
+}
+
+// ── Submit ──────────────────────────────────────────────────
+function submitKPI() {
+  const name   = document.getElementById('fName').value.trim();
+  const period = document.getElementById('fPeriod').value.trim();
+  const scope  = document.getElementById('fScope').value.trim();
+  if (!name)   { showToast('Please enter your name', 'warn'); return; }
+  if (!period) { showToast('Please enter the evaluation period', 'warn'); return; }
+
+  let total = 0;
+  const kpiScores = {};
+  const keys = ['foodCost','supervisorAcct','internalAudits','salesTarget'];
+  for (let i = 0; i < 4; i++) {
+    const val = Math.min(kpiVals[i] || 0, MAX[i]);
+    kpiScores[keys[i]] = Math.round(val * 100) / 100;
+    total += val;
+  }
+  total = Math.round(total * 10) / 10;
+
+  const record = {
+    staffName:    name,
+    role:         'areamanager',
+    week:         getDubaiDateStr(),
+    period:       period,
+    scope:        scope,
+    overallPct:   total,
+    qualified:    total >= 76,
+    kpiScores,
+    icRollup:     icData,
+    fcTracker:    fcData,
+    auditTracker: auditData,
+    salesTracker: salesData,
+    submittedAt:  new Date().toISOString(),
+    lastUpdated:  new Date().toISOString(),
+  };
+
+  if (!_db) { showToast('Firebase not ready — try again', 'warn'); return; }
+  const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areamanager_' + getDubaiDateStr() + '_' + Date.now();
+  _db.ref('submissions/' + key).set(record)
+    .then(() => {
+      document.getElementById('synced-msg').style.display = 'block';
+      showToast('KPI submitted successfully ✓', 'ok');
+    })
+    .catch(e => showToast('Submit failed: ' + e.message, 'error'));
+}
+
+// ── Init ────────────────────────────────────────────────────
+document.getElementById('fDate').value = getDubaiDateStr();
+renderIC();
+renderFC();
+renderAudit();
+renderSales();
+calcAll();
+</script>
+</body>
+</html>
