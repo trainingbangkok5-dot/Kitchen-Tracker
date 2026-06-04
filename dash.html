@@ -247,6 +247,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="tabs">
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:4px;">
+      <span style="font-size:11px;color:rgba(255,255,255,0.6);">📅 Week:</span>
+      <select id="weekFilter" onchange="reloadAllData()" style="padding:4px 8px;border-radius:6px;border:none;font-size:11px;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">
+        <option value="">Current Week</option>
+      </select>
+      <span style="font-size:11px;color:rgba(255,255,255,0.4);" id="loadingIndicator"></span>
+    </div>
     <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
     <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
     <div class="tab" onclick="showTab(this,'weekly')">📆 Weekly</div>
@@ -311,6 +318,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="monthlyContent"></div>
   </div>
 
+
+  <!-- FOH Detail Modal -->
+  <div id="fohDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;">
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:650px;margin:20px auto;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:15px;font-weight:700;" id="fohDetailName">—</div>
+          <div style="font-size:11px;opacity:0.8;" id="fohDetailSub">—</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button onclick="exportFOHDetailPDF()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">📄 PDF</button>
+          <button onclick="deleteFOHRecord()" style="background:#B91C1C;border:none;color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">🗑 Delete</button>
+          <button onclick="document.getElementById('fohDetailModal').style.display='none'" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;cursor:pointer;padding:0 6px;">✕</button>
+        </div>
+      </div>
+      <div id="fohDetailBody" style="padding:16px;"></div>
+    </div>
+  </div>
 
   <!-- BOH PAGE -->
   <div class="page" id="page-boh">
@@ -433,6 +458,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">OIC Check</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Action</th>
             </tr>
           </thead>
           <tbody id="fohTableBody"></tbody>
@@ -877,6 +903,7 @@ function doLogin() {
   // Show Change PIN button for management roles only
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
+  populateWeekFilter();
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','areamanager','maintsupervisor'];
   document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
@@ -925,12 +952,74 @@ function filterByRole(staff) {
   return staff;
 }
 
+// ── Week Filter Helpers ──────────────────────────────────────
+function getDubaiDateStr() {
+  const now = new Date();
+  const dubai = new Date(now.getTime() + (4 * 60 - now.getTimezoneOffset()) * 60000);
+  return dubai.toISOString().split('T')[0];
+}
+
+function getCurrentWeekStart() {
+  const today = new Date(getDubaiDateStr());
+  const day = today.getDay();
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(today);
+  monday.setDate(diff);
+  return monday.toISOString().split('T')[0];
+}
+
+function getWeekOptions() {
+  // Generate last 8 weeks
+  const options = [];
+  const today = new Date(getDubaiDateStr());
+  for (let w = 0; w < 8; w++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (w * 7));
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(date);
+    monday.setDate(diff);
+    const weekStr = monday.toISOString().split('T')[0];
+    const label = w === 0 ? 'Current Week (' + weekStr + ')' : 'Week of ' + weekStr;
+    options.push({value: weekStr, label});
+  }
+  return options;
+}
+
+function populateWeekFilter() {
+  const sel = document.getElementById('weekFilter');
+  if (!sel) return;
+  const options = getWeekOptions();
+  sel.innerHTML = options.map(o =>
+    `<option value="${o.value}">${o.label}</option>`
+  ).join('');
+  sel.value = getCurrentWeekStart();
+}
+
+function getSelectedWeek() {
+  return document.getElementById('weekFilter')?.value || getCurrentWeekStart();
+}
+
+function reloadAllData() {
+  loadData();
+  if (document.getElementById('page-boh')?.classList.contains('active')) loadBOHData();
+  if (document.getElementById('page-foh')?.classList.contains('active')) loadFOHData();
+}
+
+function setLoadingIndicator(msg) {
+  const el = document.getElementById('loadingIndicator');
+  if (el) el.textContent = msg;
+}
+
 function loadData() {
   if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
   setSyncStatus('syncing','Connecting...');
-  db.ref('submissions').on('value', snap => {
+  const selectedWeek = getSelectedWeek();
+  setLoadingIndicator('⏳ Loading...');
+  db.ref('submissions').orderByChild('week').equalTo(selectedWeek).once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     allStaff = filterByRole(raw);
+    setLoadingIndicator('');
     db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       // Only BOH audits — FOH not included in KPI system
@@ -3385,7 +3474,8 @@ let currentBOHSub = 'all';
 function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
-  db.ref('submissions').once('value', snap => {
+  const bohWeek = getSelectedWeek();
+  db.ref('submissions').orderByChild('week').equalTo(bohWeek).once('value', snap => {
     allBOHData = [];
     if (snap.exists()) {
       const grouped = {};
@@ -3484,8 +3574,8 @@ function loadFOHData() {
     return;
   }
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
-  fohDb.ref('submissions').once('value', snap => {
-    allFOHData = [];
+  const fohWeek = getSelectedWeek();
+  fohDb.ref('submissions').orderByChild('week').equalTo(fohWeek).once('value', snap => {
     if (snap.exists()) {
       // Group by staffName + role + week
       const grouped = {};
@@ -3582,6 +3672,7 @@ function renderFOHStaff() {
   const scoreColor = p => p >= 95 ? '#0F766E' : p >= 70 ? '#D97706' : '#B91C1C';
   const scoreBg = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
 
+  _fohFiltered = filtered;
   filtered.forEach(staff => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
@@ -3593,8 +3684,9 @@ function renderFOHStaff() {
         : `<td style="padding:6px 8px;text-align:center;color:#E0DDD4;font-size:12px;">—</td>`;
     }
     const op = staff.overallPct;
+    const staffIdx = filtered.indexOf(staff);
     tr.innerHTML = `
-      <td style="padding:8px 12px;font-size:12px;font-weight:600">${staff.staffName}</td>
+      <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#7B2D42;cursor:pointer;text-decoration:underline;" onclick="openFOHDetail(${staffIdx})">${staff.staffName}</td>
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
@@ -3609,9 +3701,160 @@ function renderFOHStaff() {
           : '<span style="font-size:11px;color:#94A3B8;">N/A</span>'}
       </td>
       <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified ? '✅' : op > 0 ? '❌' : '—'}</td>
+      <td style="padding:8px 12px;text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;">
+          <button onclick="openFOHDetail(${staffIdx})" style="font-size:11px;padding:4px 8px;background:#FFF1F0;color:#7B2D42;border:1px solid #C4533A;border-radius:6px;cursor:pointer;">👁 View</button>
+          <button onclick="deleteFOHStaff('${staff.staffName}','${staff.role}','${staff.week}')" style="font-size:11px;padding:4px 8px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;">🗑</button>
+        </div>
+      </td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+// Track filtered for detail view
+let _fohFiltered = [];
+let _fohDetailIdx = -1;
+
+function openFOHDetail(idx) {
+  const staff = _fohFiltered[idx];
+  if (!staff) return;
+  _fohDetailIdx = idx;
+
+  document.getElementById('fohDetailName').textContent = staff.staffName;
+  document.getElementById('fohDetailSub').textContent = staff.role.toUpperCase() + ' • ' + staff.outlet + ' • Week: ' + staff.week;
+
+  const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚗 Del.co', bartender:'🍹 Bartender'};
+  const scoreColor = p => p>=95?'#0F766E':p>=70?'#D97706':'#B91C1C';
+  const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
+  const op = staff.overallPct;
+
+  // Build day breakdown
+  let dayRows = '';
+  const weekStart = new Date(staff.week + 'T00:00:00');
+  for (let d = 1; d <= 6; d++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + d - 1);
+    const dateStr = date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+    const p = staff.days[d];
+    dayRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:0.5px solid #F1F5F9;">
+      <div style="font-size:12px;font-weight:500;">${dateStr}</div>
+      ${p !== undefined
+        ? `<span style="display:inline-block;padding:3px 10px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(p)};color:${scoreColor(p)}">${p}%</span>`
+        : '<span style="font-size:12px;color:#94A3B8;">Not submitted</span>'}
+    </div>`;
+  }
+
+  const oicStatus = staff.role === 'service'
+    ? (staff.staffSubmitted && staff.oicEvaluated ? '<span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">✅ Complete</span>'
+      : staff.staffSubmitted ? '<span style="background:#FEF3C7;color:#D97706;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">⚠️ Pending OIC Evaluation</span>'
+      : '<span style="font-size:12px;color:#94A3B8;">—</span>')
+    : '';
+
+  document.getElementById('fohDetailBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:#FFF1F0;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;margin-top:2px;">Overall Score</div>
+      </div>
+      <div style="background:#F8F7F2;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:#1A3C5E">${Object.keys(staff.days).length}</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;margin-top:2px;">Days Submitted</div>
+      </div>
+      <div style="background:#F8F7F2;border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;color:${staff.qualified?'#0F766E':'#B91C1C'}">${staff.qualified?'✅':'❌'}</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;margin-top:2px;">Incentive</div>
+      </div>
+    </div>
+    ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
+    <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Daily Scores</div>
+    <div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;margin-bottom:14px;">
+      ${dayRows}
+    </div>
+    <div style="font-size:11px;color:#94A3B8;text-align:center;">Role: ${roleLabels[staff.role]||staff.role} • Outlet: ${staff.outlet}</div>
+  `;
+
+  document.getElementById('fohDetailModal').style.display = 'flex';
+}
+
+function deleteFOHStaff(name, role, week) {
+  if (!confirm('Delete all submissions for ' + name + ' (' + role + ') week ' + week + '?')) return;
+  if (!fohDb) return;
+  fohDb.ref('submissions').orderByChild('staffName').equalTo(name).once('value', snap => {
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === role && sub.week === week) {
+        updates[child.key] = null;
+      }
+    });
+    if (Object.keys(updates).length === 0) return;
+    fohDb.ref('submissions').update(updates).then(() => {
+      showToast('Deleted ✓', 'ok');
+      document.getElementById('fohDetailModal').style.display = 'none';
+      loadFOHData();
+    }).catch(e => showToast('Delete failed: ' + e.message, 'error'));
+  });
+}
+
+function deleteFOHRecord() {
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (!staff) return;
+  deleteFOHStaff(staff.staffName, staff.role, staff.week);
+}
+
+function exportFOHDetailPDF() {
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (!staff || typeof window.jspdf === 'undefined') return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm',format:'a4'});
+  const W = doc.internal.pageSize.getWidth();
+  doc.setFillColor(123,45,66);
+  doc.rect(0,0,W,20,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('FOH Performance Report — ' + staff.staffName, 14, 9);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text(staff.role.toUpperCase() + ' • ' + staff.outlet + ' • Week: ' + staff.week, 14, 15);
+  doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), W-14, 15, {align:'right'});
+
+  let y = 28;
+  const scoreColor = p => p>=95?[15,118,110]:p>=70?[217,119,6]:[185,28,28];
+
+  doc.setFillColor(255,241,240);
+  doc.rect(14,y,W-28,16,'F');
+  doc.setFontSize(24); doc.setFont('helvetica','bold');
+  doc.setTextColor(...scoreColor(staff.overallPct));
+  doc.text(staff.overallPct + '%', W/2, y+11, {align:'center'});
+  doc.setFontSize(9); doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
+  doc.text('6-Day Overall Score (Target: 95%)', W/2, y+15, {align:'center'});
+  y += 24;
+
+  const weekStart = new Date(staff.week + 'T00:00:00');
+  doc.autoTable({
+    startY: y,
+    head: [['Day', 'Date', 'Score', 'Status']],
+    body: Array.from({length:6},(_,i) => {
+      const d = i+1;
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + i);
+      const p = staff.days[d];
+      return [
+        'Day ' + d,
+        date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
+        p !== undefined ? p + '%' : '—',
+        p !== undefined ? (p>=95?'✅ Qualified':'❌ Below Target') : 'Not submitted'
+      ];
+    }),
+    styles:{fontSize:10,cellPadding:4},
+    headStyles:{fillColor:[123,45,66],textColor:[255,255,255]},
+    margin:{left:14,right:14}
+  });
+
+  doc.setFontSize(9); doc.setTextColor(150,150,150);
+  doc.text('Culex Hospitality FOH Report — Confidential', W/2, 287, {align:'center'});
+  doc.save('FOH_' + staff.staffName.replace(/\s/g,'_') + '_' + staff.week + '.pdf');
 }
 
 // ── Maintenance Log ──────────────────────────────────────────
@@ -3621,7 +3864,8 @@ function loadMaintenanceLogs() {
     return;
   }
   document.getElementById('maintStatus').textContent = '⏳ Loading...';
-  maintenanceDb.ref('maintenanceLogs').once('value', snap => {
+  // Load last 200 records ordered by date — enough for any active period
+  maintenanceDb.ref('maintenanceLogs').orderByChild('loggedAt').limitToLast(200).once('value', snap => {
     allMaintenanceLogs = [];
     if (snap.exists()) {
       snap.forEach(child => {

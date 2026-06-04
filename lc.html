@@ -187,13 +187,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="modal-box">
     <div class="modal-title">📷 Photo Proof</div>
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
-    <label class="mbtn mbtn-cam" for="camInput">📸 Take Photo Now</label>
+    <button class="mbtn mbtn-cam" onclick="triggerCamera()">📸 Take Photo</button>
+  <button class="mbtn mbtn-gal" onclick="triggerGallery()" style="background:#475569;">🖼️ Choose from Gallery</button>
     <label class="mbtn mbtn-gal" for="galInput">🖼 Choose from Gallery</label>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
-<input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;" onchange="if(this.files&&this.files[0])handlePhotoFile(this.files[0])">
-<input type="file" id="galInput" accept="image/*" style="display:none;" onchange="if(this.files&&this.files[0])handlePhotoFile(this.files[0])">
+<input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="galInput" accept="image/*" style="display:none;">
 
 <script>
 
@@ -453,16 +454,29 @@ function pushToMasterDashboard(record) {
   saveSharedDB(db);
 }
 
-// ── iOS Safari fix: use blob URL for camera capture ──────────────────────────
+// ── Cross-device Camera & Gallery ────────────────────────────
+function triggerCamera() {
+  const input = document.getElementById('camInput');
+  if (!input) return;
+  // Android Chrome & iOS Safari both support capture="environment"
+  input.setAttribute('capture', 'environment');
+  input.setAttribute('accept', 'image/*');
+  input.value = '';
+  input.click();
+}
+
+function triggerGallery() {
+  const input = document.getElementById('galInput');
+  if (!input) return;
+  input.removeAttribute('capture');
+  input.setAttribute('accept', 'image/*');
+  input.value = '';
+  input.click();
+}
+
 function iosPhotoFix(inputEl, onDataUrl) {
-  // iOS Safari needs special handling — no capture attribute workaround
-  inputEl.removeAttribute('capture');
+  // Legacy — kept for compatibility
   inputEl.setAttribute('accept', 'image/*');
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isIOS) {
-    // On iOS we add capture back AFTER a small delay so Safari registers it
-    setTimeout(() => inputEl.setAttribute('capture', 'environment'), 50);
-  }
 }
 
 function compressAndReturn(file, callback) {
@@ -1229,11 +1243,22 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDay();
 }
 
-document.getElementById('camInput').addEventListener('change', function() {
-    if (this.files && this.files[0]) { handlePhotoFile(this.files[0]); this.value=''; }
-  });
-  document.getElementById('galInput').addEventListener('change', function() {
-    if (this.files && this.files[0]) { handlePhotoFile(this.files[0]); this.value=''; }
+// Robust photo input handlers — works on iOS, Android, Samsung, Huawei
+  ['camInput','galInput'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        handlePhotoFile(file);
+        // Reset so same photo can be re-selected
+        setTimeout(() => { this.value = ''; }, 500);
+      }
+    });
+    // Handle cancel on iOS (focus event)
+    el.addEventListener('cancel', function() {
+      this.value = '';
+    });
   });
   // Auto-set to current Monday
   // Auto-set week to current Monday

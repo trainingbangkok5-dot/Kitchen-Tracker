@@ -523,7 +523,8 @@ function loadLogs() {
     if (currentRole) loadLogs();
   }, 5 * 60 * 1000);
 
-  db.ref('maintenanceLogs').on('value', snap => {
+  // Load last 300 records — enough for any active period
+  db.ref('maintenanceLogs').orderByChild('loggedAt').limitToLast(300).on('value', snap => {
     allLogs = [];
     logCounter = 1001;
     if (snap.exists()) {
@@ -1460,31 +1461,45 @@ function showNewIssuesAlert() {
 }
 
 // ── Camera Helper — creates fresh input to force camera on iOS/Android ─────
+let _photoCallback = null;
+
 function openCamera(callback) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.capture = 'environment';
-  input.style.display = 'none';
-  document.body.appendChild(input);
-  input.onchange = function() {
-    if (this.files && this.files[0]) callback(this.files[0]);
-    document.body.removeChild(input);
-  };
+  _photoCallback = callback;
+  const input = document.getElementById('maintCamInput');
+  if (!input) return;
+  input.setAttribute('capture', 'environment');
+  input.setAttribute('accept', 'image/*');
+  input.value = '';
   input.click();
 }
 
 function openGallery(callback) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.style.display = 'none';
-  document.body.appendChild(input);
-  input.onchange = function() {
-    if (this.files && this.files[0]) callback(this.files[0]);
-    document.body.removeChild(input);
-  };
+  _photoCallback = callback;
+  const input = document.getElementById('maintGalInput');
+  if (!input) return;
+  input.removeAttribute('capture');
+  input.setAttribute('accept', 'image/*');
+  input.value = '';
   input.click();
+}
+
+function initPhotoInputs() {
+  ['maintCamInput','maintGalInput'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', function(e) {
+      const file = e.target.files && e.target.files[0];
+      if (file && _photoCallback) {
+        _photoCallback(file);
+        _photoCallback = null;
+      }
+      setTimeout(() => { this.value = ''; }, 500);
+    });
+    el.addEventListener('cancel', function() {
+      _photoCallback = null;
+      this.value = '';
+    });
+  });
 }
 
 // ── Staff Report (KIC/OIC) ───────────────────────────────────
@@ -1550,6 +1565,7 @@ function resetStaffForm() {
 }
 
 window.addEventListener('DOMContentLoaded', function() {
+  initPhotoInputs();
   initFirebase();
   // Restore session if exists
   const savedName = sessionStorage.getItem('maint_name');
@@ -1577,5 +1593,8 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+<!-- Persistent photo inputs for cross-device compatibility -->
+<input type="file" id="maintCamInput" accept="image/*" capture="environment" style="display:none;">
+<input type="file" id="maintGalInput" accept="image/*" style="display:none;">
 </body>
 </html>

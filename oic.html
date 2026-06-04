@@ -377,16 +377,27 @@ function pushToMasterDashboard(record) {
   saveSharedDB(db);
 }
 
-// ── iOS Safari fix: use blob URL for camera capture ──────────────────────────
+// ── Cross-device Camera & Gallery ────────────────────────────
+function triggerCamera() {
+  const input = document.getElementById('camInput');
+  if (!input) return;
+  input.setAttribute('capture', 'environment');
+  input.setAttribute('accept', 'image/*');
+  input.value = '';
+  input.click();
+}
+
+function triggerGallery() {
+  const input = document.getElementById('galInput');
+  if (!input) return;
+  input.removeAttribute('capture');
+  input.setAttribute('accept', 'image/*');
+  input.value = '';
+  input.click();
+}
+
 function iosPhotoFix(inputEl, onDataUrl) {
-  // iOS Safari needs special handling — no capture attribute workaround
-  inputEl.removeAttribute('capture');
   inputEl.setAttribute('accept', 'image/*');
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isIOS) {
-    // On iOS we add capture back AFTER a small delay so Safari registers it
-    setTimeout(() => inputEl.setAttribute('capture', 'environment'), 50);
-  }
 }
 
 function compressAndReturn(file, callback) {
