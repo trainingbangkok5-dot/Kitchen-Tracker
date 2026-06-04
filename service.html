@@ -163,7 +163,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <option value="The Red Door" style="color:#000">The Red Door</option>
 </optgroup>
 </select></div>
-    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Week starting date"></div>
+    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
     <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
       <label onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;font-weight:400;user-select:none;" title="">⚙</label>
     </div>
@@ -1186,9 +1186,8 @@ document.getElementById('camInput').addEventListener('change', function() {
     const m = String(monday.getMonth()+1).padStart(2,'0');
     const d = String(monday.getDate()).padStart(2,'0');
     document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-    localStorage.setItem('kic_info_' + ROLE + '_fWeek', y + '-' + m + '-' + d);
   } else {
-    const now = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Dubai'}));
+    const now = new Date();
     const day = now.getDay();
     const diff = now.getDate() - day + (day === 0 ? -6 : 1);
     now.setDate(diff);
@@ -1196,7 +1195,6 @@ document.getElementById('camInput').addEventListener('change', function() {
     const m = String(now.getMonth()+1).padStart(2,'0');
     const d = String(now.getDate()).padStart(2,'0');
     document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-    localStorage.setItem('kic_info_' + ROLE + '_fWeek', y + '-' + m + '-' + d);
   }
   ['fName','fOutlet','fWeek'].forEach(id => {
     const el = document.getElementById(id);
