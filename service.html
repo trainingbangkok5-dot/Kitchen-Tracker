@@ -289,23 +289,89 @@ function pushToFirebase(record) {
 }
 
 
+// ── Cloudinary Photo Upload ───────────────────────────────────
+const CLOUDINARY_CLOUD = 'db94rgiil';
+const CLOUDINARY_PRESET = 'culex_uploads';
+
 async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   try {
-    if (!_db || !dataUrl) return null;
-    // Compress photo before saving to Realtime Database
-    const compressed = await compressToSize(dataUrl, 150); // max 150KB
-    const key = (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + ROLE + '_'
-              + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
-    const photoKey = `d${day}_${taskId}`;
-    await _db.ref(`photos/${key}/${photoKey}`).set(compressed);
-    // Return a special marker URL so we know photo is in database
-    return `db:${key}/${photoKey}`;
+    if (!dataUrl) return null;
+    const compressed = await compressToSize(dataUrl, 150);
+    // Try Cloudinary first
+    try {
+      const res = await fetch(compressed);
+      const blob = await res.blob();
+      const folder = 'culex/' + ROLE + '/' + (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_');
+      const fd = new FormData();
+      fd.append('file', blob);
+      fd.append('upload_preset', CLOUDINARY_PRESET);
+      fd.append('folder', folder);
+      const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
+        method: 'POST', body: fd
+      });
+      const data = await resp.json();
+      if (data.secure_url) {
+        console.log('Photo uploaded to Cloudinary ✓');
+        return data.secure_url;
+      }
+    } catch(cloudErr) {
+      console.warn('Cloudinary unavailable, saving locally:', cloudErr);
+    }
+    // Fallback — save base64 locally, queue for retry
+    showToast('Cloud unavailable — photo saved locally 📱', 'warn');
+    const pendingKey = 'pending_photos_' + ROLE;
+    const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
+    const photoEntry = {
+      dataUrl: compressed,
+      taskId, staffName, day,
+      savedAt: new Date().toISOString()
+    };
+    pending.push(photoEntry);
+    localStorage.setItem(pendingKey, JSON.stringify(pending));
+    // Return compressed base64 as fallback so photo shows immediately
+    return compressed;
   } catch(e) {
-    console.warn('Photo save failed:', e);
+    console.warn('Photo save failed completely:', e);
     return null;
   }
 }
+
+// Retry pending photos when back online
+async function retryPendingPhotos() {
+  const pendingKey = 'pending_photos_' + ROLE;
+  const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
+  if (!pending.length) return;
+  showToast('Retrying ' + pending.length + ' pending photo(s)...', 'ok');
+  const remaining = [];
+  for (const p of pending) {
+    try {
+      const res = await fetch(p.dataUrl);
+      const blob = await res.blob();
+      const folder = 'culex/' + ROLE + '/' + (p.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_');
+      const fd = new FormData();
+      fd.append('file', blob);
+      fd.append('upload_preset', CLOUDINARY_PRESET);
+      fd.append('folder', folder);
+      const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
+        method: 'POST', body: fd
+      });
+      const data = await resp.json();
+      if (data.secure_url) {
+        console.log('Pending photo uploaded ✓');
+      } else {
+        remaining.push(p);
+      }
+    } catch(e) {
+      remaining.push(p);
+    }
+  }
+  localStorage.setItem(pendingKey, JSON.stringify(remaining));
+  if (remaining.length === 0) showToast('All pending photos uploaded ✓', 'ok');
+  else showToast(remaining.length + ' photo(s) still pending', 'warn');
+}
+
+// Auto-retry when online
+window.addEventListener('online', retryPendingPhotos);
 
 // Get the predictable db: photo ref for a task (matches uploadPhotoToFirebase key)
 function getPhotoDbRef(staffName, day, taskId) {

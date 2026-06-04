@@ -628,6 +628,52 @@ function handleNewPhoto(input, type, tempKey) {
   });
 }
 
+const CLOUDINARY_CLOUD = 'db94rgiil';
+const CLOUDINARY_PRESET = 'culex_uploads';
+
+async function uploadToCloudinary(file) {
+  try {
+    const folder = 'culex/maintenance';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+    fd.append('folder', folder);
+    const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
+      method: 'POST', body: fd
+    });
+    const data = await resp.json();
+    if (data.secure_url) return data.secure_url;
+    throw new Error('No URL returned');
+  } catch(e) {
+    console.warn('Cloudinary failed, using local fallback:', e);
+    // Fallback — compress and save as base64
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          const max = 800;
+          if (w > max || h > max) {
+            if (w > h) { h = Math.round(h*max/w); w = max; }
+            else { w = Math.round(w*max/h); h = max; }
+          }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          showToast('Cloud unavailable — photo saved locally 📱', 'warn');
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+}
+
+// Auto-retry when back online
+window.addEventListener('online', () => showToast('Back online! Re-upload any pending photos 📡', 'ok'));
+
 function compressPhoto(file, cb) {
   const reader = new FileReader();
   reader.onload = e => {
@@ -689,23 +735,35 @@ function cancelNewRow(tempKey) {
 }
 
 // ── Photo file helpers ──────────────────────────────────────
-function uploadPhotoFile(file, key, type) {
-  compressPhoto(file, base64 => {
-    if (!db) return;
+async function uploadPhotoFile(file, key, type) {
+  if (!file || !db) return;
+  showToast('Uploading photo...', 'ok');
+  try {
+    const url = await uploadToCloudinary(file);
+    if (!url) { showToast('Upload failed', 'error'); return; }
     const updates = {};
-    updates[type + 'Photo'] = base64;
-    db.ref('maintenanceLogs/' + key).update(updates)
-      .then(() => showToast((type==='before'?'Before':'After') + ' photo saved ✓', 'ok'))
-      .catch(e => showToast('Upload failed: ' + e.message, 'error'));
-  });
+    updates[type + 'Photo'] = url;
+    await db.ref('maintenanceLogs/' + key).update(updates);
+    showToast((type==='before'?'Before':'After') + ' photo saved ✓', 'ok');
+    loadLogs();
+  } catch(e) {
+    showToast('Upload failed: ' + e.message, 'error');
+  }
 }
 
-function handleNewPhotoFile(file, type, tempKey) {
-  compressPhoto(file, base64 => {
-    _newPhotos[tempKey + '_' + type] = base64;
+async function handleNewPhotoFile(file, type, tempKey) {
+  if (!file) return;
+  showToast('Uploading photo...', 'ok');
+  try {
+    const url = await uploadToCloudinary(file);
+    if (!url) { showToast('Upload failed', 'error'); return; }
+    _newPhotos[tempKey + '_' + type] = url;
     const prev = document.getElementById('nr_bprev_' + tempKey);
-    if (type === 'before' && prev) { prev.src = base64; prev.style.display = 'block'; }
-  });
+    if (type === 'before' && prev) { prev.src = url; prev.style.display = 'block'; }
+    showToast('Photo ready ✓', 'ok');
+  } catch(e) {
+    showToast('Upload failed', 'error');
+  }
 }
 
 // ── Upload Photo (existing row) ──────────────────────────────────────────────────────────────────

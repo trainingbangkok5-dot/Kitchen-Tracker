@@ -29,7 +29,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <meta name="theme-color" content="#7C2D12">
 <meta name="format-detection" content="telephone=no">
-<title>KIC Checklist</title>
+<title>OIC Checklist</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; }
@@ -51,7 +51,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .day-rail::-webkit-scrollbar { display:none; }
 .day-pill { flex-shrink:0; padding:5px 14px; border-radius:20px; border:1.5px solid #E2E8F0; background:#fff; font-size:12px; font-weight:700; color:#64748B; cursor:pointer; white-space:nowrap; -webkit-appearance:none; transition:all 0.15s; }
 .day-pill.active { background:#7C2D12; border-color:#7C2D12; color:#fff; }
-.day-pill.done { border-color:#22C55E; color:#15803D; }
+.day-pill.done { border-color:#22C55E; color:#0F766E; }
 .day-pill.done.active { background:#7C2D12; color:#fff; }
 .day-pill.locked { opacity:0.35; cursor:not-allowed; }
 .content { padding:12px 16px; }
@@ -62,7 +62,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .task-top { display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; }
 .owner-tag { font-size:8px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; padding:2px 6px; border-radius:4px; white-space:nowrap; margin-top:2px; flex-shrink:0; }
 .ot-self { background:#FEF3C7; color:#92400E; }
-.ot-verify { background:#DBEAFE; color:#1E40AF; }
+.ot-verify { background:#FFE4E1; color:#1E40AF; }
 .ot-monitor { background:#D1FAE5; color:#065F46; }
 .ot-record { background:#EDE9FE; color:#5B21B6; }
 .ot-auditor { background:#FCE7F3; color:#9D174D; }
@@ -70,12 +70,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .yn-row { display:flex; gap:6px; }
 .yn { flex:1; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
 .yn:active { transform:scale(0.96); }
-.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
+.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#0F766E; }
 .yn.no.on  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
 .yn.na.on  { background:#F3F4F6; border-color:#9CA3AF; color:#374151; }
 .photo-row { margin-top:9px; display:flex; align-items:center; gap:8px; }
 .photo-btn { display:flex; align-items:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; }
-.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
+.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#0F766E; background:#F0FDF4; }
 .photo-btn:active { transform:scale(0.97); }
 .photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
 .status-card { margin:16px 0 0; border-radius:12px; padding:16px; text-align:center; border:2px solid #E2E8F0; background:#fff; }
@@ -96,11 +96,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .ts-date  { font-size:10px; color:#64748B; margin-top:1px; }
 .ts-divider { width:1px; background:#E2E8F0; flex-shrink:0; }
 
-.synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
+.synced-msg { text-align:center; font-size:12px; color:#0F766E; font-weight:600; margin-top:8px; }
 .comment-field { width:100%; margin-top:6px; padding:6px 10px; border:1px solid #E0DDD4; border-radius:8px; font-size:12px; color:#374151; background:#F8FAFC; resize:none; font-family:inherit; }
 .comment-field:focus { outline:none; border-color:#94A3B8; background:#fff; }
 .locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
-/* OVERWRITE PANEL (KIC & Area Chef only) */
+/* OVERWRITE PANEL (Area Manager / Admin only) */
 .overwrite-panel { background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:10px; padding:12px 14px; margin-top:14px; }
 .overwrite-title { font-size:12px; font-weight:700; color:#B91C1C; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
 .overwrite-input { width:100%; padding:8px 11px; border:1.5px solid #FCA5A5; border-radius:8px; font-size:13px; background:#fff; outline:none; -webkit-appearance:none; margin-bottom:8px; }
@@ -114,7 +114,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .modal-sub { font-size:12px; color:#64748B; margin-bottom:18px; }
 .mbtn { display:block; width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; -webkit-appearance:none; }
 .mbtn-cam { background:#7C2D12; color:#fff; }
-.mbtn-gal { background:#EFF6FF; color:#E87722; }
+.mbtn-gal { background:#FFF1F0; color:#E87722; }
 .mbtn-cancel { background:#F8FAFC; color:#64748B; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -122,11 +122,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </head>
 <body>
 <div class="header">
-  <div class="role-badge">👨‍🍳 KIC</div>
-  <h1>KIC 6-Day Checklist</h1>
+  <div class="role-badge">🧑‍💼 OIC</div>
+  <h1>OIC 6-Day Checklist</h1>
   <div class="header-sub">Kitchen In Charge • Daily verification</div>
   <div class="info-grid">
-    <div class="info-field"><label>KIC Name</label><input id="fName" type="text" placeholder="KIC name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
+    <div class="info-field"><label>OIC Name</label><input id="fName" type="text" placeholder="OIC name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
     <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;cursor:pointer;">
 <option value="" style="color:#000">Select outlet...</option>
 <optgroup label="Little Bangkok" style="color:#000">
@@ -147,7 +147,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </optgroup>
 </select></div>
     <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
-    <div class="info-field"><label>Verified By (Area Chef)</label><input id="fVerified" type="text" placeholder="Area Chef name..." autocorrect="off"></div>
+    <div class="info-field"><label>Verified By (Area Manager)</label><input id="fVerified" type="text" placeholder="Area Manager name..." autocorrect="off"></div>
   </div>
   <div style="margin-top:4px;text-align:right;padding-right:4px;">
     <span onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;user-select:none;">⚙</span>
@@ -177,13 +177,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 
 // ══ FIREBASE CONFIG ════════════════════════════════════════════
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
-  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
-  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
-  projectId:         "kitchen-tracker-35293",
-  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
-  messagingSenderId: "608954017135",
-  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+  apiKey:            "AIzaSyDxc1zrvdv65kIzfP63CId2MdcoOCmIQPU",
+  authDomain:        "culex-foh.firebaseapp.com",
+  databaseURL:       "https://culex-foh-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "culex-foh",
+  storageBucket:     "culex-foh.firebasestorage.app",
+  messagingSenderId: "571343979493",
+  appId:             "1:571343979493:web:ae4a6f75106bc87a1be50c"
 };
 // ══════════════════════════════════════════════════════════════
 
@@ -349,7 +349,7 @@ function pushAuditToFirebase(record) {
 // SHARED DATABASE — all checklists write to same localStorage key
 // so master dashboard can read all submissions
 // ══════════════════════════════════════════════════════════════
-const SHARED_DB_KEY = 'KIC_SHARED_DB_V2';
+const SHARED_DB_KEY = 'OIC_SHARED_DB_V2';
 
 function loadSharedDB() {
   try { return JSON.parse(localStorage.getItem(SHARED_DB_KEY)) || { submissions: [] }; }
@@ -462,11 +462,11 @@ function showToast(msg, type) {
 
 
 
-// ── Auto-fill audit score for KIC's outlet ───────────────────────────────────
+// ── Auto-fill audit score for OIC's outlet ───────────────────────────────────
 function getLatestAuditForOutlet(outlet) {
   if (!outlet) return null;
   try {
-    const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{}');
+    const db = JSON.parse(localStorage.getItem('OIC_SHARED_DB_V2') || '{}');
     const audits = db.audits || [];
     const outletAudits = audits.filter(a =>
       a.outlet && a.outlet.trim().toLowerCase() === outlet.trim().toLowerCase()
@@ -498,7 +498,7 @@ function showAuditBanner() {
   } else {
     const pass = audit.score >= 80;
     banner.style.cssText += (pass
-      ? 'background:#DCFCE7;border:1px solid #22C55E;color:#15803D;display:block;'
+      ? 'background:#DCFCE7;border:1px solid #22C55E;color:#0F766E;display:block;'
       : 'background:#FEE2E2;border:1px solid #EF4444;color:#B91C1C;display:block;');
     const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
     banner.textContent = (pass ? '✅' : '❌') + ' ' + outlet + ' ' + audit.auditType +
@@ -559,7 +559,7 @@ function checkAutoReset() {
 
 
 // ── Role config ───────────────────────────────────────────────
-const ROLE       = 'kic';
+const ROLE       = 'oic';
 
 function clearAllData() {
   const pin = prompt('Enter Training PIN to reset checklist:');
@@ -570,8 +570,8 @@ function clearAllData() {
   showToast('Data cleared — fresh start ✓', 'ok');
   buildDayRail(); renderDay();
 }
-const ROLE_LABEL = 'KIC';
-const SK         = 'kic_kic_data_v2';
+const ROLE_LABEL = 'OIC';
+const SK         = 'kic_oic_data_v2';
 const ALLOW_OVERWRITE = false; // Lock after submit — overwrite via dashboard only
 let _overwritePins = {};
 function loadOverwritePins() {
@@ -581,12 +581,53 @@ function loadOverwritePins() {
   });
 }
 function checkOverwritePin(code) {
-  const validRoles = ['kic','areachef','training','operations','director','ceo'];
+  const validRoles = ['oic','areamanager','training','operations','director','ceo'];
   return validRoles.some(r => _overwritePins[r] && _overwritePins[r] === code);
 }
 
-const SECTIONS = [{"title": "Opening Today", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-Report", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true, "translations": {"hi": "सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)", "ne": "सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)", "bn": "সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)", "ur": "تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)", "my": "အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)", "th": "ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)"}}, {"id": "o2", "owner": "self", "ownerLbl": "Self-Report", "text": "Storage check: stock level, check high value items inventory", "photo": true, "translations": {"hi": "स्टोरेज जाँच: स्टॉक स्तर, उच्च मूल्य वस्तुओं की इन्वेंट्री", "ne": "भण्डारण जाँच: स्टक स्तर, उच्च मूल्य सामानको इन्भेन्ट्री", "bn": "স্টোরেজ চেক: স্টক লেভেল, মূল্যবান পণ্যের ইনভেন্টরি", "ur": "اسٹوریج چیک: اسٹاک لیول، قیمتی اشیاء کی انوینٹری", "my": "သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ တန်ဖိုးကြီးပစ္စည်းများ", "th": "ตรวจสอบการจัดเก็บ: ระดับสต็อก สินค้ามูลค่าสูง"}}, {"id": "o3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: everything in proper running condition", "photo": true, "translations": {"hi": "उपकरण जाँच: सब कुछ सही चलने की स्थिति में", "ne": "उपकरण जाँच: सबै ठीकसँग चल्ने अवस्थामा", "bn": "সরঞ্জাম চেক: সব কিছু সঠিক চালু অবস্থায়", "ur": "آلات کی جانچ: سب کچھ صحیح چلنے کی حالت میں", "my": "စက်ပစ္စည်း စစ်ဆေး: အားလုံး မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ", "th": "ตรวจสอบอุปกรณ์: ทุกอย่างอยู่ในสภาพพร้อมใช้งาน"}}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team briefing: constructive, follow agenda", "photo": false, "translations": {"hi": "टीम ब्रीफिंग: रचनात्मक, एजेंडा का पालन", "ne": "टिम ब्रिफिङ: रचनात्मक, एजेन्डा पालन", "bn": "টিম ব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ", "ur": "ٹیم بریفنگ: تعمیری، ایجنڈا کی پیروی", "my": "အဖွဲ့ briefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ", "th": "บรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ"}}]}, {"title": "Closing Yesterday", "tasks": [{"id": "cy1", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true, "translations": {"hi": "सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)", "ne": "सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)", "bn": "সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)", "ur": "تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)", "my": "အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)", "th": "ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)"}}, {"id": "cy2", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Storage check: stock level, next day stock availability", "photo": true, "translations": {"hi": "स्टोरेज जाँच: स्टॉक स्तर, अगले दिन स्टॉक उपलब्धता", "ne": "भण्डारण जाँच: स्टक स्तर, भोलिपल्ट स्टक उपलब्धता", "bn": "স্টোরেজ চেক: স্টক লেভেল, পরের দিন স্টক উপলব্ধতা", "ur": "اسٹوریج چیک: اسٹاک لیول، اگلے دن اسٹاک دستیابی", "my": "သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ နောက်တစ်နေ့ စတော့ရရှိနိုင်မှု", "th": "ตรวจสอบการจัดเก็บ: ระดับสต็อก ความพร้อมของสต็อกวันถัดไป"}}, {"id": "cy3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: any maintenance required", "photo": true, "translations": {"hi": "उपकरण जाँच: कोई रखरखाव आवश्यक है", "ne": "उपकरण जाँच: कुनै मर्मत आवश्यक छ", "bn": "সরঞ্জাম চেক: কোনো রক্ষণাবেক্ষণ প্রয়োজন", "ur": "آلات کی جانچ: کوئی دیکھ بھال ضروری ہے", "my": "စက်ပစ္စည်း စစ်ဆေး: ပြုပြင်ထိန်းသိမ်းမှု လိုအပ်သည်", "th": "ตรวจสอบอุปกรณ์: ต้องการการซ่อมบำรุงหรือไม่"}}, {"id": "cy4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team debriefing: constructive, follow agenda", "photo": false, "translations": {"hi": "टीम डीब्रीफिंग: रचनात्मक, एजेंडा का पालन", "ne": "टिम डिब्रिफिङ: रचनात्मक, एजेन्डा पालन", "bn": "টিম ডিব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ", "ur": "ٹیم ڈی بریفنگ: تعمیری، ایجنڈا کی پیروی", "my": "အဖွဲ့ debriefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ", "th": "ดีบรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ"}}]}, {"title": "Food Consistency Today", "tasks": [{"id": "fc1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served cooked as per recipes", "photo": true, "translations": {"hi": "सभी व्यंजन रेसिपी के अनुसार पकाए गए", "ne": "सबै परिकार रेसिपी अनुसार पकाइएको", "bn": "সব রান্না রেসিপি অনুযায়ী তৈরি", "ur": "تمام پکوان ترکیب کے مطابق پکائے گئے", "my": "ထမင်းသွတ်အားလုံး レシピ အတိုင်း ချက်ပြုတ်", "th": "อาหารทุกจานปรุงตามสูตรที่กำหนด"}}, {"id": "fc2", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served presented as per correct presentation", "photo": true, "translations": {"hi": "सभी व्यंजन सही प्रस्तुति के अनुसार परोसे गए", "ne": "सबै परिकार सही प्रस्तुतीकरण अनुसार परोसिएको", "bn": "সব রান্না সঠিক উপস্থাপনা অনুযায়ী পরিবেশিত", "ur": "تمام پکوان درست پیشکش کے مطابق پیش کیے گئے", "my": "ထမင်းသွတ်အားလုံး မှန်ကန်သော တင်ဆက်မှုနှင့် အညီ", "th": "อาหารทุกจานจัดวางตามมาตรฐานการนำเสนอ"}}, {"id": "fc3", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Ticket timing as per standard", "photo": false, "translations": {"hi": "टिकट टाइमिंग मानक के अनुसार", "ne": "टिकट टाइमिङ मानक अनुसार", "bn": "টিকিট টাইমিং মানদণ্ড অনুযায়ী", "ur": "ٹکٹ ٹائمنگ معیار کے مطابق", "my": "Ticket timing စံချိန်အတိုင်း", "th": "เวลาออกตั๋วตามมาตรฐาน"}}, {"id": "fc4", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Comments are read and actioned", "photo": false, "translations": {"hi": "टिप्पणियाँ पढ़ी और कार्रवाई की गई", "ne": "टिप्पणीहरू पढिएको र कार्यान्वयन गरिएको", "bn": "মন্তব্য পড়া এবং ব্যবস্থা নেওয়া হয়েছে", "ur": "تبصرے پڑھے اور ان پر عمل کیا گیا", "my": "မှတ်ချက်များ ဖတ်ရှုပြီး ဆောင်ရွက်ထား", "th": "อ่านความคิดเห็นและดำเนินการแล้ว"}}, {"id": "fc5", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Delivery: packing, customer comments, small sides not missed", "photo": false, "translations": {"hi": "डिलीवरी: पैकिंग, ग्राहक टिप्पणी, छोटे साइड न छूटें", "ne": "डेलिभरी: प्याकिङ, ग्राहक टिप्पणी, साना साइड नछुटोस्", "bn": "ডেলিভারি: প্যাকিং, গ্রাহকের মন্তব্য, ছোট সাইড মিস না", "ur": "ڈیلیوری: پیکنگ، گاہک کے تبصرے، چھوٹے سائیڈ نہ چھوٹیں", "my": "ပေးပို့ရေး: ထုပ်ပိုး၊ ဖောက်သည်မှတ်ချက်၊ ငယ်သောဘေးများ မပျောက်", "th": "จัดส่ง: การบรรจุ ความคิดเห็นลูกค้า ไม่ลืมของเล็กน้อย"}}]}, {"title": "Leadership Today", "tasks": [{"id": "l1", "owner": "record", "ownerLbl": "Self-Report", "text": "Display professional control of operation flow", "photo": false, "translations": {"hi": "ऑपरेशन प्रवाह का पेशेवर नियंत्रण प्रदर्शित करें", "ne": "अपरेशन प्रवाहको व्यावसायिक नियन्त्रण देखाउनुस्", "bn": "অপারেশন প্রবাহের পেশাদার নিয়ন্ত্রণ প্রদর্শন", "ur": "آپریشن کے بہاؤ کا پیشہ ورانہ کنٹرول ظاہر کریں", "my": "လုပ်ငန်းစီးဆင်းမှု ကျွမ်းကျင်သောထိန်းချုပ်မှု ပြသ", "th": "แสดงการควบคุมการดำเนินงานอย่างมืออาชีพ"}}, {"id": "l2", "owner": "record", "ownerLbl": "Self-Report", "text": "Display efficient and professional communication skill", "photo": false, "translations": {"hi": "कुशल और पेशेवर संचार कौशल प्रदर्शित करें", "ne": "दक्ष र व्यावसायिक संचार सीप देखाउनुस्", "bn": "দক্ষ ও পেশাদার যোগাযোগ দক্ষতা প্রদর্শন", "ur": "موثر اور پیشہ ورانہ مواصلاتی مہارت ظاہر کریں", "my": "ထိရောက်သောနှင့် ကျွမ်းကျင်သောဆက်သွယ်ရေးကျွမ်းကျင်မှု ပြသ", "th": "แสดงทักษะการสื่อสารที่มีประสิทธิภาพและเป็นมืออาชีพ"}}, {"id": "l3", "owner": "record", "ownerLbl": "Self-Report", "text": "Display culinary knowledge and integrity", "photo": false, "translations": {"hi": "पाक ज्ञान और ईमानदारी प्रदर्शित करें", "ne": "पाककला ज्ञान र इमानदारी देखाउनुस्", "bn": "রান্নার জ্ঞান ও সততা প্রদর্শন", "ur": "پکانے کا علم اور دیانت داری ظاہر کریں", "my": "ချက်ပြုတ်ရေးဗဟုသုတနှင့် ဆောင်ရွက်မှုတည်ညီမှု ပြသ", "th": "แสดงความรู้ด้านการทำอาหารและความซื่อสัตย์"}}, {"id": "l4", "owner": "record", "ownerLbl": "Self-Report", "text": "Cleanliness of all stations including steward area", "photo": true, "translations": {"hi": "स्टीवर्ड क्षेत्र सहित सभी स्टेशनों की सफाई", "ne": "स्टुवार्ड क्षेत्र सहित सबै स्टेशनहरूको सफाई", "bn": "স্টুয়ার্ড এলাকা সহ সব স্টেশনের পরিচ্ছন্নতা", "ur": "اسٹیوارڈ علاقے سمیت تمام اسٹیشنز کی صفائی", "my": "Steward နေရာအပါအဝင် စခန်းအားလုံး သန့်ရှင်းရေး", "th": "ความสะอาดของทุกสถานีรวมถึงพื้นที่ของสจ๊วต"}}, {"id": "l5", "owner": "record", "ownerLbl": "Self-Report", "text": "Storage area neat and clean, items arranged", "photo": true, "translations": {"hi": "स्टोरेज क्षेत्र साफ और व्यवस्थित, सामान सजाया हुआ", "ne": "भण्डारण क्षेत्र सफा र व्यवस्थित, सामान मिलाइएको", "bn": "স্টোরেজ এলাকা পরিষ্কার, পণ্য সাজানো", "ur": "اسٹوریج علاقہ صاف اور ترتیب سے، اشیاء ترتیب دی گئی", "my": "သိုလှောင်ရေးနေရာ သပ်ရပ်သန့်ရှင်း၊ ပစ္စည်းများ စီစဉ်ထား", "th": "พื้นที่จัดเก็บสะอาดเรียบร้อย สินค้าจัดวางอย่างเป็นระเบียบ"}}, {"id": "l6", "owner": "record", "ownerLbl": "Self-Report", "text": "All stations are properly set up and filled", "photo": true, "translations": {"hi": "सभी स्टेशन सही तरीके से सेट अप और भरे हुए", "ne": "सबै स्टेशनहरू ठीकसँग सेटअप र भरिएको", "bn": "সব স্টেশন সঠিকভাবে সেটআপ ও পূর্ণ", "ur": "تمام اسٹیشنز صحیح طریقے سے ترتیب دیے اور بھرے گئے", "my": "စခန်းအားလုံး မှန်ကန်စွာ ပြင်ဆင်ထားပြီး ဖြည့်ထား", "th": "ทุกสถานีติดตั้งและเติมของครบถ้วนอย่างถูกต้อง"}}, {"id": "l7", "owner": "record", "ownerLbl": "Self-Report", "text": "Staff are ready physically and mentally motivated", "photo": false, "translations": {"hi": "कर्मचारी शारीरिक रूप से तैयार और मानसिक रूप से प्रेरित", "ne": "कर्मचारी शारीरिक रूपमा तयार र मानसिक रूपमा प्रेरित", "bn": "কর্মীরা শারীরিকভাবে প্রস্তুত ও মানসিকভাবে অনুপ্রাণিত", "ur": "عملہ جسمانی طور پر تیار اور ذہنی طور پر حوصلہ افزا", "my": "ဝန်ထမ်းများ ကိုယ်ခန္ဓာအားဖြင့် အဆင်သင့်နှင့် စိတ်ဓာတ်ကောင်း", "th": "พนักงานพร้อมทางกายและมีแรงจูงใจทางจิตใจ"}}]}, {"title": "Food Cost & Staff", "tasks": [{"id": "cost1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Theory vs actual difference less than 1.5%", "photo": false, "translations": {"hi": "सैद्धांतिक बनाम वास्तविक अंतर 1.5% से कम", "ne": "सैद्धान्तिक बनाम वास्तविक अन्तर 1.5% भन्दा कम", "bn": "তাত্ত্বিক বনাম বাস্তব পার্থক্য ১.৫% এর কম", "ur": "نظری بمقابلہ اصل فرق 1.5% سے کم", "my": "သီအိုရီနှင့် တကယ့်ကွာခြားမှု 1.5% အောက်", "th": "ความแตกต่างระหว่างทฤษฎีและความเป็นจริงน้อยกว่า 1.5%"}}, {"id": "sp1", "owner": "record", "ownerLbl": "Self-Report", "text": "Staff monitoring done properly and scored fairly", "photo": false, "translations": {"hi": "कर्मचारी निगरानी सही तरीके से की गई और निष्पक्ष अंक दिए गए", "ne": "कर्मचारी अनुगमन ठीकसँग गरिएको र निष्पक्ष स्कोर दिइएको", "bn": "কর্মী পর্যবেক্ষণ সঠিকভাবে করা এবং ন্যায্যভাবে স্কোর দেওয়া", "ur": "عملے کی نگرانی صحیح طریقے سے کی گئی اور منصفانہ نمبر دیے گئے", "my": "ဝန်ထမ်းစောင့်ကြည့်ရေး မှန်ကန်စွာ ပြုလုပ်ပြီး မျှတစွာ အမှတ်ပေး", "th": "การติดตามพนักงานทำอย่างถูกต้องและให้คะแนนอย่างยุติธรรม"}}, {"id": "sp2", "owner": "record", "ownerLbl": "Self-Report", "text": "Overall team score above 80%", "photo": false, "translations": {"hi": "समग्र टीम स्कोर 80% से ऊपर", "ne": "समग्र टिम स्कोर 80% भन्दा माथि", "bn": "সামগ্রিক টিম স্কোর ৮০% এর উপরে", "ur": "مجموعی ٹیم اسکور 80% سے اوپر", "my": "အဖွဲ့ကုန်းပြားမှတ်အားလုံး 80% အထက်", "th": "คะแนนรวมของทีมสูงกว่า 80%"}}, {"id": "cc1", "owner": "record", "ownerLbl": "Self-Report", "text": "Two or fewer genuine food-related customer complaints", "photo": false, "translations": {"hi": "दो या उससे कम वास्तविक खाद्य संबंधित ग्राहक शिकायतें", "ne": "दुई वा कम वास्तविक खाना सम्बन्धित ग्राहक गुनासो", "bn": "দুই বা তার কম খাদ্য সম্পর্কিত গ্রাহকের অভিযোগ", "ur": "دو یا اس سے کم حقیقی کھانے سے متعلق گاہک کی شکایات", "my": "စစ်မှန်သောအစားအသောက်ဆိုင်ရာ ဖောက်သည်တိုင်ကြားချက် နှစ်ခုနှင့်အောက်", "th": "ข้อร้องเรียนจากลูกค้าเกี่ยวกับอาหารไม่เกินสองครั้ง"}}, {"id": "aud1", "owner": "auditor", "ownerLbl": "Auditor", "text": "Section audit score on last visit above 80%", "photo": false, "translations": {"hi": "अंतिम यात्रा पर सेक्शन ऑडिट स्कोर 80% से ऊपर", "ne": "अन्तिम भ्रमणमा सेक्शन अडिट स्कोर 80% भन्दा माथि", "bn": "শেষ পরিদর্শনে সেকশন অডিট স্কোর ৮০% এর উপরে", "ur": "آخری دورے پر سیکشن آڈٹ اسکور 80% سے اوپر", "my": "နောက်ဆုံးသွားရောက်စစ်ဆေးမှုတွင် Section audit မှတ် 80% အထက်", "th": "คะแนนตรวจสอบส่วนในการเยี่ยมครั้งล่าสุดสูงกว่า 80%"}}]}];
-
+const SECTIONS = [
+  {"title":"🌅 Opening Today","tasks":[
+    {"id":"o1","owner":"self","ownerLbl":"Self-report","text":"Line check all front-of-house sections (Stations, Cashier, Bar, Dining Area)","photo":true,"translations":{}},
+    {"id":"o2","owner":"self","ownerLbl":"Self-report","text":"FOH Inventory check: operating supplies, printed menus, promo collateral, bar stock level","photo":true,"translations":{}},
+    {"id":"o3","owner":"verify","ownerLbl":"Verify by Area","text":"Equipment check: POS systems, AC units, music system, lighting & bar equipment in proper order","photo":true,"translations":{}},
+    {"id":"o4","owner":"verify","ownerLbl":"Verify by Area","text":"Service Team Briefing: grooming check, target allocation, constructive agenda & motivation","photo":true,"translations":{}}
+  ]},
+  {"title":"🌙 Closing Yesterday","tasks":[
+    {"id":"c1","owner":"verify","ownerLbl":"Verify by Area","text":"Line check all front-of-house sections (Side stations, outdoor setup, clean & reset)","photo":true,"translations":{}},
+    {"id":"c2","owner":"verify","ownerLbl":"Verify by Area","text":"Closing side-duties completed, POS settlement reconciled, cash drop secured without variance","photo":true,"translations":{}},
+    {"id":"c3","owner":"verify","ownerLbl":"Verify by Area","text":"FOH Equipment check: systems switched off safely, any maintenance reported","photo":true,"translations":{}},
+    {"id":"c4","owner":"verify","ownerLbl":"Verify by Area","text":"Team Debriefing: highlight top sellers, resolve service gaps, verify operational feedback","photo":true,"translations":{}}
+  ]},
+  {"title":"⭐ Service Standards & Speed Today","tasks":[
+    {"id":"s1","owner":"monitor","ownerLbl":"Monitor by Area","text":"Sequence of service executed fully as per brand standards across all tables","photo":false,"translations":{}},
+    {"id":"s2","owner":"monitor","ownerLbl":"Monitor by Area","text":"Table turnover & ticket timing (food/beverage delivery speed) meet expectations","photo":false,"translations":{}},
+    {"id":"s3","owner":"monitor","ownerLbl":"Monitor by Area","text":"Guest complaints handled immediately on the floor with active resolution metrics","photo":false,"translations":{}},
+    {"id":"s4","owner":"monitor","ownerLbl":"Monitor by Area","text":"Delivery & Takeaway operations: secure packing, correct modifiers, zero missed items","photo":false,"translations":{}}
+  ]},
+  {"title":"👥 Manpower & Labour Management","tasks":[
+    {"id":"m1","owner":"record","ownerLbl":"Record","text":"FOH attendance logged; staff deployed accurately to match peak trading hours","photo":false,"translations":{}},
+    {"id":"m2","owner":"record","ownerLbl":"Record","text":"Cross-training active: service team members allocated to optimize productivity and minimize overtime","photo":false,"translations":{}}
+  ]},
+  {"title":"💰 Sales Targets & Upselling Last Week","tasks":[
+    {"id":"u1","owner":"monitor","ownerLbl":"Monitor by Area","text":"Weekly outlet sales target achieved (Target vs Actual validation)","photo":false,"translations":{}},
+    {"id":"u2","owner":"record","ownerLbl":"Record","text":"Daily upselling items pushed actively; top upselling staff identified and tracked","photo":false,"translations":{}}
+  ]},
+  {"title":"📊 FOH Wastage & Cost Control Last Week","tasks":[
+    {"id":"w1","owner":"record","ownerLbl":"Record","text":"Bar beverage and FOH consumable wastage recorded properly target limit","photo":false,"translations":{}},
+    {"id":"w2","owner":"record","ownerLbl":"Record","text":"Operating supplies & chemical dilution standards monitored to prevent cost leaks","photo":false,"translations":{}}
+  ]},
+  {"title":"📋 Staff Performance Last Week","tasks":[
+    {"id":"p1","owner":"record","ownerLbl":"Record","text":"FOH staff performance monitored properly and scored fairly in the digital platform","photo":false,"translations":{}},
+    {"id":"p2","owner":"record","ownerLbl":"Record","text":"Overall weekly score of the service team members remains above 90%","photo":false,"translations":{}}
+  ]},
+  {"title":"📅 Manpower Planning This Month","tasks":[
+    {"id":"mp1","owner":"record","ownerLbl":"Record","text":"FOH shift roster aligns with operational requirements and forecasted peak days","photo":false,"translations":{}},
+    {"id":"mp2","owner":"record","ownerLbl":"Record","text":"Labor budget control: scheduled manpower matches target headcount parameters","photo":false,"translations":{}}
+  ]},
+  {"title":"🔍 Auditor Verification","tasks":[
+    {"id":"a1","owner":"auditor","ownerLbl":"Auditor","text":"FOH audit score on the last visit is above 90%","photo":false,"translations":{}}
+  ]}
+]
 let currentDay = 1; // Single daily submission — day rail removed
 let activePhotoTask = null;
 
@@ -738,7 +779,7 @@ function renderDay() {
     sc.className = `status-card ${dayPass?'pass':'fail'}`;
     sc.innerHTML = `<div class="sc-icon">${dayPass?'✅':'❌'}</div>
       <div class="sc-title">${dayPass?'Incentive Qualified!':'Keep going!'}</div>
-      <div class="sc-score" style="color:${dayPass?'#15803D':'#B91C1C'}">${dayScore}%</div>
+      <div class="sc-score" style="color:${dayPass?'#0F766E':'#B91C1C'}">${dayScore}%</div>
       <div class="sc-sub">Day ${currentDay} score (target: 95%)</div>`;
   } else if (yes > 0) {
     // Show live current day score while answering
@@ -746,7 +787,7 @@ function renderDay() {
     sc.className = `status-card ${dayPass?'pass':'fail'}`;
     sc.innerHTML = `<div class="sc-icon">${dayPass?'✅':'❌'}</div>
       <div class="sc-title">${dayPass?'Great job!':'Keep going!'}</div>
-      <div class="sc-score" style="color:${dayPass?'#15803D':'#B91C1C'}">${curScore}%</div>
+      <div class="sc-score" style="color:${dayPass?'#0F766E':'#B91C1C'}">${curScore}%</div>
       <div class="sc-sub">Day ${currentDay} score so far</div>`;
   } else {
     // No answers yet — show blank
@@ -820,7 +861,7 @@ function tapYN(tid, val, el) {
       scCard.className = `status-card ${dayPass?'pass':'fail'}`;
       scCard.innerHTML = '<div class="sc-icon">' + (dayPass?'✅':'❌') + '</div>'
         + '<div class="sc-title">' + (dayPass?'Great job!':'Keep going!') + '</div>'
-        + '<div class="sc-score" style="color:' + (dayPass?'#15803D':'#B91C1C') + '">' + p + '%</div>'
+        + '<div class="sc-score" style="color:' + (dayPass?'#0F766E':'#B91C1C') + '">' + p + '%</div>'
         + '<div class="sc-sub">Today score so far</div>';
     }
   }
@@ -932,7 +973,7 @@ function submitDay() {
   renderDay();
 }
 
-// ── Overwrite (KIC/Area Chef) ─────────────────────────────────
+// ── Overwrite (Area Manager/Admin) ────────────────────────────
 function doOverwrite() {
   const code = document.getElementById('owCode')?.value;
   if (!checkOverwritePin(code||'')) { showToast('Wrong PIN — access denied 🔒', 'error'); return; }
