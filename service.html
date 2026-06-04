@@ -164,9 +164,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </optgroup>
 </select></div>
     <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
-    <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
-      <label onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;font-weight:400;user-select:none;" title="">⚙</label>
+    <div class="info-field">
+      <label>Verified By (OIC)</label>
+      <input id="fVerified" type="text" placeholder="OIC name..." autocorrect="off" autocapitalize="words"
+        oninput="localStorage.setItem('oic_verifier_name',this.value)">
     </div>
+    <span onclick="clearAllData()" style="position:absolute;right:4px;bottom:4px;cursor:pointer;font-size:8px;color:transparent;user-select:none;" title="">⚙</span>
     </div>
   <!-- Shift selector bar -->
   <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
@@ -189,7 +192,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
     <button class="mbtn mbtn-cam" onclick="triggerCamera()">📸 Take Photo</button>
   <button class="mbtn mbtn-gal" onclick="triggerGallery()" style="background:#475569;">🖼️ Choose from Gallery</button>
-    <label class="mbtn mbtn-gal" for="galInput">🖼 Choose from Gallery</label>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
@@ -848,7 +850,7 @@ function renderDay() {
             <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.2);padding-top:8px;">
               <input id="oicManualName" type="text" placeholder="Or type staff name manually..."
                 style="width:100%;padding:8px 12px;border-radius:8px;border:none;font-size:12px;outline:none;">
-              <button onclick="selectStaffToEvaluate(document.getElementById('oicManualName').value)"
+              <button onclick="(function(){const v=document.getElementById('oicManualName').value.trim();const pins=['OIC2025','AMGR2025','CHEF2025','OPS2025','DRI2025','CEO2025','TRAIN2025','KIC2025'];if(pins.includes(v.toUpperCase())){showToast('Please enter a staff name, not a PIN','error');return;}selectStaffToEvaluate(v);})()"
                 style="width:100%;margin-top:6px;padding:8px;background:rgba(255,255,255,0.2);border:none;color:#fff;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
                 Evaluate This Staff →
               </button>
@@ -857,10 +859,12 @@ function renderDay() {
         container.appendChild(oicPanel);
         return;
       } else {
-        oicPanel.innerHTML = `<div style="background:#0F766E;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
-          <span style="font-size:16px;">🔓</span>
-          <span style="color:#fff;font-size:12px;font-weight:600;">Evaluating: <strong>${oicTargetStaff}</strong></span>
-          <button onclick="lockOIC()" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+        oicPanel.innerHTML = `<div style="background:#0F766E;border-radius:10px;padding:10px 14px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:16px;">🔓</span>
+            <span style="color:#fff;font-size:12px;font-weight:600;">Evaluating: <strong>${oicTargetStaff}</strong></span>
+            <button onclick="lockOIC()" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+          </div>
         </div>`;
         container.appendChild(oicPanel);
       }
@@ -948,13 +952,36 @@ function renderDay() {
         const owpO = document.createElement('div');
         owpO.className = 'overwrite-panel';
         owpO.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
-          <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">KIC / Area Chef / Admin PIN to unlock and edit</div>
+          <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">OIC / Area Manager PIN to unlock and edit</div>
           <input class="overwrite-input" id="owCodeO" type="password" placeholder="Enter PIN...">
           <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Opening</button>`;
         container.appendChild(owpO);
       }
     }
   });
+
+  // Submit OIC Evaluation button — show when OIC is unlocked
+  if (oicUnlocked) {
+    const d2 = load();
+    const dayKey2 = getTodayKey();
+    const evalDone = !!(d2[dayKey2]?._oicEvalDone);
+    const evalBtn = document.createElement('div');
+    evalBtn.style.cssText = 'margin:12px 0 4px;';
+    if (evalDone) {
+      const verifier = d2[dayKey2]?._oicVerifiedBy || '';
+      evalBtn.innerHTML = `<div style="background:#DCFCE7;border-radius:10px;padding:10px 14px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#15803D;">✅ OIC Evaluation Submitted</div>
+        ${verifier ? `<div style="font-size:11px;color:#64748B;margin-top:3px;">Verified by: ${verifier}</div>` : ''}
+      </div>`;
+    } else {
+      evalBtn.innerHTML = `<button onclick="submitOICEvaluation()"
+        style="width:100%;padding:13px;background:#0F766E;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">
+        ✅ Submit OIC Evaluation
+      </button>
+      <div style="font-size:11px;color:#94A3B8;text-align:center;margin-top:5px;">⚠️ All NO answers require a comment</div>`;
+    }
+    container.appendChild(evalBtn);
+  }
 
   // Score bar — today's shift score
   const pct = total > 0 ? Math.round((yes/total)*100) : 0;
@@ -1009,16 +1036,20 @@ function renderDay() {
     <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
     <div class="sc-sub">6-day overall score (target: 95%)</div>
-    ${tM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+    <div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
       <div style="flex:1;background:#FFF1F0;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
-        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${opO!==null?(opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'):'#94A3B8'}">${opO!==null?opO+'%':'—'}</div>
+      </div>
+      <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🧑‍💼 OIC Eval</div>
+        <div style="font-size:18px;font-weight:700;color:${oicT>0?(oicY/oicT>=0.95?'#0F766E':oicY/oicT>=0.7?'#92400E':'#B91C1C'):'#94A3B8'}">${oicT>0?Math.round((oicY/oicT)*100)+'%':'—'}</div>
       </div>
       <div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌙 Closing</div>
-        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${opC!==null?(opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'):'#94A3B8'}">${opC!==null?opC+'%':'—'}</div>
       </div>
-    </div>`:''}
+    </div>
   `;
   container.appendChild(sc);
 
@@ -1078,6 +1109,8 @@ function getTodaySubmittedStaff() {
 function selectStaffToEvaluate(name) {
   name = (name || '').trim();
   if (!name) { showToast('Please enter a staff name', 'warn'); return; }
+  const pins = ['OIC2025','AMGR2025','CHEF2025','OPS2025','DRI2025','CEO2025','TRAIN2025','KIC2025'];
+  if (pins.includes(name.toUpperCase())) { showToast('Please enter a staff name, not a PIN 🔒', 'error'); return; }
   oicTargetStaff = name;
   oicUnlocked = true;
   // Switch to evaluating this staff — load their data
@@ -1113,6 +1146,59 @@ function lockOIC() {
   oicUnlocked = false;
   oicTargetStaff = '';
   window._todayStaff = null;
+  renderDay();
+}
+
+function submitOICEvaluation() {
+  // Check verifier name
+  const verifier = (document.getElementById('fVerified')?.value || localStorage.getItem('oic_verifier_name') || '').trim();
+  if (!verifier) { showToast('Please enter your name in Verified By field', 'warn'); return; }
+
+  // Check all OIC tasks are answered
+  const oicSections = SECTIONS.filter(s => s.oicOnly);
+  const unanswered = [];
+  oicSections.forEach(s => s.tasks.forEach(t => {
+    if (!getVal(currentDay, t.id, 'yn')) unanswered.push(t.text);
+  }));
+  if (unanswered.length) { showToast('Please answer all OIC evaluation tasks first', 'warn'); return; }
+
+  // Every task answered "no" MUST have a comment
+  const oicTasks = oicSections.flatMap(s => s.tasks);
+  const missingComment = oicTasks.filter(t => {
+    const yn = getVal(currentDay, t.id, 'yn');
+    const comment = (getVal(currentDay, t.id, 'comment') || '').trim();
+    return yn === 'no' && !comment;
+  });
+  if (missingComment.length) {
+    showToast('📝 Comment required for every NO answer (' + missingComment.length + ' missing)', 'warn');
+    return;
+  }
+  // Also require at least one comment overall
+  const hasAnyComment = oicTasks.some(t => (getVal(currentDay, t.id, 'comment') || '').trim());
+  if (!hasAnyComment) { showToast('📝 At least one comment is required before submitting', 'warn'); return; }
+
+  // Save verifiedBy and push to Firebase
+  const name = getStaffName();
+  const d = load();
+  const dayKey = getTodayKey();
+  if (!d[dayKey]) d[dayKey] = {};
+  d[dayKey]._oicEvalDone = new Date().toISOString();
+  d[dayKey]._oicVerifiedBy = verifier;
+  save(d);
+
+  // Push updated record with verifiedBy
+  if (_db) {
+    const week = getWeekStart();
+    const key = (name||'unknown').replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (week||'').replace(/[^a-zA-Z0-9]/g,'_') + (currentDay ? '_d' + currentDay : '');
+    _db.ref('submissions/' + key).update({
+      verifiedBy: verifier,
+      oicEvaluated: true,
+      oicEvalAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+    });
+  }
+
+  showToast('OIC Evaluation submitted ✓', 'ok');
   renderDay();
 }
 
@@ -1267,7 +1353,7 @@ function submitDay() {
     roleLabel:    ROLE_LABEL,
     outlet:       getOutlet(),
     week:         getWeekStart(),
-    verifiedBy:   '',
+    verifiedBy:   localStorage.getItem('oic_verifier_name') || '',
     overallPct:   op,
     openingPct:   opO,
     closingPct:   opC,
