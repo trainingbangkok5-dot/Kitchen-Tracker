@@ -543,19 +543,37 @@ function checkOverwritePin(code) {
 }
 
 const SECTIONS = [
-  {"title":"🌅 Opening Responsibilities","tasks":[
+  {"title":"🌅 Opening Responsibilities","oicOnly":false,"tasks":[
     {"id":"o1","owner":"self","ownerLbl":"Self-report","text":"Service station / table setup / outdoor area set in tidy condition","photo":true,"translations":{}},
     {"id":"o2","owner":"self","ownerLbl":"Self-report","text":"Menu / promo material cleaned and in good condition","photo":true,"translations":{}},
     {"id":"o3","owner":"self","ownerLbl":"Self-report","text":"Bar: all ingredients filled, FIFOed, clean and tidy, no 86","photo":true,"translations":{}},
     {"id":"o4","owner":"verify","ownerLbl":"Verify by OIC","text":"Equipment / furniture clean and in good working condition","photo":true,"translations":{}},
     {"id":"o5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Decorative items clean and properly aligned, AC set to correct temperature, perfume diffuser functioning properly","photo":true,"translations":{}}
   ]},
-  {"title":"🌙 Closing Responsibilities","tasks":[
+  {"title":"🌙 Closing Responsibilities","oicOnly":false,"tasks":[
     {"id":"c1","owner":"verify","ownerLbl":"Verify by OIC","text":"Service Station / Tables / Outdoor Area: Cleaned, reset, and left tidy for the next operation","photo":true,"translations":{}},
     {"id":"c2","owner":"verify","ownerLbl":"Verify by OIC","text":"Menu / Promo Materials: Cleaned, organized, and stored properly","photo":true,"translations":{}},
     {"id":"c3","owner":"verify","ownerLbl":"Verify by OIC","text":"Bar: All ingredients covered, labeled, FIFOed, stored properly, and no unnecessary wastage","photo":true,"translations":{}},
     {"id":"c4","owner":"verify","ownerLbl":"Verify by OIC","text":"Maintenance: Any equipment or furniture issues reported to the OIC or maintenance team","photo":true,"translations":{}},
     {"id":"c5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Furniture, decorative items, and guest areas cleaned, organized, and left in good condition","photo":true,"translations":{}}
+  ]},
+  {"title":"💰 Upselling","oicOnly":true,"tasks":[
+    {"id":"u1","owner":"verify","ownerLbl":"OIC Only","text":"Monthly Sales target achieved and the staff with highest Sales will also be rewarded","photo":false,"translations":{}}
+  ]},
+  {"title":"⭐ Service Standards","oicOnly":true,"tasks":[
+    {"id":"s1","owner":"verify","ownerLbl":"OIC Only","text":"Customer interaction","photo":false,"translations":{}},
+    {"id":"s2","owner":"verify","ownerLbl":"OIC Only","text":"Sequence of service","photo":false,"translations":{}},
+    {"id":"s3","owner":"verify","ownerLbl":"OIC Only","text":"Service awareness","photo":false,"translations":{}}
+  ]},
+  {"title":"📝 Customer Feedback & Performance","oicOnly":true,"tasks":[
+    {"id":"f1","owner":"verify","ownerLbl":"OIC Only","text":"Complaints","photo":false,"translations":{}},
+    {"id":"f2","owner":"verify","ownerLbl":"OIC Only","text":"Grooming (hair neatly tied and wearing make up)","photo":false,"translations":{}}
+  ]},
+  {"title":"🤝 Team Player & Professionalism","oicOnly":true,"tasks":[
+    {"id":"t1","owner":"verify","ownerLbl":"OIC Only","text":"Be a team player with OIC and teammates","photo":false,"translations":{}},
+    {"id":"t2","owner":"verify","ownerLbl":"OIC Only","text":"Helpful attitude","photo":false,"translations":{}},
+    {"id":"t3","owner":"verify","ownerLbl":"OIC Only","text":"Follow instruction","photo":false,"translations":{}},
+    {"id":"t4","owner":"verify","ownerLbl":"OIC Only","text":"Attendance","photo":false,"translations":{}}
   ]}
 ]
 let currentDay = 1;
@@ -711,16 +729,54 @@ function renderDay() {
 
   let total = 0, yes = 0;
 
+  // OIC unlock panel - show before OIC sections
+  let oicPanelAdded = false;
+
   SECTIONS.forEach((section, si) => {
     const isOpenSection  = si === 0;
     const isCloseSection = si === 1;
+    const isOicSection   = !!section.oicOnly;
 
     // Opening shift: only show opening tasks
     if (currentShift === 'opening' && isCloseSection) return;
+    // OIC sections always accessible when unlocked
+
+    // Add OIC unlock panel before first OIC section
+    if (isOicSection && !oicPanelAdded) {
+      oicPanelAdded = true;
+      const oicPanel = document.createElement('div');
+      oicPanel.style.cssText = 'margin:16px 0 8px;';
+      if (!oicUnlocked) {
+        oicPanel.innerHTML = `
+          <div style="background:linear-gradient(135deg,#7B2D42,#C4533A);border-radius:12px;padding:14px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:6px;">🔒</div>
+            <div style="color:#fff;font-size:13px;font-weight:700;margin-bottom:4px;">OIC Evaluation Sections</div>
+            <div style="color:rgba(255,255,255,0.7);font-size:11px;margin-bottom:12px;">Enter OIC PIN to fill Upselling, Service Standards, Customer Feedback & Team Player sections</div>
+            <div style="display:flex;gap:8px;max-width:300px;margin:0 auto;">
+              <input id="oicPinInput" type="password" placeholder="Enter OIC PIN..." maxlength="10"
+                style="flex:1;padding:8px 12px;border-radius:8px;border:none;font-size:13px;outline:none;"
+                onkeydown="if(event.key==='Enter')unlockOIC()">
+              <button onclick="unlockOIC()" style="padding:8px 16px;background:#fff;color:#7B2D42;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Unlock</button>
+            </div>
+          </div>`;
+        container.appendChild(oicPanel);
+        return; // Skip OIC sections until unlocked
+      } else {
+        oicPanel.innerHTML = `<div style="background:#0F766E;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">🔓</span>
+          <span style="color:#fff;font-size:12px;font-weight:600;">OIC sections unlocked</span>
+          <button onclick="lockOIC()" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer;">Lock</button>
+        </div>`;
+        container.appendChild(oicPanel);
+      }
+    }
+
+    // Skip OIC sections if not unlocked
+    if (isOicSection && !oicUnlocked) return;
 
     const hdr = document.createElement('div');
     hdr.className = 'section-hdr';
-    hdr.innerHTML = section.title + (currentShift === 'closing' && isOpenSection
+    hdr.innerHTML = section.title + (isOicSection ? ' <span style="font-size:10px;background:rgba(255,255,255,0.25);padding:1px 7px;border-radius:10px;margin-left:6px;">OIC</span>' : '') + (currentShift === 'closing' && isOpenSection
       ? ' <span style="font-size:10px;background:rgba(255,255,255,0.2);padding:1px 7px;border-radius:10px;margin-left:6px;">READ ONLY</span>' : '');
     container.appendChild(hdr);
 
@@ -827,9 +883,33 @@ function renderDay() {
   const tM=oM+cM, tY=oY+cY;
   const op=tM>0?Math.round((tY/tM)*100):0, pass=op>=95;
 
+  // Check OIC evaluation status across all 6 days
+  let staffT=0,staffY=0,oicT=0,oicY=0;
+  for(let d=1;d<=6;d++){
+    SECTIONS.forEach(s=>{s.tasks.forEach(t=>{
+      const v=getVal(d,t.id,'yn');
+      if(v&&v!=='na'){
+        if(s.oicOnly){oicT++;if(v==='yes')oicY++;}
+        else{staffT++;if(v==='yes')staffY++;}
+      }
+    });});
+  }
+  const hasStaff=staffT>0, hasOIC=oicT>0;
+  const stIcon = !hasStaff&&!hasOIC?'📋':hasStaff&&hasOIC?'✅':hasStaff&&!hasOIC?'⚠️':'🔵';
+  const stLabel = !hasStaff&&!hasOIC?'No submissions yet':hasStaff&&hasOIC?'Complete':hasStaff&&!hasOIC?'Pending OIC Evaluation':'OIC Evaluated — Staff Pending';
+  const stColor = !hasStaff&&!hasOIC?'#94A3B8':hasStaff&&hasOIC?'#0F766E':hasStaff&&!hasOIC?'#D97706':'#0891B2';
+  const stBg = !hasStaff&&!hasOIC?'#F8F7F2':hasStaff&&hasOIC?'#DCFCE7':hasStaff&&!hasOIC?'#FEF3C7':'#E0F2FE';
+
   const sc=document.createElement('div');
   sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
   sc.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;background:${stBg};border-radius:8px;padding:8px 12px;margin-bottom:10px;text-align:left;">
+      <span style="font-size:18px;">${stIcon}</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:${stColor}">${stLabel}</div>
+        <div style="font-size:10px;color:#94A3B8;">Staff: ${staffY}/${staffT} YES &nbsp;•&nbsp; OIC eval: ${oicT>0?oicY+'/'+oicT+' YES':'not yet filled'}</div>
+      </div>
+    </div>
     <div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
@@ -874,6 +954,28 @@ function renderDay() {
       container.appendChild(btn);
     }
   }
+}
+
+// ── OIC Unlock ───────────────────────────────────────────────
+const OIC_PINS = ['OIC2025', 'AMGR2025', 'CHEF2025', 'OPS2025', 'DRI2025', 'CEO2025', 'TRAIN2025'];
+
+function unlockOIC() {
+  const pin = document.getElementById('oicPinInput')?.value?.trim();
+  if (!pin) { showToast('Please enter OIC PIN', 'warn'); return; }
+  if (OIC_PINS.includes(pin)) {
+    oicUnlocked = true;
+    showToast('OIC sections unlocked ✓', 'ok');
+    renderDay();
+  } else {
+    showToast('Wrong PIN — OIC access only 🔒', 'error');
+    const inp = document.getElementById('oicPinInput');
+    if (inp) { inp.style.border = '2px solid #EF4444'; inp.value = ''; setTimeout(() => inp.style.border = 'none', 2000); }
+  }
+}
+
+function lockOIC() {
+  oicUnlocked = false;
+  renderDay();
 }
 
 // ── Tap YES/NO/NA ─────────────────────────────────────────────
