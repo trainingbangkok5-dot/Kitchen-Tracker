@@ -29,15 +29,15 @@
 <meta name="app-version" content="20260604310000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1A3C5E">
+<meta name="theme-color" content="#7B2D42">
 <meta name="format-detection" content="telephone=no">
 <title>Service Checklist</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#F8FAFC; color:#0F172A; padding-bottom:60px; -webkit-font-smoothing:antialiased; }
-.header { background:#1A3C5E; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
-.role-badge { display:inline-block; background:#2E6DA4; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
+.header { background:#7B2D42; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
+.role-badge { display:inline-block; background:#C4533A; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
 .header h1 { color:#fff; font-size:17px; font-weight:700; }
 .header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
 .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:10px; }
@@ -47,17 +47,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .info-field input::placeholder { color:rgba(255,255,255,0.3); }
 .score-bar { background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; display:flex; align-items:center; gap:10px; }
 .score-track { flex:1; height:5px; background:#E2E8F0; border-radius:3px; overflow:hidden; }
-.score-fill { height:100%; border-radius:3px; background:#2E6DA4; transition:width 0.4s; }
-.score-pct { font-size:13px; font-weight:700; color:#1A3C5E; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
+.score-fill { height:100%; border-radius:3px; background:#C4533A; transition:width 0.4s; }
+.score-pct { font-size:13px; font-weight:700; color:#7B2D42; min-width:38px; text-align:right; font-variant-numeric:tabular-nums; }
 .day-rail { background:#fff; border-bottom:1px solid #E2E8F0; padding:9px 14px; display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .day-rail::-webkit-scrollbar { display:none; }
 .day-pill { flex-shrink:0; padding:5px 14px; border-radius:20px; border:1.5px solid #E2E8F0; background:#fff; font-size:12px; font-weight:700; color:#64748B; cursor:pointer; white-space:nowrap; -webkit-appearance:none; transition:all 0.15s; }
-.day-pill.active { background:#1A3C5E; border-color:#1A3C5E; color:#fff; }
-.day-pill.done { border-color:#22C55E; color:#15803D; }
-.day-pill.done.active { background:#1A3C5E; color:#fff; }
+.day-pill.active { background:#7B2D42; border-color:#7B2D42; color:#fff; }
+.day-pill.done { border-color:#22C55E; color:#0F766E; }
+.day-pill.done.active { background:#7B2D42; color:#fff; }
 .day-pill.locked { opacity:0.35; cursor:not-allowed; }
 .content { padding:12px 16px; }
-.section-hdr { background:#2E6DA4; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
+.section-hdr { background:#C4533A; border-radius:10px 10px 0 0; padding:9px 14px; margin-top:16px; font-size:12px; font-weight:700; color:#fff; letter-spacing:0.03em; text-transform:uppercase; }
 .task-card { background:#fff; border:1px solid #E2E8F0; border-top:none; padding:12px 13px; }
 .task-card:last-child { border-radius:0 0 10px 10px; }
 .task-card.locked-card { opacity:0.7; pointer-events:none; }
@@ -65,7 +65,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .task-top { display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; }
 .owner-tag { font-size:8px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; padding:2px 6px; border-radius:4px; white-space:nowrap; margin-top:2px; flex-shrink:0; }
 .ot-self { background:#FEF3C7; color:#92400E; }
-.ot-verify { background:#DBEAFE; color:#1E40AF; }
+.ot-verify { background:#FFE4E1; color:#9F1239; }
 .ot-monitor { background:#D1FAE5; color:#065F46; }
 .ot-record { background:#EDE9FE; color:#5B21B6; }
 .ot-auditor { background:#FCE7F3; color:#9D174D; }
@@ -73,12 +73,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .yn-row { display:flex; gap:6px; }
 .yn { flex:1; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
 .yn:active { transform:scale(0.96); }
-.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
+.yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#0F766E; }
 .yn.no.on  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
 .yn.na.on  { background:#F3F4F6; border-color:#9CA3AF; color:#374151; }
 .photo-row { margin-top:9px; display:flex; align-items:center; gap:8px; }
 .photo-btn { display:flex; align-items:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; }
-.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
+.photo-btn.taken { border-style:solid; border-color:#22C55E; color:#0F766E; background:#F0FDF4; }
 .photo-btn:active { transform:scale(0.97); }
 .photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
 .status-card { margin:16px 0 0; border-radius:12px; padding:16px; text-align:center; border:2px solid #E2E8F0; background:#fff; }
@@ -88,7 +88,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .sc-title { font-size:16px; font-weight:700; margin-bottom:3px; }
 .sc-score { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; margin:6px 0; }
 .sc-sub { font-size:12px; color:#64748B; }
-.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#1A3C5E; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
+.submit-btn { display:block; width:100%; margin-top:12px; padding:14px; background:#7B2D42; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; transition:background 0.15s; }
 .submit-btn:active { opacity:0.85; }
 .submit-btn:disabled { background:#94A3B8; cursor:not-allowed; }
 
@@ -99,7 +99,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .ts-date  { font-size:10px; color:#64748B; margin-top:1px; }
 .ts-divider { width:1px; background:#E2E8F0; flex-shrink:0; }
 
-.synced-msg { text-align:center; font-size:12px; color:#15803D; font-weight:600; margin-top:8px; }
+.synced-msg { text-align:center; font-size:12px; color:#0F766E; font-weight:600; margin-top:8px; }
 .comment-field { width:100%; margin-top:6px; padding:6px 10px; border:1px solid #E0DDD4; border-radius:8px; font-size:12px; color:#374151; background:#F8FAFC; resize:none; font-family:inherit; }
 .comment-field:focus { outline:none; border-color:#94A3B8; background:#fff; }
 .locked-msg { background:#FEF9C3; border:1px solid #FDE68A; border-radius:10px; padding:10px 14px; text-align:center; font-size:13px; font-weight:600; color:#92400E; margin:16px 0 0; }
@@ -107,13 +107,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .closing-locked-banner .cl-icon { font-size:28px; margin-bottom:4px; }
 .closing-locked-banner .cl-text { font-size:13px; font-weight:600; color:#475569; }
 .closing-locked-banner .cl-sub { font-size:11px; color:#94A3B8; margin-top:3px; }
-.shift-active { background:rgba(255,255,255,0.95) !important; color:#1A3C5E !important; border-color:#fff !important; }
+.shift-active { background:rgba(255,255,255,0.95) !important; color:#7B2D42 !important; border-color:#fff !important; }
 .shift-screen { padding:24px 16px; text-align:center; }
-.shift-screen h2 { font-size:16px; font-weight:700; color:#1A3C5E; margin-bottom:6px; }
+.shift-screen h2 { font-size:16px; font-weight:700; color:#7B2D42; margin-bottom:6px; }
 .shift-screen p { font-size:13px; color:#64748B; margin-bottom:20px; }
 .shift-btn-big { display:block; width:100%; padding:18px; border-radius:14px; border:none; font-size:16px; font-weight:700; cursor:pointer; margin-bottom:12px; }
-.shift-btn-opening { background:linear-gradient(135deg,#1A3C5E,#2E6DA4); color:#fff; }
-.shift-btn-closing { background:linear-gradient(135deg,#1A4731,#16A34A); color:#fff; }
+.shift-btn-opening { background:linear-gradient(135deg,#7B2D42,#C4533A); color:#fff; }
+.shift-btn-closing { background:linear-gradient(135deg,#1A4740,#0D9488); color:#fff; }
 .shift-btn-closing.locked { background:#E2E8F0; color:#94A3B8; cursor:not-allowed; }
 .readonly-section { opacity:0.55; pointer-events:none; }
 .readonly-badge { display:inline-block; background:#E2E8F0; color:#64748B; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:middle; }
@@ -130,8 +130,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .modal-title { font-size:16px; font-weight:700; margin-bottom:4px; }
 .modal-sub { font-size:12px; color:#64748B; margin-bottom:18px; }
 .mbtn { display:block; width:100%; padding:13px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; margin-bottom:8px; -webkit-appearance:none; }
-.mbtn-cam { background:#1A3C5E; color:#fff; }
-.mbtn-gal { background:#EFF6FF; color:#2E6DA4; }
+.mbtn-cam { background:#7B2D42; color:#fff; }
+.mbtn-gal { background:#FFF1F0; color:#C4533A; }
 .mbtn-cancel { background:#F8FAFC; color:#64748B; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -525,7 +525,7 @@ function clearAllData() {
   renderDay();
 }
 const ROLE_LABEL = 'Service';
-const SK_BASE    = 'kic_linecook_data_v2';
+const SK_BASE    = 'kic_service_data_v2';
 const SK         = SK_BASE;
 const ALLOW_OVERWRITE = false; // Staff cannot change after submit — overwrite via dashboard only
 // Overwrite PINs fetched from Firebase — KIC, Area Chef, Admin, Director, CEO can overwrite
@@ -558,6 +558,14 @@ const SECTIONS = [
     {"id":"c5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Furniture, decorative items, and guest areas cleaned, organized, and left in good condition","photo":true,"translations":{}}
   ]}
 ]
+let currentDay = 1;
+let activePhotoTask = null;
+
+// ── Storage ───────────────────────────────────────────────────
+function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
+function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
+
+
 function getTodayKey() {
   return 'dt' + getDubaiDateStr(); // Dubai date key
 }
@@ -628,7 +636,7 @@ function selectShift(shift) {
   const btnO = document.getElementById('btnOpenShift');
   const btnC = document.getElementById('btnCloseShift');
   if (btnO) btnO.style.cssText = shift === 'opening'
-    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#1A3C5E;font-size:12px;font-weight:700;cursor:pointer;'
+    ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #fff;background:rgba(255,255,255,0.9);color:#7B2D42;font-size:12px;font-weight:700;cursor:pointer;'
     : 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;';
   if (btnC) btnC.style.cssText = shift === 'closing'
     ? 'flex:1;padding:8px;border-radius:8px;border:2px solid #22C55E;background:rgba(34,197,94,0.25);color:#fff;font-size:12px;font-weight:700;cursor:pointer;'
@@ -672,13 +680,13 @@ function renderDay() {
     const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
-      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnStyle = 'background:linear-gradient(135deg,#1A4740,#0D9488);color:#fff;cursor:pointer;';
       closingBtnLabel = '🌙 Closing Shift ✓';
       closingSubNote = '';
     } else if (isAfter3pm) {
-      closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
+      closingBtnStyle = 'background:linear-gradient(135deg,#1A4740,#0D9488);color:#fff;cursor:pointer;';
       closingBtnLabel = '🌙 Closing Shift';
-      closingSubNote = '<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
+      closingSubNote = '<div style="font-size:11px;color:#0F766E;margin-top:4px;">✓ Available now</div>';
     } else {
       closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
       closingBtnLabel = '🌙 Closing Shift ⏰';
@@ -686,9 +694,9 @@ function renderDay() {
     }
     screen.innerHTML = `
       <div style="font-size:32px;margin-bottom:8px;">👋</div>
-      <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">Which shift are you on?</h2>
+      <h2 style="font-size:16px;font-weight:700;color:#7B2D42;margin-bottom:6px;">Which shift are you on?</h2>
       <p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>
-      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;">
+      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;">
         🌅 Opening Shift ${openingDone ? '✓' : ''}
       </button>
       <button onclick="selectShift('closing')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;margin-bottom:4px;${closingBtnStyle}">
@@ -775,7 +783,7 @@ function renderDay() {
       if (!openingDone) {
         const ob = document.createElement('button');
         ob.className = 'submit-btn';
-        ob.style.cssText = 'margin:10px 0;background:#2E6DA4;';
+        ob.style.cssText = 'margin:10px 0;background:#C4533A;';
         ob.textContent = wasOverwritten ? '💾 Resubmit Opening Tasks ✓' : 'Submit Opening Tasks ✓';
         ob.onclick = submitOpening;
         container.appendChild(ob);
@@ -824,16 +832,16 @@ function renderDay() {
   sc.innerHTML=`
     <div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
     <div class="sc-sub">6-day overall score (target: 95%)</div>
     ${tM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
-      <div style="flex:1;background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
+      <div style="flex:1;background:#FFF1F0;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
-        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
       </div>
       <div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌙 Closing</div>
-        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
       </div>
     </div>`:''}
   `;
