@@ -564,8 +564,8 @@ function calcSalesAvg() {
   }
   const achs = valid.map(r => (parseFloat(r.actual) / parseFloat(r.target)) * 100);
   const avgAch = achs.reduce((a,b) => a+b, 0) / achs.length;
-  const perOutletScores = achs.map(a => a >= 100 ? 30 : 0);
-  const score = Math.round((perOutletScores.reduce((a,b) => a+b, 0) / perOutletScores.length) * 10) / 10;
+  // Proportional: (avg achievement% / 100) * 30 pts, capped at 30
+  const score = Math.min(30, Math.round((avgAch / 100) * 30 * 10) / 10);
   document.getElementById('sales-avg-pct').textContent = avgAch.toFixed(1) + '%';
   document.getElementById('sales-avg-score').textContent = score.toFixed(1) + ' pts';
   // Set kpiVals THEN call calcAll so dashboard reads correct value
