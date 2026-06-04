@@ -29,6 +29,8 @@
 <meta name="application-name" content="Culex Kitchen">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -177,6 +179,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="role-btn" onclick="selectRole(this,'ceo')">
         <div class="rb-icon">👑</div>
         <div class="rb-name">CEO</div>
+        <div class="rb-lock">🔒</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'maintsupervisor')">
+        <div class="rb-icon">🔧</div>
+        <div class="rb-name">Maint. Supervisor</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'oic')">
+        <div class="rb-icon">🧑‍💼</div>
+        <div class="rb-name">OIC</div>
+      </div>
+      <div class="role-btn" onclick="selectRole(this,'areamanager')">
+        <div class="rb-icon">📋</div>
+        <div class="rb-name">Area Manager</div>
         <div class="rb-lock">🔒</div>
       </div>
     </div>
@@ -378,14 +393,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <!-- MAINTENANCE PAGE -->
   <div class="page" id="page-maintenance">
-    <div class="sec-title" style="background:#7F1D1D;color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
-      <span>🔧 Maintenance Log</span>
+  <div class="page" id="page-maintenance">
+    <!-- Maintenance sub-tabs -->
+    <div style="display:flex;gap:2px;margin-bottom:0;flex-wrap:wrap;">
+      <button id="mtab-log" onclick="setMaintTab('log')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:#7F1D1D;color:#fff;border-radius:8px 8px 0 0;cursor:pointer;">📋 Log</button>
+      <button id="mtab-weekly" onclick="setMaintTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
+      <button id="mtab-monthly" onclick="setMaintTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px;margin-left:auto;">
+        <input type="date" id="mFilterFrom" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;" onchange="renderMaintCurrentTab()">
+        <span style="font-size:11px;color:#64748B">to</span>
+        <input type="date" id="mFilterTo" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;" onchange="renderMaintCurrentTab()">
+        <button onclick="exportMaintPDF()" style="padding:5px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">📄 PDF</button>
+      </div>
+    </div>
+    <div class="sec-title" style="background:#7F1D1D;color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:0 8px 0 0;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <span id="maintTabTitle">🔧 Maintenance Log</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="maintStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
         <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
       </div>
     </div>
-
     <!-- Stats -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
       <div style="background:#fff;border-radius:10px;padding:10px;text-align:center;border:0.5px solid #E0DDD4;">
@@ -422,6 +449,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Photos</th>
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date Resolved</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Verified By</th>
             <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Action</th>
           </tr>
         </thead>
@@ -565,16 +593,17 @@ const ROLES = {
 };
 
 // Full-access roles
-const FULL_ACCESS = ['areachef','training','operations','director','ceo'];
+const FULL_ACCESS = ['areachef','training','operations','director','ceo','areamanager'];
 
 // Role PINs — stored in Firebase so each role can change their own PIN
 // Default PINs used if no PIN has been set in Firebase yet
 const DEFAULT_PINS = {
-  areachef:   'CHEF2025',
-  training:   'TRAIN2025',
-  operations: 'OPS2025',
-  director:   'DRI2025',
-  ceo:        'CEO2025',
+  areachef:        'CHEF2025',
+  training:        'TRAIN2025',
+  operations:      'OPS2025',
+  director:        'DRI2025',
+  ceo:             'CEO2025',
+  areamanager:     'AMGR2025',
 };
 let ROLE_PINS = {...DEFAULT_PINS};
 
@@ -686,6 +715,9 @@ function doLogin() {
 }
 
 function doLogout() {
+  sessionStorage.removeItem('dash_role');
+  sessionStorage.removeItem('dash_name');
+  sessionStorage.removeItem('dash_outlet');
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainDash').style.display = 'none';
   currentRole = ''; currentOutlet = ''; currentName = '';
@@ -730,6 +762,10 @@ function loadData() {
       populateFilters();
       renderAll();
       setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
+      // Save session
+      sessionStorage.setItem('dash_role', currentRole);
+      sessionStorage.setItem('dash_name', currentStaffName||'');
+      sessionStorage.setItem('dash_outlet', currentOutlet||'');
     });
   }, err => {
     setSyncStatus('error','Error: ' + err.message);
@@ -2983,6 +3019,159 @@ async function saveOverwrite(s) {
   }
 }
 
+// ── Maintenance Tab Controls ─────────────────────────────────
+let currentMaintTab = 'log';
+
+function setMaintTab(tab) {
+  currentMaintTab = tab;
+  ['log','weekly','monthly'].forEach(t => {
+    const btn = document.getElementById('mtab-'+t);
+    if (btn) {
+      btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
+      btn.style.color = t===tab ? '#fff' : '#475569';
+      btn.style.fontWeight = t===tab ? '600' : '500';
+    }
+  });
+  const titles = {log:'🔧 Maintenance Log', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report'};
+  const el = document.getElementById('maintTabTitle');
+  if (el) el.textContent = titles[tab];
+  renderMaintCurrentTab();
+}
+
+function renderMaintCurrentTab() {
+  if (currentMaintTab === 'log') renderMaintenanceLogs();
+  else if (currentMaintTab === 'weekly') renderMaintWeekly();
+  else if (currentMaintTab === 'monthly') renderMaintMonthly();
+}
+
+function getMaintFiltered() {
+  const from = document.getElementById('mFilterFrom')?.value;
+  const to = document.getElementById('mFilterTo')?.value;
+  return allMaintenanceLogs.filter(l => {
+    const d = l.dateReported || (l.loggedAt ? new Date(l.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+}
+
+function renderMaintWeekly() {
+  const filtered = getMaintFiltered();
+  const byWeek = {};
+  filtered.forEach(l => {
+    const d = l.dateReported || (l.loggedAt ? new Date(l.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    if (!d) return;
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day===0?-6:1);
+    const weekStart = new Date(new Date(d).setDate(diff)).toLocaleDateString('en-CA');
+    if (!byWeek[weekStart]) byWeek[weekStart] = [];
+    byWeek[weekStart].push(l);
+  });
+  renderMaintGrouped(byWeek, 'week');
+}
+
+function renderMaintMonthly() {
+  const filtered = getMaintFiltered();
+  const byMonth = {};
+  filtered.forEach(l => {
+    const d = l.dateReported || (l.loggedAt ? new Date(l.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    if (!d) return;
+    const month = d.substring(0,7);
+    if (!byMonth[month]) byMonth[month] = [];
+    byMonth[month].push(l);
+  });
+  renderMaintGrouped(byMonth, 'month');
+}
+
+function renderMaintGrouped(groups, type) {
+  const tbody = document.getElementById('maintTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  document.getElementById('maintEmpty').style.display = Object.keys(groups).length ? 'none' : 'block';
+
+  Object.keys(groups).sort().reverse().forEach(key => {
+    const logs = groups[key];
+    const resolved = logs.filter(l=>l.status==='Yes').length;
+    const pending = logs.filter(l=>l.status==='Pending').length;
+    const label = type==='week'
+      ? 'Week of ' + new Date(key).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+      : new Date(key+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    const hdr = document.createElement('tr');
+    hdr.innerHTML = `<td colspan="11" style="background:#1A3C5E;color:#fff;padding:8px 10px;font-size:12px;font-weight:700;">
+      ${type==='week'?'📆':'📅'} ${label}
+      <span style="margin-left:12px;font-size:11px;font-weight:400;">${logs.length} issues • ${resolved} resolved • ${pending} pending</span>
+      ${pending>0?'<span style="margin-left:8px;background:#B91C1C;padding:2px 8px;border-radius:10px;font-size:10px;">'+pending+' unresolved</span>':''}
+    </td>`;
+    tbody.appendChild(hdr);
+    logs.forEach(log => {
+      const days = Math.floor(((log.status==='Yes'&&log.dateResolved?new Date(log.dateResolved):new Date()) - new Date(log.dateReported||log.loggedAt)) / (1000*60*60*24));
+      const daysCls = log.status==='Yes'?'background:#DCFCE7;color:#15803D':days>=3?'background:#FEE2E2;color:#B91C1C':'background:#FEF3C7;color:#D97706';
+      const priColors = {Urgent:'#FEE2E2;color:#B91C1C',High:'#FEF3C7;color:#D97706',Medium:'#E0F2FE;color:#0891B2',Low:'#DCFCE7;color:#15803D',Preventive:'#EDE9FE;color:#7C3AED'};
+      const stsColors = {Yes:'#DCFCE7;color:#15803D',No:'#FEE2E2;color:#B91C1C',Pending:'#FEF3C7;color:#D97706'};
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '0.5px solid #F1F5F9';
+      tr.innerHTML = `
+        <td style="padding:8px 10px;font-weight:700;color:#7F1D1D;font-size:11px">${log.logId||'—'}</td>
+        <td style="padding:8px 10px;font-size:11px">${log.dateReported||'—'}</td>
+        <td style="padding:8px 10px;font-size:11px">${log.reportedBy||'—'}<br><span style="font-size:10px;color:#94A3B8">${(log.reportedByRole||'').toUpperCase()}</span></td>
+        <td style="padding:8px 10px;font-size:11px">${log.outlet||'—'}</td>
+        <td style="padding:8px 10px;font-size:12px;max-width:200px">${log.description||'—'}</td>
+        <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${priColors[log.priority]||'#F1F5F9;color:#64748B'}">${log.priority||'—'}</span></td>
+        <td style="padding:8px 10px;font-size:11px">${log.assignedTo||'—'}</td>
+        <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsColors[log.status]||'#FEF3C7;color:#D97706'}">${log.status||'—'}</span></td>
+        <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days}d</span></td>
+        <td style="padding:8px 10px;font-size:11px;color:#64748B">${log.dateResolved||'—'}</td>
+        <td style="padding:8px 10px;font-size:11px;color:#15803D">${log.verifiedBy||'—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function exportMaintPDF() {
+  if (typeof window.jspdf === 'undefined') { showToast('PDF library loading...','warn'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const logs = getMaintFiltered();
+  const from = document.getElementById('mFilterFrom')?.value;
+  const to = document.getElementById('mFilterTo')?.value;
+  const title = currentMaintTab==='weekly'?'Weekly Maintenance Report':currentMaintTab==='monthly'?'Monthly Maintenance Report':'Maintenance Log Report';
+  const dateRange = from||to ? (from||'Start')+' to '+(to||'Today') : 'All dates';
+
+  doc.setFillColor(127,29,29);
+  doc.rect(0,0,297,18,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Culex Hospitality — '+title, 14, 8);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Period: '+dateRange+'  |  Generated: '+new Date().toLocaleDateString('en-GB'), 14, 14);
+  doc.text('Total: '+logs.length+'  Pending: '+logs.filter(l=>l.status==='Pending').length+'  Resolved: '+logs.filter(l=>l.status==='Yes').length, 200, 14);
+
+  const rows = logs.map(l => {
+    const days = l.dateReported ? Math.floor(((l.status==='Yes'&&l.dateResolved?new Date(l.dateResolved):new Date())-new Date(l.dateReported))/(1000*60*60*24)) : '—';
+    return [l.logId||'—',l.dateReported||'—',l.reportedBy||'—',l.outlet||'—',(l.description||'').substring(0,40),l.priority||'—',l.assignedTo||'—',l.status||'—',days+'d',l.dateResolved||'—',l.verifiedBy||'—'];
+  });
+
+  doc.autoTable({
+    startY:22,
+    head:[['Ref#','Date','Reported By','Outlet','Issue','Priority','Assigned','Status','Days','Resolved','Verified By']],
+    body:rows,
+    styles:{fontSize:7,cellPadding:2},
+    headStyles:{fillColor:[26,60,94],textColor:[255,255,255],fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[248,247,242]},
+    margin:{left:5,right:5}
+  });
+
+  const pages = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setTextColor(150,150,150);
+    doc.text('Page '+i+' of '+pages+' — Culex Hospitality Maintenance — Confidential',148,205,{align:'center'});
+  }
+  doc.save('Maintenance_'+new Date().toLocaleDateString('en-CA')+'.pdf');
+}
+
 // ── Maintenance Log ──────────────────────────────────────────
 function loadMaintenanceLogs() {
   if (!maintenanceDb) {
@@ -3000,7 +3189,7 @@ function loadMaintenanceLogs() {
       allMaintenanceLogs.sort((a,b) => new Date(b.loggedAt||0) - new Date(a.loggedAt||0));
     }
     document.getElementById('maintStatus').textContent = '✅ ' + allMaintenanceLogs.length + ' records';
-    renderMaintenanceLogs();
+    renderMaintCurrentTab();
   }).catch(e => {
     document.getElementById('maintStatus').textContent = '❌ Error loading';
     console.error('Maintenance load error:', e);
@@ -3146,7 +3335,23 @@ function saveMaintOverwrite() {
     }).catch(e => showToast('Update failed: ' + e.message, 'error'));
 }
 
-window.addEventListener('DOMContentLoaded', initFirebase);
+window.addEventListener('DOMContentLoaded', function() {
+  initFirebase();
+  // Restore session if exists
+  const savedRole = sessionStorage.getItem('dash_role');
+  const savedName = sessionStorage.getItem('dash_name');
+  const savedOutlet = sessionStorage.getItem('dash_outlet');
+  if (savedRole && savedName) {
+    currentRole = savedRole;
+    currentStaffName = savedName;
+    currentOutlet = savedOutlet || '';
+    // Simulate login
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashScreen').style.display = 'block';
+    document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
+    setTimeout(() => { if (db) { loadData(); } }, 1500);
+  }
+});
 // loadData called after login only
 
 // ── Weekly Report ──────────────────────────────────────────────
