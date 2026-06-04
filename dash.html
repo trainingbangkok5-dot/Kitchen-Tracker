@@ -253,6 +253,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
+    <div class="tab" id="tabBOH" onclick="showTab(this,'boh')">🍳 BOH</div>
     <div class="tab" id="tabFOH" onclick="showTab(this,'foh')">🛎️ FOH</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
   </div>
@@ -309,6 +310,71 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
 
+  <!-- BOH PAGE -->
+  <div class="page" id="page-boh">
+    <div style="background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <span>🍳 BOH Reports</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="bohStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
+        <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <button id="bohSubAll" onclick="setBOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
+      <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍳 Line Cook</button>
+      <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
+      <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
+      <select id="bohOutletFilter" onchange="renderBOHStaff()" style="margin-left:auto;padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;outline:none;cursor:pointer;">
+        <option value="">All Outlets</option>
+        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
+        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
+        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#1A3C5E" id="bohStatTotal">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Total</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#15803D" id="bohStatPass">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Qualified</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#B91C1C" id="bohStatFail">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Below Target</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#D97706" id="bohStatAvg">—</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Avg Score</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#F8F7F2;">
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Staff</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
+              <th id="bohDayH1" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D1</th>
+              <th id="bohDayH2" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D2</th>
+              <th id="bohDayH3" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D3</th>
+              <th id="bohDayH4" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D4</th>
+              <th id="bohDayH5" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
+              <th id="bohDayH6" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="bohTableBody"></tbody>
+        </table>
+      </div>
+      <div id="bohEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No BOH submissions found</div>
+    </div>
+  </div>
+
   <!-- FOH PAGE -->
   <div class="page" id="page-foh">
     <div style="background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
@@ -356,12 +422,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D1</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D2</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D3</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D4</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
+              <th id="fohDayH1" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D1</th>
+              <th id="fohDayH2" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D2</th>
+              <th id="fohDayH3" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D3</th>
+              <th id="fohDayH4" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D4</th>
+              <th id="fohDayH5" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
+              <th id="fohDayH6" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
             </tr>
@@ -806,11 +872,16 @@ function doLogin() {
   // Show Change PIN button for management roles only
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
+  // BOH tab — visible to KIC and full access roles
+  const bohRoles = ['kic','areachef','training','operations','director','ceo','areamanager','maintsupervisor'];
+  document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
   // FOH tab — visible to OIC, Area Manager and full access roles
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
-  // If OIC — default to FOH tab
-  if (currentRole === 'oic') {
+  // KIC defaults to BOH tab, OIC defaults to FOH tab
+  if (currentRole === 'kic') {
+    setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
+  } else if (currentRole === 'oic') {
     setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
   }
   loadData();
@@ -912,6 +983,7 @@ function showTab(el,id) {
   if (id === 'registry') { renderRegistry(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
+  if (id === 'boh') { loadBOHData(); }
 }
 
 function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
@@ -3279,6 +3351,115 @@ function exportMaintPDF() {
   doc.save('Maintenance_'+new Date().toLocaleDateString('en-CA')+'.pdf');
 }
 
+// ── Day date headers helper ──────────────────────────────────
+function updateDayHeaders(prefix, weekStr) {
+  if (!weekStr) return;
+  const weekStart = new Date(weekStr + 'T00:00:00');
+  for (let d = 1; d <= 6; d++) {
+    const el = document.getElementById(prefix + 'DayH' + d);
+    if (!el) continue;
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + d - 1);
+    el.textContent = date.toLocaleDateString('en-GB', {day:'2-digit', month:'short'});
+  }
+}
+
+// ── BOH Reports ──────────────────────────────────────────────
+let allBOHData = [];
+let currentBOHSub = 'all';
+
+function loadBOHData() {
+  if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
+  document.getElementById('bohStatus').textContent = '⏳ Loading...';
+  db.ref('submissions').once('value', snap => {
+    allBOHData = [];
+    if (snap.exists()) {
+      const grouped = {};
+      snap.forEach(child => {
+        const sub = child.val();
+        if (!sub.staffName || !sub.role || !sub.week) return;
+        const bohRoles = ['linecook','steward','kic'];
+        if (!bohRoles.includes(sub.role)) return;
+        const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
+        if (!grouped[gKey]) {
+          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'—', week:sub.week, days:{}, overallPct:0, qualified:false };
+        }
+        if (sub.date) {
+          const weekStart = new Date(sub.week);
+          const subDate = new Date(sub.date);
+          const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
+          if (diffDays >= 1 && diffDays <= 6) grouped[gKey].days[diffDays] = sub.overallPct || 0;
+        }
+        if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
+        if (sub.qualified) grouped[gKey].qualified = sub.qualified;
+      });
+      allBOHData = Object.values(grouped);
+      allBOHData.sort((a,b) => b.overallPct - a.overallPct);
+    }
+    document.getElementById('bohStatus').textContent = '✅ ' + allBOHData.length + ' records';
+    renderBOHStaff();
+  }).catch(e => { document.getElementById('bohStatus').textContent = '❌ Error'; });
+}
+
+function setBOHSub(sub) {
+  currentBOHSub = sub;
+  ['all','linecook','steward','kic'].forEach(s => {
+    const id = 'bohSub' + s.charAt(0).toUpperCase() + s.slice(1);
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.style.background = s === sub ? '#1A3C5E' : '#fff';
+      btn.style.color = s === sub ? '#fff' : '#475569';
+      btn.style.border = s === sub ? 'none' : '1.5px solid #E0DDD4';
+    }
+  });
+  renderBOHStaff();
+}
+
+function renderBOHStaff() {
+  const outlet = document.getElementById('bohOutletFilter')?.value || '';
+  let filtered = allBOHData.filter(s => {
+    if (currentBOHSub !== 'all' && s.role !== currentBOHSub) return false;
+    if (outlet && s.outlet !== outlet) return false;
+    return true;
+  });
+  // Update day column headers with actual dates from first record's week
+  const firstWeek = filtered.length ? filtered[0].week : null;
+  if (firstWeek) updateDayHeaders('boh', firstWeek);
+
+  document.getElementById('bohStatTotal').textContent = filtered.length;
+  document.getElementById('bohStatPass').textContent = filtered.filter(s=>s.qualified).length;
+  document.getElementById('bohStatFail').textContent = filtered.filter(s=>!s.qualified&&s.overallPct>0).length;
+  const avg = filtered.length ? Math.round(filtered.reduce((a,s)=>a+s.overallPct,0)/filtered.length) : 0;
+  document.getElementById('bohStatAvg').textContent = filtered.length ? avg+'%' : '—';
+  const tbody = document.getElementById('bohTableBody');
+  tbody.innerHTML = '';
+  document.getElementById('bohEmpty').style.display = filtered.length ? 'none' : 'block';
+  const roleLabels = {linecook:'🍳 Line Cook', steward:'🧹 Steward', kic:'👨‍🍳 KIC'};
+  const scoreColor = p => p>=95?'#15803D':p>=70?'#D97706':'#B91C1C';
+  const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
+  filtered.forEach(staff => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    let daysHtml = '';
+    for (let d=1;d<=6;d++) {
+      const p = staff.days[d];
+      daysHtml += p !== undefined
+        ? `<td style="padding:6px 8px;text-align:center;"><span style="display:inline-block;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:${scoreBg(p)};color:${scoreColor(p)}">${p}%</span></td>`
+        : `<td style="padding:6px 8px;text-align:center;color:#E0DDD4;font-size:12px;">—</td>`;
+    }
+    const op = staff.overallPct;
+    tr.innerHTML = `
+      <td style="padding:8px 12px;font-size:12px;font-weight:600">${staff.staffName}</td>
+      <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
+      ${daysHtml}
+      <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
+      <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified?'✅':op>0?'❌':'—'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 // ── FOH Reports ──────────────────────────────────────────────
 let allFOHData = [];
 let currentFOHSub = 'all';
@@ -3355,6 +3536,10 @@ function renderFOHStaff() {
   });
 
   // Update stats
+  // Update day column headers with actual dates from first record's week
+  const firstFOHWeek = filtered.length ? filtered[0].week : null;
+  if (firstFOHWeek) updateDayHeaders('foh', firstFOHWeek);
+
   document.getElementById('fohStatTotal').textContent = filtered.length;
   document.getElementById('fohStatPass').textContent = filtered.filter(s=>s.qualified).length;
   document.getElementById('fohStatFail').textContent = filtered.filter(s=>!s.qualified&&s.overallPct>0).length;
