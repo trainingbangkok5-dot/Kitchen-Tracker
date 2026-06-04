@@ -524,7 +524,7 @@ function calcSalesRow(i) {
   const hasData = !isNaN(target) && !isNaN(actual) && target > 0;
   const achPct  = hasData ? Math.round((actual/target)*100*10)/10 : null;
   const score   = achPct !== null ? (achPct >= 100 ? 30 : 0) : null;
-  const status  = achPct !== null ? (achPct >= 100 ? 'Target Achieved' : 'Action Plan Required') : '—';
+  const status  = achPct !== null ? (achPct >= 100 ? 'Achieved' : 'Not Achieved') : '—';
   const cls     = achPct !== null ? (achPct >= 100 ? 'g' : 'r') : '';
   return {achPct, score, status, cls};
 }
