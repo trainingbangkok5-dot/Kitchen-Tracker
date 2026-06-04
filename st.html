@@ -646,9 +646,9 @@ function selectShift(shift) {
   if (shift === 'closing') {
     const now = new Date();
     const hourNow = getDubaiHour();
-    const isNightNow = hourNow >= 15; // Closing unlocks at 3:00 PM
+    const isNightNow = hourNow >= 15 || hourNow < 2; // Closing window: 3:00 PM – 2:00 AM
     if (!isNightNow) {
-      const mLeft = (15 - hourNow - 1) * 60 + (60 - now.getMinutes());
+      const mLeft = hourNow < 15 ? (15 - hourNow - 1) * 60 + (60 - now.getMinutes()) : 0;
       showToast(`Closing unlocks at 3:00 PM — ${Math.floor(mLeft/60)}h ${mLeft%60}m remaining ⏰`, 'warn');
       return;
     }
@@ -698,7 +698,7 @@ function renderDay() {
   // Show shift picker if no shift selected
   if (!currentShift) {
     const nowH = getDubaiHour();
-    const isAfter3pm = nowH >= 15;
+    const isAfter3pm = nowH >= 15 || nowH < 2; // Closing window: 3:00 PM – 2:00 AM
     const minsLeft = isAfter3pm ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const openerName = data[dayKey]?._openerName || '';
     let closingBtnStyle, closingBtnLabel, closingSubNote;
@@ -712,7 +712,7 @@ function renderDay() {
     } else {
       closingBtnStyle='background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
       closingBtnLabel='🌙 Closing Shift ⏰';
-      closingSubNote=`<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
+      closingSubNote=`<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
     }
     const screen = document.createElement('div');
     screen.style.cssText='padding:24px 16px;text-align:center;';
