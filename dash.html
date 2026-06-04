@@ -990,9 +990,8 @@ function populateWeekFilter() {
   const sel = document.getElementById('weekFilter');
   if (!sel) return;
   const options = getWeekOptions();
-  sel.innerHTML = options.map(o =>
-    `<option value="${o.value}">${o.label}</option>`
-  ).join('');
+  sel.innerHTML = '<option value="all">📋 All Weeks</option>' +
+    options.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
   sel.value = getCurrentWeekStart();
 }
 
@@ -1016,7 +1015,10 @@ function loadData() {
   setSyncStatus('syncing','Connecting...');
   const selectedWeek = getSelectedWeek();
   setLoadingIndicator('⏳ Loading...');
-  db.ref('submissions').orderByChild('week').equalTo(selectedWeek).once('value', snap => {
+  const bohQuery = selectedWeek === 'all'
+    ? db.ref('submissions').orderByChild('week').limitToLast(500)
+    : db.ref('submissions').orderByChild('week').equalTo(selectedWeek);
+  bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     allStaff = filterByRole(raw);
     setLoadingIndicator('');
@@ -3475,7 +3477,10 @@ function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
   const bohWeek = getSelectedWeek();
-  db.ref('submissions').orderByChild('week').equalTo(bohWeek).once('value', snap => {
+  const bohQ = bohWeek === 'all'
+    ? db.ref('submissions').orderByChild('week').limitToLast(500)
+    : db.ref('submissions').orderByChild('week').equalTo(bohWeek);
+  bohQ.once('value', snap => {
     allBOHData = [];
     if (snap.exists()) {
       const grouped = {};
@@ -3575,7 +3580,10 @@ function loadFOHData() {
   }
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
   const fohWeek = getSelectedWeek();
-  fohDb.ref('submissions').orderByChild('week').equalTo(fohWeek).once('value', snap => {
+  const fohQ = fohWeek === 'all'
+    ? fohDb.ref('submissions').orderByChild('week').limitToLast(500)
+    : fohDb.ref('submissions').orderByChild('week').equalTo(fohWeek);
+  fohQ.once('value', snap => {
     if (snap.exists()) {
       // Group by staffName + role + week
       const grouped = {};
