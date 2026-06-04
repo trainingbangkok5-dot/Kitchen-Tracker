@@ -141,6 +141,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <option value="ceo">CEO</option>
       <option value="training">Admin</option>
       <option value="maintenance">Maintenance Team</option>
+      <option value="maintsupervisor">Maintenance Supervisor</option>
     </select>
 
     <div class="pin-row" id="pinRow">
@@ -234,16 +235,29 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
   </div>
 
   <!-- Log Table -->
-  <div class="sec-title">
-    <span>📋 Maintenance Log</span>
-    <button class="add-btn" onclick="addRow()">+ Add New Issue</button>
+  <!-- Report Tabs -->
+  <div style="display:flex;gap:2px;margin-bottom:0;">
+    <button id="rtab-log" onclick="setReportTab('log')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:#7F1D1D;color:#fff;border-radius:8px 8px 0 0;cursor:pointer;">📋 Log</button>
+    <button id="rtab-weekly" onclick="setReportTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
+    <button id="rtab-monthly" onclick="setReportTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
+    <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;gap:6px;padding:4px;">
+      <input type="date" id="filterFrom" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;" onchange="renderCurrentTab()">
+      <span style="font-size:11px;color:#64748B">to</span>
+      <input type="date" id="filterTo" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;" onchange="renderCurrentTab()">
+      <button onclick="exportPDF()" style="padding:5px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;">📄 PDF</button>
+    </div>
+  </div>
+  <div class="sec-title" style="border-radius:0 8px 0 0;">
+    <span id="tabTitle">📋 Maintenance Log</span>
+    <button class="add-btn" id="addRowBtn" onclick="addRow()">+ Add New Issue</button>
   </div>
   <div class="tbl-wrap">
     <table id="mainTable">
       <thead>
         <tr>
           <th>Ref #</th>
-          <th>Date Reported</th>
+          <th>Ref #</th>
+          <th>Date Created</th>
           <th>Reported By</th>
           <th>Outlet / Location</th>
           <th>Issue / Description</th>
@@ -256,7 +270,8 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
           <th>Days Pending</th>
           <th>Photo (After)</th>
           <th>Action</th>
-        </tr>
+          <th>Date Resolved</th>
+          <th>Verified By</th>
       </thead>
       <tbody id="tableBody"></tbody>
     </table>
@@ -333,6 +348,8 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -397,6 +414,7 @@ function doLogin() {
   document.getElementById('logoutBtn').style.display = 'block';
 
   const staffRoles = ['kic','oic'];
+  const maintRoles = ['maintenance','maintsupervisor'];
   const maintTeamRoles = ['maintenance'];
   if (staffRoles.includes(role)) {
     document.getElementById('staffScreen').style.display = 'block';
@@ -433,7 +451,8 @@ function getDubaiDate() {
   return new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
 }
 
-function daysPending(dateStr, resolved) {
+function daysPending(dateStr, resolved, override) {
+  if (override !== undefined && override !== null) return override;
   if (!dateStr) return null;
   const end = resolved ? new Date(resolved) : new Date();
   const start = new Date(dateStr);
@@ -508,69 +527,12 @@ function updateStats() {
 
 // ── Render Table ─────────────────────────────────────────────
 function renderTable() {
+  const filtered = getFilteredByDate(allLogs);
   const canManage = ['areachef','areamanager','operations','director','ceo','training'].includes(currentRole);
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
-  document.getElementById('tableEmpty').style.display = allLogs.length ? 'none' : 'block';
-
-  allLogs.forEach(log => {
-    const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
-    const daysCls = log.status==='Yes' ? 'days-done' : days >= 3 ? 'days-warn' : 'days-ok';
-    const daysLbl = days !== null ? `${days}d` : '—';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><span class="log-id">${log.logId||'—'}</span></td>
-      <td style="white-space:nowrap;font-size:11px">${log.dateReported||'—'}</td>
-      <td style="white-space:nowrap">${log.reportedBy||'—'}<br><span style="font-size:10px;color:#94A3B8">${(log.reportedByRole||'').toUpperCase()}</span></td>
-      <td style="white-space:nowrap">${log.outlet||'—'}</td>
-      <td style="max-width:200px">${log.description||'—'}</td>
-      <td>
-        <div class="photo-cell">
-          ${log.beforePhoto ? `<img class="photo-thumb before-img" src="${log.beforePhoto}" onclick="showPhoto('${log.beforePhoto}')" title="Before photo">` : ''}
-          <button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','before'))">📷</button>
-          <button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','before'))">🖼️</button>
-
-          <input type="file" id="bp_${log._key}" accept="image/*" style="display:none" onchange="uploadPhoto(this,'${log._key}','before')">
-        </div>
-      </td>
-      <td>${priPill(log.priority)}</td>
-      <td>
-        <select id="asel_\${log._key}" onchange="handleAssignChange('\${log._key}', this)" style="padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
-          <option value="Unassigned" \${!log.assignedTo||log.assignedTo==='Unassigned'?'selected':''}>Unassigned</option>
-          <option value="Baldev" \${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
-          <option value="Angelo" \${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
-          <option value="Asad" \${log.assignedTo==='Asad'?'selected':''}>Asad</option>
-          <option value="Shridhar" \${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
-          <option value="Awais" \${log.assignedTo==='Awais'?'selected':''}>Awais</option>
-          \${!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? '<option value="'+log.assignedTo+'" selected>'+log.assignedTo+'</option>' : ''}
-          <option value="__other__">Other (type name)...</option>
-        </select>
-        <input type="text" id="aother_\${log._key}" placeholder="Enter name..." style="display:none;width:100%;margin-top:4px;padding:5px 8px;border:1.5px solid #7F1D1D;border-radius:6px;font-size:11px;outline:none;"
-          onkeydown="if(event.key==='Enter'){updateAssigned('\${log._key}',this.value);this.style.display='none';}">
-      </td>
-      <td>${statusPill(log.status)}</td>
-      <td style="max-width:140px;">
-        <input type="text" value="${log.remarks||''}" placeholder="Add remarks..." 
-          style="width:100%;padding:4px 7px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;outline:none;"
-          onblur="updateRemarks('${log._key}', this.value)"
-          onkeydown="if(event.key==='Enter') this.blur()">
-      </td>
-      <td style="white-space:nowrap;font-size:11px">${log.dateResolved||'—'}</td>
-      <td><span class="days-badge ${daysCls}">${daysLbl}</span></td>
-      <td>
-        <div class="photo-cell">
-          ${log.afterPhoto ? `<img class="photo-thumb after-img" src="${log.afterPhoto}" onclick="showPhoto('${log.afterPhoto}')" title="After photo">` : ''}
-          ${log.status!=='Yes' ? `<button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','after'))">📷</button><button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','after'))">🖼️</button>` : ''}
-        </div>
-      </td>
-      <td style="white-space:nowrap">
-        ${log.status!=='Yes' ? `<button class="done-btn" onclick="markDone('` + log._key + `')">✅ Done</button>` : '<span style="font-size:11px;color:#15803D;font-weight:600">✓ Resolved</span>'}
-        ${canManage ? `<button onclick="openOverwrite('` + log._key + `')" style="margin-left:4px;font-size:11px;padding:5px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;">✏️</button>
-        <button class="del-btn" onclick="deleteLog('` + log._key + `')" style="margin-left:4px">🗑</button>` : ''}
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
+  document.getElementById('tableEmpty').style.display = filtered.length ? 'none' : 'block';
+  filtered.forEach(log => renderLogRow(log, tbody));
 }
 
 // ── Add Row (inline form) ────────────────────────────────────
@@ -804,6 +766,30 @@ function handleAssignChange(key, sel) {
   }
 }
 
+// ── Verify Task (KIC/OIC) ────────────────────────────────────
+function verifyTask(key) {
+  if (!db) return;
+  if (!confirm('Verify this task as completed?')) return;
+  const updates = {
+    verifiedBy: currentName,
+    verifiedByRole: currentRole.toUpperCase(),
+    verifiedAt: new Date().toISOString()
+  };
+  db.ref('maintenanceLogs/' + key).update(updates)
+    .then(() => showToast('Task verified ✓', 'ok'))
+    .catch(e => showToast('Verify failed: ' + e.message, 'error'));
+}
+
+// ── Update Single Field ───────────────────────────────────────
+function updateField(key, field, value) {
+  if (!db) return;
+  const updates = {};
+  updates[field] = value;
+  db.ref('maintenanceLogs/' + key).update(updates)
+    .then(() => showToast(field + ' updated ✓', 'ok'))
+    .catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
 // ── Overwrite ────────────────────────────────────────────────
 function openOverwrite(key) {
   const log = allLogs.find(l => l._key === key);
@@ -869,6 +855,299 @@ function updateAssigned(key, value) {
   db.ref('maintenanceLogs/' + key).update({assignedTo: value})
     .then(() => showToast('Assigned to ' + value + ' ✓', 'ok'))
     .catch(e => showToast('Update failed: ' + e.message, 'error'));
+}
+
+// ── Report Tabs ─────────────────────────────────────────────
+let currentReportTab = 'log';
+
+function setReportTab(tab) {
+  currentReportTab = tab;
+  ['log','weekly','monthly'].forEach(t => {
+    const btn = document.getElementById('rtab-'+t);
+    if (btn) {
+      btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
+      btn.style.color = t===tab ? '#fff' : '#475569';
+      btn.style.fontWeight = t===tab ? '600' : '500';
+    }
+  });
+  const titles = {log:'📋 Maintenance Log', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report'};
+  const titleEl = document.getElementById('tabTitle');
+  if (titleEl) titleEl.textContent = titles[tab];
+  const addBtn = document.getElementById('addRowBtn');
+  if (addBtn) addBtn.style.display = tab==='log' ? 'block' : 'none';
+  renderCurrentTab();
+}
+
+function renderCurrentTab() {
+  if (currentReportTab === 'log') renderTable();
+  else if (currentReportTab === 'weekly') renderWeeklyReport();
+  else if (currentReportTab === 'monthly') renderMonthlyReport();
+}
+
+function getFilteredByDate(logs) {
+  const from = document.getElementById('filterFrom')?.value;
+  const to = document.getElementById('filterTo')?.value;
+  return logs.filter(l => {
+    const d = l.dateReported || (l.loggedAt ? new Date(l.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+}
+
+function renderWeeklyReport() {
+  const filtered = getFilteredByDate(allLogs);
+  // Group by week
+  const byWeek = {};
+  filtered.forEach(l => {
+    const d = l.dateReported || (l.loggedAt ? new Date(l.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    if (!d) return;
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day===0?-6:1);
+    const weekStart = new Date(date.setDate(diff)).toLocaleDateString('en-CA');
+    if (!byWeek[weekStart]) byWeek[weekStart] = [];
+    byWeek[weekStart].push(l);
+  });
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  document.getElementById('tableEmpty').style.display = Object.keys(byWeek).length ? 'none' : 'block';
+
+  Object.keys(byWeek).sort().reverse().forEach(week => {
+    const logs = byWeek[week];
+    const resolved = logs.filter(l=>l.status==='Yes').length;
+    const pending = logs.filter(l=>l.status==='Pending').length;
+    // Week header row
+    const hdr = document.createElement('tr');
+    hdr.innerHTML = `<td colspan="15" style="background:#1A3C5E;color:#fff;padding:8px 10px;font-size:12px;font-weight:700;">
+      📆 Week of ${new Date(week).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}
+      <span style="margin-left:12px;font-size:11px;font-weight:400;">${logs.length} issues • ${resolved} resolved • ${pending} pending</span>
+      ${pending > 0 ? '<span style="margin-left:8px;background:#B91C1C;padding:2px 8px;border-radius:10px;font-size:10px;">'+pending+' unresolved</span>' : ''}
+    </td>`;
+    tbody.appendChild(hdr);
+    logs.forEach(log => renderLogRow(log, tbody));
+  });
+}
+
+function renderMonthlyReport() {
+  const filtered = getFilteredByDate(allLogs);
+  const byMonth = {};
+  filtered.forEach(l => {
+    const d = l.dateReported || (l.loggedAt ? new Date(l.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    if (!d) return;
+    const month = d.substring(0,7); // YYYY-MM
+    if (!byMonth[month]) byMonth[month] = [];
+    byMonth[month].push(l);
+  });
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  document.getElementById('tableEmpty').style.display = Object.keys(byMonth).length ? 'none' : 'block';
+
+  Object.keys(byMonth).sort().reverse().forEach(month => {
+    const logs = byMonth[month];
+    const resolved = logs.filter(l=>l.status==='Yes').length;
+    const pending = logs.filter(l=>l.status==='Pending').length;
+    const urgent = logs.filter(l=>l.priority==='Urgent').length;
+    const monthLabel = new Date(month+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    const hdr = document.createElement('tr');
+    hdr.innerHTML = `<td colspan="15" style="background:#7F1D1D;color:#fff;padding:8px 10px;font-size:12px;font-weight:700;">
+      📅 ${monthLabel}
+      <span style="margin-left:12px;font-size:11px;font-weight:400;">${logs.length} total • ${resolved} resolved • ${pending} pending • ${urgent} urgent</span>
+    </td>`;
+    tbody.appendChild(hdr);
+    logs.forEach(log => renderLogRow(log, tbody));
+  });
+}
+
+function renderLogRow(log, tbody) {
+  const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
+  const canSetPriority = ['director','maintsupervisor','ceo','training'].includes(currentRole);
+  const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
+  const daysCls = log.status==='Yes' ? 'days-done' : days >= 3 ? 'days-warn' : 'days-ok';
+  const daysLbl = days !== null ? days+'d' : '—';
+  const priColors = {Urgent:'#FEE2E2;color:#B91C1C',High:'#FEF3C7;color:#D97706',Medium:'#E0F2FE;color:#0891B2',Low:'#DCFCE7;color:#15803D',Preventive:'#EDE9FE;color:#7C3AED'};
+  const stsColors = {Yes:'#DCFCE7;color:#15803D',No:'#FEE2E2;color:#B91C1C',Pending:'#FEF3C7;color:#D97706'};
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '0.5px solid #F1F5F9';
+  tr.innerHTML = `
+    <td style="padding:8px 10px;font-weight:700;color:#7F1D1D;font-size:11px;white-space:nowrap">${log.logId||'—'}</td>
+    <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#94A3B8">${log.loggedAt ? new Date(log.loggedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+    <td style="padding:8px 10px;font-size:11px;white-space:nowrap">${log.dateReported||'—'}</td>
+    <td style="padding:8px 10px;white-space:nowrap">${log.reportedBy||'—'}<br><span style="font-size:10px;color:#94A3B8">${(log.reportedByRole||'').toUpperCase()}</span></td>
+    <td style="padding:8px 10px;white-space:nowrap;font-size:12px">${log.outlet||'—'}</td>
+    <td style="padding:8px 10px;max-width:200px;font-size:12px">${log.description||'—'}${log.remarks?'<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>':''}</td>
+    <td style="padding:8px 10px">
+      ${log.beforePhoto ? `<img class="photo-thumb before-img" src="${log.beforePhoto}" onclick="showPhoto('${log.beforePhoto}')" title="Before photo">` : '—'}
+    </td>
+    <td style="padding:8px 10px">
+      ${canSetPriority ?
+        `<select onchange="updateField('${log._key}','priority',this.value)" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;">
+          <option value="Urgent" ${log.priority==='Urgent'?'selected':''}>🔴 Urgent</option>
+          <option value="High" ${log.priority==='High'?'selected':''}>🟠 High</option>
+          <option value="Medium" ${log.priority==='Medium'?'selected':''}>🔵 Medium</option>
+          <option value="Low" ${log.priority==='Low'?'selected':''}>🟢 Low</option>
+          <option value="Preventive" ${log.priority==='Preventive'?'selected':''}>🟣 Preventive</option>
+        </select>` :
+        `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${priColors[log.priority]||'#F1F5F9;color:#64748B'}">${log.priority||'—'}</span>`
+      }
+    </td>
+    <td style="padding:8px 10px">
+      <select onchange="updateAssigned('${log._key}', this.value)" style="padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
+        <option value="Unassigned" ${!log.assignedTo||log.assignedTo==='Unassigned'?'selected':''}>Unassigned</option>
+        <option value="Baldev" ${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
+        <option value="Angelo" ${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
+        <option value="Asad" ${log.assignedTo==='Asad'?'selected':''}>Asad</option>
+        <option value="Shridhar" ${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
+        <option value="Awais" ${log.assignedTo==='Awais'?'selected':''}>Awais</option>
+        ${!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? '<option value="'+log.assignedTo+'" selected>'+log.assignedTo+'</option>' : ''}
+        <option value="__other__">Other...</option>
+      </select>
+    </td>
+    <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsColors[log.status]||'#FEF3C7;color:#D97706'}">${log.status||'—'}</span></td>
+    <td style="padding:8px 10px;max-width:140px;">
+      <input type="text" value="${log.remarks||''}" placeholder="Add remarks..."
+        style="width:100%;padding:4px 7px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;outline:none;"
+        onblur="updateRemarks('${log._key}', this.value)"
+        onkeydown="if(event.key==='Enter') this.blur()">
+    </td>
+    <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
+    <td style="padding:8px 10px">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <span class="days-badge ${daysCls}">${daysLbl}</span>
+        ${canManage ? `<button onclick="editDays('${log._key}',${days||0})" style="font-size:10px;padding:2px 5px;background:#F1F5F9;border:1px solid #E0DDD4;border-radius:4px;cursor:pointer;" title="Edit days">✏️</button>` : ''}
+      </div>
+      ${log.daysOverrideReason ? `<div style="font-size:9px;color:#94A3B8;margin-top:2px">${log.daysOverrideReason}</div>` : ''}
+    </td>
+    <td style="padding:8px 10px">
+      <div class="photo-cell">
+        ${log.afterPhoto ? `<img class="photo-thumb after-img" src="${log.afterPhoto}" onclick="showPhoto('${log.afterPhoto}')" title="After photo">` : ''}
+        ${log.status!=='Yes' ? `<button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','after'))">📷</button><button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','after'))">🖼️</button>` : ''}
+      </div>
+    </td>
+    <td style="padding:8px 10px;font-size:11px;">
+      ${log.verifiedBy ?
+        `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''} • ${log.verifiedAt ? new Date(log.verifiedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : ''}</div>` :
+        (['kic','oic'].includes(currentRole) && log.status==='Yes') ?
+          `<button onclick="verifyTask('${log._key}')" style="font-size:11px;padding:4px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Verify</button>` :
+          '<span style="color:#94A3B8;font-size:11px">—</span>'
+      }
+    </td>
+  `;
+  // Action buttons
+  const actionTd = document.createElement('td');
+  actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
+  const actionDiv = document.createElement('div');
+  actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
+  if (log.status !== 'Yes') {
+    const doneBtn = document.createElement('button');
+    doneBtn.textContent = '✅';
+    doneBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;';
+    doneBtn.onclick = () => markDone(log._key);
+    actionDiv.appendChild(doneBtn);
+  } else {
+    const doneSpan = document.createElement('span');
+    doneSpan.textContent = '✓';
+    doneSpan.style.cssText = 'font-size:10px;color:#15803D;font-weight:600;';
+    actionDiv.appendChild(doneSpan);
+  }
+  if (canManage) {
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️';
+    editBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;';
+    editBtn.onclick = () => openOverwrite(log._key);
+    actionDiv.appendChild(editBtn);
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;';
+    delBtn.onclick = () => deleteLog(log._key);
+    actionDiv.appendChild(delBtn);
+  }
+  actionTd.appendChild(actionDiv);
+  tr.appendChild(actionTd);
+  tbody.appendChild(tr);
+}
+
+// ── Edit Days with Reason ─────────────────────────────────────
+function editDays(key, currentDays) {
+  const newDays = prompt('Enter actual days taken (current: ' + currentDays + '):');
+  if (newDays === null || newDays === '') return;
+  const parsed = parseInt(newDays);
+  if (isNaN(parsed) || parsed < 0) { showToast('Invalid number','warn'); return; }
+  const reason = prompt('Reason for editing days:');
+  if (reason === null) return;
+  if (!reason.trim()) { showToast('Please enter a reason','warn'); return; }
+  if (!db) return;
+  db.ref('maintenanceLogs/' + key).update({
+    daysOverride: parsed,
+    daysOverrideReason: reason.trim(),
+    daysOverrideBy: currentName,
+    daysOverrideAt: new Date().toISOString()
+  }).then(() => showToast('Days updated ✓','ok'))
+    .catch(e => showToast('Update failed: '+e.message,'error'));
+}
+
+// ── PDF Export ────────────────────────────────────────────────
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const logs = getFilteredByDate(allLogs);
+  const from = document.getElementById('filterFrom')?.value;
+  const to = document.getElementById('filterTo')?.value;
+  const title = currentReportTab==='weekly' ? 'Weekly Maintenance Report' :
+                currentReportTab==='monthly' ? 'Monthly Maintenance Report' :
+                'Maintenance Log Report';
+  const dateRange = from || to ? (from||'Start') + ' to ' + (to||'Today') : 'All dates';
+
+  doc.setFillColor(127,29,29);
+  doc.rect(0,0,297,18,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('Culex Hospitality — ' + title, 14, 8);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Period: ' + dateRange + '  |  Generated: ' + new Date().toLocaleDateString('en-GB'), 14, 14);
+  doc.text('Total: ' + logs.length + '  Pending: ' + logs.filter(l=>l.status==='Pending').length + '  Resolved: ' + logs.filter(l=>l.status==='Yes').length, 200, 14);
+
+  const rows = logs.map(l => {
+    const days = l.daysOverride !== undefined ? l.daysOverride :
+      (l.dateReported ? Math.floor((l.status==='Yes' && l.dateResolved ? new Date(l.dateResolved) : new Date() - new Date(l.dateReported)) / (1000*60*60*24)) : '—');
+    return [
+      l.logId||'—', l.dateReported||'—', l.reportedBy||'—', l.outlet||'—',
+      (l.description||'').substring(0,40), l.priority||'—', l.assignedTo||'—',
+      l.status||'—', days+'d', l.dateResolved||'—', l.verifiedBy||'—', l.remarks||'—'
+    ];
+  });
+
+  doc.autoTable({
+    startY: 22,
+    head: [['Ref#','Date','Reported By','Outlet','Issue','Priority','Assigned','Status','Days','Resolved','Verified By','Remarks']],
+    body: rows,
+    styles:{fontSize:7,cellPadding:2},
+    headStyles:{fillColor:[26,60,94],textColor:[255,255,255],fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[248,247,242]},
+    didParseCell: (data) => {
+      if (data.section==='body' && data.column.index===5) {
+        const p = data.cell.raw;
+        if (p==='Urgent') data.cell.styles.textColor=[185,28,28];
+        else if (p==='High') data.cell.styles.textColor=[217,119,6];
+        else if (p==='Low'||p==='Preventive') data.cell.styles.textColor=[21,128,61];
+      }
+      if (data.section==='body' && data.column.index===7) {
+        if (data.cell.raw==='Yes') data.cell.styles.textColor=[21,128,61];
+        else if (data.cell.raw==='Pending') data.cell.styles.textColor=[217,119,6];
+      }
+    },
+    margin:{left:5,right:5}
+  });
+
+  const pages = doc.internal.getNumberOfPages();
+  for (let i=1;i<=pages;i++) {
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setTextColor(150,150,150);
+    doc.text('Page '+i+' of '+pages+' — Culex Hospitality Maintenance Log — Confidential', 148, 205, {align:'center'});
+  }
+  doc.save('Maintenance_Report_' + new Date().toLocaleDateString('en-CA') + '.pdf');
 }
 
 // ── New Issues Alert ────────────────────────────────────────
