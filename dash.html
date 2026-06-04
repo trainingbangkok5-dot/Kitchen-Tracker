@@ -267,7 +267,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="page" id="page-staff">
     <div class="filters">
-      <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option></select>
+      <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option><option value="service">🛎️ Service</option><option value="oic">🧑‍💼 OIC</option></select>
       <select class="fsel" id="fWeek" onchange="renderStaff()"><option value="">All weeks</option></select>
       <select class="fsel" id="fOutlet" onchange="renderStaff()"><option value="">All outlets</option></select>
     </div>
@@ -295,6 +295,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="">All roles</option>
         <option value="linecook">Line Cook</option>
         <option value="steward">Steward</option>
+        <option value="service">🛎️ Service</option>
+        <option value="oic">🧑‍💼 OIC</option>
         <option value="kic">KIC</option>
         <option value="areachef">Area Chef</option>
       </select>
@@ -429,6 +431,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th id="fohDayH5" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
               <th id="fohDayH6" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">OIC Check</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
             </tr>
           </thead>
@@ -749,6 +752,8 @@ function initFirebase() {
 const ROLES = {
   linecook:{label:'Line Cook',icon:'🍳',dot:'#2E6DA4',cls:'pill-lc'},
   steward:{label:'Steward',icon:'🧹',dot:'#16A34A',cls:'pill-st'},
+  service:{label:'Service',icon:'🛎️',dot:'#C4533A',cls:'pill-lc'},
+  oic:{label:'OIC',icon:'🧑‍💼',dot:'#7B2D42',cls:'pill-kic'},
   kic:{label:'KIC',icon:'👨‍🍳',dot:'#E87722',cls:'pill-kic'},
   areachef:{label:'Area Chef',icon:'📊',dot:'#7C3AED',cls:'pill-ac'},
 };
@@ -932,6 +937,15 @@ function loadData() {
       const bohOnly = rawA.filter(a => a.auditType === 'BOH');
       allAudits = FULL_ACCESS.includes(currentRole) ? bohOnly :
                   bohOnly.filter(a => a.outlet === currentOutlet);
+      // Also load FOH submissions into allStaff
+      if (fohDb) {
+        fohDb.ref('submissions').once('value', fohSnap => {
+          const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
+          allStaff = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
+          populateFilters();
+          renderAll();
+        }).catch(() => {});
+      }
       populateFilters();
       renderAll();
       setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
@@ -3502,6 +3516,20 @@ function loadFOHData() {
         // Use latest overallPct
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
+        // Track if OIC sections were filled (tasks with oicOnly flag)
+        if (sub.taskData) {
+          const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+          const hasOICData = oicTaskIds.some(tid =>
+            Object.keys(sub.taskData).some(k => k.startsWith(tid+'_') && sub.taskData[k].yn)
+          );
+          if (hasOICData) grouped[gKey].oicEvaluated = true;
+          // Has staff tasks?
+          const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
+          const hasStaffData = staffTaskIds.some(tid =>
+            Object.keys(sub.taskData).some(k => k.startsWith(tid+'_') && sub.taskData[k].yn)
+          );
+          if (hasStaffData) grouped[gKey].staffSubmitted = true;
+        }
       });
       allFOHData = Object.values(grouped);
       allFOHData.sort((a,b) => b.overallPct - a.overallPct);
@@ -3572,6 +3600,14 @@ function renderFOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
       ${daysHtml}
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
+      <td style="padding:8px 12px;text-align:center;">
+        ${staff.role === 'service' ?
+          (staff.staffSubmitted && staff.oicEvaluated ? '<span style="font-size:11px;background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:10px;font-weight:600;">✅ Complete</span>' :
+           staff.staffSubmitted && !staff.oicEvaluated ? '<span style="font-size:11px;background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:10px;font-weight:600;">⚠️ Pending OIC</span>' :
+           !staff.staffSubmitted && staff.oicEvaluated ? '<span style="font-size:11px;background:#E0F2FE;color:#0891B2;padding:2px 8px;border-radius:10px;font-weight:600;">🔵 OIC Only</span>' :
+           '<span style="font-size:11px;color:#94A3B8;">—</span>')
+          : '<span style="font-size:11px;color:#94A3B8;">N/A</span>'}
+      </td>
       <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified ? '✅' : op > 0 ? '❌' : '—'}</td>
     `;
     tbody.appendChild(tr);
