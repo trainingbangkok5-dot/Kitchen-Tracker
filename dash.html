@@ -408,19 +408,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍳 Line Cook</button>
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
       <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
-      <select id="bohOutletFilter" onchange="renderBOHStaff()" style="margin-left:auto;padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;outline:none;cursor:pointer;">
-        <option value="">All Outlets</option>
-        <option>LB DSO</option>
-        <option>LB Tower</option>
-        <option>LB Hamra</option>
-        <option>LB JLT</option>
-        <option>LB OM</option>
-        <option>LB DHE</option>
-        <option>LB MTC</option>
-        <option>SB Deira</option>
-        <option>SB DG</option>
-        <option>The Red Door</option>
-      </select>
+<div style="position:relative;margin-left:auto;">
+        <button id="bohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
+        <div style="display:none;position:absolute;top:34px;right:0;background:#fff;border:1.5px solid #E0DDD4;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;padding:6px;min-width:160px;">
+          <div style="display:flex;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
+            <span style="font-size:10px;font-weight:700;color:#64748B;">SELECT OUTLETS</span>
+            <button onclick="clearMultiOutlet('bohOutletBtn','renderBOHStaff')" style="font-size:10px;color:#1A3C5E;background:none;border:none;cursor:pointer;text-decoration:underline;">Clear</button>
+          </div>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB DSO" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB DSO</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB Tower" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB Tower</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB Hamra" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB Hamra</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB JLT" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB JLT</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB OM" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB OM</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB DHE" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB DHE</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB MTC" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB MTC</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="SB Deira" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> SB Deira</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="SB DG" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> SB DG</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="The Red Door" onchange="renderBOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> The Red Door</label>
+        </div>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
       <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
@@ -479,19 +485,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="fohSubAll" onclick="setFOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
       <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🛎️ Service</button>
       <button id="fohSubOIC" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
-      <select id="fohOutletFilter" onchange="renderFOHStaff()" style="margin-left:auto;padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;outline:none;cursor:pointer;">
-        <option value="">All Outlets</option>
-        <option>LB DSO</option>
-        <option>LB Tower</option>
-        <option>LB Hamra</option>
-        <option>LB JLT</option>
-        <option>LB OM</option>
-        <option>LB DHE</option>
-        <option>LB MTC</option>
-        <option>SB Deira</option>
-        <option>SB DG</option>
-        <option>The Red Door</option>
-      </select>
+      <div style="position:relative;margin-left:auto;">
+        <button id="fohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
+        <div style="display:none;position:absolute;top:34px;right:0;background:#fff;border:1.5px solid #E0DDD4;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;padding:6px;min-width:160px;">
+          <div style="display:flex;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
+            <span style="font-size:10px;font-weight:700;color:#64748B;">SELECT OUTLETS</span>
+            <button onclick="clearMultiOutlet('fohOutletBtn','renderFOHStaff')" style="font-size:10px;color:#1A3C5E;background:none;border:none;cursor:pointer;text-decoration:underline;">Clear</button>
+          </div>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB DSO" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB DSO</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB Tower" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB Tower</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB Hamra" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB Hamra</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB JLT" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB JLT</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB OM" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB OM</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB DHE" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB DHE</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="LB MTC" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> LB MTC</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="SB Deira" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> SB Deira</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="SB DG" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> SB DG</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:12px;white-space:nowrap;"><input type="checkbox" value="The Red Door" onchange="renderFOHStaff()" style="accent-color:#1A3C5E;width:14px;height:14px;"> The Red Door</label>
+        </div>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
       <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
@@ -979,6 +991,7 @@ function doLogin() {
   document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
+
   populateWeekFilter();
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','areamanager','maintsupervisor'];
@@ -3973,10 +3986,11 @@ function setBOHSub(sub) {
 }
 
 function renderBOHStaff() {
-  const outlet = document.getElementById('bohOutletFilter')?.value || '';
+  const bohChecked = Array.from(document.querySelectorAll('#bohOutletBtn ~ div input:checked')).map(c=>c.value);
+  const outlet = '';  // replaced by multi-select below
   let filtered = allBOHData.filter(s => {
     if (currentBOHSub !== 'all' && s.role !== currentBOHSub) return false;
-    if (outlet && s.outlet !== outlet) return false;
+    if (bohChecked.length && !bohChecked.includes(s.outlet)) return false;
     return true;
   });
   // Update day column headers with actual dates from first record's week
@@ -4102,10 +4116,10 @@ function setFOHSub(sub) {
 }
 
 function renderFOHStaff() {
-  const outlet = document.getElementById('fohOutletFilter')?.value || '';
+  const fohChecked = Array.from(document.querySelectorAll('#fohOutletBtn ~ div input:checked')).map(c=>c.value);
   let filtered = allFOHData.filter(s => {
     if (currentFOHSub !== 'all' && s.role !== currentFOHSub) return false;
-    if (outlet && s.outlet !== outlet) return false;
+    if (fohChecked.length && !fohChecked.includes(s.outlet)) return false;
     return true;
   });
 
