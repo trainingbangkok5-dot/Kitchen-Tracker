@@ -3014,8 +3014,15 @@ async function exportDetailPDF() {
           for (const t of photoTasks) {            try {
               if (y > H-50) { doc.addPage(); y=16; px=14; }
               let imgData = t.photoUrl || '';
-              // Skip db: references - show badge instead
               if (imgData.startsWith('db:')) { imgData = ''; }
+              // For Cloudinary/https URLs, fetch as base64
+              if (imgData && imgData.startsWith('http')) {
+                try {
+                  const resp = await fetch(imgData);
+                  const blob = await resp.blob();
+                  imgData = await new Promise(r => { const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.readAsDataURL(blob); });
+                } catch(e) { imgData = ''; }
+              }
               if (imgData && imgData.startsWith('data:')) {
                 let fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
                 doc.addImage(imgData, fmt, px, y, 40, 30);
@@ -3522,6 +3529,7 @@ function renderRegistry() {
           ${['areachef','areamanager'].includes(s.role) ? `<button onclick="viewKPIReport('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid #1A3C5E;border-radius:6px;background:#EFF6FF;color:#1A3C5E;cursor:pointer;font-weight:600;">📊 Report</button>` : ''}
           <button onclick="editStaff('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid #E0DDD4;border-radius:6px;background:#fff;cursor:pointer;">Edit</button>
           <button onclick="toggleStaff('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid ${isActive?'#FCA5A5':'#C0DD97'};border-radius:6px;background:#fff;color:${isActive?'#DC2626':'#16A34A'};cursor:pointer;">${isActive?'Deactivate':'Reactivate'}</button>
+          ${currentRole==='training' ? `<button onclick="deleteStaffFromRegistry('${s._key}','${s.name}')" style="padding:3px 7px;font-size:11px;border:1px solid #FCA5A5;border-radius:6px;background:#FEE2E2;color:#B91C1C;cursor:pointer;font-weight:600;">🗑 Delete</button>` : ''}
         </div>
       </div>`;
     }).join('')}
@@ -3547,6 +3555,18 @@ function openAddStaffModal() {
   document.getElementById('staffIdInput').readOnly = false;
   document.getElementById('addStaffModal').style.display = 'flex';
   toggleOutletField();
+}
+
+function deleteStaffFromRegistry(key, name) {
+  if (!confirm('Delete ' + name + ' from the registry?\nThis cannot be undone.')) return;
+  if (!db) { showToast('Firebase not connected', 'error'); return; }
+  db.ref('registry/' + key).remove()
+    .then(() => {
+      delete _registry[key];
+      showToast(name + ' deleted from registry ✓', 'ok');
+      renderRegistry();
+    })
+    .catch(e => showToast('Delete failed: ' + e.message, 'error'));
 }
 
 function editStaff(key) {
@@ -3667,14 +3687,22 @@ function toggleEditMode(s) {
       <div>
         <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo</label>
         ${existingPhoto ? `<img src="${existingPhoto.startsWith('db:')?'':existingPhoto}" style="max-width:80px;max-height:60px;border-radius:6px;margin-bottom:4px;border:2px solid #22C55E;${existingPhoto.startsWith('db:')?'display:none;':''}">` : ''}
-        <input type="file" accept="image/*" class="edit-photo-input" data-taskkey="${taskKey}"
-          style="font-size:11px;width:100%;color:var(--color-text-secondary);">
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <label style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;">
+            📸 Take Photo
+            <input type="file" accept="image/*" capture="environment" class="edit-photo-input" data-taskkey="${taskKey}" style="display:none;">
+          </label>
+          <label style="flex:1;padding:7px;background:#EFF6FF;color:#1A3C5E;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border:1px solid #BFDBFE;">
+            🖼️ Gallery
+            <input type="file" accept="image/*" class="edit-photo-input" data-taskkey="${taskKey}" style="display:none;">
+          </label>
+        </div>
         <div class="edit-photo-preview" data-taskkey="${taskKey}" style="margin-top:4px;"></div>
       </div>`;
     row.appendChild(extraDiv);
 
-    // Photo preview handler
-    const fileInput = extraDiv.querySelector('.edit-photo-input');
+    // Photo preview handler — attach to all photo inputs
+    extraDiv.querySelectorAll('.edit-photo-input').forEach(fileInput => {
     fileInput.addEventListener('change', function() {
       const file = this.files[0];
       if (!file) return;
@@ -3686,6 +3714,7 @@ function toggleEditMode(s) {
       };
       reader.readAsDataURL(file);
     });
+    }); // end forEach
   });
 
   // Add cancel button
