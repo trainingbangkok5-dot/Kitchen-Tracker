@@ -957,13 +957,10 @@ function renderDay() {
         om.style.cssText = 'margin:8px 0;padding:8px;background:#DCFCE7;border-radius:8px;';
         om.textContent = '✓ Opening Submitted — ' + new Date(data[getTodayKey()]._openDone).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
         container.appendChild(om);
-        // Overwrite panel for opening
+        // Overwrite via dashboard only
         const owpO = document.createElement('div');
-        owpO.className = 'overwrite-panel';
-        owpO.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
-          <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">KIC / Area Chef / Admin PIN to unlock and edit</div>
-          <input class="overwrite-input" id="owCodeO" type="password" placeholder="Enter PIN...">
-          <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Opening</button>`;
+        owpO.style.cssText = 'margin:8px 16px;padding:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;text-align:center;';
+        owpO.innerHTML = '<div style="font-size:12px;font-weight:700;color:#1A3C5E;margin-bottom:4px;">🔒 Submitted — Awaiting OIC Verification</div><div style="font-size:11px;color:#64748B;">OIC can verify and overwrite from the <strong>Master Dashboard</strong>.</div>';
         container.appendChild(owpO);
       }
     }
@@ -1047,13 +1044,10 @@ function renderDay() {
       msg.className = 'synced-msg';
       msg.textContent = '✓ Submitted and synced to dashboard';
       container.appendChild(msg);
-      // KIC overwrite panel
+      // Overwrite via dashboard only
       const owp = document.createElement('div');
-      owp.className = 'overwrite-panel';
-      owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN (OIC / Area Manager / Admin)</div>
-        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter OIC/Manager PIN to unlock and edit Day ${currentDay}</div>
-        <input class="overwrite-input" id="owCode" type="password" placeholder="Enter OIC/Manager PIN...">
-        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      owp.style.cssText = 'margin:8px 16px;padding:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;text-align:center;';
+      owp.innerHTML = '<div style="font-size:12px;font-weight:700;color:#1A3C5E;margin-bottom:4px;">🔒 Submitted — Awaiting OIC Verification</div><div style="font-size:11px;color:#64748B;">OIC can verify and overwrite from the <strong>Master Dashboard</strong>.</div>';
       container.appendChild(owp);
     } else {
       const wasOvr = !!data[dayKey]?._overwritten;

@@ -236,7 +236,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="hdr-btn" onclick="loadData()">⟳</button>
         <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
         <button class="hdr-btn" id="resetChecklistBtn" onclick="openResetChecklistModal()" style="display:none;background:#B91C1C;">🔄 Reset Checklist</button>
-        <button class="hdr-btn" id="resetChecklistBtn" onclick="openResetChecklistModal()" style="display:none;background:#B91C1C;">🔄 Reset Checklist</button>
         <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
       </div>
     </div>
@@ -891,6 +890,32 @@ function loadPins() {
 function savePinToFirebase(role, newPin) {
   if (!db) return Promise.reject('Firebase not ready');
   return db.ref('settings/pins/' + role).set(newPin);
+}
+
+function openResetChecklistModal() {
+  document.getElementById('resetChecklistModal').style.display = 'flex';
+  document.getElementById('resetRole').value = '';
+  document.getElementById('resetOutlet').value = '';
+  document.getElementById('resetStaffName').value = '';
+}
+
+function confirmResetChecklist() {
+  const role   = document.getElementById('resetRole').value;
+  const outlet = document.getElementById('resetOutlet').value;
+  const name   = document.getElementById('resetStaffName').value.trim();
+  if (!role)   { showToast('Please select a role', 'warn'); return; }
+  if (!outlet) { showToast('Please select an outlet', 'warn'); return; }
+  if (!name)   { showToast('Please enter the staff name exactly as typed in checklist', 'warn'); return; }
+  if (!confirm('Push reset flag for:\n' + name + ' — ' + role + ' @ ' + outlet + '?')) return;
+  if (!db) { showToast('Firebase not connected', 'error'); return; }
+  const resetKey = role + '_' + outlet.replace(/[^a-zA-Z0-9]/g,'_') + '_' + name.replace(/[^a-zA-Z0-9]/g,'_');
+  const flag = { role, outlet, name, resetAt: new Date().toISOString(), by: currentName||'Admin' };
+  db.ref('reset_flags/' + resetKey).set(flag)
+    .then(() => {
+      showToast('Reset flag pushed ✓ — ' + name + ' will see fresh checklist on next load', 'ok');
+      document.getElementById('resetChecklistModal').style.display = 'none';
+    })
+    .catch(e => showToast('Error: ' + e.message, 'error'));
 }
 
 function resetPinsToDefault() {

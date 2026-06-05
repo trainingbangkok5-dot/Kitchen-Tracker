@@ -410,8 +410,8 @@ function renderDay() {
     // Overwrite message — direct to dashboard
     const ow=document.createElement('div');
     ow.style.cssText='margin:8px 16px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;text-align:center;';
-    ow.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">🔓 Need to edit this submission?</div>
-      <div style="font-size:12px;color:#64748B;">Please use the <strong>Master Dashboard</strong> to overwrite this checklist.</div>`;
+    ow.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">🔒 Submitted — Awaiting OIC Verification</div>
+      <div style="font-size:12px;color:#64748B;">OIC can verify and overwrite from the <strong>Master Dashboard</strong>.</div>`;
     container.appendChild(ow);
   } else if(!isDone) {
     const btn=document.createElement('button');
