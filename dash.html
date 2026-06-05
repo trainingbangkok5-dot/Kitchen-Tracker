@@ -275,7 +275,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="page" id="page-staff">
     <div class="filters">
-      <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option><option value="areamanager">Area Manager</option><option value="service">🛎️ Service</option><option value="oic">🧑‍💼 OIC</option></select>
+      <select class="fsel" id="fRole" onchange="renderStaff()"><option value="">All roles</option><option value="linecook">Line Cook</option><option value="steward">Steward</option><option value="kic">KIC</option><option value="areachef">Area Chef</option><option value="areamanager">Area Manager</option><option value="service">🛎️ Service</option><option value="oic">🧑‍💼 OIC</option><option value="delco">🚚 Del.Co</option><option value="bartender">🍹 Bartender</option></select>
       <select class="fsel" id="fWeek" onchange="renderStaff()"><option value="">All weeks</option></select>
       <select class="fsel" id="fOutlet" onchange="renderStaff()"><option value="">All outlets</option></select>
     </div>
@@ -997,7 +997,7 @@ function doLogin() {
   const bohRoles = ['kic','areachef','training','operations','director','ceo','areamanager','maintsupervisor'];
   document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
   // FOH tab — visible to OIC, Area Manager and full access roles
-  const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
+  const fohRoles = ['oic','areamanager','areachef','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
   // KIC defaults to BOH tab, OIC defaults to FOH tab
   if (currentRole === 'kic') {
@@ -4138,7 +4138,7 @@ function renderFOHStaff() {
   tbody.innerHTML = '';
   document.getElementById('fohEmpty').style.display = filtered.length ? 'none' : 'block';
 
-  const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚗 Del.co', bartender:'🍹 Bartender'};
+  const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
   const scoreColor = p => p >= 95 ? '#0F766E' : p >= 70 ? '#D97706' : '#B91C1C';
   const scoreBg = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
 
@@ -4194,7 +4194,7 @@ function openFOHDetail(idx) {
   document.getElementById('fohDetailName').textContent = staff.staffName;
   document.getElementById('fohDetailSub').textContent = staff.role.toUpperCase() + ' • ' + staff.outlet + ' • Week: ' + staff.week;
 
-  const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚗 Del.co', bartender:'🍹 Bartender'};
+  const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
   const scoreColor = p => p>=95?'#0F766E':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
   const op = staff.overallPct;
@@ -4248,7 +4248,7 @@ function openFOHDetail(idx) {
   `;
 
   // Show Edit button only for roles allowed to overwrite FOH records
-  const fohCanEdit = ['oic','areamanager','training','operations','director','ceo'].includes(currentRole);
+  const fohCanEdit = ['areamanager','areachef','training','operations','director','ceo'].includes(currentRole);
   const fohEditBtn = document.getElementById('fohEditBtn');
   if (fohEditBtn) fohEditBtn.style.display = fohCanEdit ? 'block' : 'none';
 

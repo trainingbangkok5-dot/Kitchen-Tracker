@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="application-name" content="Culex Kitchen">
+<script>
+(function() {
+  var v = '20260606001000';
+  var stored = localStorage.getItem('app_version_bartender');
+  if (stored !== v) {
+    try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); }); } catch(e){}
+    localStorage.setItem('app_version_bartender', v);
+  }
+})();
+</script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#7B2D42">
+<title>Bartender Checklist</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background:#F8FAFC; color:#0F172A; padding-bottom:60px; -webkit-font-smoothing:antialiased; }
+.header { background:#7B2D42; padding:16px 16px 14px; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(0,0,0,0.2); }
+.role-badge { display:inline-block; background:#C4533A; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
+.header h1 { color:#fff; font-size:17px; font-weight:700; }
+.header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:10px; }
+.info-field { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:7px 10px; }
+.info-field label { display:block; font-size:9px; color:rgba(255,255,255,0.55); font-weight:700; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
+.info-field input, .info-field select { background:transparent; border:none; outline:none; color:#fff; font-size:13px; font-weight:500; width:100%; -webkit-appearance:none; }
+.info-field input::placeholder { color:rgba(255,255,255,0.3); }
+.info-field select option { color:#000; background:#fff; }
+.score-bar { background:#fff; border-bottom:1px solid #E2E8F0; padding:10px 16px; display:flex; align-items:center; gap:10px; }
+.score-track { flex:1; height:5px; background:#E2E8F0; border-radius:3px; overflow:hidden; }
+.score-fill { height:100%; border-radius:3px; background:#C4533A; transition:width 0.4s; }
+.score-pct { font-size:13px; font-weight:700; color:#7B2D42; min-width:38px; text-align:right; }
+.shift-screen { padding:16px; }
+.shift-btn { display:block; width:100%; padding:16px; margin-bottom:12px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; }
+.shift-btn.opening { background:#7B2D42; color:#fff; }
+.shift-btn.closing { background:#fff; color:#7B2D42; border:2px solid #1A3C5E; }
+.shift-btn:disabled { opacity:0.4; cursor:not-allowed; }
+.section-hdr { background:#7B2D42; color:#fff; padding:10px 16px; font-size:12px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; margin-top:12px; }
+.task-card { background:#fff; border-bottom:0.5px solid #F1F5F9; padding:12px 16px; }
+.task-card.locked-card { opacity:0.7; }
+.task-top { margin-bottom:10px; }
+.owner-tag { display:inline-block; font-size:9px; font-weight:700; padding:2px 7px; border-radius:4px; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px; }
+.ot-self { background:#DBEAFE; color:#1D4ED8; }
+.ot-verify { background:#FFE4E1; color:#9F1239; }
+.task-text { display:block; font-size:13px; font-weight:500; color:#1E293B; line-height:1.4; }
+.yn-row { display:flex; gap:8px; align-items:center; }
+.yn { flex:1; padding:9px; border:1.5px solid #E2E8F0; border-radius:8px; font-size:13px; font-weight:600; text-align:center; cursor:pointer; background:#F8FAFC; color:#64748B; -webkit-appearance:none; }
+.yn.on.yes { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
+.yn.on.no  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
+.yn.on.na  { background:#F1F5F9; border-color:#94A3B8; color:#475569; }
+.photo-btn { padding:8px 12px; border:1.5px solid #E2E8F0; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; background:#F8FAFC; color:#475569; flex-shrink:0; }
+.photo-btn.taken { border-color:#22C55E; background:#DCFCE7; color:#15803D; }
+.comment-box { width:100%; margin-top:8px; padding:7px 10px; border:1px solid #E2E8F0; border-radius:8px; font-size:12px; resize:none; outline:none; font-family:inherit; background:#F8FAFC; }
+.submit-btn { display:block; width:calc(100% - 32px); margin:16px; padding:14px; background:#7B2D42; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; -webkit-appearance:none; }
+.submit-btn:disabled { background:#94A3B8; }
+.score-card { margin:12px 16px; background:#fff; border-radius:12px; border:1.5px solid #E2E8F0; padding:16px; text-align:center; }
+.score-big { font-size:44px; font-weight:700; line-height:1; }
+.score-label { font-size:11px; color:#94A3B8; text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; }
+.score-sub { display:flex; gap:10px; margin-top:12px; justify-content:center; }
+.score-sub-item { flex:1; background:#F8FAFC; border-radius:8px; padding:10px; text-align:center; }
+.score-sub-item .val { font-size:18px; font-weight:700; }
+.score-sub-item .lbl { font-size:10px; color:#94A3B8; text-transform:uppercase; margin-top:2px; }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:10px 20px; border-radius:20px; font-size:13px; font-weight:600; color:#fff; z-index:9999; display:none; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
+.modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:flex-end; justify-content:center; }
+.modal-bg.open { display:flex; }
+.modal-box { background:#fff; border-radius:20px 20px 0 0; padding:20px; width:100%; max-width:480px; }
+.modal-title { font-size:16px; font-weight:700; margin-bottom:6px; }
+.modal-sub { font-size:13px; color:#64748B; margin-bottom:16px; }
+.mbtn { display:block; width:100%; padding:14px; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-bottom:10px; text-align:center; }
+.mbtn-cam { background:#7B2D42; color:#fff; }
+.mbtn-gal { background:#EFF6FF; color:#C4533A; }
+.mbtn-cancel { background:#F1F5F9; color:#64748B; }
+.day-rail { display:flex; gap:6px; padding:10px 16px; overflow-x:auto; background:#fff; border-bottom:1px solid #E2E8F0; }
+.day-pill { flex-shrink:0; padding:5px 12px; border-radius:20px; border:1.5px solid #E2E8F0; font-size:12px; font-weight:600; cursor:pointer; background:#F8FAFC; color:#64748B; }
+.day-pill.active { background:#7B2D42; border-color:#7B2D42; color:#fff; }
+.day-pill.done { border-color:#22C55E; color:#15803D; background:#DCFCE7; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="role-badge">🍹 Bartender</div>
+  <h1>6-Day Incentive Checklist</h1>
+  <div class="header-sub">Complete tasks • Submit each day</div>
+  <div class="info-grid">
+    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
+    <div class="info-field">
+      <label>Outlet</label>
+      <select id="fOutlet">
+        <option value="">Select outlet...</option>
+        <option>LB DSO</option><option>LB Tower</option><option>LB Hamra</option>
+        <option>LB JLT</option><option>LB OM</option><option>LB DHE</option><option>LB MTC</option>
+        <option>SB Deira</option><option>SB DG</option><option>The Red Door</option>
+      </select>
+    </div>
+    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="text" readonly style="opacity:0.8"></div>
+    <div class="info-field"><label>Verified By (OIC)</label><input id="fVerified" type="text" placeholder="OIC name..." autocorrect="off" autocapitalize="words"></div>
+  </div>
+</div>
+<script>
+(function(){
+  try{
+    var n=new Date(),u=n.getTime()+(n.getTimezoneOffset()*60000),db=new Date(u+(4*3600000));
+    var s=db.getFullYear()+'-'+(db.getMonth()<9?'0':'')+(db.getMonth()+1)+'-'+(db.getDate()<10?'0':'')+db.getDate();
+    document.getElementById('fWeek').value=s;
+  }catch(e){}
+})();
+</script>
+
+<div class="score-bar">
+  <span style="font-size:12px;color:#64748B;font-weight:500;">Today's score</span>
+  <div class="score-track"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
+  <span class="score-pct" id="scorePct">0%</span>
+</div>
+
+
+<div id="shiftScreen" class="shift-screen" style="display:none;">
+  <div style="font-size:13px;color:#64748B;margin-bottom:16px;text-align:center;">Select your shift to begin</div>
+  <button class="shift-btn opening" onclick="selectShift('opening')">🌅 Opening Shift</button>
+  <button class="shift-btn closing" id="closingBtn" onclick="selectShift('closing')">🌙 Closing Shift</button>
+  <div id="shiftNote" style="font-size:11px;color:#94A3B8;text-align:center;margin-top:8px;"></div>
+</div>
+<div id="mainContent"></div>
+
+<div class="modal-bg" id="photoModal">
+  <div class="modal-box">
+    <div class="modal-title">📷 Photo Proof</div>
+    <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
+    <label class="mbtn mbtn-cam" for="camInput" onclick="prepareCamera()">📸 Take Photo</label>
+    <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼️ Choose from Gallery</label>
+    <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
+  </div>
+</div>
+<input type="file" id="camInput" accept="image/*" capture="environment" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
+<input type="file" id="galInput" accept="image/*" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDxc1zrvdv65kIzfP63CId2MdcoOCmIQPU",
+  authDomain:        "culex-foh.firebaseapp.com",
+  databaseURL:       "https://culex-foh-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "culex-foh",
+  storageBucket:     "culex-foh.firebasestorage.app",
+  messagingSenderId: "571343979493",
+  appId:             "1:571343979493:web:ae4a6f75106bc87a1be50c"
+};
+
+const CLOUDINARY_CLOUD  = 'db94rgiil';
+const CLOUDINARY_PRESET = 'culex_uploads';
+const ROLE       = 'bartender';
+const ROLE_LABEL = 'Bartender';
+const SK         = 'kic_bartender_data_v2';
+const ALLOW_OVERWRITE = false;
+
+const SECTIONS = [
+  { title: '🌅 Opening Responsibilities', shift: 'opening', tasks: [
+    { id:'o1', owner:'self',   ownerLbl:'Self-report',   text:'All bar equipment is clean and functioning properly', photo:true },
+    { id:'o2', owner:'self',   ownerLbl:'Self-report',   text:'Bar station is clean, organized, and ready for operation', photo:true },
+    { id:'o3', owner:'self',   ownerLbl:'Self-report',   text:'All ingredients are stocked, arranged using FIFO, 86\'s items communicated and cheat sheet available', photo:true },
+    { id:'o4', owner:'verify', ownerLbl:'Verify by OIC', text:'Par stock is complete and replenished', photo:true },
+    { id:'o5', owner:'verify', ownerLbl:'Verify by OIC', text:'Chiller and freezer temperatures are checked and recorded', photo:true },
+  ]},
+  { title: '🌙 Closing Responsibilities', shift: 'closing', tasks: [
+    { id:'c1', owner:'verify', ownerLbl:'Verify by OIC', text:'All bar equipment is cleaned and switched off properly at the end of the shift', photo:true },
+    { id:'c2', owner:'verify', ownerLbl:'Verify by OIC', text:'Bar station is cleaned, sanitized, and organized for the next day', photo:true },
+    { id:'c3', owner:'verify', ownerLbl:'Verify by OIC', text:'All ingredients are stored properly, labeled, and following FIFO standards', photo:true },
+    { id:'c4', owner:'verify', ownerLbl:'Verify by OIC', text:'Closing stock count is completed and any shortages are reported', photo:false },
+    { id:'c5', owner:'verify', ownerLbl:'Verify by OIC', text:'Chiller and freezer temperatures are checked and recorded before closing', photo:true },
+  ]},
+];
+
+// ── Firebase ─────────────────────────────────────────────────
+let _db = null;
+function initFirebase() {
+  try {
+    if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _db = firebase.database();
+    loadOverwritePins();
+  } catch(e) { console.error('Firebase init error:', e); }
+}
+initFirebase();
+
+let _overwritePins = {};
+function loadOverwritePins() {
+  if (!_db) return;
+  _db.ref('settings/pins').once('value', snap => { _overwritePins = snap.val() || {}; });
+}
+function checkOverwritePin(code) {
+  const valid = ['kic','areachef','areamanager','training','operations','director','ceo'];
+  return valid.some(r => _overwritePins[r] && _overwritePins[r] === code);
+}
+
+// ── Toast ────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==='ok'?'#15803D':type==='warn'?'#854D0E':'#B91C1C';
+  t.style.display = 'block';
+  clearTimeout(t._tmr);
+  t._tmr = setTimeout(() => t.style.display='none', 2600);
+}
+
+// ── Dubai Date ───────────────────────────────────────────────
+function getDubaiDate() {
+  const n=new Date(),u=n.getTime()+(n.getTimezoneOffset()*60000);
+  return new Date(u+(4*3600000));
+}
+function getDubaiDateStr() {
+  const d=getDubaiDate();
+  return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
+}
+function getDubaiHour() { return getDubaiDate().getHours(); }
+function getTodayKey() {
+  try { return 'dt'+getDubaiDateStr(); } catch(e) { return 'dt'+new Date().toISOString().split('T')[0]; }
+}
+function getWeekStart() {
+  const v = document.getElementById('fWeek')?.value;
+  return v && v.length===10 ? v : getDubaiDateStr();
+}
+
+// ── Storage ──────────────────────────────────────────────────
+function load() { try { return JSON.parse(localStorage.getItem(SK)||'{}'); } catch(e) { return {}; } }
+function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {} }
+function getVal(day,tid,field) {
+  const data=load(), dateKey=getTodayKey();
+  return data[dateKey]?.[tid]?.[field] || data['d'+day]?.[tid]?.[field] || null;
+}
+function setVal(day,tid,field,val) {
+  const d=load(), key=getTodayKey();
+  if(!d[key]) d[key]={};
+  if(!d[key][tid]) d[key][tid]={};
+  d[key][tid][field]=val;
+  save(d);
+}
+
+// ── State ────────────────────────────────────────────────────
+let currentDay = 1;
+let currentShift = null;
+
+function getStaffName() { return document.getElementById('fName')?.value?.trim()||''; }
+function getOutlet()    { return document.getElementById('fOutlet')?.value||''; }
+
+// ── Photo ────────────────────────────────────────────────────
+let activePhotoTask = null;
+function openPhotoModal(tid) {
+  activePhotoTask = tid;
+  document.getElementById('modalLabel').textContent = 'Take a clear photo of this task';
+  document.getElementById('photoModal').classList.add('open');
+}
+function closePhotoModal() {
+  document.getElementById('photoModal').classList.remove('open');
+  activePhotoTask = null;
+}
+function prepareCamera() {
+  const i=document.getElementById('camInput');
+  if(!i) return;
+  i.value=''; i.setAttribute('accept','image/*'); i.setAttribute('capture','environment');
+}
+function prepareGallery() {
+  const i=document.getElementById('galInput');
+  if(!i) return;
+  i.value=''; i.removeAttribute('capture'); i.setAttribute('accept','image/*');
+}
+async function uploadToCloudinary(dataUrl) {
+  const fd=new FormData();
+  fd.append('file', dataUrl);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const r=await fetch('https://api.cloudinary.com/v1_1/'+CLOUDINARY_CLOUD+'/image/upload',{method:'POST',body:fd});
+  const j=await r.json();
+  return j.secure_url||null;
+}
+async function handlePhotoFile(file) {
+  if(!file||!activePhotoTask) return;
+  const tid=activePhotoTask; activePhotoTask=null; closePhotoModal();
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const dataUrl=e.target.result;
+    setVal(currentDay, tid, 'photo', dataUrl);
+    renderDay();
+    showToast('Uploading photo...','ok');
+    try {
+      const url=await uploadToCloudinary(dataUrl);
+      if(url){ setVal(currentDay,tid,'photoUrl',url); setVal(currentDay,tid,'photo',url); renderDay(); }
+    } catch(err){}
+  };
+  reader.readAsDataURL(file);
+}
+['camInput','galInput'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('change',e=>{ if(e.target.files[0]) handlePhotoFile(e.target.files[0]); });
+});
+
+// ── Shift logic ───────────────────────────────────────────────
+function selectShift(shift) {
+  const hour = getDubaiHour();
+  if (shift === 'closing') {
+    const isOpen = hour >= 15 || hour < 2;
+    if (!isOpen) {
+      const mLeft = (15-hour-1)*60+(60-new Date().getMinutes());
+      showToast('Closing unlocks at 3:00 PM until 2:00 AM — '+Math.floor(mLeft/60)+'h '+mLeft%60+'m remaining ⏰','warn');
+      return;
+    }
+  }
+  currentShift = shift;
+  document.getElementById('shiftScreen').style.display = 'none';
+  renderDay();
+}
+
+
+function renderDay() {
+  const name=getStaffName(), outlet=getOutlet();
+  const container=document.getElementById('mainContent');
+  if(!container) return;
+  container.innerHTML='';
+
+  const dayKey=getTodayKey();
+  const data=load();
+  const isDone=!!(data[dayKey]?._done);
+
+  // Show shift selector if no shift chosen
+  if (!currentShift) {
+    document.getElementById('shiftScreen').style.display='block';
+    const hour=getDubaiHour();
+    const closingOpen = hour>=15||hour<2;
+    const closingBtn=document.getElementById('closingBtn');
+    if(closingBtn) closingBtn.disabled=!closingOpen;
+    const note=document.getElementById('shiftNote');
+    if(note) note.textContent = closingOpen ? '' : 'Closing unlocks at 3:00 PM until 2:00 AM';
+    document.getElementById('scoreFill').style.width='0%';
+    document.getElementById('scorePct').textContent='0%';
+    return;
+  }
+  document.getElementById('shiftScreen').style.display='none';
+
+  // Back button
+  const backBtn=document.createElement('button');
+  backBtn.style.cssText='display:flex;align-items:center;gap:6px;margin:12px 16px 0;padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;font-weight:600;color:#7B2D42;background:#fff;cursor:pointer;';
+  backBtn.innerHTML='← Change Shift';
+  backBtn.onclick=()=>{ currentShift=null; renderDay(); };
+  container.appendChild(backBtn);
+
+  const shiftSections = SECTIONS.filter(s=>s.shift===currentShift);
+  let total=0, yes=0;
+
+  shiftSections.forEach(section=>{
+    const hdr=document.createElement('div');
+    hdr.className='section-hdr';
+    hdr.textContent=section.title;
+    container.appendChild(hdr);
+
+    section.tasks.forEach(task=>{
+      total++;
+      const val=getVal(currentDay,task.id,'yn');
+      if(val==='yes') yes++;
+      const photo=getVal(currentDay,task.id,'photo')||getVal(currentDay,task.id,'photoUrl');
+      const comment=getVal(currentDay,task.id,'comment')||'';
+      const ownerCls={'self':'ot-self','verify':'ot-verify'}[task.owner]||'ot-self';
+
+      const card=document.createElement('div');
+      card.className='task-card'+(isDone&&!ALLOW_OVERWRITE?' locked-card':'');
+      card.innerHTML=`
+        <div class="task-top">
+          <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
+          <span class="task-text">${task.text}</span>
+        </div>
+        <div class="yn-row">
+          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
+          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
+          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">N/A</div>
+          ${task.photo?`<button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}')">${photo?'📷 ✓':'📷'}</button>`:''}
+        </div>
+        <textarea class="comment-box" rows="2" placeholder="Add comment (required for NO)..." onchange="setComment('${task.id}',this.value)">${comment}</textarea>
+        ${photo&&photo.startsWith('http')?`<img src="${photo}" style="max-width:100%;max-height:120px;margin-top:8px;border-radius:8px;border:2px solid #22C55E;" onerror="this.style.display='none'">`:''}
+      `;
+      container.appendChild(card);
+    });
+  });
+
+  // Score
+  const pct=total>0?Math.round((yes/total)*100):0;
+  document.getElementById('scoreFill').style.width=pct+'%';
+  document.getElementById('scoreFill').style.background=pct>=95?'#22C55E':pct>=70?'#F59E0B':'#2E6DA4';
+  document.getElementById('scorePct').textContent=pct+'%';
+
+  // Submit or score card
+  if(isDone&&!ALLOW_OVERWRITE) {
+    const sc=document.createElement('div');
+    sc.className='score-card';
+    sc.innerHTML=`
+      <div class="score-big" style="color:${pct>=95?'#15803D':pct>=70?'#D97706':'#B91C1C'}">${pct}%</div>
+      <div class="score-label">${currentShift==='opening'?'Opening':'Closing'} Score</div>
+      <div style="margin-top:8px;font-size:12px;font-weight:600;color:${pct>=95?'#15803D':'#B91C1C'}">${pct>=95?'✅ Qualified for incentive':'❌ Below target (95%)'}</div>
+    `;
+    container.appendChild(sc);
+    // Overwrite panel
+    const ow=document.createElement('div');
+    ow.style.cssText='margin:8px 16px;padding:12px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;';
+    ow.innerHTML=`<div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:6px;">🔓 Overwrite Access — Enter role PIN</div>
+      <input type="password" id="owPin" placeholder="Enter PIN..." style="width:100%;padding:8px;border:1px solid #FED7AA;border-radius:8px;font-size:13px;margin-bottom:6px;">
+      <button onclick="tryOverwrite()" style="width:100%;padding:8px;background:#92400E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Unlock to Edit</button>`;
+    container.appendChild(ow);
+  } else if(!isDone) {
+    const btn=document.createElement('button');
+    btn.className='submit-btn';
+    btn.textContent='📤 Submit '+( currentShift==='opening'?'Opening':'Closing')+' Checklist';
+    btn.onclick=submitDay;
+    container.appendChild(btn);
+  }
+}
+
+function tapYN(tid, val, el) {
+  const data=load(), dayKey=getTodayKey();
+  if((data[dayKey]?._done)&&!ALLOW_OVERWRITE){ showToast('Already submitted — use overwrite to edit 🔒','error'); return; }
+  setVal(currentDay,tid,'yn',val);
+  el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  // Refresh score
+  let t=0,y=0;
+  const shiftSections=SECTIONS.filter(s=>s.shift===currentShift);
+  shiftSections.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;}));
+  const p=t>0?Math.round((y/t)*100):0;
+  document.getElementById('scoreFill').style.width=p+'%';
+  document.getElementById('scorePct').textContent=p+'%';
+
+}
+
+function setComment(tid,val){ setVal(currentDay,tid,'comment',val); }
+
+function submitDay() {
+  const name=getStaffName(), outlet=getOutlet();
+  if(!name){ showToast('Please enter your name first','warn'); return; }
+  if(!outlet){ showToast('Please select your outlet first','warn'); return; }
+
+  const shiftSections=SECTIONS.filter(s=>s.shift===currentShift);
+  const unanswered=shiftSections.flatMap(s=>s.tasks).filter(t=>!getVal(currentDay,t.id,'yn'));
+  if(unanswered.length){ showToast('Please answer all tasks first ('+unanswered.length+' remaining)','warn'); return; }
+
+  // Photo check
+  const hasPhotoForTask = (tid) => !!(getVal(currentDay,tid,'photo')||getVal(currentDay,tid,'photo_0')||getVal(currentDay,tid,'photoUrl'));
+  const missingPhoto = shiftSections.flatMap(s=>s.tasks).filter(t=>t.photo&&!hasPhotoForTask(t.id));
+  if(missingPhoto.length){ showToast('📷 Photo required for all tasks ('+missingPhoto.length+' missing)','warn'); return; }
+
+  // NO comment check
+  const missingComment=shiftSections.flatMap(s=>s.tasks).filter(t=>getVal(currentDay,t.id,'yn')==='no'&&!(getVal(currentDay,t.id,'comment')||'').trim());
+  if(missingComment.length){ showToast('📝 Comment required for every NO answer','warn'); return; }
+
+  const d=load(), dayKey=getTodayKey();
+  if(!d[dayKey]) d[dayKey]={};
+  d[dayKey]._done=new Date().toISOString();
+  d[dayKey]._shift=currentShift;
+  save(d);
+
+  // Calculate score
+  let total=0, yes=0;
+  shiftSections.forEach(s=>s.tasks.forEach(t=>{
+    const v=getVal(currentDay,t.id,'yn');
+    if(v&&v!=='na'){total++;if(v==='yes')yes++;}
+  }));
+  const pct=total>0?Math.round((yes/total)*100):0;
+
+  // Build taskData
+  const taskData={};
+  shiftSections.forEach(s=>s.tasks.forEach(t=>{
+    const yn=getVal(currentDay,t.id,'yn')||'';
+    const photo=getVal(currentDay,t.id,'photoUrl')||getVal(currentDay,t.id,'photo')||'';
+    const comment=getVal(currentDay,t.id,'comment')||'';
+    taskData['d'+currentDay+'_'+t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn,photo,comment};
+  }));
+
+  const record={
+    staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:getWeekStart(),
+    verifiedBy: document.getElementById('fVerified')?.value?.trim()||'',
+    shift:currentShift, day:currentDay, overallPct:pct, qualified:pct>=95,
+    taskData, submittedAt:new Date().toISOString(), lastUpdated:new Date().toISOString(),
+  };
+
+  if(_db){
+    const key=name.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ROLE+'_'+getWeekStart().replace(/[^a-zA-Z0-9]/g,'_')+'_'+currentShift;
+    _db.ref('submissions/'+key).set(record)
+      .then(()=>showToast('Submitted ✓','ok'))
+      .catch(e=>showToast('Submit failed: '+e.message,'error'));
+  }
+
+  showToast('Checklist submitted ✓','ok');
+  renderDay();
+}
+
+function tryOverwrite() {
+  const pin=document.getElementById('owPin')?.value?.trim();
+  if(!pin){ showToast('Enter PIN','warn'); return; }
+  if(checkOverwritePin(pin)){
+    const d=load(), key=getTodayKey();
+    if(d[key]) { delete d[key]._done; save(d); }
+    showToast('Unlocked — you can now edit ✓','ok');
+    renderDay();
+  } else { showToast('Incorrect PIN 🔒','error'); }
+}
+
+// ── Init ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  ['fName','fOutlet','fVerified'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const saved=localStorage.getItem('bartender_info_'+id);
+    if(saved) el.value=saved;
+    el.addEventListener('input',()=>{
+      localStorage.setItem('bartender_info_'+id, el.value);
+      renderDay();
+    });
+  });
+  renderDay();
+});
+</script>
+</body>
+</html>
