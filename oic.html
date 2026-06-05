@@ -957,8 +957,8 @@ function submitDay() {
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
-  d[todayKey2]._start = new Date().toISOString();
-  d[todayKey2]._done = new Date().toISOString();
+  d[getTodayKey()]._start = new Date().toISOString();
+  d[getTodayKey()]._done = new Date().toISOString();
   save(d);
 
   // Calc overall

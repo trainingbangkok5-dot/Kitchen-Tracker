@@ -165,7 +165,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 </select></div>
     <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
     <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
-      <label onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;font-weight:400;user-select:none;" title="">⚙</label>
+
     </div>
     </div>
   <!-- Shift selector bar -->
@@ -188,8 +188,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     <div class="modal-title">📷 Photo Proof</div>
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
     <label class="mbtn mbtn-cam" for="camInput" onclick="prepareCamera()">📸 Take Photo</label>
-  <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼️ Choose from Gallery</label>
-    <label class="mbtn mbtn-gal" for="galInput">🖼 Choose from Gallery</label>
+    <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼️ Choose from Gallery</label>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
@@ -667,68 +666,24 @@ function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e)
 function getTodayKey() {
   return 'dt' + getDubaiDateStr(); // Dubai date key
 }
-
-// ── Purge stale data older than today ────────────────────────
-function purgeOldData() {
-  try {
-    const today = getDubaiDateStr();
-    const d = load();
-    let cleaned = false;
-    Object.keys(d).forEach(key => {
-      // Only remove old date-based keys older than 7 days — keep d1-d6 for compatibility
-      if (/^dt\d{4}-\d{2}-\d{2}$/.test(key) && key !== 'dt' + today) {
-        const diff = (new Date(today) - new Date(key.replace('dt',''))) / (1000*60*60*24);
-        if (diff > 7) { delete d[key]; cleaned = true; }
-      }
-    });
-    if (cleaned) save(d);
-  } catch(e) {}
-}
-
-// ── Check Firebase reset flag ─────────────────────────────────
-function checkResetFlag() {
-  if (!_db) return; // Don't retry — only check when explicitly called with staff name
-  const role   = ROLE;
-  const outlet = (getOutlet ? getOutlet() : '') || '';
-  const name   = (getStaffName ? getStaffName() : '') || '';
-  // Require name and outlet before checking — avoids false resets on load
-  if (!name || !outlet) return;
-  // Only check specific key for this exact staff+outlet — not global role key
-  const key = role + '_' + outlet.replace(/[^a-zA-Z0-9]/g,'_') + '_' + name.replace(/[^a-zA-Z0-9]/g,'_');
-  _db.ref('reset_flags/' + key).once('value', snap => {
-    if (!snap.exists()) return;
-    const flag = snap.val();
-    if (!flag || !flag.resetAt) return;
-    const d = load();
-    const lastCheck = d._lastResetCheck || '2000-01-01';
-    if (flag.resetAt <= lastCheck) return; // Already processed
-    // Clear local data
-    localStorage.removeItem(SK);
-    const fresh = { _lastResetCheck: flag.resetAt };
-    save(fresh);
-    showToast('Checklist reset by Admin ✓', 'ok');
-    if (typeof renderDay === 'function') renderDay();
-    if (typeof buildDayRail === 'function') buildDayRail();
-  });
-}
 function getVal(day,tid,field) {
   const data = load();
   const dateKey = getTodayKey();
-  return data[dateKey]?.[tid]?.[field] || data['d'+day]?.[tid]?.[field] || null;
-}
-
-function getValByDate(dateStr,tid,field) {
-  try {
-    const data = load();
-    return data['dt'+dateStr]?.[tid]?.[field] || null;
-  } catch(e) { return null; }
+  // Try shift-prefixed key first, then plain key for backwards compatibility
+  const shiftKey = (currentShift ? currentShift+'_' : '') + tid;
+  return data[dateKey]?.[shiftKey]?.[field]
+    || data[dateKey]?.[tid]?.[field]
+    || data['d'+day]?.[tid]?.[field]
+    || null;
 }
 function setVal(day,tid,field,val) {
   const d=load();
   const key = getTodayKey(); // Use today's date as key
   if(!d[key]) d[key]={};
-  if(!d[key][tid]) d[key][tid]={};
-  d[key][tid][field]=val;
+  // Use shift-prefixed key to prevent opening/closing cross-fill
+  const storeKey = (currentShift ? currentShift+'_' : '') + tid;
+  if(!d[key][storeKey]) d[key][storeKey]={};
+  d[key][storeKey][field]=val;
   save(d);
 }
 
@@ -888,7 +843,15 @@ function renderDay() {
             </button>`
           ).join('');
         } else {
-          staffListHtml = '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:8px;">No staff submissions found for today yet</div>';
+          const hour = getDubaiHour();
+          const shiftExpected = (hour >= 15 || hour < 2) ? 'Closing' : 'Opening';
+          staffListHtml = `<div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.1);border-radius:8px;">
+            <div style="font-size:13px;font-weight:700;color:#fff;">⏳ Waiting for staff to submit first</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:4px;">
+              Expected: <strong>${shiftExpected} Shift</strong> — no submissions found for today yet.<br>
+              Staff must submit their ${shiftExpected.toLowerCase()} checklist before OIC evaluation becomes available.
+            </div>
+          </div>`;
         }
         oicPanel.innerHTML = `
           <div style="background:linear-gradient(135deg,#7B2D42,#C4533A);border-radius:12px;padding:14px;">
