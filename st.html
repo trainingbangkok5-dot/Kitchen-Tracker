@@ -595,11 +595,28 @@ function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e)
 function getTodayKey() {
   return 'dt' + getDubaiDateStr(); // Dubai date key
 }
+
+// ── Purge stale data older than today ────────────────────────
+function purgeOldData() {
+  try {
+    const today = getDubaiDateStr();
+    const d = load();
+    let cleaned = false;
+    Object.keys(d).forEach(key => {
+      if (/^d\d+$/.test(key)) { delete d[key]; cleaned = true; }
+      else if (/^dt\d{4}-\d{2}-\d{2}$/.test(key) && key !== 'dt' + today) {
+        const diff = (new Date(today) - new Date(key.replace('dt',''))) / (1000*60*60*24);
+        if (diff > 7) { delete d[key]; cleaned = true; }
+      }
+    });
+    if (cleaned) save(d);
+  } catch(e) {}
+}
 function getVal(day,tid,field) {
   const data = load();
   // Try date-based key first (new format), fall back to day number
   const dateKey = getTodayKey();
-  return data[dateKey]?.[tid]?.[field] || data[`d${day}`]?.[tid]?.[field] || null;
+  return data[dateKey]?.[tid]?.[field] || null;
 }
 function setVal(day,tid,field,val) {
   const d=load();

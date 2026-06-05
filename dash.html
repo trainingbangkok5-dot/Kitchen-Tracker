@@ -1045,7 +1045,16 @@ function loadData() {
     : db.ref('submissions').orderByChild('week').equalTo(selectedWeek);
   bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
-    allStaff = filterByRole(raw);
+    // Deduplicate BOH — keep latest per staffName+role+week
+    const rawFiltered = filterByRole(raw);
+    const dedupBOH = {};
+    rawFiltered.forEach(s => {
+      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'');
+      if (!dedupBOH[key] || new Date(s.submittedAt||0) > new Date(dedupBOH[key].submittedAt||0)) {
+        dedupBOH[key] = s;
+      }
+    });
+    allStaff = Object.values(dedupBOH);
     setLoadingIndicator('');
     db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
@@ -1057,7 +1066,16 @@ function loadData() {
       if (fohDb) {
         fohDb.ref('submissions').once('value', fohSnap => {
           const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
-          allStaff = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
+          // Deduplicate — keep latest submission per staffName+role+week
+    const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
+    const dedupMap = {};
+    combined.forEach(s => {
+      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'');
+      if (!dedupMap[key] || new Date(s.submittedAt||0) > new Date(dedupMap[key].submittedAt||0)) {
+        dedupMap[key] = s;
+      }
+    });
+    allStaff = Object.values(dedupMap);
           populateFilters();
           renderAll();
         }).catch(() => {});
