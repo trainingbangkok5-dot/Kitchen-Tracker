@@ -170,8 +170,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
-<input type="file" id="camInput" accept="image/*" capture="environment" style="display:none;position:absolute;left:-9999px;">
-<input type="file" id="galInput" accept="image/*" style="display:none;position:absolute;left:-9999px;">
+<input type="file" id="camInput" accept="image/*" capture="environment" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
+<input type="file" id="galInput" accept="image/*" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
 
 <script>
 
@@ -1048,26 +1048,7 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  checkAutoReset(); // Set Dubai date immediately
-  // Auto-set to current Monday
-  // Auto-set week to current Monday
-  if (typeof getMonday === 'function') {
-    const monday = getMonday(new Date());
-    // Format as YYYY-MM-DD for date input
-    const y = monday.getFullYear();
-    const m = String(monday.getMonth()+1).padStart(2,'0');
-    const d = String(monday.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  } else {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    now.setDate(diff);
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,'0');
-    const d = String(now.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  }
+  checkAutoReset(); // Sets Dubai date — do not overwrite below
   ['fName','fOutlet','fWeek','fVerified'].forEach(id => {
     const el = document.getElementById(id);
     const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);

@@ -237,6 +237,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
         <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
+        <button class="hdr-btn" id="resetChecklistBtn" onclick="openResetChecklistModal()" style="display:none;background:#B91C1C;">🔄 Reset Checklist</button>
+        <button class="hdr-btn" id="resetChecklistBtn" onclick="openResetChecklistModal()" style="display:none;background:#B91C1C;">🔄 Reset Checklist</button>
         <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
       </div>
     </div>
@@ -358,6 +360,42 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="kpiPageBody"></div>
   </div>
 
+  <!-- RESET CHECKLIST MODAL -->
+  <div id="resetChecklistModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:24px;width:min(440px,92vw);box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+      <div style="font-size:16px;font-weight:700;color:#B91C1C;margin-bottom:6px;">🔄 Reset Staff Checklist</div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:16px;">Pushes a reset flag to Firebase. When the staff opens their checklist next time, it will automatically clear.</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</label>
+        <select id="resetRole" style="width:100%;padding:9px 12px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:13px;margin-top:4px;">
+          <option value="">Select role...</option>
+          <option value="linecook">Line Cook</option>
+          <option value="steward">Steward</option>
+          <option value="kic">KIC</option>
+          <option value="service">Service</option>
+          <option value="oic">OIC</option>
+        </select>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</label>
+        <select id="resetOutlet" style="width:100%;padding:9px 12px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:13px;margin-top:4px;">
+          <option value="">Select outlet...</option>
+          <option>LB DSO</option><option>LB Tower</option><option>LB Hamra</option>
+          <option>LB JLT</option><option>LB OM</option><option>LB DHE</option><option>LB MTC</option>
+          <option>SB Deira</option><option>SB DG</option><option>The Red Door</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;">Staff Name (exact as entered in checklist)</label>
+        <input id="resetStaffName" type="text" placeholder="e.g. John Smith..." style="width:100%;padding:9px 12px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:13px;margin-top:4px;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="confirmResetChecklist()" style="flex:1;padding:11px;background:#B91C1C;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">🔄 Push Reset Flag</button>
+        <button onclick="document.getElementById('resetChecklistModal').style.display='none'" style="padding:11px 16px;background:#F1F5F9;color:#64748B;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- BOH PAGE -->
   <div class="page" id="page-boh">
     <div style="background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;padding:8px 14px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
@@ -374,9 +412,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
       <select id="bohOutletFilter" onchange="renderBOHStaff()" style="margin-left:auto;padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;outline:none;cursor:pointer;">
         <option value="">All Outlets</option>
-        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
-        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
-        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+        <option>LB DSO</option>
+        <option>LB Tower</option>
+        <option>LB Hamra</option>
+        <option>LB JLT</option>
+        <option>LB OM</option>
+        <option>LB DHE</option>
+        <option>LB MTC</option>
+        <option>SB Deira</option>
+        <option>SB DG</option>
+        <option>The Red Door</option>
       </select>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
@@ -438,9 +483,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="fohSubOIC" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
       <select id="fohOutletFilter" onchange="renderFOHStaff()" style="margin-left:auto;padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;outline:none;cursor:pointer;">
         <option value="">All Outlets</option>
-        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
-        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
-        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+        <option>LB DSO</option>
+        <option>LB Tower</option>
+        <option>LB Hamra</option>
+        <option>LB JLT</option>
+        <option>LB OM</option>
+        <option>LB DHE</option>
+        <option>LB MTC</option>
+        <option>SB Deira</option>
+        <option>SB DG</option>
+        <option>The Red Door</option>
       </select>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
@@ -809,12 +861,11 @@ const ROLES = {
 };
 
 // Full-access roles
-const FULL_ACCESS = ['areachef','training','operations','director','ceo','areamanager'];
+const FULL_ACCESS = ['training','operations','director','ceo','areamanager'];
 
 // Role PINs — stored in Firebase so each role can change their own PIN
 // Default PINs used if no PIN has been set in Firebase yet
 const DEFAULT_PINS = {
-  areachef:        'CHEF2025',
   training:        'TRAIN2025',
   operations:      'OPS2025',
   director:        'DRI2025',
@@ -838,7 +889,7 @@ function savePinToFirebase(role, newPin) {
 }
 
 function resetPinsToDefault() {
-  if (!confirm('Reset ALL PINs back to default values?\n\nArea Chef: CHEF2025\nAdmin: TRAIN2025\nOps Manager: OPS2025\nDirector: DRI2025\nCEO: CEO2025')) return;
+  if (!confirm('Reset ALL PINs back to default values?\n\nAdmin: TRAIN2025\nOps Manager: OPS2025\nDirector: DRI2025\nCEO: CEO2025')) return;
   if (!db) { alert('Firebase not ready — please wait and try again.'); return; }
   db.ref('settings/pins').set(DEFAULT_PINS).then(() => {
     ROLE_PINS = {...DEFAULT_PINS};
@@ -926,6 +977,7 @@ function doLogin() {
   document.getElementById('mainDash').style.display = 'block';
   // Show Change PIN button for management roles only
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
+  document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   populateWeekFilter();
@@ -1094,16 +1146,20 @@ function loadData() {
 }
 
 function populateFilters() {
-  const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))];
-  const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))];
+  const weeks   = [...new Set(allStaff.map(s=>s.week).filter(Boolean))].sort().reverse();
+  const outlets = [...new Set(allStaff.map(s=>s.outlet).filter(Boolean))].sort();
+  // Update All Staff filters
   const wSel = document.getElementById('fWeek');
   const oSel = document.getElementById('fOutlet');
-  const curW = wSel.value, curO = oSel.value;
-  wSel.innerHTML = '<option value="">All weeks</option>' + weeks.map(w=>`<option value="${w}">${w}</option>`).join('');
-  oSel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o=>`<option value="${o}">${o}</option>`).join('');
-  if(curW) wSel.value=curW; if(curO) oSel.value=curO;
+  if (wSel) { const curW=wSel.value; wSel.innerHTML='<option value="">All weeks</option>'+weeks.map(w=>`<option value="${w}">${w}</option>`).join(''); if(curW) wSel.value=curW; }
+  if (oSel) { const curO=oSel.value; oSel.innerHTML='<option value="">All outlets</option>'+outlets.map(o=>`<option value="${o}">${o}</option>`).join(''); if(curO) oSel.value=curO; }
+  // Update Weekly outlet filter
+  const wOutlet = document.getElementById('weeklyOutlet');
+  if (wOutlet) { const cur=wOutlet.value; wOutlet.innerHTML='<option value="">All Outlets</option>'+outlets.map(o=>`<option value="${o}">${o}</option>`).join(''); if(cur) wOutlet.value=cur; }
+  // Update Monthly outlet filter
+  const mOutletSel = document.getElementById('mOutlet');
+  if (mOutletSel) { const cur=mOutletSel.value; mOutletSel.innerHTML='<option value="">All outlets</option>'+outlets.map(o=>`<option value="${o}">${o}</option>`).join(''); if(cur) mOutletSel.value=cur; }
 }
-
 function getFiltered() {
   const role   = document.getElementById('fRole')?.value||'';
   const week   = document.getElementById('fWeek')?.value||'';
@@ -4869,6 +4925,7 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashScreen').style.display = 'block';
     document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
+  document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
     setTimeout(() => { if (db) { loadData(); } }, 1500);
   }
 });
@@ -4974,7 +5031,6 @@ function initWeeklyDates() {
     <div id="pinRoleSelector" style="margin-bottom:12px;${currentRole === 'training' ? '' : 'display:none;'}">
       <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CHANGE PIN FOR ROLE</label>
       <select id="pinRoleSelect" style="width:100%;padding:8px 12px;border:2px solid #E0DDD4;border-radius:8px;font-size:13px;outline:none;">
-        <option value="areachef">📊 Area Chef</option>
         <option value="areamanager">📋 Area Manager</option>
         <option value="training">🔑 Admin (my PIN)</option>
         <option value="operations">⚙️ Ops Manager</option>
