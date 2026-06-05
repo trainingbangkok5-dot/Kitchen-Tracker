@@ -455,14 +455,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
-              <th id="bohDayH1" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D1</th>
-              <th id="bohDayH2" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D2</th>
-              <th id="bohDayH3" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D3</th>
-              <th id="bohDayH4" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D4</th>
-              <th id="bohDayH5" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
-              <th id="bohDayH6" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
+
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Actions</th>
             </tr>
           </thead>
           <tbody id="bohTableBody"></tbody>
@@ -532,15 +529,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
-              <th id="fohDayH1" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D1</th>
-              <th id="fohDayH2" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D2</th>
-              <th id="fohDayH3" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D3</th>
-              <th id="fohDayH4" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D4</th>
-              <th id="fohDayH5" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D5</th>
-              <th id="fohDayH6" style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">D6</th>
+
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">OIC Check</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
+              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Action</th>
             </tr>
           </thead>
@@ -1887,6 +1880,7 @@ function openStaffDetail(s) {
   }
 
   const body = document.getElementById('modalBody');
+  _currentDetailStaff = s; // Store for saveVerification
 
   // Header
   let html = `
@@ -1901,7 +1895,19 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtDT(s.startedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtDT(s.submittedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
-      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">👤 <strong>Verified by:</strong> ${s.verifiedBy||'—'}</div>
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
+        ${s.verifiedBy
+          ? `<div style="font-size:12px;font-weight:700;color:#15803D;">✅ ${s.verifiedBy}</div>
+             <div style="font-size:10px;color:#94A3B8;margin-top:2px;">📅 ${s.verifiedAt ? new Date(s.verifiedAt).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>`
+          : `<div style="display:flex;gap:6px;margin-top:4px;">
+               <input id="verifyNameInput" type="text" placeholder="Enter your name..." value=""
+                 style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
+               <button onclick="saveVerification()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✅ Verify</button>
+             </div>
+             <div style="font-size:10px;color:#F59E0B;font-weight:600;margin-top:4px;">🟡 Pending verification</div>`
+        }
+      </div>
     </div>`;
 
   // Score boxes — opening/closing/total
@@ -3989,6 +3995,7 @@ function loadBOHData() {
         }
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
+        if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
       });
       allBOHData = Object.values(grouped);
       allBOHData.sort((a,b) => b.overallPct - a.overallPct);
@@ -4010,6 +4017,60 @@ function setBOHSub(sub) {
     }
   });
   renderBOHStaff();
+}
+
+// Current staff detail record reference
+let _currentDetailStaff = null;
+
+function saveVerification() {
+  const name = document.getElementById('verifyNameInput')?.value?.trim();
+  if (!name) { showToast('Please enter your name', 'warn'); return; }
+  if (!_currentDetailStaff) { showToast('No record loaded', 'warn'); return; }
+
+  const s = _currentDetailStaff;
+  const now = new Date().toISOString();
+  const updates = { verifiedBy: name, verifiedAt: now, lastUpdated: now };
+
+  // Determine which Firebase to update — FOH or BOH
+  const isFOH = ['service','oic','delco','bartender'].includes(s.role);
+  const firebaseRef = isFOH ? fohDb : db;
+  if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
+
+  // Find and update the matching submission
+  firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+    if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
+    const updateMap = {};
+    snap.forEach(child => {
+      const v = child.val();
+      if (v.role === s.role && v.week === s.week) {
+        updateMap['submissions/' + child.key + '/verifiedBy'] = name;
+        updateMap['submissions/' + child.key + '/verifiedAt'] = now;
+        updateMap['submissions/' + child.key + '/lastUpdated'] = now;
+      }
+    });
+    if (Object.keys(updateMap).length) {
+      firebaseRef.ref().update(updateMap).then(() => {
+        // Update local record
+        s.verifiedBy = name;
+        s.verifiedAt = now;
+        // Update in allStaff / allBOHData / allFOHData
+        [allStaff, allBOHData, allFOHData].forEach(arr => {
+          arr.forEach(r => { if (r.staffName===s.staffName && r.role===s.role && r.week===s.week) { r.verifiedBy=name; r.verifiedAt=now; } });
+        });
+        showToast('Verified by ' + name + ' ✓', 'ok');
+        // Refresh modal
+        openStaffDetail(s);
+        // Refresh table
+        if (document.getElementById('page-boh')?.classList.contains('active')) renderBOHStaff();
+        if (document.getElementById('page-foh')?.classList.contains('active')) renderFOHStaff();
+      }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+    }
+  });
+}
+
+function overwiteFromBOH(s) {
+  if (!s) return;
+  openStaffDetail(s);
 }
 
 function renderBOHStaff() {
@@ -4038,22 +4099,25 @@ function renderBOHStaff() {
   filtered.forEach(staff => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
-    let daysHtml = '';
-    for (let d=1;d<=6;d++) {
-      const p = staff.days[d];
-      daysHtml += p !== undefined
-        ? `<td style="padding:6px 8px;text-align:center;"><span style="display:inline-block;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:${scoreBg(p)};color:${scoreColor(p)}">${p}%</span></td>`
-        : `<td style="padding:6px 8px;text-align:center;color:#E0DDD4;font-size:12px;">—</td>`;
-    }
     const op = staff.overallPct;
+    const canOW = ['areachef','areamanager','training','operations','director','ceo'].includes(currentRole);
     tr.innerHTML = `
       <td style="padding:8px 12px;font-size:12px;font-weight:600">${staff.staffName}</td>
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
-      ${daysHtml}
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified?'✅':op>0?'❌':'—'}</td>`;
+      <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified?'✅':op>0?'❌':'—'}</td>
+      <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
+        ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
+        : op > 0
+          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Pending</span>`
+          : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
+      }</td>
+      <td style="padding:6px 8px;text-align:center;">
+        <button onclick="openStaffDetail(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
+        ${canOW ? `<button onclick="overwiteFromBOH(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
+      </td>`;
     tbody.appendChild(tr);
   });
 }
@@ -4113,6 +4177,7 @@ function loadFOHData() {
         // Use latest overallPct
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
+        if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
           const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
@@ -4196,13 +4261,6 @@ function renderFOHStaff() {
   filtered.forEach(staff => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
-    let daysHtml = '';
-    for (let d = 1; d <= 6; d++) {
-      const p = staff.days[d];
-      daysHtml += p !== undefined
-        ? `<td style="padding:6px 8px;text-align:center;"><span style="display:inline-block;padding:2px 6px;border-radius:6px;font-size:11px;font-weight:700;background:${scoreBg(p)};color:${scoreColor(p)}">${p}%</span></td>`
-        : `<td style="padding:6px 8px;text-align:center;color:#E0DDD4;font-size:12px;">—</td>`;
-    }
     const op = staff.overallPct;
     const staffIdx = filtered.indexOf(staff);
     tr.innerHTML = `
@@ -4210,7 +4268,6 @@ function renderFOHStaff() {
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
-      ${daysHtml}
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
       <td style="padding:8px 12px;text-align:center;">
         ${staff.role === 'service' ?
@@ -4221,6 +4278,12 @@ function renderFOHStaff() {
           : '<span style="font-size:11px;color:#94A3B8;">N/A</span>'}
       </td>
       <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified ? '✅' : op > 0 ? '❌' : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
+        ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
+        : op > 0
+          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Pending</span>`
+          : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
+      }</td>
       <td style="padding:8px 12px;text-align:center;">
         <div style="display:flex;gap:4px;justify-content:center;">
           <button onclick="openFOHDetail(${staffIdx})" style="font-size:11px;padding:4px 8px;background:#FFF1F0;color:#7B2D42;border:1px solid #C4533A;border-radius:6px;cursor:pointer;">👁 View</button>
