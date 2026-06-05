@@ -407,12 +407,11 @@ function renderDay() {
       <div style="margin-top:8px;font-size:12px;font-weight:600;color:${pct>=95?'#15803D':'#B91C1C'}">${pct>=95?'✅ Qualified for incentive':'❌ Below target (95%)'}</div>
     `;
     container.appendChild(sc);
-    // Overwrite panel
+    // Overwrite message — direct to dashboard
     const ow=document.createElement('div');
-    ow.style.cssText='margin:8px 16px;padding:12px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;';
-    ow.innerHTML=`<div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:6px;">🔓 Overwrite Access — Enter role PIN</div>
-      <input type="password" id="owPin" placeholder="Enter PIN..." style="width:100%;padding:8px;border:1px solid #FED7AA;border-radius:8px;font-size:13px;margin-bottom:6px;">
-      <button onclick="tryOverwrite()" style="width:100%;padding:8px;background:#92400E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Unlock to Edit</button>`;
+    ow.style.cssText='margin:8px 16px;padding:14px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;text-align:center;';
+    ow.innerHTML=`<div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">🔓 Need to edit this submission?</div>
+      <div style="font-size:12px;color:#64748B;">Please use the <strong>Master Dashboard</strong> to overwrite this checklist.</div>`;
     container.appendChild(ow);
   } else if(!isDone) {
     const btn=document.createElement('button');
@@ -479,7 +478,7 @@ function submitDay() {
     const yn=getVal(currentDay,t.id,'yn')||'';
     const photo=getVal(currentDay,t.id,'photoUrl')||getVal(currentDay,t.id,'photo')||'';
     const comment=getVal(currentDay,t.id,'comment')||'';
-    taskData['d'+currentDay+'_'+t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn,photo,comment};
+    taskData['d'+currentDay+'_'+t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn,photoUrl:photo,comment};
   }));
 
   const record={
