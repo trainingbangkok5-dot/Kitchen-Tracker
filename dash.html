@@ -4152,6 +4152,32 @@ function saveVerification() {
   });
 }
 
+function clearMultiOutlet(btnId, fn) {
+  var btn = document.getElementById(btnId);
+  if (btn) btn.nextElementSibling.querySelectorAll('input').forEach(function(c){c.checked=false;});
+  if (fn === 'renderBOHStaff') renderBOHStaff();
+  else if (fn === 'renderFOHStaff') renderFOHStaff();
+  updateMultiOutletLabel(btnId);
+}
+
+function updateMultiOutletLabel(btnId) {
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  var checked = Array.from(btn.nextElementSibling.querySelectorAll('input:checked')).map(function(c){return c.value;});
+  btn.textContent = checked.length ? '📍 '+checked.length+' Outlet'+(checked.length>1?'s':'')+' ▾' : '📍 All Outlets ▾';
+}
+
+// Close multi-outlet dropdowns on outside click
+document.addEventListener('click', function(e) {
+  ['bohOutletBtn','fohOutletBtn'].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (btn && !btn.parentElement.contains(e.target)) {
+      var dd = btn.nextElementSibling;
+      if (dd) dd.style.display = 'none';
+    }
+  });
+});
+
 function overwiteFromBOH(s) {
   if (!s) return;
   openStaffDetail(s);
