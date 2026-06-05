@@ -1929,6 +1929,13 @@ function openStaffDetail(s) {
   }
 
   // Task checklist
+  // Normalize taskData — handle both formats
+  if (s.taskData) {
+    Object.keys(s.taskData).forEach(k => {
+      const t = s.taskData[k];
+      if (t && t.photo && !t.photoUrl) { t.photoUrl = t.photo; }
+    });
+  }
   if (s.taskData && Object.keys(s.taskData).length > 0) {
     const byDay = {};
     // Only show tasks for the submitted day — not the full weekly dump
@@ -2236,7 +2243,7 @@ function openStaffDetail(s) {
   } else {
     html += `<div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;border:1px dashed #E0DDD4;border-radius:10px;">
       📋 Task details not available for this record.<br>
-      <span style="font-size:11px;">Staff needs to submit using the updated checklist.</span>
+      <span style="font-size:11px;">This was submitted before task tracking was added, or the checklist needs to be resubmitted.</span>
     </div>`;
   }
 
@@ -2728,6 +2735,29 @@ function confirmDelete(fbKey, staffName, week) {
 }
 
 function deleteRecord(fbKey, staffName, week) {
+  // Try FOH Firebase first if current staff is FOH role
+  const isFOH = _currentDetailStaff && ['service','oic','delco','bartender'].includes(_currentDetailStaff.role);
+  if (isFOH && fohDb) {
+    fohDb.ref('submissions').orderByChild('staffName').equalTo(staffName).once('value', snap => {
+      if (snap.exists()) {
+        const updates = {};
+        snap.forEach(child => { if (child.val().week === week) updates['submissions/'+child.key] = null; });
+        if (Object.keys(updates).length) {
+          fohDb.ref().update(updates).then(() => {
+            allStaff = allStaff.filter(s => !(s.staffName===staffName && s.week===week));
+            allFOHData = allFOHData.filter(s => !(s.staffName===staffName && s.week===week));
+            showToast('Record deleted ✓', 'ok');
+            document.getElementById('detailModal').classList.remove('open');
+            renderFOHStaff();
+          });
+          return;
+        }
+      }
+    });
+    return;
+  }
+  // Original BOH delete below:
+  void 0;
   if (!db) { alert('Firebase not ready — please refresh.'); return; }
   db.ref('submissions').once('value', function(snap) {
     var data = snap.val();
@@ -2888,6 +2918,13 @@ async function exportDetailPDF() {
   }
 
   // Task checklist
+  // Normalize taskData — handle both formats
+  if (s.taskData) {
+    Object.keys(s.taskData).forEach(k => {
+      const t = s.taskData[k];
+      if (t && t.photo && !t.photoUrl) { t.photoUrl = t.photo; }
+    });
+  }
   if (s.taskData && Object.keys(s.taskData).length > 0) {
     const byDay = {};
     Object.values(s.taskData).forEach(t => {
