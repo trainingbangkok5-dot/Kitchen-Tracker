@@ -255,7 +255,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span style="font-size:11px;color:rgba(255,255,255,0.4);" id="loadingIndicator"></span>
     </div>
     <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
-    <div class="tab" onclick="showTab(this,'staff')">👥 All Staff</div>
+    <!-- All Staff tab removed — BOH tab shows all staff -->
     <div class="tab" onclick="showTab(this,'weekly')">📆 Weekly</div>
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
     <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
@@ -4091,10 +4091,20 @@ function loadFOHData() {
             qualified: false
           };
         }
-        // Store day score
-        if (sub.date) {
+        // Store day score — use sub.day (1-6) directly
+        if (sub.day && sub.day >= 1 && sub.day <= 6) {
+          grouped[gKey].days[sub.day] = sub.overallPct || 0;
+        } else if (sub.date) {
           const weekStart = new Date(sub.week);
           const subDate = new Date(sub.date);
+          const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
+          if (diffDays >= 1 && diffDays <= 6) {
+            grouped[gKey].days[diffDays] = sub.overallPct || 0;
+          }
+        } else if (sub.week) {
+          // Fallback: use submission date relative to week start
+          const subDate = new Date(sub.submittedAt || sub.lastUpdated || Date.now());
+          const weekStart = new Date(sub.week);
           const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
           if (diffDays >= 1 && diffDays <= 6) {
             grouped[gKey].days[diffDays] = sub.overallPct || 0;
