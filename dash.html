@@ -872,7 +872,8 @@ const ROLES = {
 
 // Full-access roles
 const FULL_ACCESS = ['training','operations','director','ceo']; // PIN required
-const MGMT_ACCESS = ['training','operations','director','ceo','areamanager','areachef']; // Full dashboard access
+const MGMT_ACCESS = ['training','operations','director','ceo']; // Full dashboard access — PIN roles
+const AREA_ACCESS = ['areachef','areamanager']; // Area roles — filtered access
 
 // Role PINs — stored in Firebase so each role can change their own PIN
 // Default PINs used if no PIN has been set in Firebase yet
@@ -994,10 +995,10 @@ function doLogin() {
 
   populateWeekFilter();
   // BOH tab — visible to KIC and full access roles
-  const bohRoles = ['kic','areachef','training','operations','director','ceo','areamanager','maintsupervisor'];
+  const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
   // FOH tab — visible to OIC, Area Manager and full access roles
-  const fohRoles = ['oic','areamanager','areachef','training','operations','director','ceo','maintsupervisor'];
+  const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
   // KIC defaults to BOH tab, OIC defaults to FOH tab
   if (currentRole === 'kic') {
@@ -1027,17 +1028,17 @@ function doLogout() {
 function filterByRole(staff) {
   // Full access roles see everything
   if (MGMT_ACCESS.includes(currentRole)) return staff;
-  // KIC sees only LC and ST from their outlet
   const myOutlet = (currentOutlet||'').trim().toLowerCase();
+  // KIC sees only LC and ST from their outlet
   if (currentRole === 'kic') return staff.filter(s =>
     (s.outlet||'').trim().toLowerCase() === myOutlet &&
     ['linecook','steward'].includes(s.role)
   );
-  // Area Chef sees LC, ST, KIC from their outlet
+  // Area Chef sees LC, ST, KIC (BOH) — across all outlets
   if (currentRole === 'areachef') return staff.filter(s =>
-    (s.outlet||'').trim().toLowerCase() === myOutlet &&
     ['linecook','steward','kic'].includes(s.role)
   );
+
   return staff;
 }
 
@@ -1124,7 +1125,7 @@ function loadData() {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       // Only BOH audits — FOH not included in KPI system
       const bohOnly = rawA.filter(a => a.auditType === 'BOH');
-      allAudits = MGMT_ACCESS.includes(currentRole) ? bohOnly :
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? bohOnly :
                   bohOnly.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
@@ -1871,6 +1872,7 @@ function openStaffDetail(s) {
     const canOverwrite = (
       (currentRole === 'kic' && ['linecook','steward'].includes(s.role)) ||
       (currentRole === 'areachef' && ['linecook','steward','kic'].includes(s.role)) ||
+      (currentRole === 'areamanager' && ['linecook','steward','kic','service','delco','bartender'].includes(s.role)) ||
       (currentRole === 'director' && ['areachef','areamanager'].includes(s.role)) ||
       (['training','operations','ceo'].includes(currentRole))
     );
@@ -4091,7 +4093,19 @@ function loadFOHData() {
           if (hasStaffData) grouped[gKey].staffSubmitted = true;
         }
       });
-      allFOHData = Object.values(grouped);
+      let fohRaw = Object.values(grouped);
+      // Role-based visibility filter
+      if (currentRole === 'oic') {
+        // OIC sees service, delco, bartender from their outlet only
+        fohRaw = fohRaw.filter(s => ['service','delco','bartender'].includes(s.role) && s.outlet === currentOutlet);
+      } else if (currentRole === 'areamanager') {
+        // Area Manager sees service, delco, bartender, oic
+        fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role));
+      } else if (!MGMT_ACCESS.includes(currentRole)) {
+        fohRaw = [];
+      }
+      // Admin, Director, CEO, Operations see everything
+      allFOHData = fohRaw;
       allFOHData.sort((a,b) => b.overallPct - a.overallPct);
     }
     document.getElementById('fohStatus').textContent = '✅ ' + allFOHData.length + ' records';
@@ -4104,12 +4118,13 @@ function loadFOHData() {
 
 function setFOHSub(sub) {
   currentFOHSub = sub;
-  ['all','service','oic'].forEach(s => {
-    const btn = document.getElementById('fohSub' + s.charAt(0).toUpperCase() + s.slice(1));
+  ['All','Service','Oic','Delco','Bartender'].forEach(s => {
+    const btn = document.getElementById('fohSub' + s);
     if (btn) {
-      btn.style.background = s === sub ? '#7B2D42' : '#fff';
-      btn.style.color = s === sub ? '#fff' : '#475569';
-      btn.style.border = s === sub ? 'none' : '1.5px solid #E0DDD4';
+      const match = s.toLowerCase() === sub;
+      btn.style.background = match ? '#7B2D42' : '#fff';
+      btn.style.color = match ? '#fff' : '#475569';
+      btn.style.border = match ? 'none' : '1.5px solid #E0DDD4';
     }
   });
   renderFOHStaff();
