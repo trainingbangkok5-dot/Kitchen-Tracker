@@ -675,8 +675,8 @@ function purgeOldData() {
     const d = load();
     let cleaned = false;
     Object.keys(d).forEach(key => {
-      if (/^d\d+$/.test(key)) { delete d[key]; cleaned = true; }
-      else if (/^dt\d{4}-\d{2}-\d{2}$/.test(key) && key !== 'dt' + today) {
+      // Only remove old date-based keys older than 7 days — keep d1-d6 for compatibility
+      if (/^dt\d{4}-\d{2}-\d{2}$/.test(key) && key !== 'dt' + today) {
         const diff = (new Date(today) - new Date(key.replace('dt',''))) / (1000*60*60*24);
         if (diff > 7) { delete d[key]; cleaned = true; }
       }
@@ -687,43 +687,34 @@ function purgeOldData() {
 
 // ── Check Firebase reset flag ─────────────────────────────────
 function checkResetFlag() {
-  if (!_db) { setTimeout(checkResetFlag, 800); return; }
+  if (!_db) return; // Don't retry — only check when explicitly called with staff name
   const role   = ROLE;
   const outlet = (getOutlet ? getOutlet() : '') || '';
   const name   = (getStaffName ? getStaffName() : '') || '';
-  // Check keys that could match this staff
-  const keysToCheck = [
-    role,
-    role + '_' + outlet.replace(/\s/g,'_'),
-    role + '_' + (outlet ? outlet.replace(/\s/g,'_') + '_' : '') + name.replace(/\s/g,'_'),
-  ].filter(Boolean);
-  keysToCheck.forEach(k => {
-    _db.ref('reset_flags/' + k).once('value', snap => {
-      if (!snap.exists()) return;
-      const flag = snap.val();
-      if (!flag || !flag.resetAt) return;
-      // Only reset if flag is newer than last local submit
-      const d = load();
-      const lastSubmit = d._lastResetCheck || '2000-01-01';
-      if (flag.resetAt > lastSubmit) {
-        // Clear local data and mark as checked
-        localStorage.removeItem(SK);
-        const fresh = {};
-        fresh._lastResetCheck = flag.resetAt;
-        save(fresh);
-        showToast('Checklist reset by Admin ✓', 'ok');
-        if (typeof renderDay === 'function') renderDay();
-        if (typeof buildDayRail === 'function') buildDayRail();
-      }
-    });
+  // Require name and outlet before checking — avoids false resets on load
+  if (!name || !outlet) return;
+  // Only check specific key for this exact staff+outlet — not global role key
+  const key = role + '_' + outlet.replace(/[^a-zA-Z0-9]/g,'_') + '_' + name.replace(/[^a-zA-Z0-9]/g,'_');
+  _db.ref('reset_flags/' + key).once('value', snap => {
+    if (!snap.exists()) return;
+    const flag = snap.val();
+    if (!flag || !flag.resetAt) return;
+    const d = load();
+    const lastCheck = d._lastResetCheck || '2000-01-01';
+    if (flag.resetAt <= lastCheck) return; // Already processed
+    // Clear local data
+    localStorage.removeItem(SK);
+    const fresh = { _lastResetCheck: flag.resetAt };
+    save(fresh);
+    showToast('Checklist reset by Admin ✓', 'ok');
+    if (typeof renderDay === 'function') renderDay();
+    if (typeof buildDayRail === 'function') buildDayRail();
   });
 }
 function getVal(day,tid,field) {
-  try {
-    const data = load();
-    const todayKey = getTodayKey();
-    return data[todayKey]?.[tid]?.[field] || null;
-  } catch(e) { return null; }
+  const data = load();
+  const dateKey = getTodayKey();
+  return data[dateKey]?.[tid]?.[field] || data['d'+day]?.[tid]?.[field] || null;
 }
 
 function getValByDate(dateStr,tid,field) {
