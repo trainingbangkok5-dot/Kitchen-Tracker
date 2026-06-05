@@ -187,8 +187,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="modal-box">
     <div class="modal-title">📷 Photo Proof</div>
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
-    <button class="mbtn mbtn-cam" onclick="triggerCamera()">📸 Take Photo</button>
-  <button class="mbtn mbtn-gal" onclick="triggerGallery()" style="background:#475569;">🖼️ Choose from Gallery</button>
+    <label class="mbtn mbtn-cam" for="camInput" onclick="prepareCamera()">📸 Take Photo</label>
+  <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼️ Choose from Gallery</label>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
@@ -455,24 +455,27 @@ function pushToMasterDashboard(record) {
 }
 
 // ── Cross-device Camera & Gallery ────────────────────────────
-function triggerCamera() {
+function prepareCamera() {
+  // Set capture attribute BEFORE label triggers the input
   const input = document.getElementById('camInput');
   if (!input) return;
-  // Android Chrome & iOS Safari both support capture="environment"
   input.setAttribute('capture', 'environment');
   input.setAttribute('accept', 'image/*');
   input.value = '';
-  input.click();
 }
 
-function triggerGallery() {
+function prepareGallery() {
+  // Remove capture so gallery opens instead of camera
   const input = document.getElementById('galInput');
   if (!input) return;
   input.removeAttribute('capture');
   input.setAttribute('accept', 'image/*');
   input.value = '';
-  input.click();
 }
+
+// Legacy aliases
+function triggerCamera() { prepareCamera(); document.getElementById('camInput')?.click(); }
+function triggerGallery() { prepareGallery(); document.getElementById('galInput')?.click(); }
 
 function iosPhotoFix(inputEl, onDataUrl) {
   // Legacy — kept for compatibility
@@ -650,11 +653,53 @@ function purgeOldData() {
     if (cleaned) save(d);
   } catch(e) {}
 }
+
+// ── Check Firebase reset flag ─────────────────────────────────
+function checkResetFlag() {
+  if (!_db) { setTimeout(checkResetFlag, 800); return; }
+  const role   = ROLE;
+  const outlet = (getOutlet ? getOutlet() : '') || '';
+  const name   = (getStaffName ? getStaffName() : '') || '';
+  // Check keys that could match this staff
+  const keysToCheck = [
+    role,
+    role + '_' + outlet.replace(/\s/g,'_'),
+    role + '_' + (outlet ? outlet.replace(/\s/g,'_') + '_' : '') + name.replace(/\s/g,'_'),
+  ].filter(Boolean);
+  keysToCheck.forEach(k => {
+    _db.ref('reset_flags/' + k).once('value', snap => {
+      if (!snap.exists()) return;
+      const flag = snap.val();
+      if (!flag || !flag.resetAt) return;
+      // Only reset if flag is newer than last local submit
+      const d = load();
+      const lastSubmit = d._lastResetCheck || '2000-01-01';
+      if (flag.resetAt > lastSubmit) {
+        // Clear local data and mark as checked
+        localStorage.removeItem(SK);
+        const fresh = {};
+        fresh._lastResetCheck = flag.resetAt;
+        save(fresh);
+        showToast('Checklist reset by Admin ✓', 'ok');
+        if (typeof renderDay === 'function') renderDay();
+        if (typeof buildDayRail === 'function') buildDayRail();
+      }
+    });
+  });
+}
 function getVal(day,tid,field) {
-  const data = load();
-  // Try date-based key first (new format), fall back to day number
-  const dateKey = getTodayKey();
-  return data[dateKey]?.[tid]?.[field] || null;
+  try {
+    const data = load();
+    const todayKey = getTodayKey();
+    return data[todayKey]?.[tid]?.[field] || null;
+  } catch(e) { return null; }
+}
+
+function getValByDate(dateStr,tid,field) {
+  try {
+    const data = load();
+    return data['dt'+dateStr]?.[tid]?.[field] || null;
+  } catch(e) { return null; }
 }
 function setVal(day,tid,field,val) {
   const d=load();
