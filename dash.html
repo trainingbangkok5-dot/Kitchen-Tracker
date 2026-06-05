@@ -159,7 +159,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="role-btn" onclick="selectRole(this,'areachef')">
         <div class="rb-icon">📊</div>
         <div class="rb-name">Area Chef</div>
-        <div class="rb-lock">🔒</div>
       </div>
       <div class="role-btn" onclick="selectRole(this,'training')">
         <div class="rb-icon">📚</div>
@@ -192,7 +191,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="role-btn" onclick="selectRole(this,'areamanager')">
         <div class="rb-icon">📋</div>
         <div class="rb-name">Area Manager</div>
-        <div class="rb-lock">🔒</div>
       </div>
     </div>
     <div id="pinRow" style="display:none;margin-bottom:14px;">
@@ -861,7 +859,8 @@ const ROLES = {
 };
 
 // Full-access roles
-const FULL_ACCESS = ['training','operations','director','ceo','areamanager'];
+const FULL_ACCESS = ['training','operations','director','ceo']; // PIN required
+const MGMT_ACCESS = ['training','operations','director','ceo','areamanager','areachef']; // Full dashboard access
 
 // Role PINs — stored in Firebase so each role can change their own PIN
 // Default PINs used if no PIN has been set in Firebase yet
@@ -1014,7 +1013,7 @@ function doLogout() {
 // ── DATA LOADING ──────────────────────────────────────────────
 function filterByRole(staff) {
   // Full access roles see everything
-  if (FULL_ACCESS.includes(currentRole)) return staff;
+  if (MGMT_ACCESS.includes(currentRole)) return staff;
   // KIC sees only LC and ST from their outlet
   const myOutlet = (currentOutlet||'').trim().toLowerCase();
   if (currentRole === 'kic') return staff.filter(s =>
@@ -1112,7 +1111,7 @@ function loadData() {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       // Only BOH audits — FOH not included in KPI system
       const bohOnly = rawA.filter(a => a.auditType === 'BOH');
-      allAudits = FULL_ACCESS.includes(currentRole) ? bohOnly :
+      allAudits = MGMT_ACCESS.includes(currentRole) ? bohOnly :
                   bohOnly.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
