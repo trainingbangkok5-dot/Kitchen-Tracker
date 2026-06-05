@@ -918,6 +918,47 @@ function confirmResetChecklist() {
     .catch(e => showToast('Error: ' + e.message, 'error'));
 }
 
+function openChangePinModal() {
+  document.getElementById('changePinModal').style.display = 'flex';
+  document.getElementById('currentPinInput').value = '';
+  document.getElementById('newPinInput').value = '';
+  document.getElementById('confirmPinInput').value = '';
+  document.getElementById('pinChangeMsg').textContent = '';
+  // Set role selector
+  const sel = document.getElementById('pinRoleSelect');
+  if (sel && currentRole !== 'training') sel.value = currentRole;
+}
+
+function closeChangePinModal() {
+  document.getElementById('changePinModal').style.display = 'none';
+}
+
+function doChangePin() {
+  const role = currentRole === 'training'
+    ? (document.getElementById('pinRoleSelect')?.value || currentRole)
+    : currentRole;
+  const current = document.getElementById('currentPinInput').value.trim();
+  const newPin  = document.getElementById('newPinInput').value.trim();
+  const confirm = document.getElementById('confirmPinInput').value.trim();
+  const msg     = document.getElementById('pinChangeMsg');
+
+  if (!current) { msg.style.color='#B91C1C'; msg.textContent='Enter your current PIN'; return; }
+  if (current !== (ROLE_PINS[role]||DEFAULT_PINS[role]||'')) { msg.style.color='#B91C1C'; msg.textContent='Current PIN is incorrect'; return; }
+  if (newPin.length < 4) { msg.style.color='#B91C1C'; msg.textContent='New PIN must be at least 4 characters'; return; }
+  if (newPin !== confirm) { msg.style.color='#B91C1C'; msg.textContent='PINs do not match'; return; }
+
+  ROLE_PINS[role] = newPin;
+  if (db) {
+    db.ref('settings/pins').update({[role]: newPin}).then(() => {
+      msg.style.color='#15803D'; msg.textContent='PIN updated successfully ✓';
+      setTimeout(closeChangePinModal, 1500);
+    }).catch(e => { msg.style.color='#B91C1C'; msg.textContent='Save failed: '+e.message; });
+  } else {
+    msg.style.color='#15803D'; msg.textContent='PIN updated (local only)';
+    setTimeout(closeChangePinModal, 1500);
+  }
+}
+
 function resetPinsToDefault() {
   if (!confirm('Reset ALL PINs back to default values?\n\nAdmin: TRAIN2025\nOps Manager: OPS2025\nDirector: DRI2025\nCEO: CEO2025')) return;
   if (!db) { alert('Firebase not ready — please wait and try again.'); return; }
@@ -3015,13 +3056,16 @@ async function exportDetailPDF() {
               if (y > H-50) { doc.addPage(); y=16; px=14; }
               let imgData = t.photoUrl || '';
               if (imgData.startsWith('db:')) { imgData = ''; }
-              // For Cloudinary/https URLs, fetch as base64
+              // For Cloudinary/https URLs — show as link in PDF
               if (imgData && imgData.startsWith('http')) {
-                try {
-                  const resp = await fetch(imgData);
-                  const blob = await resp.blob();
-                  imgData = await new Promise(r => { const rd=new FileReader(); rd.onload=e=>r(e.target.result); rd.readAsDataURL(blob); });
-                } catch(e) { imgData = ''; }
+                doc.setFillColor(220,252,231);
+                doc.roundedRect(px, y, 55, 12, 2, 2, 'F');
+                doc.setFontSize(7); doc.setTextColor(21,128,61);
+                doc.text('📷 Photo (see link)', px+2, y+8);
+                doc.setTextColor(26,60,94);
+                doc.textWithLink('View Photo', px+4, y+8, {url: imgData});
+                px += 60; if (px > W-60) { px=14; y+=18; }
+                imgData = ''; // skip addImage
               }
               if (imgData && imgData.startsWith('data:')) {
                 let fmt = imgData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
