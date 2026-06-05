@@ -861,8 +861,8 @@ function submitDay() {
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
-  d[todayKey2]._start = new Date().toISOString();
-  d[todayKey2]._done = new Date().toISOString();
+  d[getTodayKey()]._start = new Date().toISOString();
+  d[getTodayKey()]._done = new Date().toISOString();
   save(d);
 
   // Calc overall
@@ -885,21 +885,6 @@ function submitDay() {
     verifiedBy: getVerified(),
     overallPct: op,
     qualified:  op>=95,
-    taskData: (function() {
-      const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn   = getVal(dd, t.id, 'yn');
-          const pUrl = getVal(dd, t.id, 'photoUrl');
-          const photo= getVal(dd, t.id, 'photo');
-          if (yn) tasks['d'+dd+'_'+t.id] = {
-            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:pUrl||photo||''
-          };
-        }));
-      }
-      return tasks;
-    })(),
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     photos: (function() {
@@ -910,7 +895,6 @@ function submitDay() {
       }));
       return photos;
     })(),
-    // Store full task responses for dashboard detail view
     taskData: (function() {
       const tasks = {};
       for (let dd=1; dd<=6; dd++) {
