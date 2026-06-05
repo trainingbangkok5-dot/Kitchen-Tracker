@@ -723,12 +723,12 @@ function selectShift(shift) {
   if (shift === 'closing') {
     const now = new Date();
     const hour = getDubaiHour();
-    const isAfter3pm = hour >= 15; // Closing unlocks at 3:00 PM
+    const isAfter3pm = (hour >= 15 || hour < 2); // Closing unlocks at 3:00 PM until 2:00 AM
     if (!isAfter3pm) {
       const minutesLeft = (15 - hour - 1) * 60 + (60 - now.getMinutes());
       const h = Math.floor(minutesLeft / 60);
       const m = minutesLeft % 60;
-      showToast(`Closing unlocks at 3:00 PM — ${h}h ${m}m remaining ⏰`, 'warn');
+      showToast(`Closing unlocks at 3:00 PM until 2:00 AM — ${h}h ${m}m remaining ⏰`, 'warn');
       return;
     }
     // After 3PM — closing available regardless of opening status
@@ -778,7 +778,7 @@ function renderDay() {
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
     const openerName = data[dayKey]?._openerName || '';
     const nowH = getDubaiHour();
-    const isAfter3pm = nowH >= 15; // Closing unlocks at 3:00 PM
+    const isAfter3pm = (nowH >= 15 || nowH < 2); // Closing unlocks at 3:00 PM until 2:00 AM
     const minsLeft = isAfter3pm ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
     let closingBtnStyle, closingBtnLabel, closingSubNote;
@@ -793,7 +793,7 @@ function renderDay() {
     } else {
       closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
       closingBtnLabel = '🌙 Closing Shift ⏰';
-      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM — ${hLeft}h ${mLeft}m remaining</div>`;
+      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM until 2:00 AM — ${hLeft}h ${mLeft}m remaining</div>`;
     }
     screen.innerHTML = `
       <div style="font-size:32px;margin-bottom:8px;">👋</div>
@@ -1019,14 +1019,22 @@ function renderDay() {
     <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
     <div class="sc-sub">6-day overall score (target: 95%)</div>
-    ${tM>0?`<div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
-      <div style="flex:1;background:#FFF1F0;border-radius:8px;padding:8px;text-align:center;">
+    ${tM>0?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+      <div style="background:#FFF1F0;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌅 Opening</div>
         <div style="font-size:18px;font-weight:700;color:${opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
       </div>
-      <div style="flex:1;background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
+      <div style="background:#F5F3FF;border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🧑‍💼 OIC Eval</div>
+        <div style="font-size:18px;font-weight:700;color:${oicT>0?(oicY/oicT*100>=95?'#0F766E':oicY/oicT*100>=70?'#92400E':'#B91C1C'):'#94A3B8'}">${oicT>0?Math.round(oicY/oicT*100)+'%':'—'}</div>
+      </div>
+      <div style="background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🌙 Closing</div>
         <div style="font-size:18px;font-weight:700;color:${opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+      </div>
+      <div style="background:${pass?'#F0FDF4':'#FFF1F0'};border:2px solid ${pass?'#22C55E':'#EF4444'};border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">🏆 Total</div>
+        <div style="font-size:18px;font-weight:700;color:${pass?'#0F766E':'#B91C1C'}">${op}%</div>
       </div>
     </div>`:''}
   `;
