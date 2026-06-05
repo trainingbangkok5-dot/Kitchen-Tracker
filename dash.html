@@ -3254,6 +3254,30 @@ async function exportDetailPDF() {
 let _registry = {}; // key -> {id, name, role, outlet, status, createdAt}
 
 // ── KPI Reports Page ──────────────────────────────────────────
+function deleteKPIRecord(s) {
+  if (!s) return;
+  const name = s.staffName||'this record';
+  if (!confirm('Delete KPI report for ' + name + '? This cannot be undone.')) return;
+  if (!db) { showToast('Firebase not connected', 'error'); return; }
+  db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+    if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
+    const updates = {};
+    snap.forEach(child => {
+      const v = child.val();
+      if (v.role === s.role && v.week === s.week) updates['submissions/' + child.key] = null;
+    });
+    if (Object.keys(updates).length) {
+      db.ref().update(updates).then(() => {
+        showToast('Report deleted ✓', 'ok');
+        allStaff = allStaff.filter(r => !(r.staffName===s.staffName && r.role===s.role && r.week===s.week));
+        renderKPIPage();
+      }).catch(e => showToast('Delete failed: ' + e.message, 'error'));
+    } else {
+      showToast('Record not found in Firebase', 'warn');
+    }
+  });
+}
+
 function renderKPIPage() {
   const body      = document.getElementById('kpiPageBody');
   const roleF     = document.getElementById('kpiRoleFilter')?.value || '';
@@ -3324,6 +3348,7 @@ function renderKPIPage() {
       <div style="display:flex;gap:8px;">
         <button onclick="openStaffDetail(kpiSubs[${subs.indexOf(s)}])" style="flex:1;padding:8px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">👁 View Full Report</button>
         ${canEdit ? `<button onclick="openStaffDetail(kpiSubs[${subs.indexOf(s)}])" style="padding:8px 14px;background:#E87722;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Edit</button>` : ''}
+        ${canEdit ? `<button onclick="deleteKPIRecord(kpiSubs[${subs.indexOf(s)}])" style="padding:8px 12px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete</button>` : ''}
       </div>`;
     body.appendChild(card);
   });
