@@ -216,6 +216,25 @@ function pushToFirebase(record) {
   } catch(e) { console.warn('Firebase error:', e); }
 }
 
+function compressPhoto(dataUrl, maxW, quality) {
+  return new Promise(resolve => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch(e) { resolve(dataUrl); }
+  });
+}
+
 function pushAuditToFirebase(record) {
   try {
     const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
@@ -892,13 +911,16 @@ function submitAuditToDashboard() {
     });
 
     localStorage.setItem('KIC_SHARED_DB_V2', JSON.stringify(db));
-    // Collect all photos from audit items
+    // Collect photos keyed by section+item for inline display
     const photos = {};
-    document.querySelectorAll('.thumb').forEach((img, i) => {
-      if (img.src && img.src.startsWith('data:')) {
-        photos['photo_' + i] = img.src;
+    SECTIONS.forEach(s=>s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;
+      if(state[k].photos && state[k].photos.length>0){
+        state[k].photos.forEach((url,pi)=>{
+          photos['_'+s.id+'_'+it.n+'_'+pi] = url;
+        });
       }
-    });
+    }));
     
     // Collect corrective actions for failed items
     const correctiveActions = [];
@@ -934,6 +956,7 @@ function submitAuditToDashboard() {
           correctiveAction: st.correctiveAction||'',
           responsible: st.responsible||'',
           deadline: st.deadline||'',
+          photos: st.photos||[],
         });
       });
       sectionBreakdown.push({
@@ -944,7 +967,24 @@ function submitAuditToDashboard() {
         items: secItems
       });
     });
-    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), photos, correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+    // Compress photos before pushing to Firebase
+    async function pushWithCompressedPhotos() {
+      // Compress sectionBreakdown photos
+      for (const sec of sectionBreakdown) {
+        for (const it of sec.items) {
+          if (it.photos && it.photos.length > 0) {
+            it.photos = await Promise.all(it.photos.map(p => compressPhoto(p, 800, 0.7)));
+          }
+        }
+      }
+      // Compress top-level photos
+      const compPhotos = {};
+      for (const [k,v] of Object.entries(photos)) {
+        compPhotos[k] = await compressPhoto(v, 800, 0.7);
+      }
+      pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), photos:compPhotos, correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+    }
+    pushWithCompressedPhotos();
     showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
     console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
   } catch(e) {
