@@ -631,23 +631,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="page" id="page-audits">
-    <!-- Audit header + filters -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-      <div style="font-size:15px;font-weight:700;color:#1A3C5E;">📋 Internal Audit Results</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <select id="auditTypeFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
-          <option value="">BOH + FOH</option>
-          <option value="BOH">BOH Only</option>
-          <option value="FOH">FOH Only</option>
-        </select>
-        <select id="auditOutletFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
-          <option value="">All Outlets</option>
-        </select>
-      </div>
-    </div>
-    <!-- Summary KPI cards -->
-    <div id="auditSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;"></div>
-    <!-- Audit table -->
+    <div class="sec-title">BOH Audit Results (KIC KPI)</div>
     <div class="audit-table">
       <div class="at-head">
         <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
@@ -1212,10 +1196,8 @@ function loadData() {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       // Only BOH audits — FOH not included in KPI system
       const bohOnly = rawA.filter(a => a.auditType === 'BOH');
-      // Include both BOH and FOH audits
-      const allAuditTypes = rawA; // no type filter — show BOH + FOH
-      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? allAuditTypes :
-                  allAuditTypes.filter(a => a.outlet === currentOutlet);
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? bohOnly :
+                  bohOnly.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
         fohDb.ref('submissions').once('value', fohSnap => {
@@ -1285,7 +1267,7 @@ function showTab(el,id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+id).classList.add('active');
-  if (id === 'audits') { renderAudits(); }
+  if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
   if (id === 'registry') { renderRegistry(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
@@ -2731,67 +2713,13 @@ function exportMonthlyExcel() {
 
 function renderAudits() {
   const body = document.getElementById('auditBody');
-  const summaryCards = document.getElementById('auditSummaryCards');
-
-  // Apply filters
-  const typeFilter   = document.getElementById('auditTypeFilter')?.value || '';
-  const outletFilter = document.getElementById('auditOutletFilter')?.value || '';
-
-  let filtered = [...allAudits];
-  if (typeFilter)   filtered = filtered.filter(a => a.auditType === typeFilter);
-  if (outletFilter) filtered = filtered.filter(a => (a.outlet||'') === outletFilter);
-
-  // Populate outlet dropdown
-  const outletSel = document.getElementById('auditOutletFilter');
-  if (outletSel) {
-    const outlets = [...new Set(allAudits.map(a => a.outlet||'').filter(Boolean))].sort();
-    const cur = outletSel.value;
-    outletSel.innerHTML = '<option value="">All Outlets</option>' +
-      outlets.map(o => `<option value="${o}" ${o===cur?'selected':''}>${o}</option>`).join('');
-  }
-
-  // Summary cards
-  if (summaryCards) {
-    const bohAudits = filtered.filter(a => a.auditType === 'BOH');
-    const fohAudits = filtered.filter(a => a.auditType === 'FOH');
-    const bohAvg = bohAudits.length ? Math.round(bohAudits.reduce((s,a)=>s+(a.score||0),0)/bohAudits.length) : null;
-    const fohAvg = fohAudits.length ? Math.round(fohAudits.reduce((s,a)=>s+(a.score||0),0)/fohAudits.length) : null;
-    const overall = filtered.length ? Math.round(filtered.reduce((s,a)=>s+(a.score||0),0)/filtered.length) : null;
-    const gradeColor = v => v===null?'#94A3B8':v>=91?'#15803D':v>=81?'#D97706':v>=71?'#C2410C':'#B91C1C';
-    const gradeLetter = v => v===null?'—':v>=91?'A':v>=81?'B':v>=71?'C':'D';
-    summaryCards.innerHTML = `
-      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Total Audits</div>
-        <div style="font-size:26px;font-weight:700;color:#1A3C5E">${filtered.length}</div>
-        <div style="font-size:11px;color:#94A3B8">${bohAudits.length} BOH · ${fohAudits.length} FOH</div>
-      </div>
-      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">🍳 BOH Avg</div>
-        <div style="font-size:26px;font-weight:700;color:${gradeColor(bohAvg)}">${bohAvg!==null?bohAvg+'%':'—'}</div>
-        <div style="font-size:11px;color:${gradeColor(bohAvg)}">Grade ${gradeLetter(bohAvg)}</div>
-      </div>
-      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">🛎️ FOH Avg</div>
-        <div style="font-size:26px;font-weight:700;color:${gradeColor(fohAvg)}">${fohAvg!==null?fohAvg+'%':'—'}</div>
-        <div style="font-size:11px;color:${gradeColor(fohAvg)}">Grade ${gradeLetter(fohAvg)}</div>
-      </div>
-      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Overall Avg</div>
-        <div style="font-size:26px;font-weight:700;color:${gradeColor(overall)}">${overall!==null?overall+'%':'—'}</div>
-        <div style="font-size:11px;color:${gradeColor(overall)}">Grade ${gradeLetter(overall)}</div>
-      </div>`;
-  }
-
-  if (!filtered.length) {
+  if (!allAudits.length) {
     body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits submitted yet<br><small>Open an audit form, fill it, and tap Submit to Dashboard</small></div>';
     return;
   }
   body.innerHTML = '';
-  filtered.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
+  [...allAudits].sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
     const pass = a.score >= 80;
-    const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
-    const gradeColor = a.score>=91?'#15803D':a.score>=81?'#D97706':a.score>=71?'#C2410C':'#B91C1C';
-    const gradeBg    = a.score>=91?'#DCFCE7':a.score>=81?'#FEF3C7':a.score>=71?'#FEE8D6':'#FEE2E2';
     const row = document.createElement('div');
     row.className = 'at-row';
     row.style.cssText = `background:${i%2===0?'#fff':'#F5F3EE'};cursor:pointer;`;
@@ -2801,7 +2729,7 @@ function renderAudits() {
     row.innerHTML = `
       <div class="td" style="font-weight:600;color:#1A3C5E;text-decoration:underline;cursor:pointer">${a.outlet||'—'}</div>
       <div class="td"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
-      <div class="td" style="font-weight:700;color:${gradeColor}">${a.score}% <span style="font-size:11px;background:${gradeBg};color:${gradeColor};padding:1px 6px;border-radius:10px;margin-left:4px;">${grade}</span></div>
+      <div class="td" style="font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
       <div class="td" style="font-size:11px;color:#6B6B60">${a.rawScore||'—'}/${a.maxScore||'—'} pts</div>
       <div class="td" style="font-size:11px;color:#6B6B60">${a.auditor||'—'}</div>
       <div class="td" style="font-size:11px;color:#6B6B60">${d}</div>`;
@@ -2812,52 +2740,240 @@ function renderAudits() {
 
 function openAuditDetail(a) {
   const pass = a.score >= 80;
-  const d = a.auditDate||(a.submittedAt?new Date(a.submittedAt).toLocaleString():'—');
+  const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
+  const gradeColor = a.score>=91?'#15803D':a.score>=81?'#D97706':a.score>=71?'#C2410C':'#B91C1C';
+  const gradeBg    = a.score>=91?'#DCFCE7':a.score>=81?'#FEF3C7':a.score>=71?'#FEE8D6':'#FEE2E2';
+
+  // Store for PDF export
+  window._currentAuditData = a;
+
+  // Add PDF button to modal header
+  const modalHeader = document.querySelector('#detailModal .modal-header');
+  if (modalHeader) {
+    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn').forEach(b=>b.remove());
+    const pdfBtn = document.createElement('button');
+    pdfBtn.className = 'modal-close pdf-audit-btn';
+    pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;font-size:12px;padding:5px 12px;';
+    pdfBtn.textContent = '📄 Export PDF';
+    pdfBtn.onclick = () => exportAuditPDF(a);
+    const closeBtn = modalHeader.querySelector('.modal-close');
+    if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
+    // Delete button — admin only
+    if (currentRole === 'training') {
+      const delBtn = document.createElement('button');
+      delBtn.className = 'modal-close delete-audit-btn';
+      delBtn.style.cssText = 'background:#B91C1C;margin-right:6px;font-size:12px;padding:5px 12px;';
+      delBtn.textContent = '🗑 Delete';
+      delBtn.onclick = () => deleteAuditRecord(a);
+      if (closeBtn) modalHeader.insertBefore(delBtn, closeBtn);
+    }
+  }
+
   document.getElementById('modalTitle').textContent = (a.outlet||'Outlet') + ' — ' + (a.auditType||'') + ' Audit Report';
-  
+
+  // ── Section breakdown
+  let sectionsHtml = '';
+  if (a.correctiveActions && a.correctiveActions.length >= 0) {
+    // We have data — show section breakdown if available
+  }
+
+  // ── Corrective Actions
+  let correctiveHtml = '';
+  if (a.correctiveActions && a.correctiveActions.length > 0) {
+    correctiveHtml = `
+    <div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
+      ⚠️ Failed Items — Corrective Actions Required (${a.correctiveActions.length})
+    </div>`;
+    a.correctiveActions.forEach((ca, i) => {
+      correctiveHtml += `
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #B91C1C;border-radius:8px;padding:12px;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;margin-bottom:4px;">${ca.section||'—'} — Item ${ca.item||''}</div>
+        <div style="font-size:13px;font-weight:600;color:#1A1A18;margin-bottom:6px;">❌ ${ca.criteria||'—'}</div>
+        ${ca.observation?`<div style="font-size:12px;color:#475569;margin-bottom:4px;">💬 <strong>Observation:</strong> ${ca.observation}</div>`:''}
+        ${ca.correctiveAction?`<div style="font-size:12px;color:#B91C1C;margin-bottom:4px;">🔧 <strong>Corrective Action:</strong> ${ca.correctiveAction}</div>`:''}
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;">
+          ${ca.responsible?`<div style="font-size:11px;color:#475569;">👤 <strong>Responsible:</strong> ${ca.responsible}</div>`:''}
+          ${ca.deadline?`<div style="font-size:11px;color:#475569;">📅 <strong>Deadline:</strong> ${ca.deadline}</div>`:''}
+        </div>
+      </div>`;
+    });
+  } else {
+    correctiveHtml = `<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;text-align:center;font-size:13px;font-weight:600;color:#15803D;">✅ No failed items recorded</div>`;
+  }
+
+  // ── Photos
   let photosHtml = '';
   if (a.photos && Object.keys(a.photos).length > 0) {
-    photosHtml = `<div style="margin-top:14px;">
-      <div style="font-size:12px;font-weight:600;color:#6B6B60;margin-bottom:8px;">📸 Audit Photos (${Object.keys(a.photos).length})</div>
+    photosHtml = `
+    <div style="margin-top:14px;">
+      <div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
+        📸 Audit Photos (${Object.keys(a.photos).length})
+      </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
-        ${Object.entries(a.photos).map(([k,url]) => 
-          `<img src="${url}" style="width:100%;border-radius:8px;border:2px solid #E0DDD4;" onerror="this.parentElement.style.display='none'">`
+        ${Object.entries(a.photos).map(([k,url]) =>
+          `<img src="${url}" style="width:100%;border-radius:8px;border:2px solid #E0DDD4;cursor:pointer;" onclick="this.style.transform=this.style.transform?'':'scale(2.5)';this.style.zIndex=this.style.zIndex?'':'999';this.style.position=this.style.position?'':'relative';" onerror="this.parentElement.style.display='none'">`
         ).join('')}
       </div>
     </div>`;
   }
-  
+
   document.getElementById('modalBody').innerHTML = `
-    <div style="background:#F5F3EE;border-radius:10px;padding:14px;margin-bottom:14px;">
-      <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
-        <div><strong>Outlet:</strong> ${a.outlet||'—'}</div>
-        <div><strong>Type:</strong> ${a.auditType==='BOH'?'🔧 BOH':'🛎 FOH'}</div>
-        <div><strong>Auditor:</strong> ${a.auditor||'—'}</div>
-        <div><strong>Date:</strong> ${a.auditDate||'—'}</div>
-        <div><strong>Shift:</strong> ${a.shift||'—'}</div>
-      </div>
+    <!-- Info bar -->
+    <div style="background:#F5F3EE;border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;font-size:13px;">
+      <div><strong>Outlet:</strong> ${a.outlet||'—'}</div>
+      <div><strong>Type:</strong> ${a.auditType==='BOH'?'🍳 BOH':'🛎️ FOH'}</div>
+      <div><strong>Auditor:</strong> ${a.auditor||'—'}</div>
+      <div><strong>Date:</strong> ${a.auditDate||'—'}</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div style="background:${pass?'#F0FDF4':'#FEF2F2'};border:1px solid ${pass?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">SCORE</div>
-        <div style="font-size:32px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
-        <div style="font-size:12px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${pass?'✅ PASS':'❌ FAIL'}</div>
+
+    <!-- Score cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:${gradeBg};border:2px solid ${gradeColor};border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Score</div>
+        <div style="font-size:30px;font-weight:700;color:${gradeColor}">${a.score}%</div>
+        <div style="font-size:13px;font-weight:700;color:${gradeColor}">Grade ${grade}</div>
+        <div style="font-size:11px;font-weight:600;color:${gradeColor};margin-top:2px;">${pass?'✅ PASS':'❌ FAIL'}</div>
       </div>
       <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">POINTS</div>
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Points</div>
         <div style="font-size:28px;font-weight:700;color:#1A3C5E">${a.rawScore||'—'}</div>
         <div style="font-size:12px;color:#6B6B60">out of ${a.maxScore||'—'}</div>
       </div>
       <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-size:11px;color:#6B6B60;margin-bottom:4px;">SUBMITTED</div>
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Submitted</div>
         <div style="font-size:13px;font-weight:600;color:#1A3C5E">${a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—'}</div>
         <div style="font-size:12px;color:#6B6B60">${a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—'}</div>
       </div>
     </div>
-    ${photosHtml}
-    ${!photosHtml?'<div style="font-size:12px;color:#94A3B8;padding:10px;text-align:center;background:#F8FAFC;border-radius:8px;">Photos will appear here when submitted from the updated audit forms</div>':''}`;
-  
+
+    <!-- Corrective Actions -->
+    <div style="margin-bottom:14px;">${correctiveHtml}</div>
+
+    <!-- Photos -->
+    ${photosHtml}`;
+
   document.getElementById('detailModal').classList.add('open');
+}
+
+function deleteAuditRecord(a) {
+  if (!confirm('Delete this audit record?\n\n' + (a.outlet||'') + ' — ' + (a.auditType||'') + ' — ' + (a.auditDate||'') + '\n\nThis cannot be undone.')) return;
+  if (!db) { showToast('Firebase not ready', 'error'); return; }
+  const key = (a.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_') + '_' + a.auditType + '_' + (a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+  db.ref('audits/' + key).remove().then(() => {
+    allAudits = allAudits.filter(x => !(x.outlet===a.outlet && x.auditType===a.auditType && x.auditDate===a.auditDate));
+    renderAudits();
+    document.getElementById('detailModal').classList.remove('open');
+    showToast('Audit record deleted ✓', 'ok');
+  }).catch(e => showToast('Delete failed: ' + e.message, 'error'));
+}
+
+function exportAuditPDF(a) {
+  if (typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+    showToast('PDF library not loaded — please check internet connection', '#c62828'); return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
+  const pass  = a.score >= 80;
+  const pageW = 210, margin = 14, colW = pageW - margin*2;
+  let y = 14;
+
+  // Header
+  doc.setFillColor(26, 60, 94);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text((a.outlet||'Outlet') + ' — ' + (a.auditType||'') + ' Internal Audit Report', margin, 12);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality Operations | Dubai Municipality Compliance', margin, 20);
+  doc.text('Generated: ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), 210-margin, 20, {align:'right'});
+  y = 36;
+
+  // Info row
+  doc.setTextColor(30,30,30);
+  doc.setFillColor(245,243,238);
+  doc.rect(margin, y, colW, 14, 'F');
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text('Outlet: ', margin+3, y+5); doc.setFont('helvetica','normal'); doc.text(a.outlet||'—', margin+18, y+5);
+  doc.setFont('helvetica','bold'); doc.text('Type: ', margin+60, y+5); doc.setFont('helvetica','normal'); doc.text(a.auditType||'—', margin+72, y+5);
+  doc.setFont('helvetica','bold'); doc.text('Auditor: ', margin+3, y+11); doc.setFont('helvetica','normal'); doc.text(a.auditor||'—', margin+22, y+11);
+  doc.setFont('helvetica','bold'); doc.text('Date: ', margin+60, y+11); doc.setFont('helvetica','normal'); doc.text(a.auditDate||'—', margin+72, y+11);
+  y += 20;
+
+  // Score box
+  const scoreCol = pass ? [21,128,61] : [185,28,28];
+  doc.setFillColor(...scoreCol);
+  doc.rect(margin, y, 55, 22, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text(a.score + '%', margin+27, y+10, {align:'center'});
+  doc.setFontSize(10);
+  doc.text('Grade ' + grade + ' — ' + (pass?'PASS':'FAIL'), margin+27, y+17, {align:'center'});
+
+  doc.setFillColor(240,246,255);
+  doc.rect(margin+60, y, 55, 22, 'F');
+  doc.setTextColor(26,60,94);
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.text((a.rawScore||'0') + '/' + (a.maxScore||'0'), margin+87, y+10, {align:'center'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+  doc.text('Points Scored', margin+87, y+17, {align:'center'});
+
+  doc.setFillColor(248,250,252);
+  doc.rect(margin+120, y, 62, 22, 'F');
+  doc.setTextColor(26,60,94);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—', margin+151, y+9, {align:'center'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+  doc.text('Submitted', margin+151, y+16, {align:'center'});
+  y += 30;
+
+  // Corrective Actions
+  if (a.correctiveActions && a.correctiveActions.length > 0) {
+    doc.setFillColor(26,60,94);
+    doc.rect(margin, y, colW, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text('⚠ FAILED ITEMS — CORRECTIVE ACTIONS REQUIRED (' + a.correctiveActions.length + ')', margin+3, y+5.5);
+    y += 12;
+
+    a.correctiveActions.forEach((ca, i) => {
+      if (y > 260) { doc.addPage(); y = 14; }
+      doc.setFillColor(254,242,242);
+      doc.rect(margin, y, colW, 0.5, 'F');
+      doc.setDrawColor(185,28,28); doc.setLineWidth(0.8);
+      doc.line(margin, y, margin, y+28);
+      doc.setLineWidth(0.1);
+
+      doc.setTextColor(100,100,100); doc.setFontSize(8); doc.setFont('helvetica','normal');
+      doc.text((ca.section||'—') + ' — Item ' + (ca.item||''), margin+4, y+5);
+      doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont('helvetica','bold');
+      doc.text('✗ ' + (ca.criteria||'—'), margin+4, y+11);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(70,70,70);
+      if (ca.observation) doc.text('Observation: ' + ca.observation, margin+4, y+17, {maxWidth: colW-6});
+      if (ca.correctiveAction) { doc.setTextColor(185,28,28); doc.text('Corrective Action: ' + ca.correctiveAction, margin+4, y+22, {maxWidth: colW-6}); }
+      doc.setTextColor(70,70,70);
+      const meta = [ca.responsible?'Responsible: '+ca.responsible:'', ca.deadline?'Deadline: '+ca.deadline:''].filter(Boolean).join('   |   ');
+      if (meta) doc.text(meta, margin+4, y+27);
+      y += 32;
+      doc.setDrawColor(224,221,212); doc.line(margin, y-2, margin+colW, y-2);
+    });
+  } else {
+    doc.setFillColor(240,253,244);
+    doc.rect(margin, y, colW, 12, 'F');
+    doc.setTextColor(21,128,61); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('✓ No failed items — Full compliance achieved', margin+colW/2, y+7, {align:'center'});
+    y += 18;
+  }
+
+  // Footer
+  doc.setDrawColor(200,200,200); doc.line(margin, 285, 210-margin, 285);
+  doc.setTextColor(150,150,150); doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality Operations — Internal Audit Report — Confidential', margin, 290);
+  doc.text('Page 1', 210-margin, 290, {align:'right'});
+
+  const fn = (a.outlet||'Outlet').replace(/\s+/g,'_') + '_' + (a.auditType||'') + '_Audit_' + (a.auditDate||new Date().toISOString().split('T')[0]) + '.pdf';
+  doc.save(fn);
+  showToast('📄 PDF exported: ' + fn, '#1A3C5E');
 }
 
 
