@@ -834,6 +834,8 @@ function renderDay() {
 
     // Opening shift: only show opening tasks
     if (currentShift === 'opening' && isCloseSection) return;
+    // Closing shift: only show closing tasks
+    if (currentShift === 'closing' && isOpenSection) return;
 
     const hdr = document.createElement('div');
     hdr.className = 'section-hdr';
