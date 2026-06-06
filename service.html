@@ -1093,7 +1093,10 @@ function setComment(taskId, value) {
 function tapYN(tid, val, el) {
   const data = load();
   const todayData = data[getTodayKey()] || {};
-  if ((todayData._openDone || todayData._done) && !ALLOW_OVERWRITE) {
+  const isClosing = currentShift === 'closing';
+  const lockOpening = (todayData._openDone || todayData._done) && !isClosing;
+  const lockClosing = todayData._closeDone && isClosing;
+  if ((lockOpening || lockClosing) && !ALLOW_OVERWRITE) {
     showToast('Already submitted — cannot edit 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
