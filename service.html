@@ -1035,25 +1035,25 @@ function renderDay() {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
-      <div style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
+      <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
-        <div style="font-size:20px;font-weight:700;color:${opO===null?'#94A3B8':opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
-        <div style="font-size:9px;color:${opO===null?'#94A3B8':opO>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below target'}</div>
+        <div class="sb-pct" style="font-size:20px;font-weight:700;color:${opO===null?'#94A3B8':opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${opO===null?'#94A3B8':opO>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:#F0FDF4;border-radius:10px;padding:10px 6px;text-align:center;">
+      <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌙 Closing</div>
-        <div style="font-size:20px;font-weight:700;color:${opC===null?'#94A3B8':opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
-        <div style="font-size:9px;color:${opC===null?'#94A3B8':opC>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target'}</div>
+        <div class="sb-pct" style="font-size:20px;font-weight:700;color:${opC===null?'#94A3B8':opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${opC===null?'#94A3B8':opC>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
       <div style="background:${oicPctDisplay===null?'#F8FAFC':oicPctDisplay>=95?'#F0FDF4':'#FFF7ED'};border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🧑‍💼 OIC Eval</div>
         <div style="font-size:20px;font-weight:700;color:${oicPctDisplay===null?'#94A3B8':oicPctDisplay>=95?'#0F766E':oicPctDisplay>=70?'#92400E':'#B91C1C'}">${oicPctDisplay!==null?oicPctDisplay+'%':'—'}</div>
         <div style="font-size:9px;color:${oicPctDisplay===null?'#94A3B8':oicPctDisplay>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${oicPctDisplay===null?'Pending OIC':oicPctDisplay>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:${tM===0?'#F8FAFC':combinedPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM===0?'#E2E8F0':combinedPass?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
+      <div data-scorebox="total" style="background:${tM===0?'#F8FAFC':combinedPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM===0?'#E2E8F0':combinedPass?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total</div>
-        <div style="font-size:20px;font-weight:700;color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
-        <div style="font-size:9px;color:${tM===0?'#94A3B8':combinedPass?'#0F766E':'#B91C1C'};margin-top:2px;">${tM===0?'No data':combinedPass?'✓ Qualified':'✗ Not yet qualified'}</div>
+        <div class="sb-pct" style="font-size:20px;font-weight:700;color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${tM===0?'#94A3B8':combinedPass?'#0F766E':'#B91C1C'};margin-top:2px;">${tM===0?'No data':combinedPass?'✓ Qualified':'✗ Not yet qualified'}</div>
       </div>
     </div>
   `;
@@ -1171,22 +1171,42 @@ function tapYN(tid, val, el) {
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
-  // update score bar - count current shift tasks
-  let t=0, y=0;
-  SECTIONS.forEach(s => {
-    if (s.oicOnly) return; // skip OIC sections
-    const isOpen = !s.oicOnly && SECTIONS.indexOf(s) === 0;
-    const isClose = !s.oicOnly && SECTIONS.indexOf(s) === 1;
-    if (currentShift === 'opening' && isClose) return;
-    if (currentShift === 'closing' && isOpen) return;
+  // Update score bar AND all 4 score boxes immediately
+  let t=0, y=0, oY=0, oM=0, cY=0, cM=0;
+  const _td = load()[getTodayKey()] || {};
+  SECTIONS.forEach((s, si) => {
+    if (s.oicOnly) return;
     s.tasks.forEach(tk => {
-      t++;
-      if (getVal(currentDay, tk.id, 'yn') === 'yes') y++;
+      const v = _td[tk.id]?.yn;
+      if (si === 0) { oM++; if (v === 'yes') oY++; }
+      else          { cM++; if (v === 'yes') cY++; }
+      if ((currentShift === 'opening' && si === 0) || (currentShift === 'closing' && si === 1)) {
+        t++; if (v === 'yes') y++;
+      }
     });
   });
-  const p=t>0?Math.round((y/t)*100):0;
-  document.getElementById('scoreFill').style.width=p+'%';
-  document.getElementById('scorePct').textContent=p+'%';
+  const p   = t>0  ? Math.round((y/t)*100)   : 0;
+  const opO = oM>0 ? Math.round((oY/oM)*100) : null;
+  const opC = cM>0 ? Math.round((cY/cM)*100) : null;
+  const tM  = oM+cM, tY = oY+cY;
+  const op  = tM>0 ? Math.round((tY/tM)*100) : 0;
+  // Score bar
+  document.getElementById('scoreFill').style.width = p + '%';
+  document.getElementById('scoreFill').style.background = p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
+  document.getElementById('scorePct').textContent = p + '%';
+  // Update score boxes live
+  const _sc = document.querySelector('.status-card');
+  if (_sc) {
+    _sc.querySelectorAll('[data-scorebox]').forEach(b => {
+      const type = b.getAttribute('data-scorebox');
+      const pct = type==='opening'?opO : type==='closing'?opC : op;
+      const isNull = pct===null;
+      const pctEl = b.querySelector('.sb-pct');
+      const lblEl = b.querySelector('.sb-lbl');
+      if (pctEl) { pctEl.textContent = isNull?'—':pct+'%'; pctEl.style.color = isNull?'#94A3B8':pct>=95?'#0F766E':pct>=70?'#92400E':'#B91C1C'; }
+      if (lblEl) { lblEl.textContent = isNull?'Not submitted':pct>=95?'✓ Pass':'✗ Below target'; lblEl.style.color = isNull?'#94A3B8':pct>=95?'#0F766E':'#B91C1C'; }
+    });
+  }
 }
 
 
