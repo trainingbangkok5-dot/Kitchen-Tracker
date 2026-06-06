@@ -905,11 +905,7 @@ function renderDay() {
   const sc = document.createElement('div');
   sc.className = `status-card ${rdTM>0?(pass?'pass':'fail'):''}`;
   sc.innerHTML = `
-    <div class="sc-icon">${rdTM===0?'📋':pass?'✅':'❌'}</div>
-    <div class="sc-title">${rdTM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
-    <div class="sc-sub">Today's overall score (target: 95%)</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;">
       <div style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
         <div style="font-size:20px;font-weight:700;color:${rdOpO===null?'#94A3B8':rdOpO>=95?'#15803D':rdOpO>=70?'#92400E':'#B91C1C'}">${rdOpO!==null?rdOpO+'%':'—'}</div>

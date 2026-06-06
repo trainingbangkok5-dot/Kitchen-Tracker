@@ -1022,7 +1022,6 @@ function renderDay() {
   const stBg = !hasStaff&&!hasOIC?'#F8F7F2':hasStaff&&hasOIC?'#DCFCE7':hasStaff&&!hasOIC?'#FEF3C7':'#E0F2FE';
 
   const sc=document.createElement('div');
-  const sc=document.createElement('div');
   sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
   // OIC score from Firebase (fetched asynchronously)
   const oicPctDisplay = oicT>0 ? Math.round((oicY/oicT)*100) : null;
@@ -1035,11 +1034,7 @@ function renderDay() {
         <div style="font-size:10px;color:#94A3B8;">Staff: ${staffY}/${staffT} YES &nbsp;•&nbsp; OIC eval: ${oicT>0?oicY+'/'+oicT+' YES':'not yet filled'}</div>
       </div>
     </div>
-    <div class="sc-icon">${tM===0?'📋':combinedPass?'✅':'❌'}</div>
-    <div class="sc-title">${tM===0?'Fill your checklist':combinedPass?'Incentive Qualified!':'Keep going!'}</div>
-    <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#0F766E':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
-    <div class="sc-sub">Today's overall score (target: 95%)</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
       <div style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
         <div style="font-size:20px;font-weight:700;color:${opO===null?'#94A3B8':opO>=95?'#0F766E':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
