@@ -2848,24 +2848,46 @@ function openAuditDetail(a) {
 
     <!-- Section Breakdown -->
     ${a.sectionBreakdown && a.sectionBreakdown.length ? `
-    <div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">📊 Section Breakdown</div>
-    <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;overflow:hidden;margin-bottom:14px;">
-      ${a.sectionBreakdown.map((s,i) => {
-        const pct = s.max>0?Math.round(s.earned/s.max*100):0;
-        const col = pct>=91?'#15803D':pct>=71?'#D97706':'#B91C1C';
-        const bg  = pct>=91?'#DCFCE7':pct>=71?'#FEF3C7':'#FEE2E2';
-        const barW = Math.min(pct,100);
-        return `<div style="padding:10px 14px;border-top:${i>0?'1px solid #F0EDE4':'none'};">
+    <div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">📊 Full Audit Report — Section by Section</div>
+    ${a.sectionBreakdown.map((s,i) => {
+      const pct = s.max>0?Math.round(s.earned/s.max*100):0;
+      const col = pct>=91?'#15803D':pct>=71?'#D97706':'#B91C1C';
+      const bg  = pct>=91?'#DCFCE7':pct>=71?'#FEF3C7':'#FEE2E2';
+      const hdrBg = pct>=91?'#F0FDF4':pct>=71?'#FFFBEB':'#FEF2F2';
+      return `<div style="border:1px solid #E0DDD4;border-radius:10px;overflow:hidden;margin-bottom:10px;">
+        <!-- Section header -->
+        <div style="background:${hdrBg};padding:10px 14px;border-bottom:1px solid #E0DDD4;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-            <div style="font-size:12px;font-weight:600;color:#1A1A18;">${i+1}. ${s.title}</div>
-            <div style="font-size:12px;font-weight:700;color:${col};background:${bg};padding:2px 8px;border-radius:20px;">${s.earned}/${s.max} &nbsp;${pct}%</div>
+            <div style="font-size:13px;font-weight:700;color:#1A1A18;">${i+1}. ${s.title}</div>
+            <div style="font-size:12px;font-weight:700;color:${col};background:${bg};padding:3px 10px;border-radius:20px;">${s.earned}/${s.max} pts &nbsp;${pct}%</div>
           </div>
           <div style="height:5px;background:#E0DDD4;border-radius:3px;overflow:hidden;">
-            <div style="height:100%;width:${barW}%;background:${col};border-radius:3px;"></div>
+            <div style="height:100%;width:${Math.min(pct,100)}%;background:${col};border-radius:3px;transition:width .3s;"></div>
           </div>
-        </div>`;
-      }).join('')}
-    </div>` : ''}
+        </div>
+        <!-- Items -->
+        ${(s.items||[]).map((it,ii) => {
+          const stCol = it.status==='pass'?'#15803D':it.status==='fail'?'#B91C1C':it.status==='na'?'#6B6B60':'#94A3B8';
+          const stBg  = it.status==='pass'?'#DCFCE7':it.status==='fail'?'#FEE2E2':it.status==='na'?'#F3F4F6':'#F8FAFC';
+          const stLbl = it.status==='pass'?'✓ PASS':it.status==='fail'?'✗ FAIL':it.status==='na'?'— N/A':'—';
+          const rowBg = it.status==='fail'?'#FFF8F8':ii%2===0?'#fff':'#FAFAF8';
+          return `<div style="padding:9px 14px;border-top:1px solid #F0EDE4;background:${rowBg};">
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;min-width:18px;padding-top:2px;">${it.n}.</div>
+              <div style="flex:1;">
+                <div style="font-size:12px;font-weight:600;color:#1A1A18;margin-bottom:2px;">${it.label}</div>
+                ${it.comment?`<div style="font-size:11px;color:#475569;margin-top:3px;">💬 ${it.comment}</div>`:''}
+                ${it.status==='fail' && it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:3px;font-weight:600;">🔧 ${it.correctiveAction}</div>`:''}
+                ${it.status==='fail' && (it.responsible||it.deadline)?`<div style="font-size:10px;color:#94A3B8;margin-top:2px;">${it.responsible?'👤 '+it.responsible+' &nbsp;':''} ${it.deadline?'📅 '+it.deadline:''}</div>`:''}
+              </div>
+              <div style="flex-shrink:0;">
+                <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${stBg};color:${stCol};white-space:nowrap;">${stLbl}</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('')}` : ''}
 
     <!-- Corrective Actions -->
     <div style="margin-bottom:14px;">${correctiveHtml}</div>
