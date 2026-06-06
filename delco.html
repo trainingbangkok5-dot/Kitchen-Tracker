@@ -330,7 +330,9 @@ function renderDay() {
 
   const dayKey=getTodayKey();
   const data=load();
-  const isDone=!!(data[dayKey]?._done);
+  // Only consider done if _done was set today (prevents stale lock from yesterday)
+  const _doneVal = data[dayKey]?._done;
+  const isDone = !!(_doneVal && getDubaiDateStr() === _doneVal.substring(0,10));
 
   // Show shift selector if no shift chosen
   if (!currentShift) {
@@ -512,6 +514,25 @@ function tryOverwrite() {
 
 // ── Init ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // Auto-clear _done if it's from a different date (stale submission)
+  try {
+    const d = load();
+    const todayKey = getTodayKey();
+    Object.keys(d).forEach(k => {
+      if (k !== todayKey && d[k] && d[k]._done) {
+        // Keep old data but don't lock today's checklist
+      }
+    });
+    // If today's key has _done but no tasks answered, clear it (corrupt state)
+    if (d[todayKey] && d[todayKey]._done) {
+      const hasTasks = Object.keys(d[todayKey]).filter(k => k !== '_done' && k !== '_shift' && k !== '_start').length > 0;
+      if (!hasTasks) {
+        delete d[todayKey]._done;
+        save(d);
+      }
+    }
+  } catch(e) {}
+
   ['fName','fOutlet','fVerified'].forEach(id=>{
     const el=document.getElementById(id);
     if(!el) return;

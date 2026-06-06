@@ -408,6 +408,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
       <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
 <div style="position:relative;margin-left:auto;">
+        <select id="bohWeekFilter" onchange="loadBOHData()" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;outline:none;margin-right:6px;">
+          <option value="current">Current Week</option>
+          <option value="all">All Weeks</option>
+        </select>
         <button id="bohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
         <div style="display:none;position:absolute;top:34px;right:0;background:#fff;border:1.5px solid #E0DDD4;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;padding:6px;min-width:160px;">
           <div style="display:flex;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
@@ -3736,11 +3740,11 @@ function toggleEditMode(s) {
         <div style="display:flex;gap:6px;margin-top:4px;">
           <label style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;">
             📸 Take Photo
-            <input type="file" accept="image/*" capture="environment" class="edit-photo-input" data-taskkey="${taskKey}" style="display:none;">
+            <input type="file" accept="image/*" capture="environment" class="edit-photo-input" data-taskkey="${taskKey}" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
           </label>
           <label style="flex:1;padding:7px;background:#EFF6FF;color:#1A3C5E;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border:1px solid #BFDBFE;">
             🖼️ Gallery
-            <input type="file" accept="image/*" class="edit-photo-input" data-taskkey="${taskKey}" style="display:none;">
+            <input type="file" accept="image/*" class="edit-photo-input" data-taskkey="${taskKey}" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
           </label>
         </div>
         <div class="edit-photo-preview" data-taskkey="${taskKey}" style="margin-top:4px;"></div>
@@ -4100,7 +4104,8 @@ let currentBOHSub = 'all';
 function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
-  const bohWeek = getSelectedWeek();
+  const bohWeekSel = document.getElementById('bohWeekFilter')?.value || 'current';
+  const bohWeek = bohWeekSel === 'all' ? 'all' : getCurrentWeekStart();
   const bohQ = bohWeek === 'all'
     ? db.ref('submissions').orderByChild('week').limitToLast(500)
     : db.ref('submissions').orderByChild('week').equalTo(bohWeek);
@@ -4116,6 +4121,10 @@ function loadBOHData() {
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
           grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'—', week:sub.week, days:{}, overallPct:0, qualified:false };
+        }
+        // Day deduplication — use latest submission per day
+        if (sub.day && sub.day >= 1 && sub.day <= 6) {
+          grouped[gKey].days[sub.day] = sub.overallPct || 0;
         }
         if (sub.date) {
           const weekStart = new Date(sub.week);
@@ -4668,10 +4677,10 @@ function openFOHDetail(idx) {
               <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Photo</div>
               <div style="display:flex;gap:4px;">
                 <label style="flex:1;padding:5px;background:#1A3C5E;color:#fff;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;">
-                  📸 Take Photo<input type="file" accept="image/*" capture="environment" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="display:none;">
+                  📸 Take Photo<input type="file" accept="image/*" capture="environment" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
                 </label>
                 <label style="flex:1;padding:5px;background:#EFF6FF;color:#1A3C5E;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:1px solid #BFDBFE;">
-                  🖼️ Gallery<input type="file" accept="image/*" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="display:none;">
+                  🖼️ Gallery<input type="file" accept="image/*" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
                 </label>
               </div>
               ${t.photoUrl && t.photoUrl.startsWith('http') ? `<img src="${t.photoUrl}" style="max-width:100%;max-height:80px;border-radius:6px;border:2px solid #22C55E;margin-top:2px;" onerror="this.style.display='none'">` : ''}
