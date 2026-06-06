@@ -609,7 +609,7 @@ function clearAllData() {
 }
 const ROLE_LABEL = 'Line Cook';
 const SK_BASE    = 'kic_linecook_data_v2';
-const SK         = SK_BASE;
+let SK           = SK_BASE; // Updated to per-staff key once name is entered
 const ALLOW_OVERWRITE = false; // Staff cannot change after submit — overwrite via dashboard only
 // Overwrite PINs fetched from Firebase — KIC, Area Chef, Admin, Director, CEO can overwrite
 let _overwritePins = {};
@@ -1341,6 +1341,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const d = String(now.getDate()).padStart(2,'0');
     document.getElementById('fWeek').value = y + '-' + m + '-' + d;
   }
+  // Set initial SK based on saved name — MUST happen before renderDay
+  const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+
   ['fName','fOutlet','fWeek'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1348,6 +1352,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (saved) el.value = saved;
     el.addEventListener('input', () => {
       localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      // Update SK per staff name so each person has isolated storage
+      const name = document.getElementById('fName').value.trim();
+      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
       buildDayRail(); renderDay();
     });
   });
