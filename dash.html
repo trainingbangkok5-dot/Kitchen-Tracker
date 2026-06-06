@@ -2949,6 +2949,7 @@ function openAuditDetail(a) {
       });
     });
   }
+} // end openAuditDetail
 
 function deleteAuditRecord(a) {
   if (!confirm('Delete this audit record?\n\n' + (a.outlet||'') + ' — ' + (a.auditType||'') + ' — ' + (a.auditDate||'') + '\n\nThis cannot be undone.')) return;
@@ -5965,8 +5966,6 @@ function initWeeklyDates() {
   if (fromEl && !fromEl.value) fromEl.value = fmt(mon);
   if (toEl   && !toEl.value)   toEl.value   = fmt(sun);
 }
-
-} // end of module scope
 
 </script>
 
