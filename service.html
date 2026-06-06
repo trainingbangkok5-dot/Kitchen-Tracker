@@ -1107,11 +1107,19 @@ function tapYN(tid, val, el) {
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
-  // update score bar
+  // update score bar - count current shift tasks
   let t=0, y=0;
-  const shiftIdx = currentShift==='closing'?1:0;
-  const shiftSection = SECTIONS[shiftIdx];
-  if(shiftSection) shiftSection.tasks.forEach(tk=>{t++;if(getVal(1,tk.id,'yn')==='yes')y++;});
+  SECTIONS.forEach(s => {
+    if (s.oicOnly) return; // skip OIC sections
+    const isOpen = !s.oicOnly && SECTIONS.indexOf(s) === 0;
+    const isClose = !s.oicOnly && SECTIONS.indexOf(s) === 1;
+    if (currentShift === 'opening' && isClose) return;
+    if (currentShift === 'closing' && isOpen) return;
+    s.tasks.forEach(tk => {
+      t++;
+      if (getVal(currentDay, tk.id, 'yn') === 'yes') y++;
+    });
+  });
   const p=t>0?Math.round((y/t)*100):0;
   document.getElementById('scoreFill').style.width=p+'%';
   document.getElementById('scorePct').textContent=p+'%';
@@ -1265,8 +1273,10 @@ function submitDay() {
       for (let dd=1; dd<=6; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
-          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
+          const photo = getVal(dd, t.id, 'photo') || getVal(dd, t.id, 'photo_0');
+          const pUrl  = getVal(dd, t.id, 'photoUrl');
+          // Always use latest photo — prefer Cloudinary URL, fall back to local base64
+          const finalPhotoUrl = pUrl && !pUrl.startsWith('data:') ? pUrl : (photo || pUrl || '');
           if (yn || photo || pUrl) {
             tasks[`d${dd}_${t.id}`] = {
               day: dd,
@@ -1275,7 +1285,7 @@ function submitDay() {
               owner: t.ownerLbl,
               yn: yn||'',
               comment: getVal(dd, t.id, 'comment')||'',
-              photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''), // prefer firebase url, fall back to db ref
+              photoUrl: finalPhotoUrl,
             };
           }
         }));
