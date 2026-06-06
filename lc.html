@@ -40,7 +40,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .role-badge { display:inline-block; background:#2E6DA4; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
 .header h1 { color:#fff; font-size:17px; font-weight:700; }
 .header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
-.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:10px; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:7px; margin-top:10px; }
 .info-field { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:7px 10px; }
 .info-field label { display:block; font-size:9px; color:rgba(255,255,255,0.55); font-weight:700; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
 .info-field input { background:transparent; border:none; outline:none; color:#fff; font-size:13px; font-weight:500; width:100%; -webkit-appearance:none; }
@@ -163,10 +163,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <option value="The Red Door" style="color:#000">The Red Door</option>
 </optgroup>
 </select></div>
-    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
-    <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
-      <label onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;font-weight:400;user-select:none;" title="">⚙</label>
-    </div>
+    <div class="info-field"><label>📅 Today's Date</label><div id="fWeek" style="color:#fff;font-size:13px;font-weight:600;padding:2px 0;min-height:20px;">—</div></div>
+    <div class="info-field"><label>Verified by KIC</label><input id="fVerify" type="text" placeholder="KIC name..." autocomplete="off" autocapitalize="words"></div>
     </div>
   <!-- Shift selector bar -->
   <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
@@ -561,17 +559,6 @@ function getMonday(date) {
 
 
 // ── Dubai Time (UTC+4) — defined first ───────────────────────
-function getDubaiDate() {
-  const now = new Date();
-  const dubaiOffset = 4 * 60;
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (dubaiOffset * 60000));
-}
-function getDubaiDateStr() {
-  const d = getDubaiDate();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function getDubaiHour() { return getDubaiDate().getHours(); }
 // ─────────────────────────────────────────────────────────────
 function getCurrentWeekStart() {
   return getDubaiDateStr(); // Always Dubai date
@@ -582,7 +569,7 @@ function checkAutoReset() {
   if (!weekField) return;
   // Always force today's Dubai date
   const dubaiToday = getDubaiDateStr();
-  weekField.value = dubaiToday;
+  if (weekField.tagName === 'INPUT') weekField.value = dubaiToday; else weekField.textContent = dubaiToday;
   localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
   buildDayRail();
   renderDay();
@@ -719,10 +706,10 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { return document.getElementById('fWeek').value; }
+function getWeekStart() { return document.getElementById('fWeek')?.textContent?.trim() || getDubaiDateStr(); }
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
-function getVerified() { return ''; }
+function getVerified() { return (document.getElementById('fVerify')?.value||'').trim(); }
 
 // ── Day rail ──────────────────────────────────────────────────
 function buildDayRail() {} // Day rail removed — single daily submission
@@ -932,21 +919,25 @@ function renderDay() {
   document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent = pct + '%';
 
-  // 6-day scores — split by opening and closing
+
+  // Score calculation — today only (date-based key)
   let oY=0,oM=0,cY=0,cM=0;
-  for(let d=1;d<=6;d++){
-    SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
-      const v=getVal(d,t.id,'yn');
-      if(v&&v!=='na'){
-        if(si===0){oM++;if(v==='yes')oY++;}
-        else{cM++;if(v==='yes')cY++;}
+  const _todayData = load()[getTodayKey()] || {};
+  SECTIONS.forEach((s,si) => {
+    s.tasks.forEach(t => {
+      const v = _todayData[t.id]?.yn;
+      if (v && v !== 'na') {
+        if (si===0) { oM++; if(v==='yes') oY++; }
+        else        { cM++; if(v==='yes') cY++; }
       }
-    });});
-  }
-  const opO=oM>0?Math.round((oY/oM)*100):null;
-  const opC=cM>0?Math.round((cY/cM)*100):null;
+    });
+  });
+  const opO = oM>0 ? Math.round((oY/oM)*100) : null;
+  const opC = cM>0 ? Math.round((cY/cM)*100) : null;
   const tM=oM+cM, tY=oY+cY;
-  const op=tM>0?Math.round((tY/tM)*100):0, pass=op>=95;
+  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
+  const pass = op>=95;
+
 
   const sc=document.createElement('div');
   sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
@@ -954,21 +945,24 @@ function renderDay() {
     <div class="sc-icon">${tM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${tM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
-    <div class="sc-sub">6-day overall score (target: 95%)</div>
-    ${tM>0?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
-      <div style="background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌅 Opening</div>
-        <div style="font-size:18px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+    <div class="sc-sub">Today's overall score (target: 95%)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;">
+      <div style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
+        <div style="font-size:20px;font-weight:700;color:${opO===null?'#94A3B8':opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
+        <div style="font-size:9px;color:${opO===null?'#94A3B8':opO>=95?'#15803D':'#B91C1C'};margin-top:2px;">${opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌙 Closing</div>
-        <div style="font-size:18px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+      <div style="background:#F0FDF4;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌙 Closing</div>
+        <div style="font-size:20px;font-weight:700;color:${opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
+        <div style="font-size:9px;color:${opC===null?'#94A3B8':opC>=95?'#15803D':'#B91C1C'};margin-top:2px;">${opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:${pass?'#F0FDF4':'#FFF1F0'};border:2px solid ${pass?'#22C55E':'#EF4444'};border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🏆 Total</div>
-        <div style="font-size:18px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${op}%</div>
+      <div style="background:${tM===0?'#F8FAFC':pass?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM===0?'#E2E8F0':pass?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total</div>
+        <div style="font-size:20px;font-weight:700;color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${tM>0?op+'%':'—'}</div>
+        <div style="font-size:9px;color:${tM===0?'#94A3B8':pass?'#15803D':'#B91C1C'};margin-top:2px;">${tM===0?'No data':pass?'✓ Qualified':'✗ Not qualified'}</div>
       </div>
-    </div>`:''}
+    </div>
   `;
   container.appendChild(sc);
 
@@ -1160,7 +1154,7 @@ function submitDay() {
     roleLabel:    ROLE_LABEL,
     outlet:       getOutlet(),
     week:         getWeekStart(),
-    verifiedBy:   '',
+    verifiedBy:   getVerified(),
     overallPct:   op,
     openingPct:   opO,
     closingPct:   opC,
@@ -1302,18 +1296,35 @@ function removePhoto(taskId, idx) {
     setVal(currentDay, taskId, currentKey, nextVal);
     setVal(currentDay, taskId, nextKey, '');
   }
-
-window.addEventListener('DOMContentLoaded', () => {
-  checkAutoReset(); // Set Dubai date immediately
-  window._selectShiftReady = selectShift;
-  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
-
-  // Photo input listeners
-  // Photo inputs - direct label approach works on all devices
   renderDay();
 }
 
-// Robust photo input handlers — works on iOS, Android, Samsung, Huawei
+window.addEventListener('DOMContentLoaded', () => {
+  // Set Dubai date immediately — locked, auto-set, cannot be changed
+  const dubaiToday = getDubaiDateStr();
+  const weekField = document.getElementById('fWeek');
+  if (weekField) weekField.textContent = dubaiToday;
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
+
+  // Set initial SK based on saved name — MUST happen before renderDay
+  const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+
+  // Restore saved field values
+  ['fName','fOutlet','fVerify'].forEach(id => { // fWeek excluded — auto-set from Dubai time
+    const el = document.getElementById(id);
+    if (!el) return;
+    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
+    if (saved) el.value = saved;
+    el.addEventListener('input', () => {
+      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      const name = document.getElementById('fName').value.trim();
+      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
+      buildDayRail(); renderDay();
+    });
+  });
+
+  // Photo input listeners — works on iOS, Android, Samsung, Huawei
   ['camInput','galInput'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1321,56 +1332,62 @@ window.addEventListener('DOMContentLoaded', () => {
       const file = e.target.files && e.target.files[0];
       if (file) {
         handlePhotoFile(file);
-        // Reset so same photo can be re-selected
         setTimeout(() => { this.value = ''; }, 500);
       }
     });
-    // Handle cancel on iOS (focus event)
-    el.addEventListener('cancel', function() {
-      this.value = '';
-    });
+    el.addEventListener('cancel', function() { this.value = ''; });
   });
-  // Auto-set to current Monday
-  // Auto-set week to current Monday
-  if (typeof getMonday === 'function') {
-    const monday = getMonday(new Date());
-    // Format as YYYY-MM-DD for date input
-    const y = monday.getFullYear();
-    const m = String(monday.getMonth()+1).padStart(2,'0');
-    const d = String(monday.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  } else {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    now.setDate(diff);
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,'0');
-    const d = String(now.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  }
-  // Set initial SK based on saved name — MUST happen before renderDay
-  const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
-  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
 
-  ['fName','fOutlet','fWeek'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
-    if (saved) el.value = saved;
-    el.addEventListener('input', () => {
-      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
-      // Update SK per staff name so each person has isolated storage
-      const name = document.getElementById('fName').value.trim();
-      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
-      buildDayRail(); renderDay();
-    });
-  });
+  window._selectShiftReady = selectShift;
+  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
+
   buildDayRail();
+
+  // Visually lock closing button before 3pm Dubai time
+  (function() {
+    const hour = getDubaiHour();
+    const isAfter3pm = hour >= 15 || hour < 2;
+    const btnC = document.getElementById('btnCloseShift');
+    if (btnC && !isAfter3pm) {
+      const minsLeft = (15 - hour - 1) * 60 + (60 - new Date().getMinutes());
+      const h = Math.floor(minsLeft/60), m = minsLeft%60;
+      btnC.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);font-size:12px;font-weight:700;cursor:not-allowed;';
+      btnC.title = `Closing opens at 3:00 PM — ${h}h ${m}m remaining`;
+      btnC.textContent = `🌙 Closing (opens 3PM)`;
+    }
+  })();
+
   try { renderDay(); } catch(e) {
     document.getElementById('mainContent').innerHTML = '<div style="padding:20px;color:red;font-size:12px;">Error: ' + e.message + '</div>';
   }
 });
+
+// ── Midnight auto-reset (Dubai time UTC+4) ───────────────────
+function scheduleNextMidnight() {
+  const now = new Date();
+  const dubaiOffset = 4 * 60 * 60 * 1000; // UTC+4
+  const dubaiNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + dubaiOffset);
+  // Calculate ms until next Dubai midnight
+  const nextMidnight = new Date(dubaiNow);
+  nextMidnight.setHours(24, 0, 0, 0); // next midnight
+  const msUntilMidnight = nextMidnight - dubaiNow;
+  setTimeout(function() {
+    // Update date display
+    const newDate = getDubaiDateStr();
+    const wf = document.getElementById('fWeek');
+    if (wf) wf.textContent = newDate;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', newDate);
+    // Reset shift so next day starts fresh
+    currentShift = null;
+    buildDayRail();
+    try { renderDay(); } catch(e) {}
+    showToast('📅 New day started — ' + newDate, 'ok');
+    // Schedule next midnight reset
+    scheduleNextMidnight();
+  }, msUntilMidnight);
+  console.log('Next midnight reset in', Math.round(msUntilMidnight/60000), 'minutes');
+}
+scheduleNextMidnight();
 </script>
 </body>
 </html>

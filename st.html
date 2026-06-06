@@ -40,7 +40,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .role-badge { display:inline-block; background:#16A34A; color:#fff; font-size:11px; font-weight:700; letter-spacing:0.08em; padding:3px 10px; border-radius:20px; text-transform:uppercase; margin-bottom:8px; }
 .header h1 { color:#fff; font-size:17px; font-weight:700; }
 .header-sub { color:rgba(255,255,255,0.6); font-size:11px; margin-top:2px; }
-.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; margin-top:10px; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:7px; margin-top:10px; }
 .info-field { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:7px 10px; }
 .info-field label { display:block; font-size:9px; color:rgba(255,255,255,0.55); font-weight:700; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:2px; }
 .info-field input { background:transparent; border:none; outline:none; color:#fff; font-size:13px; font-weight:500; width:100%; -webkit-appearance:none; }
@@ -149,7 +149,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <option value="The Red Door" style="color:#000">The Red Door</option>
 </optgroup>
 </select></div>
-    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
+    <div class="info-field"><label>📅 Today's Date</label><div id="fWeek" style="color:#fff;font-size:13px;font-weight:600;padding:2px 0;min-height:20px;">—</div></div>
+    <div class="info-field"><label>Verified by KIC</label><input id="fVerify" type="text" placeholder="KIC name..." autocomplete="off" autocapitalize="words"></div>
     <div class="info-field" style="display:flex;align-items:center;justify-content:center;">
       <!-- Reset moved to admin dashboard -->
     </div>
@@ -522,17 +523,6 @@ function getMonday(date) {
 
 
 // ── Dubai Time (UTC+4) — defined first ───────────────────────
-function getDubaiDate() {
-  const now = new Date();
-  const dubaiOffset = 4 * 60;
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (dubaiOffset * 60000));
-}
-function getDubaiDateStr() {
-  const d = getDubaiDate();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function getDubaiHour() { return getDubaiDate().getHours(); }
 // ─────────────────────────────────────────────────────────────
 function getCurrentWeekStart() {
   return getDubaiDateStr(); // Always Dubai date
@@ -543,7 +533,7 @@ function checkAutoReset() {
   if (!weekField) return;
   // Always force today's Dubai date
   const dubaiToday = getDubaiDateStr();
-  weekField.value = dubaiToday;
+  if (weekField.tagName === 'INPUT') weekField.value = dubaiToday; else weekField.textContent = dubaiToday;
   localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
   // Set SK per staff name on load
   const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
@@ -683,10 +673,10 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { return document.getElementById('fWeek').value; }
+function getWeekStart() { return document.getElementById('fWeek')?.textContent?.trim() || getDubaiDateStr(); }
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
-function getVerified() { return ''; }
+function getVerified() { return (document.getElementById('fVerify')?.value||'').trim(); }
 
 // ── Day rail ──────────────────────────────────────────────────
 function buildDayRail() {} // Day rail removed — single daily submission
@@ -894,21 +884,22 @@ function renderDay() {
   document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent = pct + '%';
 
-  // 6-day scores — split by opening and closing
+  // Score calculation — today only (date-based key)
   let rdoY=0,rdoM=0,rdcY=0,rdcM=0;
-  for(let d=1;d<=6;d++){
-    SECTIONS.forEach((s,si)=>{s.tasks.forEach(t=>{
-      const v=getVal(d,t.id,'yn');
-      if(v&&v!=='na'){
-        if(si===0){rdoM++;if(v==='yes')rdoY++;}
-        else{rdcM++;if(v==='yes')rdcY++;}
+  const _todayData = load()[getTodayKey()] || {};
+  SECTIONS.forEach((s,si) => {
+    s.tasks.forEach(t => {
+      const v = _todayData[t.id]?.yn;
+      if (v && v !== 'na') {
+        if (si===0) { rdoM++; if(v==='yes') rdoY++; }
+        else        { rdcM++; if(v==='yes') rdcY++; }
       }
-    });});
-  }
-  const rdOpO=rdoM>0?Math.round((rdoY/rdoM)*100):null;
-  const rdOpC=rdcM>0?Math.round((rdcY/rdcM)*100):null;
+    });
+  });
+  const rdOpO = rdoM>0 ? Math.round((rdoY/rdoM)*100) : null;
+  const rdOpC = rdcM>0 ? Math.round((rdcY/rdcM)*100) : null;
   const rdTM=rdoM+rdcM, rdTY=rdoY+rdcY;
-  const rdOp=rdTM>0?Math.round((rdTY/rdTM)*100):0;
+  const rdOp = rdTM>0 ? Math.round((rdTY/rdTM)*100) : 0;
   const pass = rdOp>=95;
 
   const sc = document.createElement('div');
@@ -917,24 +908,26 @@ function renderDay() {
     <div class="sc-icon">${rdTM===0?'📋':pass?'✅':'❌'}</div>
     <div class="sc-title">${rdTM===0?'Fill your checklist':pass?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
-    <div class="sc-sub">6-day overall score (target: 95%)</div>
-    ${rdTM>0?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
-      <div style="background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌅 Opening</div>
-        <div style="font-size:18px;font-weight:700;color:${rdOpO>=95?'#15803D':rdOpO>=70?'#92400E':'#B91C1C'}">${rdOpO!==null?rdOpO+'%':'—'}</div>
+    <div class="sc-sub">Today's overall score (target: 95%)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;">
+      <div style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
+        <div style="font-size:20px;font-weight:700;color:${rdOpO===null?'#94A3B8':rdOpO>=95?'#15803D':rdOpO>=70?'#92400E':'#B91C1C'}">${rdOpO!==null?rdOpO+'%':'—'}</div>
+        <div style="font-size:9px;color:${rdOpO===null?'#94A3B8':rdOpO>=95?'#15803D':'#B91C1C'};margin-top:2px;">${rdOpO===null?'Not submitted':rdOpO>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌙 Closing</div>
-        <div style="font-size:18px;font-weight:700;color:${rdOpC>=95?'#15803D':rdOpC>=70?'#92400E':'#B91C1C'}">${rdOpC!==null?rdOpC+'%':'—'}</div>
+      <div style="background:#F0FDF4;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌙 Closing</div>
+        <div style="font-size:20px;font-weight:700;color:${rdOpC===null?'#94A3B8':rdOpC>=95?'#15803D':rdOpC>=70?'#92400E':'#B91C1C'}">${rdOpC!==null?rdOpC+'%':'—'}</div>
+        <div style="font-size:9px;color:${rdOpC===null?'#94A3B8':rdOpC>=95?'#15803D':'#B91C1C'};margin-top:2px;">${rdOpC===null?'Not submitted':rdOpC>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:${rdOp>=95?'#F0FDF4':'#FFF1F0'};border:2px solid ${rdOp>=95?'#22C55E':'#EF4444'};border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🏆 Total</div>
-        <div style="font-size:18px;font-weight:700;color:${rdOp>=95?'#15803D':'#B91C1C'}">${rdOp}%</div>
+      <div style="background:${rdTM===0?'#F8FAFC':pass?'#F0FDF4':'#FFF1F0'};border:2px solid ${rdTM===0?'#E2E8F0':pass?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total</div>
+        <div style="font-size:20px;font-weight:700;color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'}">${rdTM>0?rdOp+'%':'—'}</div>
+        <div style="font-size:9px;color:${rdTM===0?'#94A3B8':pass?'#15803D':'#B91C1C'};margin-top:2px;">${rdTM===0?'No data':pass?'✓ Qualified':'✗ Not qualified'}</div>
       </div>
-    </div>`:''}
+    </div>
   `;
   container.appendChild(sc);
-
   // Submit closing button
   if (currentShift === 'closing') {
     const btn = document.createElement('button');
@@ -1101,7 +1094,7 @@ function submitDay() {
     roleLabel:  ROLE_LABEL,
     outlet:     getOutlet(),
     week:       getWeekStart(),
-    verifiedBy: '',
+    verifiedBy: getVerified(),
     overallPct:   op,
     openingPct:   opO,
     closingPct:   opC,
@@ -1238,7 +1231,6 @@ function handlePhotoFile(file) {
     }
   });
 }
-// Photo input listeners moved to DOMContentLoaded
 
 // ── Persist info fields ───────────────────────────────────────
 function removePhoto(taskId, idx) {
@@ -1253,19 +1245,36 @@ function removePhoto(taskId, idx) {
     setVal(currentDay, taskId, currentKey, nextVal);
     setVal(currentDay, taskId, nextKey, '');
   }
-
-window.addEventListener('DOMContentLoaded', () => {
-  checkAutoReset(); // Set Dubai date immediately
-  // Handle any shift tap that happened before script loaded
-  window._selectShiftReady = selectShift;
-  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
-
-  // Photo input listeners
-  // Photo inputs - direct label approach works on all devices
   renderDay();
 }
 
-['camInput','galInput'].forEach(id => {
+window.addEventListener('DOMContentLoaded', () => {
+  // Set Dubai date immediately — locked, auto-set, cannot be changed
+  const dubaiToday = getDubaiDateStr();
+  const weekField = document.getElementById('fWeek');
+  if (weekField) weekField.textContent = dubaiToday;
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
+
+  // Set initial SK based on saved name — MUST happen before renderDay
+  const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+
+  // Restore saved field values
+  ['fName','fOutlet','fVerify'].forEach(id => { // fWeek excluded — auto-set from Dubai time
+    const el = document.getElementById(id);
+    if (!el) return;
+    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
+    if (saved) el.value = saved;
+    el.addEventListener('input', () => {
+      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      const name = document.getElementById('fName').value.trim();
+      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
+      buildDayRail(); renderDay();
+    });
+  });
+
+  // Photo input listeners — works on iOS, Android, Samsung, Huawei
+  ['camInput','galInput'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', function(e) {
@@ -1277,41 +1286,58 @@ window.addEventListener('DOMContentLoaded', () => {
     });
     el.addEventListener('cancel', function() { this.value = ''; });
   });
-  // Auto-set to current Monday
-  // Auto-set week to current Monday
-  if (typeof getMonday === 'function') {
-    const monday = getMonday(new Date());
-    // Format as YYYY-MM-DD for date input
-    const y = monday.getFullYear();
-    const m = String(monday.getMonth()+1).padStart(2,'0');
-    const d = String(monday.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  } else {
-    const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    now.setDate(diff);
-    const y = now.getFullYear();
-    const m = String(now.getMonth()+1).padStart(2,'0');
-    const d = String(now.getDate()).padStart(2,'0');
-    document.getElementById('fWeek').value = y + '-' + m + '-' + d;
-  }
-  ['fName','fOutlet','fWeek'].forEach(id => {
-    const el = document.getElementById(id);
-    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
-    if (saved) el.value = saved;
-    el.addEventListener('input', () => {
-      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
-      const name = document.getElementById('fName').value.trim();
-      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
-      buildDayRail(); renderDay();
-    });
-  });
+
+  // Handle any shift tap that happened before script loaded
+  window._selectShiftReady = selectShift;
+  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
+
   buildDayRail();
-  try { renderDay(); } catch(e) { 
+
+  // Visually lock closing button before 3pm Dubai time
+  (function() {
+    const hour = getDubaiHour();
+    const isAfter3pm = hour >= 15 || hour < 2;
+    const btnC = document.getElementById('btnCloseShift');
+    if (btnC && !isAfter3pm) {
+      const minsLeft = (15 - hour - 1) * 60 + (60 - new Date().getMinutes());
+      const h = Math.floor(minsLeft/60), m = minsLeft%60;
+      btnC.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);font-size:12px;font-weight:700;cursor:not-allowed;';
+      btnC.title = `Closing opens at 3:00 PM — ${h}h ${m}m remaining`;
+      btnC.textContent = `🌙 Closing (opens 3PM)`;
+    }
+  })();
+
+  try { renderDay(); } catch(e) {
     document.getElementById('mainContent').innerHTML = '<div style="padding:20px;color:red;font-size:12px;background:#fff;">Error: ' + e.message + '<br>' + e.stack + '</div>';
   }
 });
+
+// ── Midnight auto-reset (Dubai time UTC+4) ───────────────────
+function scheduleNextMidnight() {
+  const now = new Date();
+  const dubaiOffset = 4 * 60 * 60 * 1000; // UTC+4
+  const dubaiNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + dubaiOffset);
+  // Calculate ms until next Dubai midnight
+  const nextMidnight = new Date(dubaiNow);
+  nextMidnight.setHours(24, 0, 0, 0); // next midnight
+  const msUntilMidnight = nextMidnight - dubaiNow;
+  setTimeout(function() {
+    // Update date display
+    const newDate = getDubaiDateStr();
+    const wf = document.getElementById('fWeek');
+    if (wf) wf.textContent = newDate;
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', newDate);
+    // Reset shift so next day starts fresh
+    currentShift = null;
+    buildDayRail();
+    try { renderDay(); } catch(e) {}
+    showToast('📅 New day started — ' + newDate, 'ok');
+    // Schedule next midnight reset
+    scheduleNextMidnight();
+  }, msUntilMidnight);
+  console.log('Next midnight reset in', Math.round(msUntilMidnight/60000), 'minutes');
+}
+scheduleNextMidnight();
 </script>
 </body>
 </html>
