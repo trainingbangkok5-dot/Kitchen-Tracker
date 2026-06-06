@@ -162,7 +162,8 @@ const CLOUDINARY_CLOUD  = 'db94rgiil';
 const CLOUDINARY_PRESET = 'culex_uploads';
 const ROLE       = 'delco';
 const ROLE_LABEL = 'Del.Co';
-const SK         = 'kic_delco_data_v2';
+const SK_BASE         = 'kic_delco_data_v2'
+let SK           = SK_BASE;
 const ALLOW_OVERWRITE = false;
 
 const SECTIONS = [
@@ -573,9 +574,14 @@ window.addEventListener('DOMContentLoaded', () => {
     if(saved) el.value=saved;
     el.addEventListener('input',()=>{
       localStorage.setItem('delco_info_'+id, el.value);
+      const name = document.getElementById('fName').value.trim();
+      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
       renderDay();
     });
   });
+  // Set SK per staff name on load
+  const savedName = localStorage.getItem('delco_info_fName') || '';
+  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   renderDay();
 });
 </script>

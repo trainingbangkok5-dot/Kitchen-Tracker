@@ -569,6 +569,10 @@ function checkAutoReset() {
   const dubaiToday = getDubaiDateStr();
   weekField.value = dubaiToday;
   localStorage.setItem('kic_info_kic_fWeek', dubaiToday);
+  // Set SK per staff name on load
+  const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+
   buildDayRail();
   renderDay();
 }
@@ -587,7 +591,8 @@ function clearAllData() {
   buildDayRail(); renderDay();
 }
 const ROLE_LABEL = 'KIC';
-const SK         = 'kic_kic_data_v2';
+const SK_BASE         = 'kic_kic_data_v2'
+let SK           = SK_BASE;;
 const ALLOW_OVERWRITE = false; // Lock after submit — overwrite via dashboard only
 let _overwritePins = {};
 function loadOverwritePins() {

@@ -578,6 +578,10 @@ function checkAutoReset() {
   const dubaiToday = getDubaiDateStr();
   weekField.value = dubaiToday;
   localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
+  // Set SK per staff name on load
+  const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+
   buildDayRail();
   renderDay();
 }
@@ -818,6 +822,8 @@ function renderDay() {
 
     // Opening shift: only show opening tasks
     if (currentShift === 'opening' && isCloseSection) return;
+    // Closing shift: only show closing tasks
+    if (currentShift === 'closing' && isOpenSection) return;
     // OIC sections always accessible when unlocked
 
     // OIC sections — filled by OIC from Master Dashboard only
@@ -1420,6 +1426,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (saved) el.value = saved;
     el.addEventListener('input', () => {
       localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      const name = document.getElementById('fName').value.trim();
+      SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
       buildDayRail(); renderDay();
     });
   });
