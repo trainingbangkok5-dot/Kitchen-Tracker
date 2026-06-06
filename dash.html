@@ -4504,7 +4504,7 @@ function loadBOHData() {
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
       });
       allBOHData = Object.values(grouped);
-      allBOHData.sort((a,b) => b.overallPct - a.overallPct);
+      allBOHData.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
     }
     document.getElementById('bohStatus').textContent = '✅ ' + allBOHData.length + ' records';
     renderBOHStaff();
@@ -4780,7 +4780,7 @@ function loadFOHData() {
       }
       // Admin, Director, CEO, Operations see everything
       allFOHData = fohRaw;
-      allFOHData.sort((a,b) => b.overallPct - a.overallPct);
+      allFOHData.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
     }
     document.getElementById('fohStatus').textContent = '✅ ' + allFOHData.length + ' records';
     renderFOHStaff();
@@ -4832,6 +4832,7 @@ function renderFOHStaff() {
   const scoreBg = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
 
   _fohFiltered = filtered;
+  filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
   filtered.forEach(staff => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
