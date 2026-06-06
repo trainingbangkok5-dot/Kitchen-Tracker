@@ -425,8 +425,8 @@ function renderAudit() {
     const tr = tbody.insertRow();
     tr.innerHTML =
       '<td><input class="outlet-input" placeholder="Outlet name..." value="' + r.outlet + '" oninput="auditData[' + i + '].outlet=this.value" style="width:100%"></td>' +
-      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="10" step="0.1" placeholder="0" value="' + r.score + '" oninput="auditData[' + i + '].score=this.value;calcAuditAvg()" style="width:80px;font-size:13px"></td>' +
-      '<td style="text-align:center;color:#64748B">10</td>';
+      '<td style="text-align:center"><input class="si-sm" type="number" min="0" max="100" step="0.5" placeholder="0–100" value="' + r.score + '" oninput="auditData[' + i + '].score=this.value;calcAuditAvg()" style="width:80px;font-size:13px"></td>' +
+      '<td style="text-align:center;color:#64748B">100</td>';
   });
   calcAuditAvg();
 }
