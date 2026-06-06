@@ -4728,6 +4728,70 @@ function openFOHDetail(idx) {
       html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
     });
 
+    // Add OIC evaluation section for service role
+    if (staff.role === 'service') {
+      const oicEvalTasks = [
+        {id:'u1', section:'💰 Upselling', text:'Monthly Sales target achieved and the staff with highest Sales will also be rewarded'},
+        {id:'s1', section:'⭐ Service Standards', text:'Customer interaction'},
+        {id:'s2', section:'⭐ Service Standards', text:'Sequence of service'},
+        {id:'s3', section:'⭐ Service Standards', text:'Service awareness'},
+        {id:'f1', section:'📝 Customer Feedback & Performance', text:'Complaints'},
+        {id:'f2', section:'📝 Customer Feedback & Performance', text:'Grooming (hair neatly tied and wearing make up)'},
+        {id:'t1', section:'🤝 Team Player & Professionalism', text:'Be a team player with OIC and teammates'},
+        {id:'t2', section:'🤝 Team Player & Professionalism', text:'Helpful attitude'},
+        {id:'t3', section:'🤝 Team Player & Professionalism', text:'Follow instruction'},
+        {id:'t4', section:'🤝 Team Player & Professionalism', text:'Attendance'},
+      ];
+      // Group by section
+      const oicBySec = {};
+      oicEvalTasks.forEach(t => {
+        // Check if already in taskData
+        const existing = subs.reduce((found, sub) => {
+          if (found) return found;
+          if (sub.taskData) {
+            const k = Object.keys(sub.taskData).find(k => k===t.id||k.endsWith('_'+t.id)||k.startsWith(t.id+'_'));
+            return k ? {key:k, task:sub.taskData[k]} : null;
+          }
+          return null;
+        }, null);
+        const yn = existing?.task?.yn || '';
+        const comment = existing?.task?.comment || '';
+        const taskKey = existing?.key || t.id;
+        if (!oicBySec[t.section]) oicBySec[t.section] = [];
+        oicBySec[t.section].push({...t, yn, comment, taskKey});
+      });
+
+      html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Evaluation</div>';
+      Object.entries(oicBySec).forEach(([sec, tasks]) => {
+        html += `<div style="background:#C4533A;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${sec}</div>`;
+        tasks.forEach((t, ti) => {
+          const yn = t.yn;
+          const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+          const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+          const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+          const isLast = ti === tasks.length-1;
+          html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
+            <div style="flex:1;">
+              <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FCE7F3;color:#9D174D;">OIC Only</span>
+              <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.text}</div>
+              ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
+            </div>
+            <div class="foh-yn-display" style="flex-shrink:0;">
+              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+            </div>
+            <div class="foh-yn-edit" style="display:none;flex-direction:column;gap:6px;flex-shrink:0;min-width:200px;">
+              <div style="display:flex;gap:4px;">
+                <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
+                <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
+                <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
+              </div>
+              <textarea data-fohtaskkey="${t.taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
+            </div>
+          </div>`;
+        });
+      });
+    }
+
     html += `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:8px;">Role: ${roleLabels[staff.role]||staff.role} • Outlet: ${staff.outlet}</div>`;
     document.getElementById('fohChecklistArea').innerHTML = html;
 
@@ -4899,22 +4963,35 @@ async function saveFOHOverwrite(staff) {
   snap.forEach(child => {
     const sub = child.val();
     if (sub.role !== staff.role || sub.week !== staff.week) return;
-    // Apply yn changes to matching task keys
+    // Apply yn changes — also allow adding new OIC tasks not in original submission
+    const oicIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
     Object.entries(_fohEditChanges).forEach(([taskKey, changes]) => {
-      if (sub.taskData && sub.taskData[taskKey] !== undefined) {
+      const isOicTask = oicIds.some(id => taskKey === id || taskKey.endsWith('_'+id) || taskKey.startsWith(id+'_'));
+      // Allow if task exists OR if it's an OIC evaluation task
+      if (sub.taskData && (sub.taskData[taskKey] !== undefined || isOicTask)) {
         const yn = typeof changes === 'string' ? changes : changes.yn;
         if (yn) updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
         if (changes && changes.photoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/photoUrl'] = changes.photoUrl;
+        // Also store task metadata for new OIC tasks
+        if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
+          updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = 'OIC Evaluation';
+          updates['submissions/' + child.key + '/taskData/' + taskKey + '/owner'] = 'OIC Only';
+          updates['submissions/' + child.key + '/taskData/' + taskKey + '/day'] = sub.day || 1;
+        }
       }
     });
     // Recalculate score for this submission
     if (sub.taskData) {
       const updatedTasks = {...sub.taskData};
       Object.entries(_fohEditChanges).forEach(([k, changes]) => {
+        const yn = typeof changes === 'string' ? changes : changes.yn;
+        if (!yn) return;
         if (updatedTasks[k]) {
-          const yn = typeof changes === 'string' ? changes : changes.yn;
-          if (yn) updatedTasks[k] = {...updatedTasks[k], yn};
+          updatedTasks[k] = {...updatedTasks[k], yn};
+        } else {
+          // New OIC task not in original submission
+          updatedTasks[k] = {yn, section:'OIC Evaluation', owner:'OIC Only', day: sub.day||1, _key: k};
         }
       });
       // Calculate opening, closing, oic scores separately
