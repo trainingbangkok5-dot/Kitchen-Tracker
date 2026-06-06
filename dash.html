@@ -1315,6 +1315,7 @@ function showTab(el,id) {
   el.classList.add('active');
   document.getElementById('page-'+id).classList.add('active');
   if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
+  if (id === 'monthly') { renderMonthly(); }
   if (id === 'registry') { renderRegistry(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
@@ -1481,9 +1482,9 @@ function renderMonthly() {
   }
 
   // ── Get selected month/week from filter ──────────────────────
-  const selectedWeek   = document.getElementById('fWeek')?.value   || '';
-  const selectedOutlet = document.getElementById('fOutlet')?.value || '';
-  const selectedRole   = document.getElementById('fRole')?.value   || '';
+  const selectedWeek   = document.getElementById('mWeek')?.value   || '';
+  const selectedOutlet = document.getElementById('mOutlet')?.value || '';
+  const selectedRole   = document.getElementById('mRole')?.value   || '';
 
   // Filter staff
   let filtered = allStaff.filter(s => {
@@ -1830,7 +1831,8 @@ function openMonthlyDetail(staffName, allSubs) {
     document.querySelectorAll('#detailBody img[data-dbref]').forEach(img => {
       dbRef.ref('photos/' + img.dataset.dbref).once('value').then(snap => {
         if (snap.val()) { img.src = snap.val(); img.style.display = ''; }
-      }).catch(()=>{});
+        else { img.remove(); }
+      }).catch(()=>{ img.remove(); });
     });
   }
 
@@ -1952,7 +1954,8 @@ function openWeeklyDetail(staffName, week) {
     document.querySelectorAll('#detailBody img[data-dbref]').forEach(img => {
       dbRef.ref('photos/' + img.dataset.dbref).once('value').then(snap => {
         if (snap.val()) { img.src = snap.val(); img.style.display = ''; }
-      }).catch(()=>{});
+        else { img.remove(); }
+      }).catch(()=>{ img.remove(); });
     });
   }
 
@@ -5213,7 +5216,8 @@ function openFOHDetail(idx) {
       fohDb.ref('photos/' + ref).once('value').then(snap => {
         const dataUrl = snap.val();
         if (dataUrl && dataUrl.startsWith('data:')) { img.src = dataUrl; img.style.display = ''; }
-      }).catch(()=>{});
+        else { img.remove(); }
+      }).catch(()=>{ img.remove(); });
     });
   }).catch(e => {
     document.getElementById('fohChecklistArea').innerHTML = `<div style="text-align:center;padding:16px;color:#B91C1C;font-size:13px;">Error loading checklist: ${e.message}</div>`;

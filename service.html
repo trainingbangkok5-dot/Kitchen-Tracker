@@ -832,12 +832,84 @@ function renderDay() {
     if (isOicSection && !oicPanelAdded) {
       oicPanelAdded = true;
       const oicPanel = document.createElement('div');
-      oicPanel.style.cssText = 'margin:16px 16px 8px;padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;';
-      oicPanel.innerHTML = '<div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑‍💼 OIC Evaluation</div><div style="font-size:12px;color:#64748B;">This section is filled by the OIC from the<br><strong>Master Dashboard</strong> after you submit.</div>';
-      container.appendChild(oicPanel);
+      oicPanel.id = 'oicEvalPanel';
+      oicPanel.style.cssText = 'margin:16px 0 8px;';
+      // Build OIC tasks list from all oicOnly sections
+      const allOicTasks = SECTIONS.filter(s => s.oicOnly).flatMap(s => s.tasks.map(t => ({...t, sectionTitle: s.title})));
+      // Try to load OIC evaluation from Firebase
+      const staffName = getStaffName();
+      const todayDate = getDubaiDateStr();
+      if (staffName && _db) {
+        oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;font-size:12px;color:#64748B;">⏳ Loading OIC evaluation...</div>';
+        container.appendChild(oicPanel);
+        // Fetch from Firebase
+        const shiftSuffix = '_opening'; // check both shifts
+        const keyBase = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
+        const fetchOIC = async () => {
+          try {
+            const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(10).once('value');
+            let oicTasks = {};
+            if (snap.exists()) {
+              snap.forEach(child => {
+                const sub = child.val();
+                if (sub.role !== ROLE) return;
+                if (sub.taskData) {
+                  const oicIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+                  Object.entries(sub.taskData).forEach(([k, v]) => {
+                    if (oicIds.some(id => k === id || k.endsWith('_'+id))) {
+                      const id = k.replace(/^d\d+_/, '');
+                      if (v && v.yn) oicTasks[id] = v;
+                    }
+                  });
+                }
+              });
+            }
+            const hasOIC = Object.keys(oicTasks).length > 0;
+            let panelHtml = '';
+            if (!hasOIC) {
+              panelHtml = `<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;">
+                <div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑‍💼 OIC Evaluation</div>
+                <div style="font-size:12px;color:#64748B;">This section is filled by the OIC from the<br><strong>Master Dashboard</strong> after you submit.</div>
+              </div>`;
+            } else {
+              let oicY = 0, oicT = 0;
+              panelHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;border-radius:10px 10px 0 0;">🧑‍💼 OIC Evaluation Results</div>';
+              let lastSection = '';
+              allOicTasks.forEach(t => {
+                const v = oicTasks[t.id] || {};
+                const yn = v.yn || '';
+                if (yn && yn !== 'na') { oicT++; if (yn === 'yes') oicY++; }
+                if (t.sectionTitle !== lastSection) {
+                  lastSection = t.sectionTitle;
+                  panelHtml += `<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.sectionTitle}</div>`;
+                }
+                const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+                const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+                const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'— N/A':'—';
+                panelHtml += `<div style="background:#fff;padding:10px 14px;border-bottom:.5px solid #E2E8F0;display:flex;align-items:center;gap:10px;">
+                  <div style="flex:1;font-size:12px;font-weight:500;">${t.text}</div>
+                  <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+                </div>`;
+              });
+              const oicPct = oicT > 0 ? Math.round((oicY/oicT)*100) : 0;
+              panelHtml += `<div style="background:#fff;padding:10px 14px;border-radius:0 0 10px 10px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;font-weight:600;color:#475569;">OIC Score</span>
+                <span style="font-size:16px;font-weight:700;color:${oicPct>=95?'#15803D':'#B91C1C'};">${oicPct}%</span>
+              </div>`;
+            }
+            oicPanel.innerHTML = panelHtml;
+          } catch(e) {
+            oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;font-size:12px;color:#64748B;">🧑‍💼 OIC Evaluation — filled by OIC from Master Dashboard</div>';
+          }
+        };
+        fetchOIC();
+      } else {
+        oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;"><div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑‍💼 OIC Evaluation</div><div style="font-size:12px;color:#64748B;">Submit your checklist first, then the OIC will evaluate your performance from the Master Dashboard.</div></div>';
+        container.appendChild(oicPanel);
+      }
     }
 
-    // Skip OIC sections — dashboard only
+    // Skip OIC sections — shown via panel above, not as individual task cards
     if (isOicSection) return;
 
     const hdr = document.createElement('div');
@@ -1385,14 +1457,7 @@ function handlePhotoFile(file) {
 // Photo input listeners moved to DOMContentLoaded
 
 // ── Persist info fields ───────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  checkAutoReset(); // Set Dubai date immediately
-  window._selectShiftReady = selectShift;
-  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
-
-  // Photo input listeners
-  // Photo inputs - direct label approach works on all devices
-  function removePhoto(taskId, idx) {
+function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
   const key = idx === 0 ? 'photo' : 'photo_' + idx;
   setVal(currentDay, taskId, key, '');
@@ -1404,6 +1469,14 @@ window.addEventListener('DOMContentLoaded', () => {
     setVal(currentDay, taskId, currentKey, nextVal);
     setVal(currentDay, taskId, nextKey, '');
   }
+
+window.addEventListener('DOMContentLoaded', () => {
+  checkAutoReset(); // Set Dubai date immediately
+  window._selectShiftReady = selectShift;
+  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
+
+  // Photo input listeners
+  // Photo inputs - direct label approach works on all devices
   renderDay();
 }
 

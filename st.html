@@ -1241,15 +1241,7 @@ function handlePhotoFile(file) {
 // Photo input listeners moved to DOMContentLoaded
 
 // ── Persist info fields ───────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  checkAutoReset(); // Set Dubai date immediately
-  // Handle any shift tap that happened before script loaded
-  window._selectShiftReady = selectShift;
-  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
-
-  // Photo input listeners
-  // Photo inputs - direct label approach works on all devices
-  function removePhoto(taskId, idx) {
+function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
   const key = idx === 0 ? 'photo' : 'photo_' + idx;
   setVal(currentDay, taskId, key, '');
@@ -1261,6 +1253,15 @@ window.addEventListener('DOMContentLoaded', () => {
     setVal(currentDay, taskId, currentKey, nextVal);
     setVal(currentDay, taskId, nextKey, '');
   }
+
+window.addEventListener('DOMContentLoaded', () => {
+  checkAutoReset(); // Set Dubai date immediately
+  // Handle any shift tap that happened before script loaded
+  window._selectShiftReady = selectShift;
+  if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }
+
+  // Photo input listeners
+  // Photo inputs - direct label approach works on all devices
   renderDay();
 }
 
