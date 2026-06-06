@@ -967,24 +967,39 @@ function submitAuditToDashboard() {
         items: secItems
       });
     });
-    // Compress photos before pushing to Firebase
-    async function pushWithCompressedPhotos() {
-      // Compress sectionBreakdown photos
+    // Push photos separately to Firebase, store keys in items
+    async function pushWithPhotos() {
+      const auditKey = outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+
+      // Store photos separately — strip from sectionBreakdown to keep record small
+      const photoUploads = [];
       for (const sec of sectionBreakdown) {
         for (const it of sec.items) {
           if (it.photos && it.photos.length > 0) {
-            it.photos = await Promise.all(it.photos.map(p => compressPhoto(p, 800, 0.7)));
+            const photoKeys = [];
+            for (let pi = 0; pi < it.photos.length; pi++) {
+              const compressed = await compressPhoto(it.photos[pi], 600, 0.65);
+              const photoKey = auditKey + '_' + sec.id + '_' + it.n + '_' + pi;
+              photoUploads.push({key: photoKey, data: compressed});
+              photoKeys.push(photoKey);
+            }
+            it.photoKeys = photoKeys; // store references
+            it.photos = [];           // don't embed in main record
           }
         }
       }
-      // Compress top-level photos
-      const compPhotos = {};
-      for (const [k,v] of Object.entries(photos)) {
-        compPhotos[k] = await compressPhoto(v, 800, 0.7);
-      }
-      pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), photos:compPhotos, correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+
+      // Push main audit record (no embedded photos — keeps it small)
+      pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+
+      // Push each photo separately
+      photoUploads.forEach(({key, data}) => {
+        try {
+          _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e));
+        } catch(e) { console.warn('Photo push error:', e); }
+      });
     }
-    pushWithCompressedPhotos();
+    pushWithPhotos();
     showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
     console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
   } catch(e) {

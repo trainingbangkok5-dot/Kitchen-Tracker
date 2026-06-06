@@ -2891,11 +2891,14 @@ function openAuditDetail(a) {
                 ${it.status==='fail' && it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:4px;background:#FEF2F2;padding:4px 8px;border-radius:6px;font-weight:600;">🔧 <strong>Corrective Action:</strong> ${it.correctiveAction}</div>`:''}
                 <!-- Responsible + Deadline -->
                 ${it.status==='fail' && (it.responsible||it.deadline)?`<div style="font-size:11px;color:#6B6B60;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">${it.responsible?`<span>👤 <strong>Responsible:</strong> ${it.responsible}</span>`:''} ${it.deadline?`<span>📅 <strong>Deadline:</strong> ${it.deadline}</span>`:''}</div>`:''}
-                <!-- Inline photos — from item.photos (new submissions) -->
-                ${(it.photos && it.photos.length>0) ? `
+                <!-- Inline photos — loaded from Firebase by photoKeys -->
+                ${(it.photoKeys && it.photoKeys.length>0) ? `
+                  <div id="photos-${s.id}-${it.n}" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+                    ${it.photoKeys.map(k=>`<div style="width:88px;height:88px;background:#F0EDE4;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;">⏳</div>`).join('')}
+                  </div>` : (it.photos && it.photos.length>0 ? `
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                    ${it.photos.map(url=>`<img src="${url}" style="width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${it.status==='fail'?'#FECACA':'#BBF7D0'};cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1);" onclick="this.style.cssText=this.style.width==='88px'?'width:100%;height:auto;border-radius:8px;border:2px solid #22C55E;cursor:pointer;margin-top:4px;':'width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${it.status==='fail'?'#FECACA':'#BBF7D0'};cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1);'" onerror="this.style.display='none'">`).join('')}
-                  </div>` : ''}
+                    ${it.photos.map(url=>`<img src="${url}" style="width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${it.status==='fail'?'#FECACA':'#BBF7D0'};cursor:pointer;" onclick="this.style.cssText=this.style.width==='88px'?'width:100%;height:auto;border-radius:8px;cursor:pointer;':'width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${it.status==='fail'?'#FECACA':'#BBF7D0'};cursor:pointer;'" onerror="this.style.display='none'">`).join('')}
+                  </div>` : '')}
               </div>
               <!-- Status badge -->
               <div style="flex-shrink:0;text-align:right;">
@@ -2915,7 +2918,37 @@ function openAuditDetail(a) {
     ${photosHtml}`;
 
   document.getElementById('detailModal').classList.add('open');
-}
+
+  // Load photos from Firebase for each item
+  if (db && a.sectionBreakdown) {
+    a.sectionBreakdown.forEach(s => {
+      (s.items||[]).forEach(it => {
+        if (it.photoKeys && it.photoKeys.length > 0) {
+          const container = document.getElementById('photos-'+s.id+'-'+it.n);
+          if (!container) return;
+          container.innerHTML = '';
+          it.photoKeys.forEach(key => {
+            db.ref('auditPhotos/' + key).once('value').then(snap => {
+              const url = snap.val();
+              if (url) {
+                const img = document.createElement('img');
+                img.src = url;
+                const borderCol = it.status==='fail'?'#FECACA':'#BBF7D0';
+                img.style.cssText = `width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${borderCol};cursor:pointer;`;
+                img.onclick = function() {
+                  this.style.cssText = this.style.width==='88px'
+                    ? `width:100%;height:auto;border-radius:8px;cursor:pointer;margin-top:4px;`
+                    : `width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${borderCol};cursor:pointer;`;
+                };
+                img.onerror = function() { this.style.display='none'; };
+                container.appendChild(img);
+              }
+            }).catch(e => console.warn('Photo load error:', key, e));
+          });
+        }
+      });
+    });
+  }
 
 function deleteAuditRecord(a) {
   if (!confirm('Delete this audit record?\n\n' + (a.outlet||'') + ' — ' + (a.auditType||'') + ' — ' + (a.auditDate||'') + '\n\nThis cannot be undone.')) return;
@@ -2931,8 +2964,31 @@ function deleteAuditRecord(a) {
 
 function exportAuditPDF(a) {
   if (typeof window.jspdf === 'undefined') { showToast('PDF library not loaded', '#c62828'); return; }
-  showToast('⏳ Generating PDF...', '#1A3C5E');
-  setTimeout(() => {
+  showToast('⏳ Loading photos & generating PDF...', '#1A3C5E');
+
+  // Load all photos from Firebase first, then generate PDF
+  async function loadPhotosAndExport() {
+    if (db && a.sectionBreakdown) {
+      for (const sec of a.sectionBreakdown) {
+        for (const it of (sec.items||[])) {
+          if (it.photoKeys && it.photoKeys.length > 0) {
+            it.photos = [];
+            for (const key of it.photoKeys) {
+              try {
+                const snap = await db.ref('auditPhotos/' + key).once('value');
+                if (snap.val()) it.photos.push(snap.val());
+              } catch(e) { console.warn('PDF photo load error:', key); }
+            }
+          }
+        }
+      }
+    }
+    generateAuditPDF(a);
+  }
+  loadPhotosAndExport();
+}
+
+function generateAuditPDF(a) {
   try {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
@@ -3177,8 +3233,7 @@ function exportAuditPDF(a) {
   doc.save(fn);
   showToast('📄 PDF saved: '+fn, '#15803D');
   } catch(e) { showToast('PDF error: '+e.message, '#c62828'); console.error(e); }
-  }, 100);
-}
+} // end generateAuditPDF
 
 
 // ── Close modal ───────────────────────────────────────────────
@@ -5910,6 +5965,8 @@ function initWeeklyDates() {
   if (fromEl && !fromEl.value) fromEl.value = fmt(mon);
   if (toEl   && !toEl.value)   toEl.value   = fmt(sun);
 }
+
+} // end of module scope
 
 </script>
 
