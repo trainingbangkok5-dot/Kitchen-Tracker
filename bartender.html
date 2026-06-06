@@ -425,7 +425,8 @@ function renderDay() {
 
 function tapYN(tid, val, el) {
   const data=load(), dayKey=getTodayKey();
-  if((data[dayKey]?._done)&&!ALLOW_OVERWRITE){ showToast('Already submitted — use overwrite to edit 🔒','error'); return; }
+  const _tapDone = data[dayKey]?._done;
+  if(_tapDone && getDubaiDateStr()===_tapDone.substring(0,10) && !ALLOW_OVERWRITE){ showToast('Already submitted — use overwrite to edit 🔒','error'); return; }
   setVal(currentDay,tid,'yn',val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');

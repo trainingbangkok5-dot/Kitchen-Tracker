@@ -488,7 +488,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="fohSubDelco" onclick="setFOHSub('delco')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🚚 Del.Co</button>
       <button id="fohSubBartender" onclick="setFOHSub('bartender')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍹 Bartender</button>
       <div style="position:relative;margin-left:auto;">
-        <button id="fohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
+        <select id="fohWeekFilter" onchange="loadFOHData()" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;outline:none;margin-right:6px;">
+          <option value="current">Current Week</option>
+          <option value="all">All Weeks</option>
+        </select>
+        <button id="fohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'"  style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
         <div style="display:none;position:absolute;top:34px;right:0;background:#fff;border:1.5px solid #E0DDD4;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;padding:6px;min-width:160px;">
           <div style="display:flex;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
             <span style="font-size:10px;font-weight:700;color:#64748B;">SELECT OUTLETS</span>
@@ -4321,7 +4325,8 @@ function loadFOHData() {
     return;
   }
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
-  const fohWeek = getSelectedWeek();
+  const fohWeekSel = document.getElementById('fohWeekFilter')?.value || 'current';
+  const fohWeek = fohWeekSel === 'all' ? 'all' : getCurrentWeekStart();
   const fohQ = fohWeek === 'all'
     ? fohDb.ref('submissions').orderByChild('week').limitToLast(500)
     : fohDb.ref('submissions').orderByChild('week').equalTo(fohWeek);
@@ -4657,11 +4662,13 @@ function openFOHDetail(idx) {
               ${t.owner ? `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;${ownerStyle};white-space:nowrap;">${t.owner}</span>` : ''}
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.task || t.text || '—'}</div>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
+              <div class="foh-photo-display">
               ${t.photoUrl
                 ? t.photoUrl.startsWith('db:')
                   ? `<img data-fohdbref="${t.photoUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;display:none;" onerror="this.style.display='none'">`
                   : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
                 : ''}
+              </div>
             </div>
             <div class="foh-yn-display" style="flex-shrink:0;">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
@@ -4824,6 +4831,7 @@ function toggleFOHEditMode() {
 
   // Show yn edit buttons, hide display badges
   area.querySelectorAll('.foh-yn-display').forEach(el => el.style.display = 'none');
+  area.querySelectorAll('.foh-photo-display').forEach(el => el.style.display = 'none');
   area.querySelectorAll('.foh-yn-edit').forEach(el => el.style.display = 'flex');
 
   // Add cancel button
@@ -4837,7 +4845,7 @@ function toggleFOHEditMode() {
       _fohEditMode = false; _fohEditChanges = {};
       const b = document.getElementById('fohEditBtn');
       if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
-      openFOHDetail(_fohDetailIdx);
+      openFOHDetail(_fohDetailIdx); // reopens fresh
     };
     area.appendChild(cancelBtn);
   }
