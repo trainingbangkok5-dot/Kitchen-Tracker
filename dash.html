@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260605070000">
-<meta name="app-version" content="20260605070000">
+<meta http-equiv="Expires" content="20260606180000">
+<meta name="app-version" content="20260606180000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
@@ -2212,65 +2212,51 @@ function openStaffDetail(s) {
       html += `</table>`;
     }
   } else if (s.kpiScores) {
-    // Area Chef KPI Tracker report
+    // Area Chef KPI Tracker report — Full 6-KPI Matrix
     const kpiNames = {
-      foodCost: 'Outlet Food Cost Optimization',
+      foodCost:          'Outlet Food Cost Optimization',
       kicAccountability: 'Kitchen Incharge Accountability',
-      internalAudits: 'Internal Audits'
+      staffProficiency:  'Staff Technical Proficiency',
+      webAppIntegrity:   'Web App Data Integrity',
+      internalAudits:    'Internal Audits',
+      assetCare:         'Asset Care & Preventive Maintenance'
     };
-    const kpiMax = {foodCost:30, kicAccountability:25, internalAudits:10};
-    const kpiBaseline = {foodCost:27, kicAccountability:18, internalAudits:4};
+    const kpiMax      = {foodCost:30, kicAccountability:25, staffProficiency:20, webAppIntegrity:10, internalAudits:30, assetCare:5};
+    const kpiBaseline = {foodCost:27, kicAccountability:18, staffProficiency:18, webAppIntegrity:9,  internalAudits:4,  assetCare:4.5};
 
-    html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Area Chef Performance Matrix</div>`;
-    html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
-    html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">KPI Category</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Max</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Baseline</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
+    // Overall score from all 6 KPIs
     let kpiTotal = 0;
-    Object.entries(kpiNames).forEach(([key, label]) => {
-      const score = parseFloat(s.kpiScores[key]||0);
-      kpiTotal += score;
-      const max = kpiMax[key];
-      const pct = score/max;
-      const color = pct>=0.9?'#15803D':pct>=0.7?'#854D0E':'#B91C1C';
-      const bg = pct>=0.9?'#DCFCE7':pct>=0.7?'#FEF9C3':'#FEE2E2';
-      html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-        <td style="padding:7px 8px;font-weight:600;font-size:12px">${label}</td>
-        <td style="padding:7px 8px;text-align:center;color:#64748B">${max}</td>
-        <td style="padding:7px 8px;text-align:center;color:#64748B">${kpiBaseline[key]}</td>
-        <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
-      </tr>`;
-    });
-    const tierColor = kpiTotal>=90?'#15803D':kpiTotal>=80?'#854D0E':'#B91C1C';
-    const tierBg = kpiTotal>=90?'#F0FDF4':kpiTotal>=80?'#FFFBEB':'#FEF2F2';
-    const tierName = kpiTotal>=90?'Tier 1: High Performing':kpiTotal>=80?'Tier 2: Standard Compliance':'Tier 3: Structural Deficiency';
-    html += `<tr style="background:#FFF1F1;font-weight:700"><td style="padding:8px">TOTAL KPI SCORE</td><td style="text-align:center;padding:8px">100</td><td style="text-align:center;padding:8px">78.2</td><td style="text-align:center;padding:8px"><span style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td></tr>`;
-    html += `</table>`;
-    html += `<div style="background:${tierBg};border:2px solid ${tierColor};border-radius:10px;padding:10px;text-align:center;margin-bottom:12px">
-      <div style="font-size:13px;font-weight:700;color:${tierColor}">${tierName}</div>
-      <div style="font-size:11px;color:#475569;margin-top:4px">Evaluation Period: ${s.period||'—'}</div>
-    </div>`;
+    Object.keys(kpiNames).forEach(key => { kpiTotal += parseFloat(s.kpiScores?.[key]||0); });
+    kpiTotal = Math.round(kpiTotal * 10) / 10;
 
-    // Section 4: Regional Dashboard — Overall KPI Score (matches ac.html)
+    const tierColor = kpiTotal>=90?'#15803D':kpiTotal>=80?'#854D0E':'#B91C1C';
+    const tierBg    = kpiTotal>=90?'#F0FDF4':kpiTotal>=80?'#FFFBEB':'#FEF2F2';
+    const tierName  = kpiTotal>=90?'Tier 1: High Performing':kpiTotal>=80?'Tier 2: Standard Compliance':'Tier 3: Structural Deficiency';
+
+    // Regional Dashboard Score
     html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Regional Dashboard — Overall KPI Score</div>`;
-    html += `<div style="text-align:center;font-size:11px;color:#64748B;margin-bottom:8px">Target Benchmark Baseline: 65.0 pts</div>`;
-    html += `<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;margin-bottom:10px">
+    html += `<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
       <div style="font-size:11px;color:#64748B;margin-bottom:4px">OVERALL AREA CHEF KPI SCORE</div>
       <div style="font-size:44px;font-weight:700;color:#7F1D1D;line-height:1">${kpiTotal.toFixed(1)}</div>
-      <div style="font-size:11px;color:#94A3B8;margin-top:4px">/ 100 pts</div>
+      <div style="font-size:11px;color:#94A3B8;margin-top:4px">/ 120 pts  ·  Baseline: 80.5 pts</div>
       <div style="background:${tierBg};border:2px solid ${tierColor};border-radius:10px;padding:10px;margin-top:10px">
-        <div style="font-size:13px;font-weight:700;color:${tierColor}">${kpiTotal>=90?'Tier 1: High Performing Area Chef':kpiTotal>=80?'Tier 2: Standard Target Compliance':'Tier 3: Structural Operational Deficiency'}</div>
-        <div style="font-size:11px;color:#475569;margin-top:4px">${kpiTotal>=90?'Maintain current control frameworks. Highly eligible for growth incentives.':kpiTotal>=80?'Isolate specific underperforming outlets/shifts to move into Tier 1.':'Immediate intervention required to address outlet leaks or performance logging missing gaps.'}</div>
+        <div style="font-size:13px;font-weight:700;color:${tierColor}">${tierName}</div>
+        <div style="font-size:11px;color:#475569;margin-top:4px">Evaluation Period: ${s.period||'—'}</div>
       </div>
     </div>`;
+
+    // Full 6-KPI table
     html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
-    html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0;text-transform:uppercase;letter-spacing:0.05em">Core Performance Pillar</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Max</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Baseline</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
+    html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Core Performance Pillar</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Max</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Baseline</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
     Object.entries(kpiNames).forEach(([key, label]) => {
-      const score = parseFloat(s.kpiScores[key]||0);
-      const max = kpiMax[key];
-      const pct = score/max;
-      const sc = pct>=0.9?'#15803D':pct>=0.7?'#854D0E':'#B91C1C';
-      const sb = pct>=0.9?'#DCFCE7':pct>=0.7?'#FEF9C3':'#FEE2E2';
+      const score = parseFloat(s.kpiScores?.[key]||0);
+      const max   = kpiMax[key];
+      const pct   = max>0?score/max:0;
+      const sc    = pct>=0.9?'#15803D':pct>=0.7?'#854D0E':'#B91C1C';
+      const sb    = pct>=0.9?'#DCFCE7':pct>=0.7?'#FEF9C3':'#FEE2E2';
+      const note  = key==='internalAudits'?'<div style="font-size:9px;color:#94A3B8;margin-top:2px;">Avg of outlet audit scores × 30</div>':'';
       html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-        <td style="padding:7px 8px;font-weight:600">${label}</td>
+        <td style="padding:7px 8px;font-weight:600">${label}${note}</td>
         <td style="padding:7px 8px;text-align:center;color:#64748B">${max}</td>
         <td style="padding:7px 8px;text-align:center;color:#64748B">${kpiBaseline[key]}</td>
         <td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
@@ -2278,8 +2264,8 @@ function openStaffDetail(s) {
     });
     html += `<tr style="background:#FFF1F1;font-weight:700">
       <td style="padding:8px">OVERALL AREA CHEF KPI SCORE</td>
-      <td style="padding:8px;text-align:center">100</td>
-      <td style="padding:8px;text-align:center">78.2</td>
+      <td style="padding:8px;text-align:center">120</td>
+      <td style="padding:8px;text-align:center">80.5</td>
       <td style="padding:8px;text-align:center"><span style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td>
     </tr>`;
     html += `</table>`;
@@ -2980,25 +2966,45 @@ function deleteAuditRecord(a) {
 
 function exportAuditPDF(a) {
   if (typeof window.jspdf === 'undefined') { showToast('PDF library not loaded', '#c62828'); return; }
-  showToast('⏳ Loading photos & generating PDF...', '#1A3C5E');
+  showToast('⏳ Generating PDF...', '#1A3C5E');
+
   async function loadAndExport() {
+    // Only load photos if sectionBreakdown has photoKeys — skip if none
     if (db && a.sectionBreakdown) {
       const auditKey = (a.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(a.auditType||'')+'_'+(a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
-      for (const sec of a.sectionBreakdown) {
-        for (const it of (sec.items||[])) {
+
+      // Collect only keys that likely exist (photoKeys stored on submit)
+      const fetchPromises = [];
+      a.sectionBreakdown.forEach(sec => {
+        (sec.items||[]).forEach(it => {
           it.photos = [];
           const keys = [...(it.photoKeys||[])];
-          for(let pi=0;pi<5;pi++) keys.push(auditKey+'_'+sec.id+'_'+it.n+'_'+pi);
-          const seenUrls = new Set();
-          for (const key of keys) {
-            try {
-              const snap = await db.ref('auditPhotos/'+key).once('value');
-              const url = snap.val();
-              if (url && !seenUrls.has(url)) { seenUrls.add(url); it.photos.push(url); }
-            } catch(e) {}
+          // Only try pattern keys if no photoKeys stored
+          if (keys.length === 0) {
+            for(let pi=0;pi<3;pi++) keys.push(auditKey+'_'+sec.id+'_'+it.n+'_'+pi);
           }
-        }
-      }
+          if (keys.length > 0) {
+            const seenUrls = new Set();
+            // Fetch all keys in parallel with 3s timeout
+            const itemPromise = Promise.all(keys.map(key =>
+              Promise.race([
+                db.ref('auditPhotos/'+key).once('value').then(snap => {
+                  const url = snap.val();
+                  if (url && !seenUrls.has(url)) { seenUrls.add(url); it.photos.push(url); }
+                }).catch(()=>{}),
+                new Promise(resolve => setTimeout(resolve, 3000)) // 3s timeout per key
+              ])
+            ));
+            fetchPromises.push(itemPromise);
+          }
+        });
+      });
+
+      // Wait for all with overall 8 second cap
+      await Promise.race([
+        Promise.all(fetchPromises),
+        new Promise(resolve => setTimeout(resolve, 8000))
+      ]);
     }
     generateAuditPDF(a);
   }

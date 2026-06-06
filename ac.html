@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-version" content="20260605020000">
+<meta name="app-version" content="20260606180000">
 <script>
 (function() {
   var v = '20260605020000';
@@ -166,7 +166,7 @@ input.outlet-input:focus{outline:none;border-color:#7F1D1D}
   <div class="section-body">
     <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748B;margin-bottom:10px;">
       <span>Enter actual audit result per outlet</span>
-      <span>Max KPI Weight: <strong style="color:#7F1D1D">10 pts</strong></span>
+      <span>Max KPI Weight: <strong style="color:#7F1D1D">30 pts</strong></span>
     </div>
     <table class="t" id="audit-table">
       <tr>
@@ -207,8 +207,11 @@ input.outlet-input:focus{outline:none;border-color:#7F1D1D}
       <tr><th>Core Performance Pillar</th><th style="text-align:center">Max</th><th style="text-align:center">Baseline</th><th style="text-align:center">Score</th></tr>
       <tr><td><div class="lbl">Outlet Food Cost Optimization</div></td><td style="text-align:center">30</td><td style="text-align:center">27</td><td style="text-align:center"><span class="pill r" id="d-p1">0.0</span></td></tr>
       <tr><td><div class="lbl">Kitchen Incharge Accountability</div></td><td style="text-align:center">25</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p2">0.0</span></td></tr>
-      <tr><td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores</div></td><td style="text-align:center">10</td><td style="text-align:center">4</td><td style="text-align:center"><span class="pill r" id="d-p5">0.0</span><div style="font-size:9px;color:#94A3B8;margin-top:2px;">Auto from Audit Tracker</div></td></tr>
-      <tr class="total-row"><td>OVERALL AREA CHEF KPI SCORE</td><td style="text-align:center">100</td><td style="text-align:center">78.2</td><td style="text-align:center"><span class="pill r" id="d-total2">0.0</span></td></tr>
+      <tr><td><div class="lbl">Staff Technical Proficiency</div></td><td style="text-align:center">20</td><td style="text-align:center">18</td><td style="text-align:center"><span class="pill r" id="d-p3">0.0</span></td></tr>
+      <tr><td><div class="lbl">Web App Data Integrity</div></td><td style="text-align:center">10</td><td style="text-align:center">9</td><td style="text-align:center"><span class="pill r" id="d-p4">0.0</span></td></tr>
+      <tr><td><div class="lbl">Internal Audits</div><div class="desc">Average of all outlet audit scores × 30 pts</div></td><td style="text-align:center">30</td><td style="text-align:center">4</td><td style="text-align:center"><span class="pill r" id="d-p5">0.0</span><div style="font-size:9px;color:#94A3B8;margin-top:2px;">Auto from Audit Tracker</div></td></tr>
+      <tr><td><div class="lbl">Asset Care & Preventive Maintenance</div></td><td style="text-align:center">5</td><td style="text-align:center">4.5</td><td style="text-align:center"><span class="pill r" id="d-p6">0.0</span></td></tr>
+      <tr class="total-row"><td>OVERALL AREA CHEF KPI SCORE</td><td style="text-align:center">120</td><td style="text-align:center">80.5</td><td style="text-align:center"><span class="pill r" id="d-total2">0.0</span></td></tr>
     </table>
 
     <div style="margin-top:10px">
@@ -273,7 +276,7 @@ function showToast(msg, type) {
 }
 
 // ── KPI Max values ──────────────────────────────────────────
-const MAX = [30, 25, 0, 0, 10, 0]; // staffProficiency/webAppIntegrity/assetCare removed
+const MAX = [30, 25, 20, 10, 30, 5]; // Food Cost, KIC Accountability, Staff Proficiency, Web App Integrity, Internal Audits, Asset Care
 
 // ── Main Calculation ────────────────────────────────────────
 // Store KPI scores directly
@@ -438,7 +441,7 @@ function calcAuditAvg() {
     return;
   }
   const avg = valid.map(r => parseFloat(r.score)).reduce((a,b) => a+b, 0) / valid.length;
-  const avgVal = Math.min(Math.round(avg * 100) / 100, 10);
+  const avgVal = Math.min(Math.round(avg * 100) / 100, 30);
   document.getElementById('audit-avg-score').textContent = avgVal.toFixed(2) + ' pts';
   // Reflect to Regional Dashboard
   kpiVals[4] = avgVal;
@@ -498,12 +501,11 @@ function submitKPI() {
   if (!outlet) { showToast('Please select your outlet', 'warn'); return; }
 
   const kpiScores = {};
-  // Only 3 active KPIs: foodCost, kicAccountability, internalAudits
+  // All 6 KPIs active
   const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
-  const activeKpis = [0, 1, 4]; // indices of active KPIs
   let total = 0;
   for (let i = 0; i < 6; i++) {
-    const val = activeKpis.includes(i) ? Math.min(kpiVals[i] || 0, MAX[i]) : 0;
+    const val = Math.min(kpiVals[i] || 0, MAX[i]);
     kpiScores[kpiNames[i]] = Math.round(val * 100) / 100;
     total += val;
   }
