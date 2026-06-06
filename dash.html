@@ -631,7 +631,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
   <div class="page" id="page-audits">
-    <div class="sec-title">BOH Audit Results (KIC KPI)</div>
+    <!-- Audit header + filters -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div style="font-size:15px;font-weight:700;color:#1A3C5E;">📋 Internal Audit Results</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="auditTypeFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
+          <option value="">BOH + FOH</option>
+          <option value="BOH">BOH Only</option>
+          <option value="FOH">FOH Only</option>
+        </select>
+        <select id="auditOutletFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
+          <option value="">All Outlets</option>
+        </select>
+      </div>
+    </div>
+    <!-- Summary KPI cards -->
+    <div id="auditSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;"></div>
+    <!-- Audit table -->
     <div class="audit-table">
       <div class="at-head">
         <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
@@ -1196,8 +1212,10 @@ function loadData() {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       // Only BOH audits — FOH not included in KPI system
       const bohOnly = rawA.filter(a => a.auditType === 'BOH');
-      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? bohOnly :
-                  bohOnly.filter(a => a.outlet === currentOutlet);
+      // Include both BOH and FOH audits
+      const allAuditTypes = rawA; // no type filter — show BOH + FOH
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? allAuditTypes :
+                  allAuditTypes.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
         fohDb.ref('submissions').once('value', fohSnap => {
@@ -1267,7 +1285,7 @@ function showTab(el,id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+id).classList.add('active');
-  if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
+  if (id === 'audits') { renderAudits(); }
   if (id === 'registry') { renderRegistry(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
@@ -2713,13 +2731,67 @@ function exportMonthlyExcel() {
 
 function renderAudits() {
   const body = document.getElementById('auditBody');
-  if (!allAudits.length) {
+  const summaryCards = document.getElementById('auditSummaryCards');
+
+  // Apply filters
+  const typeFilter   = document.getElementById('auditTypeFilter')?.value || '';
+  const outletFilter = document.getElementById('auditOutletFilter')?.value || '';
+
+  let filtered = [...allAudits];
+  if (typeFilter)   filtered = filtered.filter(a => a.auditType === typeFilter);
+  if (outletFilter) filtered = filtered.filter(a => (a.outlet||'') === outletFilter);
+
+  // Populate outlet dropdown
+  const outletSel = document.getElementById('auditOutletFilter');
+  if (outletSel) {
+    const outlets = [...new Set(allAudits.map(a => a.outlet||'').filter(Boolean))].sort();
+    const cur = outletSel.value;
+    outletSel.innerHTML = '<option value="">All Outlets</option>' +
+      outlets.map(o => `<option value="${o}" ${o===cur?'selected':''}>${o}</option>`).join('');
+  }
+
+  // Summary cards
+  if (summaryCards) {
+    const bohAudits = filtered.filter(a => a.auditType === 'BOH');
+    const fohAudits = filtered.filter(a => a.auditType === 'FOH');
+    const bohAvg = bohAudits.length ? Math.round(bohAudits.reduce((s,a)=>s+(a.score||0),0)/bohAudits.length) : null;
+    const fohAvg = fohAudits.length ? Math.round(fohAudits.reduce((s,a)=>s+(a.score||0),0)/fohAudits.length) : null;
+    const overall = filtered.length ? Math.round(filtered.reduce((s,a)=>s+(a.score||0),0)/filtered.length) : null;
+    const gradeColor = v => v===null?'#94A3B8':v>=91?'#15803D':v>=81?'#D97706':v>=71?'#C2410C':'#B91C1C';
+    const gradeLetter = v => v===null?'—':v>=91?'A':v>=81?'B':v>=71?'C':'D';
+    summaryCards.innerHTML = `
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Total Audits</div>
+        <div style="font-size:26px;font-weight:700;color:#1A3C5E">${filtered.length}</div>
+        <div style="font-size:11px;color:#94A3B8">${bohAudits.length} BOH · ${fohAudits.length} FOH</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">🍳 BOH Avg</div>
+        <div style="font-size:26px;font-weight:700;color:${gradeColor(bohAvg)}">${bohAvg!==null?bohAvg+'%':'—'}</div>
+        <div style="font-size:11px;color:${gradeColor(bohAvg)}">Grade ${gradeLetter(bohAvg)}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">🛎️ FOH Avg</div>
+        <div style="font-size:26px;font-weight:700;color:${gradeColor(fohAvg)}">${fohAvg!==null?fohAvg+'%':'—'}</div>
+        <div style="font-size:11px;color:${gradeColor(fohAvg)}">Grade ${gradeLetter(fohAvg)}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E0DDD4;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Overall Avg</div>
+        <div style="font-size:26px;font-weight:700;color:${gradeColor(overall)}">${overall!==null?overall+'%':'—'}</div>
+        <div style="font-size:11px;color:${gradeColor(overall)}">Grade ${gradeLetter(overall)}</div>
+      </div>`;
+  }
+
+  if (!filtered.length) {
     body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits submitted yet<br><small>Open an audit form, fill it, and tap Submit to Dashboard</small></div>';
     return;
   }
   body.innerHTML = '';
-  [...allAudits].sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
+  filtered.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
     const pass = a.score >= 80;
+    const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
+    const gradeColor = a.score>=91?'#15803D':a.score>=81?'#D97706':a.score>=71?'#C2410C':'#B91C1C';
+    const gradeBg    = a.score>=91?'#DCFCE7':a.score>=81?'#FEF3C7':a.score>=71?'#FEE8D6':'#FEE2E2';
     const row = document.createElement('div');
     row.className = 'at-row';
     row.style.cssText = `background:${i%2===0?'#fff':'#F5F3EE'};cursor:pointer;`;
@@ -2729,7 +2801,7 @@ function renderAudits() {
     row.innerHTML = `
       <div class="td" style="font-weight:600;color:#1A3C5E;text-decoration:underline;cursor:pointer">${a.outlet||'—'}</div>
       <div class="td"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
-      <div class="td" style="font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${a.score}%</div>
+      <div class="td" style="font-weight:700;color:${gradeColor}">${a.score}% <span style="font-size:11px;background:${gradeBg};color:${gradeColor};padding:1px 6px;border-radius:10px;margin-left:4px;">${grade}</span></div>
       <div class="td" style="font-size:11px;color:#6B6B60">${a.rawScore||'—'}/${a.maxScore||'—'} pts</div>
       <div class="td" style="font-size:11px;color:#6B6B60">${a.auditor||'—'}</div>
       <div class="td" style="font-size:11px;color:#6B6B60">${d}</div>`;
