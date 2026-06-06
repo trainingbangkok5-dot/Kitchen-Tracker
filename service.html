@@ -256,10 +256,12 @@ initFirebase();
 function pushToFirebase(record) {
   if (!_db) { console.warn('Firebase not ready'); setTimeout(()=>pushToFirebase(record), 500); return; }
   try {
+    // Use consistent key — no Date.now() so same record gets updated not duplicated
+    const shiftSuffix = record.shift ? '_' + record.shift : (record.status === 'opening_submitted' ? '_opening' : '_closing');
     const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.role
               + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
-              + '_' + Date.now();
+              + shiftSuffix;
     // Strip raw base64 photos from taskData before pushing — too large for Firebase
     // Photos are stored separately under photos/ node
     const cleanRecord = { ...record };
@@ -860,9 +862,12 @@ function renderDay() {
       let photoHtml = '';
       if (task.photo) {
         const photos = [];
-        for (let pi = 0; pi < 5; pi++) {
-          const p = getVal(currentDay, task.id, 'photo_' + pi) || (pi===0 ? getVal(currentDay, task.id, 'photo') : null);
-          if (p) photos.push(p);
+        const seenUrls = new Set();
+        const legacyPhoto = getVal(currentDay, task.id, 'photo');
+        if (legacyPhoto && !seenUrls.has(legacyPhoto)) { seenUrls.add(legacyPhoto); photos.push(legacyPhoto); }
+        for (let pi = 1; pi < 5; pi++) {
+          const p = getVal(currentDay, task.id, 'photo_' + pi);
+          if (p && !seenUrls.has(p)) { seenUrls.add(p); photos.push(p); }
         }
         const thumbsHtml = photos.map((p,i) => `<img class="photo-thumb" src="${p}" alt="proof" style="cursor:pointer;" onclick="removePhoto('${task.id}',${i})">`).join('');
         photoHtml = `<div class="photo-row" style="flex-wrap:wrap;">
@@ -1341,10 +1346,11 @@ function handlePhotoFile(file) {
   activePhotoTask = null;
   closePhotoModal();
   compressAndReturn(file, async function(dataUrl) {
-    // Save locally first for instant display — multi-photo: find next empty slot
-    let slotIdx = 0;
-    for (let pi = 0; pi < 5; pi++) {
-      const existing = getVal(currentDay, taskId, 'photo_' + pi) || (pi===0 ? getVal(currentDay, taskId, 'photo') : null);
+    // Save locally first — find next empty slot (deduplicated)
+    const legacyUrl = getVal(currentDay, taskId, 'photo');
+    let slotIdx = legacyUrl ? 1 : 0; // if legacy 'photo' exists, start from photo_1
+    for (let pi = slotIdx; pi < 5; pi++) {
+      const existing = getVal(currentDay, taskId, pi === 0 ? 'photo' : 'photo_' + pi);
       if (!existing) { slotIdx = pi; break; }
       slotIdx = pi + 1;
     }

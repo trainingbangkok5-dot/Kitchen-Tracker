@@ -309,10 +309,10 @@ async function handlePhotoFile(file) {
 function selectShift(shift) {
   const hour = getDubaiHour();
   if (shift === 'closing') {
-    const isOpen = hour >= 15 || hour < 2;
-    if (!isOpen) {
-      const mLeft = (15-hour-1)*60+(60-new Date().getMinutes());
-      showToast('Closing unlocks at 3:00 PM until 2:00 AM — '+Math.floor(mLeft/60)+'h '+mLeft%60+'m remaining ⏰','warn');
+    const isAfter3pm = hour >= 15 || hour < 2;
+    if (!isAfter3pm) {
+      const minsLeft = (15 - hour - 1) * 60 + (60 - new Date().getMinutes());
+      showToast(`Closing opens at 3:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining ⏰`, 'warn');
       return;
     }
   }
@@ -342,7 +342,7 @@ function renderDay() {
     const closingBtn=document.getElementById('closingBtn');
     if(closingBtn) closingBtn.disabled=!closingOpen;
     const note=document.getElementById('shiftNote');
-    if(note) note.textContent = closingOpen ? '' : 'Closing unlocks at 3:00 PM until 2:00 AM';
+    if(note) note.textContent = closingOpen ? '' : `Closing opens at 3:00 PM until 2:00 AM`;
     document.getElementById('scoreFill').style.width='0%';
     document.getElementById('scorePct').textContent='0%';
     return;
@@ -520,6 +520,8 @@ function submitDay() {
     staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:getWeekStart(),
     verifiedBy: document.getElementById('fVerified')?.value?.trim()||'',
     shift:currentShift, day:currentDay, overallPct:pct, qualified:pct>=95,
+    openingPct: currentShift==='opening' ? pct : null,
+    closingPct: currentShift==='closing' ? pct : null,
     taskData, submittedAt:new Date().toISOString(), lastUpdated:new Date().toISOString(),
   };
 

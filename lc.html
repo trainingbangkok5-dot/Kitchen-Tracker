@@ -739,13 +739,12 @@ function selectShift(shift) {
     const hour = getDubaiHour();
     const isAfter3pm = hour >= 15 || hour < 2; // Closing window: 3:00 PM – 2:00 AM
     if (!isAfter3pm) {
-      const minutesLeft = hour < 15 ? (15 - hour - 1) * 60 + (60 - now.getMinutes()) : 0;
+      const minutesLeft = (15 - hour - 1) * 60 + (60 - now.getMinutes());
       const h = Math.floor(minutesLeft / 60);
       const m = minutesLeft % 60;
-      showToast(`Closing unlocks at 3:00 PM until 2:00 AM — ${h}h ${m}m remaining ⏰`, 'warn');
+      showToast(`Closing opens at 3:00 PM until 2:00 AM — ${h}h ${m}m remaining ⏰`, 'warn');
       return;
     }
-    // After 3PM — closing available regardless of opening status
   }
   currentShift = shift;
   window._selectShiftReady = null;
@@ -792,9 +791,7 @@ function renderDay() {
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
     const openerName = data[dayKey]?._openerName || '';
     const nowH = getDubaiHour();
-    const isAfter3pm = nowH >= 15 || nowH < 2; // Closing window: 3:00 PM – 2:00 AM
-    const minsLeft = isAfter3pm ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
-    const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
+    const isAfter3pm = nowH >= 15 || nowH < 2;
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
       closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
@@ -805,9 +802,10 @@ function renderDay() {
       closingBtnLabel = '🌙 Closing Shift';
       closingSubNote = '<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
     } else {
+      const minsLeft = (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
       closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
       closingBtnLabel = '🌙 Closing Shift ⏰';
-      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Unlocks at 3:00 PM until 2:00 AM — ${hLeft}h ${mLeft}m remaining</div>`;
+      closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Opens at 3:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;
     }
     screen.innerHTML = `
       <div style="font-size:32px;margin-bottom:8px;">👋</div>
@@ -859,9 +857,13 @@ function renderDay() {
       let photoHtml = '';
       if (task.photo) {
         const photos = [];
-        for (let pi = 0; pi < 5; pi++) {
-          const p = getVal(currentDay, task.id, 'photo_' + pi) || (pi===0 ? getVal(currentDay, task.id, 'photo') : null);
-          if (p) photos.push(p);
+        const seenUrls = new Set();
+        // Check photo_0 through photo_4, and legacy 'photo' key
+        const legacyPhoto = getVal(currentDay, task.id, 'photo');
+        if (legacyPhoto && !seenUrls.has(legacyPhoto)) { seenUrls.add(legacyPhoto); photos.push(legacyPhoto); }
+        for (let pi = 1; pi < 5; pi++) {
+          const p = getVal(currentDay, task.id, 'photo_' + pi);
+          if (p && !seenUrls.has(p)) { seenUrls.add(p); photos.push(p); }
         }
         const thumbsHtml = photos.map((p,i) => `<img class="photo-thumb" src="${p}" alt="proof" style="cursor:pointer;" onclick="removePhoto('${task.id}',${i})">`).join('');
         photoHtml = `<div class="photo-row" style="flex-wrap:wrap;">
@@ -1007,7 +1009,10 @@ function setComment(taskId, value) {
 function tapYN(tid, val, el) {
   const data = load();
   const todayData = data[getTodayKey()] || {};
-  if ((todayData._openDone || todayData._done) && !ALLOW_OVERWRITE) {
+  const isClosing = currentShift === 'closing';
+  const lockOpening = (todayData._openDone || todayData._done) && !isClosing && !ALLOW_OVERWRITE;
+  const lockClosing = todayData._closeDone && isClosing && !ALLOW_OVERWRITE;
+  if (lockOpening || lockClosing) {
     showToast('Already submitted — cannot edit 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);

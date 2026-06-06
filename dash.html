@@ -5111,9 +5111,24 @@ function openFOHDetail(idx) {
       });
 
       html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Evaluation</div>';
-      Object.entries(oicBySec).forEach(([sec, tasks]) => {
-        html += `<div style="background:#C4533A;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${sec}</div>`;
-        tasks.forEach((t, ti) => {
+      // Only show if at least one OIC task has been answered
+      const hasAnyOIC = oicEvalTasks.some(t => {
+        const existing = subs.reduce((found, sub) => {
+          if (found) return found;
+          if (sub.taskData) {
+            const k = Object.keys(sub.taskData).find(k => k===t.id||k.endsWith('_'+t.id)||k.startsWith(t.id+'_'));
+            return k ? sub.taskData[k] : null;
+          }
+          return null;
+        }, null);
+        return existing && existing.yn;
+      });
+      if (!hasAnyOIC) {
+        html += '<div style="padding:12px;background:#fff;border-radius:0 0 8px 8px;text-align:center;font-size:12px;color:#94A3B8;">OIC evaluation not yet completed</div>';
+      } else {
+        Object.entries(oicBySec).forEach(([sec, tasks]) => {
+          html += `<div style="background:#C4533A;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${sec}</div>`;
+          tasks.forEach((t, ti) => {
           const yn = t.yn;
           const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
           const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
@@ -5137,8 +5152,9 @@ function openFOHDetail(idx) {
               <textarea data-fohtaskkey="${t.taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
             </div>
           </div>`;
-        });
-      });
+          });
+        }); // end Object.entries(oicBySec)
+      } // end hasAnyOIC else
     }
 
     html += `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:8px;">Role: ${roleLabels[staff.role]||staff.role} • Outlet: ${staff.outlet}</div>`;
