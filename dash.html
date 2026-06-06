@@ -2870,18 +2870,34 @@ function openAuditDetail(a) {
           const stCol = it.status==='pass'?'#15803D':it.status==='fail'?'#B91C1C':it.status==='na'?'#6B6B60':'#94A3B8';
           const stBg  = it.status==='pass'?'#DCFCE7':it.status==='fail'?'#FEE2E2':it.status==='na'?'#F3F4F6':'#F8FAFC';
           const stLbl = it.status==='pass'?'✓ PASS':it.status==='fail'?'✗ FAIL':it.status==='na'?'— N/A':'—';
-          const rowBg = it.status==='fail'?'#FFF8F8':ii%2===0?'#fff':'#FAFAF8';
-          return `<div style="padding:9px 14px;border-top:1px solid #F0EDE4;background:${rowBg};">
+          const rowBg = it.status==='fail'?'#FFF5F5':ii%2===0?'#fff':'#FAFAF8';
+          const borderLeft = it.status==='fail'?'3px solid #B91C1C':it.status==='pass'?'3px solid #15803D':'3px solid #E0DDD4';
+          // Find photos for this item from the photos object
+          const itemPhotos = a.photos ? Object.entries(a.photos).filter(([k]) => k.includes('_'+s.id+'_'+it.n+'_') || k === 'photo_'+(ii)).map(([k,url])=>url) : [];
+          return `<div style="padding:10px 14px;border-top:1px solid #F0EDE4;background:${rowBg};border-left:${borderLeft};">
             <div style="display:flex;align-items:flex-start;gap:10px;">
-              <div style="font-size:10px;font-weight:700;color:#94A3B8;min-width:18px;padding-top:2px;">${it.n}.</div>
+              <div style="font-size:10px;font-weight:700;color:#94A3B8;min-width:22px;padding-top:2px;">${it.n}.</div>
               <div style="flex:1;">
-                <div style="font-size:12px;font-weight:600;color:#1A1A18;margin-bottom:2px;">${it.label}</div>
-                ${it.comment?`<div style="font-size:11px;color:#475569;margin-top:3px;">💬 ${it.comment}</div>`:''}
-                ${it.status==='fail' && it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:3px;font-weight:600;">🔧 ${it.correctiveAction}</div>`:''}
-                ${it.status==='fail' && (it.responsible||it.deadline)?`<div style="font-size:10px;color:#94A3B8;margin-top:2px;">${it.responsible?'👤 '+it.responsible+' &nbsp;':''} ${it.deadline?'📅 '+it.deadline:''}</div>`:''}
+                <!-- Item label + points -->
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                  <div style="font-size:12px;font-weight:700;color:#1A1A18;">${it.label}</div>
+                  <span style="font-size:10px;color:#6B6B60;background:#F0EDE4;padding:1px 6px;border-radius:10px;white-space:nowrap;">Max: ${it.maxScore} pt${it.maxScore>1?'s':''}</span>
+                </div>
+                <!-- Full description -->
+                ${it.desc?`<div style="font-size:11px;color:#6B6B60;margin-bottom:5px;line-height:1.5;">${it.desc}</div>`:''}
+                <!-- Observation -->
+                ${it.comment?`<div style="font-size:11px;color:#475569;margin-top:4px;background:#F8FAFC;padding:4px 8px;border-radius:6px;">💬 <strong>Observation:</strong> ${it.comment}</div>`:''}
+                <!-- Corrective action -->
+                ${it.status==='fail' && it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:4px;background:#FEF2F2;padding:4px 8px;border-radius:6px;font-weight:600;">🔧 <strong>Corrective Action:</strong> ${it.correctiveAction}</div>`:''}
+                <!-- Responsible + Deadline -->
+                ${it.status==='fail' && (it.responsible||it.deadline)?`<div style="font-size:11px;color:#6B6B60;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">${it.responsible?`<span>👤 <strong>Responsible:</strong> ${it.responsible}</span>`:''} ${it.deadline?`<span>📅 <strong>Deadline:</strong> ${it.deadline}</span>`:''}</div>`:''}
+                <!-- Inline photos -->
+                ${it.photos && it.photos.length>0?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${it.photos.map(url=>`<img src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:2px solid ${it.status==='fail'?'#FECACA':'#22C55E'};cursor:pointer;" onclick="this.style.width=this.style.width==='80px'?'100%':'80px';this.style.height=this.style.height==='80px'?'auto':'80px';" onerror="this.style.display='none'">`).join('')}</div>`:''}
               </div>
-              <div style="flex-shrink:0;">
-                <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:${stBg};color:${stCol};white-space:nowrap;">${stLbl}</span>
+              <!-- Status badge -->
+              <div style="flex-shrink:0;text-align:right;">
+                <span style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;background:${stBg};color:${stCol};white-space:nowrap;display:block;">${stLbl}</span>
+                <div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:center;">${it.status==='pass'?it.maxScore:it.status==='fail'?'0':it.status==='na'?'N/A':'—'}${it.status!=='na'?'/'+it.maxScore:''}</div>
               </div>
             </div>
           </div>`;
@@ -2912,183 +2928,239 @@ function deleteAuditRecord(a) {
 
 function exportAuditPDF(a) {
   if (typeof window.jspdf === 'undefined') { showToast('PDF library not loaded', '#c62828'); return; }
+  showToast('⏳ Generating PDF...', '#1A3C5E');
+  setTimeout(() => {
+  try {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
   const pass  = a.score >= 80;
   const pageW = 210, margin = 14, colW = pageW - margin*2;
+  const photoSize = 38; // mm per photo
   let y = 14;
 
   function checkPage(needed) {
-    if (y + needed > 280) { doc.addPage(); y = 14; return true; } return false;
+    if (y + needed > 278) { doc.addPage(); y = 14; return true; } return false;
   }
 
-  // ── Header
+  function addPageHeader() {
+    // Repeat outlet/type on each new page for context
+    doc.setFillColor(26,60,94);
+    doc.rect(0,0,210,8,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text((a.outlet||'')+ ' — ' +(a.auditType||'')+' Audit  |  '+( a.auditDate||''), margin, 5.5);
+  }
+
+  // ── Page 1 Header
   doc.setFillColor(26,60,94);
-  doc.rect(0,0,210,30,'F');
+  doc.rect(0,0,210,32,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(15); doc.setFont('helvetica','bold');
-  doc.text((a.outlet||'Outlet') + ' — ' + (a.auditType||'') + ' Internal Monthly Audit Report', margin, 13);
+  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Internal Monthly Audit Report', margin, 13);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 20);
-  doc.text('Generated: ' + new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 20, {align:'right'});
-  y = 38;
+  doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
+  doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
+  y = 40;
 
   // ── Info bar
-  doc.setFillColor(245,243,238);
-  doc.rect(margin,y,colW,16,'F');
-  doc.setTextColor(30,30,30); doc.setFontSize(10);
-  const infoPairs = [['Outlet',a.outlet||'—'],['Type',a.auditType||'—'],['Auditor',a.auditor||'—'],['Date',a.auditDate||'—']];
-  infoPairs.forEach(([lbl,val],i) => {
-    const x = margin + 3 + (i * 46);
-    doc.setFont('helvetica','bold'); doc.text(lbl+':', x, y+6);
-    doc.setFont('helvetica','normal'); doc.text(val, x, y+12);
+  doc.setFillColor(245,243,238); doc.rect(margin,y,colW,18,'F');
+  doc.setTextColor(30,30,30); doc.setFontSize(9);
+  const info = [['Outlet',a.outlet||'—'],['Type',a.auditType||'—'],['Auditor',a.auditor||'—'],['Date',a.auditDate||'—']];
+  info.forEach(([lbl,val],i) => {
+    const x = margin+3+(i*46);
+    doc.setFont('helvetica','bold'); doc.text(lbl+':', x, y+7);
+    doc.setFont('helvetica','normal'); doc.text(val, x, y+14);
   });
-  y += 22;
+  y += 24;
 
   // ── Score cards
-  const scoreCol = pass?[21,128,61]:[185,28,28];
-  doc.setFillColor(...scoreCol);
-  doc.rect(margin,y,55,24,'F');
+  const sCol = pass?[21,128,61]:[185,28,28];
+  doc.setFillColor(...sCol); doc.rect(margin,y,55,26,'F');
   doc.setTextColor(255,255,255);
-  doc.setFontSize(24); doc.setFont('helvetica','bold');
-  doc.text(a.score+'%', margin+27, y+12, {align:'center'});
-  doc.setFontSize(10);
-  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+27, y+20, {align:'center'});
+  doc.setFontSize(26); doc.setFont('helvetica','bold');
+  doc.text(a.score+'%', margin+27, y+13, {align:'center'});
+  doc.setFontSize(10); doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+27, y+21, {align:'center'});
 
-  doc.setFillColor(240,246,255); doc.rect(margin+60,y,55,24,'F');
+  doc.setFillColor(240,246,255); doc.rect(margin+60,y,55,26,'F');
   doc.setTextColor(26,60,94); doc.setFontSize(20); doc.setFont('helvetica','bold');
-  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+87, y+12, {align:'center'});
+  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+87, y+13, {align:'center'});
   doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text('Points Scored', margin+87, y+19, {align:'center'});
+  doc.text('Points Scored', margin+87, y+21, {align:'center'});
 
-  doc.setFillColor(248,250,252); doc.rect(margin+120,y,62,24,'F');
+  doc.setFillColor(248,250,252); doc.rect(margin+120,y,62,26,'F');
   doc.setTextColor(26,60,94); doc.setFontSize(11); doc.setFont('helvetica','bold');
-  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—', margin+151, y+10, {align:'center'});
+  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—', margin+151, y+11, {align:'center'});
   doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—', margin+151, y+17, {align:'center'});
-  y += 30;
+  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—', margin+151, y+19, {align:'center'});
+  y += 32;
 
-  // ── Section Breakdown
+  // ── Full Section-by-Section Report
   if (a.sectionBreakdown && a.sectionBreakdown.length) {
-    checkPage(12);
-    doc.setFillColor(26,60,94); doc.rect(margin,y,colW,8,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('SECTION BREAKDOWN', margin+3, y+5.5);
-    y += 10;
+    checkPage(14);
+    doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('FULL AUDIT REPORT — SECTION BY SECTION', margin+3, y+6);
+    y += 13;
 
     a.sectionBreakdown.forEach((s, si) => {
-      checkPage(10);
+      checkPage(16);
       const pct = s.max>0?Math.round(s.earned/s.max*100):0;
-      const col = pct>=91?[21,128,61]:pct>=71?[217,119,6]:[185,28,28];
-      const bg  = pct>=91?[240,253,244]:pct>=71?[254,243,199]:[254,242,242];
+      const col  = pct>=91?[21,128,61]:pct>=71?[217,119,6]:[185,28,28];
+      const bg   = pct>=91?[240,253,244]:pct>=71?[254,243,199]:[254,242,242];
 
-      doc.setFillColor(...bg);
-      doc.rect(margin,y,colW,9,'F');
-      doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont('helvetica','bold');
-      doc.text((si+1)+'. '+s.title, margin+3, y+6);
-      doc.setTextColor(...col); doc.setFont('helvetica','bold');
-      doc.text(s.earned+'/'+s.max+' pts  ('+pct+'%)', pageW-margin-3, y+6, {align:'right'});
-
+      // Section header
+      doc.setFillColor(...bg); doc.rect(margin,y,colW,11,'F');
+      doc.setDrawColor(...col); doc.setLineWidth(0.5);
+      doc.line(margin,y,margin,y+11);
+      doc.setLineWidth(0.1);
+      doc.setTextColor(20,20,20); doc.setFontSize(10); doc.setFont('helvetica','bold');
+      doc.text((si+1)+'. '+s.title, margin+4, y+7);
+      doc.setTextColor(...col); doc.setFontSize(9);
+      doc.text(s.earned+'/'+s.max+' pts  ('+pct+'%)', pageW-margin-3, y+7, {align:'right'});
       // Progress bar
-      doc.setFillColor(224,221,212); doc.rect(margin,y+9,colW,2,'F');
-      doc.setFillColor(...col); doc.rect(margin,y+9,colW*(pct/100),2,'F');
-      y += 13;
+      doc.setFillColor(220,217,212); doc.rect(margin,y+11,colW,2.5,'F');
+      doc.setFillColor(...col); doc.rect(margin,y+11,colW*(Math.min(pct,100)/100),2.5,'F');
+      y += 16;
 
-      // Items inside each section
+      // Items
       if (s.items) {
-        s.items.forEach(it => {
-          checkPage(8);
+        s.items.forEach((it, ii) => {
           const stCol = it.status==='pass'?[21,128,61]:it.status==='fail'?[185,28,28]:[100,100,100];
           const stBg  = it.status==='pass'?[240,253,244]:it.status==='fail'?[254,242,242]:[248,250,252];
-          const stLbl = it.status==='pass'?'✓ PASS':it.status==='fail'?'✗ FAIL':it.status==='na'?'N/A':'—';
+          const stLbl = it.status==='pass'?'PASS':it.status==='fail'?'FAIL':it.status==='na'?'N/A':'—';
+          const rowBg = it.status==='fail'?[255,248,248]:ii%2===0?[255,255,255]:[250,250,248];
+          const photos = it.photos||[];
+          const hasPhotos = photos.length > 0;
 
-          doc.setFillColor(255,255,255);
-          doc.rect(margin,y,colW,7,'F');
-          doc.setDrawColor(224,221,212); doc.line(margin,y+7,margin+colW,y+7);
+          // Estimate row height
+          const descLines = it.desc ? doc.splitTextToSize(it.desc, colW-32).length : 0;
+          const commentLines = it.comment ? doc.splitTextToSize('Obs: '+it.comment, colW-20).length : 0;
+          const actionLines = it.correctiveAction ? doc.splitTextToSize('Action: '+it.correctiveAction, colW-20).length : 0;
+          const photoRowH = hasPhotos ? Math.ceil(photos.length/4) * (photoSize+3) + 4 : 0;
+          const baseH = 7 + (descLines*3.5) + (commentLines*3.5) + (actionLines*3.5) + ((it.responsible||it.deadline)?5:0) + photoRowH + 4;
 
-          // Item number + label
-          doc.setTextColor(100,100,100); doc.setFontSize(7.5); doc.setFont('helvetica','normal');
-          doc.text(it.n+'.', margin+2, y+5);
-          doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-          const labelTxt = it.label.length>70?it.label.substring(0,68)+'...':it.label;
-          doc.text(labelTxt, margin+8, y+5);
+          checkPage(baseH);
+
+          const startY = y;
+          doc.setFillColor(...rowBg); doc.rect(margin, y, colW, baseH, 'F');
+          if (it.status==='fail') {
+            doc.setDrawColor(185,28,28); doc.setLineWidth(0.8);
+            doc.line(margin, y, margin, y+baseH);
+            doc.setLineWidth(0.1);
+          }
+          doc.setDrawColor(224,221,212); doc.line(margin, y+baseH, margin+colW, y+baseH);
+
+          // Item number
+          doc.setTextColor(150,150,150); doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+          doc.text(String(it.n)+'.', margin+2, y+6);
+
+          // Label + max pts
+          doc.setTextColor(20,20,20); doc.setFontSize(9); doc.setFont('helvetica','bold');
+          doc.text(it.label, margin+8, y+6, {maxWidth: colW-38});
+          doc.setTextColor(100,100,100); doc.setFontSize(7); doc.setFont('helvetica','normal');
+          doc.text('Max: '+it.maxScore+' pt'+(it.maxScore>1?'s':''), margin+8, y+10.5);
 
           // Status badge
-          doc.setFillColor(...stBg); doc.rect(pageW-margin-22,y+1,20,5,'F');
+          doc.setFillColor(...stBg); doc.rect(pageW-margin-22, y+1.5, 21, 6, 'F');
           doc.setTextColor(...stCol); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-          doc.text(stLbl, pageW-margin-12, y+5, {align:'center'});
+          doc.text(stLbl, pageW-margin-11.5, y+5.5, {align:'center'});
+          // Points scored
+          const scored = it.status==='pass'?it.maxScore:it.status==='fail'?'0':it.status==='na'?'N/A':'—';
+          doc.setTextColor(100,100,100); doc.setFontSize(7); doc.setFont('helvetica','normal');
+          doc.text(String(scored)+(it.status!=='na'?'/'+it.maxScore:''), pageW-margin-11.5, y+10, {align:'center'});
 
-          y += 7;
+          let iy = y + 13;
 
-          // Comment + corrective for failed items
-          if (it.status==='fail' && (it.comment||it.correctiveAction)) {
-            checkPage(10);
-            doc.setFillColor(254,242,242); doc.rect(margin,y,colW,0,'F');
-            if (it.comment) {
-              doc.setFillColor(255,249,249); doc.rect(margin+8,y,colW-8,6,'F');
-              doc.setTextColor(100,60,60); doc.setFontSize(7.5); doc.setFont('helvetica','italic');
-              doc.text('Obs: '+it.comment, margin+11, y+4.5, {maxWidth:colW-14});
-              y += 6;
-            }
-            if (it.correctiveAction) {
-              checkPage(7);
-              doc.setFillColor(255,235,235); doc.rect(margin+8,y,colW-8,6,'F');
-              doc.setTextColor(185,28,28); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-              doc.text('Action: '+it.correctiveAction, margin+11, y+4.5, {maxWidth:colW-14});
-              y += 6;
-            }
-            if (it.responsible||it.deadline) {
-              checkPage(6);
-              doc.setFillColor(255,242,242); doc.rect(margin+8,y,colW-8,5,'F');
-              doc.setTextColor(120,60,60); doc.setFontSize(7); doc.setFont('helvetica','normal');
-              const meta = [it.responsible?'👤 '+it.responsible:'',it.deadline?'📅 '+it.deadline:''].filter(Boolean).join('   ');
-              doc.text(meta, margin+11, y+3.5);
-              y += 5;
-            }
+          // Description
+          if (it.desc) {
+            doc.setTextColor(80,80,80); doc.setFontSize(7.5); doc.setFont('helvetica','italic');
+            const descTxt = doc.splitTextToSize(it.desc, colW-12);
+            doc.text(descTxt, margin+8, iy);
+            iy += descTxt.length * 3.5;
           }
+
+          // Observation
+          if (it.comment) {
+            iy += 1;
+            doc.setFillColor(248,250,252); doc.rect(margin+8, iy-3, colW-10, commentLines*3.5+3, 'F');
+            doc.setTextColor(70,90,120); doc.setFontSize(7.5); doc.setFont('helvetica','normal');
+            const obsTxt = doc.splitTextToSize('Observation: '+it.comment, colW-14);
+            doc.text(obsTxt, margin+10, iy);
+            iy += obsTxt.length * 3.5 + 2;
+          }
+
+          // Corrective action
+          if (it.correctiveAction) {
+            doc.setFillColor(255,235,235); doc.rect(margin+8, iy-3, colW-10, actionLines*3.5+3, 'F');
+            doc.setTextColor(185,28,28); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+            const actTxt = doc.splitTextToSize('Corrective Action: '+it.correctiveAction, colW-14);
+            doc.text(actTxt, margin+10, iy);
+            iy += actTxt.length * 3.5 + 2;
+          }
+
+          // Responsible + Deadline
+          if (it.responsible||it.deadline) {
+            doc.setTextColor(120,80,80); doc.setFontSize(7); doc.setFont('helvetica','normal');
+            const meta = [it.responsible?'Responsible: '+it.responsible:'', it.deadline?'Deadline: '+it.deadline:''].filter(Boolean).join('   |   ');
+            doc.text(meta, margin+10, iy);
+            iy += 4;
+          }
+
+          // Photos inline
+          if (hasPhotos) {
+            iy += 2;
+            let px = margin+8;
+            photos.forEach((photoUrl, pi) => {
+              if (!photoUrl || !photoUrl.startsWith('data:')) return;
+              try {
+                const fmt = photoUrl.includes('data:image/png')?'PNG':'JPEG';
+                if (px + photoSize > pageW - margin) { px = margin+8; iy += photoSize + 3; }
+                doc.addImage(photoUrl, fmt, px, iy, photoSize, photoSize);
+                px += photoSize + 3;
+              } catch(e) { console.warn('Photo skip:', e); }
+            });
+            iy += photoSize + 3;
+          }
+
+          y = startY + baseH;
         });
       }
-      y += 3;
+      y += 4;
     });
   }
 
-  // ── Corrective Actions Summary
+  // ── Corrective Actions Summary page
   if (a.correctiveActions && a.correctiveActions.length > 0) {
-    checkPage(14);
-    doc.setFillColor(185,28,28); doc.rect(margin,y,colW,8,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('⚠ CORRECTIVE ACTIONS SUMMARY ('+a.correctiveActions.length+' items)', margin+3, y+5.5);
-    y += 11;
+    doc.addPage();
+    addPageHeader();
+    y = 14;
+    doc.setFillColor(185,28,28); doc.rect(margin,y,colW,9,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('CORRECTIVE ACTIONS SUMMARY ('+a.correctiveActions.length+' Failed Items)', margin+3, y+6);
+    y += 13;
 
     a.correctiveActions.forEach((ca, i) => {
-      checkPage(26);
-      doc.setFillColor(254,242,242);
-      doc.rect(margin,y,colW,24,'F');
+      checkPage(30);
+      doc.setFillColor(254,242,242); doc.rect(margin,y,colW,28,'F');
       doc.setDrawColor(185,28,28); doc.setLineWidth(0.8);
-      doc.line(margin,y,margin,y+24);
-      doc.setLineWidth(0.1); doc.setDrawColor(224,221,212);
+      doc.line(margin,y,margin,y+28); doc.setLineWidth(0.1);
 
       doc.setTextColor(120,80,80); doc.setFontSize(8); doc.setFont('helvetica','normal');
       doc.text((ca.section||'—')+' — Item '+(ca.item||''), margin+4, y+5);
       doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont('helvetica','bold');
-      doc.text('✗ '+(ca.criteria||'—'), margin+4, y+11, {maxWidth:colW-8});
+      const criTxt = doc.splitTextToSize('✗ '+(ca.criteria||'—'), colW-8);
+      doc.text(criTxt, margin+4, y+11);
+      let cy = y+11+(criTxt.length*4);
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(70,70,70);
-      if (ca.observation) doc.text('Observation: '+ca.observation, margin+4, y+17, {maxWidth:colW-8});
-      if (ca.correctiveAction) { doc.setTextColor(185,28,28); doc.text('Action Required: '+ca.correctiveAction, margin+4, y+22, {maxWidth:colW-8}); }
-      y += 27;
-      if (ca.responsible||ca.deadline) {
-        checkPage(8);
-        doc.setFillColor(255,235,235); doc.rect(margin,y,colW,7,'F');
-        doc.setTextColor(100,60,60); doc.setFontSize(8); doc.setFont('helvetica','normal');
-        const meta = [ca.responsible?'👤 Responsible: '+ca.responsible:'',ca.deadline?'📅 Deadline: '+ca.deadline:''].filter(Boolean).join('     ');
-        doc.text(meta, margin+4, y+4.5);
-        y += 9;
-      }
+      if (ca.observation) { doc.text('Observation: '+ca.observation, margin+4, cy, {maxWidth:colW-8}); cy+=5; }
+      if (ca.correctiveAction) { doc.setTextColor(185,28,28); doc.text('Action: '+ca.correctiveAction, margin+4, cy, {maxWidth:colW-8}); cy+=5; }
+      const meta=[ca.responsible?'Responsible: '+ca.responsible:'',ca.deadline?'Deadline: '+ca.deadline:''].filter(Boolean).join('   |   ');
+      if (meta) { doc.setTextColor(100,60,60); doc.setFontSize(8); doc.text(meta, margin+4, cy); }
+      y += 32;
     });
   }
 
-  // ── Footer on each page
+  // ── Footer on every page
   const totalPages = doc.internal.getNumberOfPages();
   for (let p=1; p<=totalPages; p++) {
     doc.setPage(p);
@@ -3100,7 +3172,9 @@ function exportAuditPDF(a) {
 
   const fn = (a.outlet||'Outlet').replace(/\s+/g,'_')+'_'+(a.auditType||'')+'_Audit_'+(a.auditDate||new Date().toISOString().split('T')[0])+'.pdf';
   doc.save(fn);
-  showToast('📄 PDF exported: '+fn, '#1A3C5E');
+  showToast('📄 PDF saved: '+fn, '#15803D');
+  } catch(e) { showToast('PDF error: '+e.message, '#c62828'); console.error(e); }
+  }, 100);
 }
 
 
