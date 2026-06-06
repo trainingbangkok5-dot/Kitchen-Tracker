@@ -542,7 +542,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
 
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">OIC Check</th>
+              
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Action</th>
@@ -4484,11 +4484,29 @@ function loadBOHData() {
           const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
           if (diffDays >= 1 && diffDays <= 6) grouped[gKey].days[diffDays] = sub.overallPct || 0;
         }
-        if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
-        if (sub.qualified) grouped[gKey].qualified = sub.qualified;
-        if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        // For shift-based submissions (delco/bartender) properly assign opening/closing
+        if (sub.shift === 'opening') {
+          grouped[gKey].openingPct = sub.overallPct;
+        } else if (sub.shift === 'closing') {
+          grouped[gKey].closingPct = sub.overallPct;
+        } else {
+          if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
+        }
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
         if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
+        // Recalculate overall from opening+closing if both exist
+        const _op = grouped[gKey].openingPct;
+        const _cl = grouped[gKey].closingPct;
+        if (_op != null && _cl != null) {
+          grouped[gKey].overallPct = Math.round((_op + _cl) / 2);
+          grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
+        } else if (_op != null && grouped[gKey].overallPct === 0) {
+          grouped[gKey].overallPct = _op;
+        } else if (_cl != null && grouped[gKey].overallPct === 0) {
+          grouped[gKey].overallPct = _cl;
+        }
+        if (sub.qualified) grouped[gKey].qualified = sub.qualified;
+        if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
       });
       allBOHData = Object.values(grouped);
       allBOHData.sort((a,b) => b.overallPct - a.overallPct);
@@ -4830,14 +4848,6 @@ function renderFOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;">
-        ${staff.role === 'service' ?
-          (staff.staffSubmitted && staff.oicEvaluated ? '<span style="font-size:11px;background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:10px;font-weight:600;">✅ Complete</span>' :
-           staff.staffSubmitted && !staff.oicEvaluated ? '<span style="font-size:11px;background:#FEF3C7;color:#D97706;padding:2px 8px;border-radius:10px;font-weight:600;">⚠️ Pending OIC</span>' :
-           !staff.staffSubmitted && staff.oicEvaluated ? '<span style="font-size:11px;background:#E0F2FE;color:#0891B2;padding:2px 8px;border-radius:10px;font-weight:600;">🔵 OIC Only</span>' :
-           '<span style="font-size:11px;color:#94A3B8;">—</span>')
-          : '<span style="font-size:11px;color:#94A3B8;">N/A</span>'}
-      </td>
       <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified ? '✅' : op > 0 ? '❌' : '—'}</td>
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
         ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
@@ -4924,10 +4934,6 @@ function openFOHDetail(idx) {
       <div style="font-size:11px;font-weight:600;color:${staff.qualified?'#0F766E':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
     </div>
     ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
-    <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Daily Scores</div>
-    <div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;margin-bottom:14px;">
-      ${dayRows}
-    </div>
     <div id="fohChecklistArea" style="margin-top:4px;">
       <div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading full checklist...</div>
     </div>
@@ -5136,7 +5142,7 @@ function openFOHDetail(idx) {
           const isLast = ti === tasks.length-1;
           html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
             <div style="flex:1;">
-              <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FCE7F3;color:#9D174D;">OIC Only</span>
+              <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FCE7F3;color:#9D174D;">OIC Eval</span>
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.text}</div>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
             </div>
