@@ -2918,20 +2918,27 @@ function openAuditDetail(a) {
     const auditKey = (a.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_') + '_' + (a.auditType||'') + '_' + (a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
     a.sectionBreakdown.forEach(s => {
       (s.items||[]).forEach(it => {
-        // Try loading up to 5 photos per item
-        const photoKeys = it.photoKeys || [];
-        // Also try pattern-based keys for backward compat
-        for (let pi = 0; pi < 5; pi++) {
-          photoKeys.push(auditKey + '_' + s.id + '_' + it.n + '_' + pi);
-        }
         const container = document.getElementById('photos-' + s.id + '-' + it.n);
         if (!container) return;
-        let found = false;
+
+        // Build deduplicated key list — photoKeys first, then pattern-based
+        const seenKeys = new Set();
+        const photoKeys = [];
+        (it.photoKeys||[]).forEach(k => { if(!seenKeys.has(k)){seenKeys.add(k);photoKeys.push(k);} });
+        for (let pi = 0; pi < 5; pi++) {
+          const k = auditKey + '_' + s.id + '_' + it.n + '_' + pi;
+          if (!seenKeys.has(k)) { seenKeys.add(k); photoKeys.push(k); }
+        }
+
+        // Load photos, skip duplicates by URL
+        const seenUrls = new Set();
+        let firstFound = false;
         photoKeys.forEach(key => {
           db.ref('auditPhotos/' + key).once('value').then(snap => {
             const url = snap.val();
-            if (!url) return;
-            if (!found) { container.innerHTML = ''; found = true; }
+            if (!url || seenUrls.has(url)) return;
+            seenUrls.add(url);
+            if (!firstFound) { container.innerHTML = ''; firstFound = true; }
             const img = document.createElement('img');
             img.src = url;
             const borderCol = it.status==='fail'?'#FECACA':'#BBF7D0';
