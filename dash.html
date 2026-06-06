@@ -236,6 +236,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="hdr-btn" onclick="loadData()">⟳</button>
         <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
         <button class="hdr-btn" id="resetChecklistBtn" onclick="openResetChecklistModal()" style="display:none;background:#B91C1C;">🔄 Reset Checklist</button>
+        <button class="hdr-btn" id="deleteAllDataBtn" onclick="openDeleteAllModal()" style="display:none;background:#7F1D1D;">🗑 Delete All Data</button>
         <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
       </div>
     </div>
@@ -917,6 +918,38 @@ function savePinToFirebase(role, newPin) {
   return db.ref('settings/pins/' + role).set(newPin);
 }
 
+function openDeleteAllModal() {
+  document.getElementById('deleteAllModal').style.display = 'flex';
+}
+
+async function deleteAllData() {
+  const pin = document.getElementById('deleteAllPin').value.trim();
+  if (pin !== 'TRAIN2025') {
+    showToast('Wrong PIN — access denied 🔒', 'error');
+    return;
+  }
+  if (!confirm('⚠️ This will permanently delete ALL submissions, audits, photos and data from Firebase.\n\nThis CANNOT be undone!\n\nAre you absolutely sure?')) return;
+
+  document.getElementById('deleteAllModal').style.display = 'none';
+  showToast('🗑 Deleting all data...', 'warn');
+
+  try {
+    const nodes = ['submissions', 'audits', 'auditPhotos', 'photos', 'reset_flags'];
+    for (const node of nodes) {
+      await db.ref(node).remove();
+    }
+    // Also delete from FOH db if available
+    if (fohDb) {
+      await fohDb.ref('submissions').remove();
+    }
+    showToast('✅ All data deleted successfully', 'ok');
+    allStaff = []; allAudits = [];
+    loadData();
+  } catch(e) {
+    showToast('❌ Delete failed: ' + e.message, 'error');
+  }
+}
+
 function openResetChecklistModal() {
   document.getElementById('resetChecklistModal').style.display = 'flex';
   document.getElementById('resetRole').value = '';
@@ -1074,6 +1107,7 @@ function doLogin() {
   // Show Change PIN button for management roles only
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
+  document.getElementById('deleteAllDataBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
 
@@ -4710,9 +4744,19 @@ function loadFOHData() {
             week: sub.week,
             days: {},
             overallPct: 0,
-            qualified: false
+            qualified: false,
+            taskData: {},
+            _subs: []
           };
         }
+        // Merge taskData from all submissions
+        if (sub.taskData) {
+          Object.assign(grouped[gKey].taskData, sub.taskData);
+        }
+        grouped[gKey]._subs.push(sub);
+        // Store latest timestamps
+        if (sub.submittedAt) grouped[gKey].submittedAt = sub.submittedAt;
+        if (sub.lastUpdated) grouped[gKey].lastUpdated = sub.lastUpdated;
         // Store day score — use sub.day (1-6) directly
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
           grouped[gKey].days[sub.day] = sub.overallPct || 0;
@@ -5290,9 +5334,10 @@ function toggleFOHEditMode() {
   const area = document.getElementById('fohChecklistArea');
   if (!area) return;
 
-  // Show yn edit buttons, hide display badges
+  // Show yn edit buttons, hide display badges and photos
   area.querySelectorAll('.foh-yn-display').forEach(el => el.style.display = 'none');
   area.querySelectorAll('.foh-photo-display').forEach(el => el.style.display = 'none');
+  area.querySelectorAll('.photo-thumb, img.photo-thumb, .photo-row img').forEach(el => el.style.display = 'none');
   area.querySelectorAll('.foh-yn-edit').forEach(el => el.style.display = 'flex');
 
   // Add cancel button
@@ -5397,7 +5442,7 @@ async function saveFOHOverwrite(staff) {
     // Reload FOH data and reopen detail
     await new Promise(resolve => {
       loadFOHData();
-      setTimeout(resolve, 800);
+      setTimeout(resolve, 1500);
     });
     openFOHDetail(_fohDetailIdx);
   } catch(e) {
@@ -5797,6 +5842,7 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('dashScreen').style.display = 'block';
     document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
+  document.getElementById('deleteAllDataBtn').style.display = currentRole === 'training' ? 'block' : 'none';
     setTimeout(() => { if (db) { loadData(); } }, 1500);
   }
 });
@@ -5934,6 +5980,31 @@ function initWeeklyDates() {
         style="width:100%;padding:10px;background:none;border:1px solid #E0DDD4;border-radius:12px;font-size:13px;color:#6B6B60;cursor:pointer;margin-top:8px;">
         Reset All PINs to Default
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ALL DATA MODAL -->
+<div id="deleteAllModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;width:90%;max-width:360px;overflow:hidden;">
+    <div style="background:#7F1D1D;padding:16px 20px;">
+      <div style="font-size:15px;font-weight:700;color:#fff;">🗑 Delete All Data</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:3px;">This cannot be undone</div>
+    </div>
+    <div style="padding:20px;">
+      <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#B91C1C;">
+        ⚠️ This will permanently delete ALL:<br>
+        • All BOH + FOH submissions<br>
+        • All audit records and photos<br>
+        • All checklist history<br><br>
+        Use only for clearing test data!
+      </div>
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Enter Training PIN to confirm:</div>
+      <input id="deleteAllPin" type="password" placeholder="Enter PIN..." style="width:100%;padding:10px 12px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:14px;outline:none;margin-bottom:12px;">
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('deleteAllModal').style.display='none'" style="flex:1;padding:11px;background:#F1F5F9;color:#64748B;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Cancel</button>
+        <button onclick="deleteAllData()" style="flex:1;padding:11px;background:#B91C1C;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">🗑 Delete Everything</button>
+      </div>
     </div>
   </div>
 </div>
