@@ -4657,10 +4657,24 @@ function openFOHDetail(idx) {
             <div class="foh-yn-display" style="flex-shrink:0;">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
             </div>
-            <div class="foh-yn-edit" style="display:none;gap:4px;flex-shrink:0;">
-              <button onclick="setFOHTaskYN(this,'yes')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
-              <button onclick="setFOHTaskYN(this,'no')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
-              <button onclick="setFOHTaskYN(this,'na')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
+            <div class="foh-yn-edit" style="display:none;flex-direction:column;gap:6px;flex-shrink:0;min-width:200px;">
+              <div style="display:flex;gap:4px;">
+                <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
+                <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
+                <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
+              </div>
+              <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Comment</div>
+              <textarea data-fohtaskkey="${taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
+              <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Photo</div>
+              <div style="display:flex;gap:4px;">
+                <label style="flex:1;padding:5px;background:#1A3C5E;color:#fff;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;">
+                  📸 Take Photo<input type="file" accept="image/*" capture="environment" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="display:none;">
+                </label>
+                <label style="flex:1;padding:5px;background:#EFF6FF;color:#1A3C5E;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:1px solid #BFDBFE;">
+                  🖼️ Gallery<input type="file" accept="image/*" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="display:none;">
+                </label>
+              </div>
+              ${t.photoUrl && t.photoUrl.startsWith('http') ? `<img src="${t.photoUrl}" style="max-width:100%;max-height:80px;border-radius:6px;border:2px solid #22C55E;margin-top:2px;" onerror="this.style.display='none'">` : ''}
             </div>
           </div>`;
         });
@@ -4721,6 +4735,46 @@ function closeFOHDetailModal() {
 }
 
 // ── FOH Task YN setter ───────────────────────────────────────
+function setFOHTaskComment(el) {
+  const taskKey = el.getAttribute('data-fohtaskkey');
+  if (!taskKey) return;
+  if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
+  _fohEditChanges[taskKey].comment = el.value;
+}
+
+function handleFOHEditPhoto(input) {
+  const taskKey = input.getAttribute('data-fohtaskkey');
+  if (!taskKey || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
+    _fohEditChanges[taskKey].photoUrl = e.target.result;
+    // Show preview
+    const card = input.closest('[data-fohtaskkey]') || input.closest('.foh-yn-edit');
+    if (card) {
+      let preview = card.querySelector('img.foh-edit-preview');
+      if (!preview) {
+        preview = document.createElement('img');
+        preview.className = 'foh-edit-preview';
+        preview.style.cssText = 'max-width:100%;max-height:80px;border-radius:6px;border:2px solid #22C55E;margin-top:4px;';
+        card.appendChild(preview);
+      }
+      preview.src = e.target.result;
+    }
+    showToast('Photo added ✓', 'ok');
+    // Upload to Cloudinary
+    const fd = new FormData();
+    fd.append('file', e.target.result);
+    fd.append('upload_preset', 'culex_uploads');
+    fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
+      .then(r => r.json())
+      .then(j => { if (j.secure_url) _fohEditChanges[taskKey].photoUrl = j.secure_url; })
+      .catch(() => {});
+  };
+  reader.readAsDataURL(file);
+}
+
 function setFOHTaskYN(btn, val) {
   const row = btn.closest('[data-fohtaskkey]');
   if (!row) return;
@@ -4799,16 +4853,22 @@ async function saveFOHOverwrite(staff) {
     const sub = child.val();
     if (sub.role !== staff.role || sub.week !== staff.week) return;
     // Apply yn changes to matching task keys
-    Object.entries(_fohEditChanges).forEach(([taskKey, yn]) => {
+    Object.entries(_fohEditChanges).forEach(([taskKey, changes]) => {
       if (sub.taskData && sub.taskData[taskKey] !== undefined) {
-        updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
+        const yn = typeof changes === 'string' ? changes : changes.yn;
+        if (yn) updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
+        if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
+        if (changes && changes.photoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/photoUrl'] = changes.photoUrl;
       }
     });
     // Recalculate score for this submission
     if (sub.taskData) {
       const updatedTasks = {...sub.taskData};
-      Object.entries(_fohEditChanges).forEach(([k, yn]) => {
-        if (updatedTasks[k]) updatedTasks[k] = {...updatedTasks[k], yn};
+      Object.entries(_fohEditChanges).forEach(([k, changes]) => {
+        if (updatedTasks[k]) {
+          const yn = typeof changes === 'string' ? changes : changes.yn;
+          if (yn) updatedTasks[k] = {...updatedTasks[k], yn};
+        }
       });
       let yes = 0, total = 0;
       Object.values(updatedTasks).forEach(t => {
