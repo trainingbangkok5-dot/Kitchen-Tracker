@@ -4139,6 +4139,8 @@ function loadBOHData() {
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
+        if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
       });
       allBOHData = Object.values(grouped);
       allBOHData.sort((a,b) => b.overallPct - a.overallPct);
@@ -4372,6 +4374,8 @@ function loadFOHData() {
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
+        if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
           const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
@@ -4542,21 +4546,33 @@ function openFOHDetail(idx) {
       : '<span style="font-size:12px;color:#94A3B8;">—</span>')
     : '';
 
+  // Calculate opening/closing/oic scores from days data
+  const oPctFoh = staff.openingPct != null ? staff.openingPct : null;
+  const cPctFoh = staff.closingPct != null ? staff.closingPct : null;
+  const oicPctFoh = staff.oicPct != null ? staff.oicPct : null;
+  const isService = staff.role === 'service';
+
   // Show loading state immediately
   document.getElementById('fohDetailBody').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div style="background:#FFF1F0;border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:28px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
-        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;margin-top:2px;">Overall Score</div>
+    <div style="display:grid;grid-template-columns:${isService?'1fr 1fr':'1fr 1fr 1fr'};gap:8px;margin-bottom:14px;">
+      <div style="background:#EFF6FF;border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 Opening</div>
+        <div style="font-size:22px;font-weight:800;color:${scoreColor(oPctFoh||op)}">${oPctFoh!=null?oPctFoh+'%':op+'%'}</div>
       </div>
-      <div style="background:#F8F7F2;border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:20px;font-weight:700;color:#1A3C5E">${Object.keys(staff.days).length}</div>
-        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;margin-top:2px;">Days Submitted</div>
+      ${isService?`<div style="background:#F5F3FF;border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🧑‍💼 OIC Eval</div>
+        <div style="font-size:22px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
+      </div>`:''}
+      <div style="background:#F0FDF4;border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 Closing</div>
+        <div style="font-size:22px;font-weight:800;color:${scoreColor(cPctFoh||op)}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
       </div>
-      <div style="background:#F8F7F2;border-radius:8px;padding:12px;text-align:center;">
-        <div style="font-size:20px;font-weight:700;color:${staff.qualified?'#0F766E':'#B91C1C'}">${staff.qualified?'✅':'❌'}</div>
-        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;margin-top:2px;">Incentive</div>
-      </div>
+      ${!isService?'':`<div></div>`}
+    </div>
+    <div style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:8px;padding:10px;text-align:center;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px;">🏆 Total Score</div>
+      <div style="font-size:28px;font-weight:800;color:${staff.qualified?'#0F766E':'#B91C1C'}">${op}%</div>
+      <div style="font-size:11px;font-weight:600;color:${staff.qualified?'#0F766E':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
     </div>
     ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
     <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Daily Scores</div>
@@ -4901,15 +4917,28 @@ async function saveFOHOverwrite(staff) {
           if (yn) updatedTasks[k] = {...updatedTasks[k], yn};
         }
       });
-      let yes = 0, total = 0;
+      // Calculate opening, closing, oic scores separately
+      const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+      let yes=0,total=0, oY=0,oT=0, cY=0,cT=0, eY=0,eT=0;
       Object.values(updatedTasks).forEach(t => {
-        if (t.yn && t.yn !== 'na') { total++; if (t.yn === 'yes') yes++; }
+        if (t.yn && t.yn !== 'na') {
+          const isOic = oicTaskIds.some(id => t._key===id || (t._key||'').includes('_'+id) || (t._key||'').startsWith(id+'_'));
+          const isOpen = (t._key||'').includes('_o') || (t.section||'').toLowerCase().includes('open');
+          const isClose = (t._key||'').includes('_c') || (t.section||'').toLowerCase().includes('clos');
+          if (isOic) { eT++; if(t.yn==='yes') eY++; }
+          else if (isOpen) { oT++; if(t.yn==='yes') oY++; }
+          else if (isClose) { cT++; if(t.yn==='yes') cY++; }
+          total++; if(t.yn==='yes') yes++;
+        }
       });
       const newPct = total > 0 ? Math.round((yes/total)*100) : 0;
       updates['submissions/' + child.key + '/overallPct'] = newPct;
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
+      if (oT>0) updates['submissions/' + child.key + '/openingPct'] = Math.round((oY/oT)*100);
+      if (cT>0) updates['submissions/' + child.key + '/closingPct'] = Math.round((cY/cT)*100);
+      if (eT>0) updates['submissions/' + child.key + '/oicPct'] = Math.round((eY/eT)*100);
     }
   });
 
