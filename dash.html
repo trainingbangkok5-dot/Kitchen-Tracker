@@ -2891,14 +2891,8 @@ function openAuditDetail(a) {
                 ${it.status==='fail' && it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:4px;background:#FEF2F2;padding:4px 8px;border-radius:6px;font-weight:600;">🔧 <strong>Corrective Action:</strong> ${it.correctiveAction}</div>`:''}
                 <!-- Responsible + Deadline -->
                 ${it.status==='fail' && (it.responsible||it.deadline)?`<div style="font-size:11px;color:#6B6B60;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">${it.responsible?`<span>👤 <strong>Responsible:</strong> ${it.responsible}</span>`:''} ${it.deadline?`<span>📅 <strong>Deadline:</strong> ${it.deadline}</span>`:''}</div>`:''}
-                <!-- Inline photos — loaded from Firebase by photoKeys -->
-                ${(it.photoKeys && it.photoKeys.length>0) ? `
-                  <div id="photos-${s.id}-${it.n}" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                    ${it.photoKeys.map(k=>`<div style="width:88px;height:88px;background:#F0EDE4;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;">⏳</div>`).join('')}
-                  </div>` : (it.photos && it.photos.length>0 ? `
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-                    ${it.photos.map(url=>`<img src="${url}" style="width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${it.status==='fail'?'#FECACA':'#BBF7D0'};cursor:pointer;" onclick="this.style.cssText=this.style.width==='88px'?'width:100%;height:auto;border-radius:8px;cursor:pointer;':'width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${it.status==='fail'?'#FECACA':'#BBF7D0'};cursor:pointer;'" onerror="this.style.display='none'">`).join('')}
-                  </div>` : '')}
+                <!-- Inline photos — loaded from Firebase -->
+                <div id="photos-${s.id}-${it.n}" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;min-height:0;"></div>
               </div>
               <!-- Status badge -->
               <div style="flex-shrink:0;text-align:right;">
@@ -2919,33 +2913,38 @@ function openAuditDetail(a) {
 
   document.getElementById('detailModal').classList.add('open');
 
-  // Load photos from Firebase for each item
+  // Load photos from Firebase for each item using known key pattern
   if (db && a.sectionBreakdown) {
+    const auditKey = (a.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_') + '_' + (a.auditType||'') + '_' + (a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
     a.sectionBreakdown.forEach(s => {
       (s.items||[]).forEach(it => {
-        if (it.photoKeys && it.photoKeys.length > 0) {
-          const container = document.getElementById('photos-'+s.id+'-'+it.n);
-          if (!container) return;
-          container.innerHTML = '';
-          it.photoKeys.forEach(key => {
-            db.ref('auditPhotos/' + key).once('value').then(snap => {
-              const url = snap.val();
-              if (url) {
-                const img = document.createElement('img');
-                img.src = url;
-                const borderCol = it.status==='fail'?'#FECACA':'#BBF7D0';
-                img.style.cssText = `width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${borderCol};cursor:pointer;`;
-                img.onclick = function() {
-                  this.style.cssText = this.style.width==='88px'
-                    ? `width:100%;height:auto;border-radius:8px;cursor:pointer;margin-top:4px;`
-                    : `width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${borderCol};cursor:pointer;`;
-                };
-                img.onerror = function() { this.style.display='none'; };
-                container.appendChild(img);
-              }
-            }).catch(e => console.warn('Photo load error:', key, e));
-          });
+        // Try loading up to 5 photos per item
+        const photoKeys = it.photoKeys || [];
+        // Also try pattern-based keys for backward compat
+        for (let pi = 0; pi < 5; pi++) {
+          photoKeys.push(auditKey + '_' + s.id + '_' + it.n + '_' + pi);
         }
+        const container = document.getElementById('photos-' + s.id + '-' + it.n);
+        if (!container) return;
+        let found = false;
+        photoKeys.forEach(key => {
+          db.ref('auditPhotos/' + key).once('value').then(snap => {
+            const url = snap.val();
+            if (!url) return;
+            if (!found) { container.innerHTML = ''; found = true; }
+            const img = document.createElement('img');
+            img.src = url;
+            const borderCol = it.status==='fail'?'#FECACA':'#BBF7D0';
+            img.style.cssText = `width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${borderCol};cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1);`;
+            img.onclick = function() {
+              this.style.cssText = this.style.width==='88px'
+                ? `width:100%;height:auto;border-radius:8px;cursor:pointer;margin-top:4px;display:block;`
+                : `width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${borderCol};cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.1);`;
+            };
+            img.onerror = function() { this.style.display='none'; };
+            container.appendChild(img);
+          }).catch(() => {});
+        });
       });
     });
   }

@@ -494,8 +494,10 @@ function buildUI(){
         +'<button id="btn-fail-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'fail\')">&#10008; Fail</button>'
         +'<button id="btn-na-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'na\')">&#8212; N/A</button>'
         +'<input type="text" class="comment-input" placeholder="Observation / comment..." oninput="setComment(\''+s.id+'\','+it.n+',this.value)" />'+'</div>'+'<div class="corrective-row" id="corrective-row-'+k+'">'+'<span class="corrective-label">⚠ Corrective Action:</span>'+'<textarea class="corrective-input" rows="1" placeholder="Describe corrective action required..." oninput="setCorrectiveAction(\''+s.id+'\','+it.n+',this.value)"></textarea>'+'</div>'+'<div class="deadline-row" id="deadline-row-'+k+'">'+'<span class="deadline-label">📅 Deadline:</span>'+'<input type="date" class="deadline-input" id="deadline-'+k+'" onchange="setDeadline(\''+s.id+'\','+it.n+',this.value)" />'+'<span class="deadline-label" style="margin-left:8px">👤 Responsible:</span>'+'<input type="text" class="responsible-input" placeholder="Name..." oninput="setResponsible(\''+s.id+'\','+it.n+',this.value)" />'+'</div>'+'<div class="item-controls" style="margin-top:4px">'
-        +'<label class="photo-label" id="photo-label-'+k+'" for="photo-input-'+k+'">&#128247; Add photo</label>'
-        +'<input type="file" class="photo-input" id="photo-input-'+k+'" accept="image/*" multiple onchange="addPhotos(\''+s.id+'\','+it.n+',this.files)" />'
+        +'<label class="photo-label" for="photo-cam-'+k+'" style="background:#fff3e0;border-color:#e65100;color:#e65100;">📷 Camera</label>'
+        +'<input type="file" class="photo-input" id="photo-cam-'+k+'" accept="image/*" capture="environment" onchange="addPhotos(\''+s.id+'\','+it.n+',this.files)" />'
+        +'<label class="photo-label" for="photo-gal-'+k+'">🖼 Gallery</label>'
+        +'<input type="file" class="photo-input" id="photo-gal-'+k+'" accept="image/*" multiple onchange="addPhotos(\''+s.id+'\','+it.n+',this.files)" />'
         +'</div><div class="photo-thumbs" id="thumbs-'+k+'"></div>';
       panel.appendChild(card);
     });
