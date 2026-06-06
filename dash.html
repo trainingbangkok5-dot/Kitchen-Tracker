@@ -2196,13 +2196,10 @@ function openStaffDetail(s) {
     const kpiNames = {
       foodCost: 'Outlet Food Cost Optimization',
       kicAccountability: 'Kitchen Incharge Accountability',
-      staffProficiency: 'Staff Technical Proficiency',
-      webAppIntegrity: 'Web App Data Integrity',
-      internalAudits: 'Internal Audits',
-      assetCare: 'Asset Care & Preventive Maintenance'
+      internalAudits: 'Internal Audits'
     };
-    const kpiMax = {foodCost:30, kicAccountability:25, staffProficiency:20, webAppIntegrity:10, internalAudits:10, assetCare:5};
-    const kpiBaseline = {foodCost:27, kicAccountability:18, staffProficiency:18, webAppIntegrity:13.5, internalAudits:4, assetCare:4.5};
+    const kpiMax = {foodCost:30, kicAccountability:25, internalAudits:10};
+    const kpiBaseline = {foodCost:27, kicAccountability:18, internalAudits:4};
 
     html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Area Chef Performance Matrix</div>`;
     html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
@@ -2234,7 +2231,7 @@ function openStaffDetail(s) {
 
     // Section 4: Regional Dashboard — Overall KPI Score (matches ac.html)
     html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Regional Dashboard — Overall KPI Score</div>`;
-    html += `<div style="text-align:center;font-size:11px;color:#64748B;margin-bottom:8px">Target Benchmark Baseline: 90.0 pts</div>`;
+    html += `<div style="text-align:center;font-size:11px;color:#64748B;margin-bottom:8px">Target Benchmark Baseline: 65.0 pts</div>`;
     html += `<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;margin-bottom:10px">
       <div style="font-size:11px;color:#64748B;margin-bottom:4px">OVERALL AREA CHEF KPI SCORE</div>
       <div style="font-size:44px;font-weight:700;color:#7F1D1D;line-height:1">${kpiTotal.toFixed(1)}</div>
@@ -3236,13 +3233,10 @@ async function exportDetailPDF() {
     const kpiNames = {
       foodCost:'Outlet Food Cost Optimization',
       kicAccountability:'Kitchen Incharge Accountability',
-      staffProficiency:'Staff Technical Proficiency',
-      webAppIntegrity:'Web App Data Integrity',
-      internalAudits:'Internal Audits',
-      assetCare:'Asset Care & Preventive Maintenance'
+      internalAudits:'Internal Audits'
     };
-    const kpiMax = {foodCost:30,kicAccountability:25,staffProficiency:20,webAppIntegrity:10,internalAudits:10,assetCare:5};
-    const kpiBaseline = {foodCost:27,kicAccountability:18,staffProficiency:18,webAppIntegrity:13.5,internalAudits:4,assetCare:4.5};
+    const kpiMax = {foodCost:30,kicAccountability:25,internalAudits:10};
+    const kpiBaseline = {foodCost:27,kicAccountability:18,internalAudits:4};
 
     // Section 1: Performance Matrix
     if (y > H-40) { doc.addPage(); y=16; }

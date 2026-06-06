@@ -273,7 +273,7 @@ function showToast(msg, type) {
 }
 
 // ── KPI Max values ──────────────────────────────────────────
-const MAX = [30, 25, 20, 10, 10, 5];
+const MAX = [30, 25, 0, 0, 10, 0]; // staffProficiency/webAppIntegrity/assetCare removed
 
 // ── Main Calculation ────────────────────────────────────────
 // Store KPI scores directly
@@ -498,10 +498,12 @@ function submitKPI() {
   if (!outlet) { showToast('Please select your outlet', 'warn'); return; }
 
   const kpiScores = {};
+  // Only 3 active KPIs: foodCost, kicAccountability, internalAudits
   const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
+  const activeKpis = [0, 1, 4]; // indices of active KPIs
   let total = 0;
   for (let i = 0; i < 6; i++) {
-    const val = Math.min(kpiVals[i] || 0, MAX[i]);
+    const val = activeKpis.includes(i) ? Math.min(kpiVals[i] || 0, MAX[i]) : 0;
     kpiScores[kpiNames[i]] = Math.round(val * 100) / 100;
     total += val;
   }
