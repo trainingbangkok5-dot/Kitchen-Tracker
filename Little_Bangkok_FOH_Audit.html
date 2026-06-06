@@ -934,7 +934,37 @@ function submitAuditToDashboard() {
         });
       }
     }));
-    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), photos, correctiveActions, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+    // Collect full section breakdown
+    const sectionBreakdown = [];
+    SECTIONS.forEach(s=>{
+      const secItems = [];
+      let secEarned=0, secMax=0;
+      s.items.forEach(it=>{
+        const k=s.id+'_'+it.n;
+        const st=state[k];
+        if(st.status!=='na') secMax+=it.score;
+        if(st.status==='pass') secEarned+=it.score;
+        secItems.push({
+          n: it.n,
+          label: it.label,
+          desc: it.desc,
+          maxScore: it.score,
+          status: st.status||'',
+          comment: st.comment||'',
+          correctiveAction: st.correctiveAction||'',
+          responsible: st.responsible||'',
+          deadline: st.deadline||'',
+        });
+      });
+      sectionBreakdown.push({
+        id: s.id,
+        title: s.title,
+        earned: secEarned,
+        max: secMax,
+        items: secItems
+      });
+    });
+    pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), photos, correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
     showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
     console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
   } catch(e) {
