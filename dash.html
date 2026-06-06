@@ -4375,10 +4375,24 @@ function loadFOHData() {
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
           const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
-          const hasOICData = oicTaskIds.some(tid =>
-            Object.keys(sub.taskData).some(k => k.startsWith(tid+'_') && sub.taskData[k].yn)
-          );
+          const hasOICData = oicTaskIds.some(tid => {
+            // Check both 'd1_u1' format and direct 'u1' format
+            return Object.keys(sub.taskData).some(k =>
+              (k === tid || k.includes('_'+tid) || k.startsWith(tid+'_')) && sub.taskData[k].yn
+            );
+          });
           if (hasOICData) grouped[gKey].oicEvaluated = true;
+          // Also store OIC scores for display
+          let oicY=0,oicT=0;
+          oicTaskIds.forEach(tid => {
+            Object.keys(sub.taskData).forEach(k => {
+              if(k===tid||k.includes('_'+tid)||k.startsWith(tid+'_')){
+                const v=sub.taskData[k].yn;
+                if(v&&v!=='na'){oicT++;if(v==='yes')oicY++;}
+              }
+            });
+          });
+          if(oicT>0) { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
           const hasStaffData = staffTaskIds.some(tid =>

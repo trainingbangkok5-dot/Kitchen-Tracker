@@ -401,12 +401,44 @@ function renderDay() {
 
   // Submit or score card
   if(isDone&&!ALLOW_OVERWRITE) {
+    // Calculate opening and closing scores from localStorage
+    const d2=load(), dk2=getTodayKey();
+    let oPct=null, cPct=null;
+    // Check if both shifts submitted
+    const allData = d2[dk2]||{};
+    // Opening score
+    const opSections = SECTIONS.filter(s=>s.shift==='opening');
+    let oY2=0,oM2=0;
+    opSections.forEach(s=>s.tasks.forEach(t=>{const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){oM2++;if(v==='yes')oY2++;}}));
+    if(oM2>0) oPct=Math.round((oY2/oM2)*100);
+    // Closing score
+    const clSections = SECTIONS.filter(s=>s.shift==='closing');
+    let cY2=0,cM2=0;
+    clSections.forEach(s=>s.tasks.forEach(t=>{const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){cM2++;if(v==='yes')cY2++;}}));
+    if(cM2>0) cPct=Math.round((cY2/cM2)*100);
+    // Total
+    const totalM=oM2+cM2, totalY=oY2+cY2;
+    const totalPct=totalM>0?Math.round((totalY/totalM)*100):pct;
+    const totalPass=totalPct>=95;
+
     const sc=document.createElement('div');
     sc.className='score-card';
     sc.innerHTML=`
-      <div class="score-big" style="color:${pct>=95?'#15803D':pct>=70?'#D97706':'#B91C1C'}">${pct}%</div>
-      <div class="score-label">${currentShift==='opening'?'Opening':'Closing'} Score</div>
-      <div style="margin-top:8px;font-size:12px;font-weight:600;color:${pct>=95?'#15803D':'#B91C1C'}">${pct>=95?'✅ Qualified for incentive':'❌ Below target (95%)'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div style="background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌅 Opening</div>
+          <div style="font-size:18px;font-weight:700;color:${oPct>=95?'#15803D':oPct>=70?'#D97706':'#B91C1C'}">${oPct!==null?oPct+'%':'—'}</div>
+        </div>
+        <div style="background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌙 Closing</div>
+          <div style="font-size:18px;font-weight:700;color:${cPct>=95?'#15803D':cPct>=70?'#D97706':'#B91C1C'}">${cPct!==null?cPct+'%':'—'}</div>
+        </div>
+        <div style="background:${totalPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${totalPass?'#22C55E':'#EF4444'};border-radius:8px;padding:8px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🏆 Total</div>
+          <div style="font-size:18px;font-weight:700;color:${totalPass?'#15803D':'#B91C1C'}">${totalPct}%</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:${totalPass?'#15803D':'#B91C1C'}">${totalPass?'✅ Qualified for incentive':'❌ Below target (95%)'}</div>
     `;
     container.appendChild(sc);
     // Overwrite message — direct to dashboard
