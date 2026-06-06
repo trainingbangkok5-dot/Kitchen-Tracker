@@ -4226,7 +4226,31 @@ document.addEventListener('click', function(e) {
 
 function overwiteFromBOH(s) {
   if (!s) return;
-  openStaffDetail(s);
+  openBOHDetailFull(s);
+}
+
+function openBOHDetailFull(s) {
+  if (!s) return;
+  // Try to fetch full submission with taskData from Firebase
+  if (!db) { openStaffDetail(s); return; }
+  db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+    if (!snap.exists()) { openStaffDetail(s); return; }
+    let fullRecord = null;
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === s.role && sub.week === s.week && sub.taskData) {
+        // Merge taskData into record
+        if (!fullRecord) fullRecord = Object.assign({}, s);
+        if (!fullRecord.taskData) fullRecord.taskData = {};
+        Object.assign(fullRecord.taskData, sub.taskData);
+        if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
+        if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
+        if (sub.verifiedBy) fullRecord.verifiedBy = sub.verifiedBy;
+        if (sub.verifiedAt) fullRecord.verifiedAt = sub.verifiedAt;
+      }
+    });
+    openStaffDetail(fullRecord || s);
+  });
 }
 
 function renderBOHStaff() {
@@ -4271,7 +4295,7 @@ function renderBOHStaff() {
           : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
       }</td>
       <td style="padding:6px 8px;text-align:center;">
-        <button onclick="openStaffDetail(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
+        <button onclick="openBOHDetailFull(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
         ${canOW ? `<button onclick="overwiteFromBOH(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
       </td>`;
     tbody.appendChild(tr);
@@ -4517,7 +4541,8 @@ function openFOHDetail(idx) {
   `;
 
   // Show Edit button only for roles allowed to overwrite FOH records
-  const fohCanEdit = ['areamanager','areachef','training','operations','director','ceo'].includes(currentRole);
+  // OIC can overwrite service/delco/bartender; area manager can overwrite all FOH
+  const fohCanEdit = ['oic','areamanager','training','operations','director','ceo'].includes(currentRole);
   const fohEditBtn = document.getElementById('fohEditBtn');
   if (fohEditBtn) fohEditBtn.style.display = fohCanEdit ? 'block' : 'none';
 
