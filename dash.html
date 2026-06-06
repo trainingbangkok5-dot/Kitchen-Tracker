@@ -3386,6 +3386,9 @@ async function exportDetailPDF() {
     });
 
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
+      // Only show days with actual YES/NO answers
+      const hasActualData = byDay[day].some(t => t.yn && t.yn !== '');
+      if (!hasActualData) return;
       if (y > H-40) { doc.addPage(); y=16; }
       const tasks = byDay[day];
       const bySec = {};
@@ -3394,14 +3397,6 @@ async function exportDetailPDF() {
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
       });
-
-      // Day header
-      doc.setFillColor(26,60,94);
-      doc.rect(14,y-3,W-28,7,'F');
-      doc.setTextColor(255,255,255);
-      doc.setFontSize(9); doc.setFont('helvetica','bold');
-      doc.text('Day ' + day, 16, y+2);
-      y += 8;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
         doc.autoTable({
