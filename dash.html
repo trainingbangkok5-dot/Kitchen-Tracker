@@ -1115,7 +1115,7 @@ function doLogin() {
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('deleteAllDataBtn').style.display = currentRole === 'training' ? 'block' : 'none';
-  document.getElementById('tabRegistry').style.display = currentRole === 'training' ? 'flex' : 'none';
+  document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
