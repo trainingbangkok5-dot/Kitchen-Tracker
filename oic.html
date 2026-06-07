@@ -591,7 +591,7 @@ function clearAllData() {
 }
 const ROLE_LABEL = 'OIC';
 const SK_BASE         = 'kic_oic_data_v2'
-let SK           = SK_BASE;;
+let SK           = SK_BASE;
 const ALLOW_OVERWRITE = false; // Lock after submit — overwrite via dashboard only
 let _overwritePins = {};
 function loadOverwritePins() {
@@ -876,7 +876,7 @@ function renderDay() {
   btn.className = 'submit-btn';
   if (isDone && !ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
+    btn.textContent = '✓ Checklist Submitted — Locked';
     const msg = document.createElement('div');
     msg.className = 'synced-msg';
     msg.textContent = '✓ Submitted and synced to dashboard';
@@ -884,7 +884,7 @@ function renderDay() {
     container.appendChild(msg);
   } else if (isDone && ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted`;
+    btn.textContent = '✓ Checklist Submitted';
     container.appendChild(btn);
     // Overwrite panel
     const owp = document.createElement('div');
