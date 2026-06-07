@@ -1034,6 +1034,7 @@ function resetPinsToDefault() {
 
 // ── LOGIN ──────────────────────────────────────────────────────
 function selectRole(btn, role) {
+  console.log('selectRole called:', role, 'FULL_ACCESS:', FULL_ACCESS);
   if (selectedRoleBtn) selectedRoleBtn.classList.remove('selected');
   btn.classList.add('selected');
   selectedRoleBtn = btn;
@@ -1052,6 +1053,7 @@ function selectRole(btn, role) {
   const pinRow = document.getElementById('pinRow');
   const pinInput = document.getElementById('loginPin');
   if (FULL_ACCESS.includes(role)) {
+    console.log('Showing pinRow for role:', role);
     pinRow.style.display = 'block';
     pinInput.value = '';
     pinInput.style.borderColor = '#1A3C5E';
@@ -1799,7 +1801,7 @@ function openMonthlyDetail(staffName, allSubs) {
       html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 ${dayDt}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
-        html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^-]/g,'').trim()||'Tasks'}</div>`;
+        html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim()||'Tasks'}</div>`;
         secTasks.forEach((t, ti) => {
           const yn = t.yn||'';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -1923,7 +1925,7 @@ function openWeeklyDetail(staffName, week) {
     html += `<div style="background:#1A3C5E;padding:7px 12px;font-size:12px;font-weight:600;color:#fff;margin-top:10px;">📅 ${dayDt}</div>`;
 
     Object.entries(bySec).forEach(([sec, secTasks]) => {
-      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^-]/g,'').trim()||'Tasks'}</div>`;
+      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim()||'Tasks'}</div>`;
       secTasks.forEach((t, ti) => {
         const yn = t.yn||'';
         const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -3445,10 +3447,10 @@ async function exportDetailPDF() {
           startY: y,
           head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim().replace(/^\s+/, '') || 'Tasks', colSpan:4, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
           body: secTasks.map(t => [
-            (t.owner||'').replace(/[^ -]/g,'').trim(),
-            (t.task||'').replace(/[^ -]/g,'').trim(),
+            (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
+            (t.task||'').replace(/[^\x00-\x7F]/g,'').trim(),
             (t.yn||'').toUpperCase()||'—',
-            (t.comment||'').replace(/[^ -]/g,'').trim()
+            (t.comment||'').replace(/[^\x00-\x7F]/g,'').trim()
           ]),
           columnStyles:{
             0:{cellWidth:28,fontSize:8,textColor:[100,100,100]},
@@ -5608,7 +5610,7 @@ async function exportFOHDetailPDF() {
                 body: secTasks.map(t => {
                   const yn = (t.yn||'').toUpperCase();
                   return [
-                    (t.owner||'').replace(/[^ -]/g,'').trim(),
+                    (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
                     (t.task||t.text||'—').replace(/[^\x00-\x7F]/g,'').trim(),
                     yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'—'
                   ];
