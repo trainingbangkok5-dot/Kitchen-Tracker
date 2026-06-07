@@ -740,7 +740,7 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { const el = document.getElementById('fWeek'); return el ? (el.value || el.textContent || '').trim() : getDubaiDateStr(); }
+function getWeekStart() { const el = document.getElementById('fWeek'); const v = el ? (el.value || el.textContent || '').trim() : ''; return (v && v !== '—') ? v : getDubaiDateStr(); }
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return document.getElementById('fVerified').value.trim(); }
@@ -974,7 +974,7 @@ function fmtTimeOnly(iso) {
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
-  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // getWeekStart always returns Dubai date as fallback
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
   d[getTodayKey()]._start = new Date().toISOString();
