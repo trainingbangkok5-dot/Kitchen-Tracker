@@ -687,9 +687,16 @@ let currentShift = null;
 function selectShift(shift) {
   const data = load();
   const openingDone = !!data[getTodayKey()]?._openDone;
+  const _hourNow = getDubaiHour();
+  if (shift === 'opening') {
+    if (!(_hourNow >= 7 && _hourNow < 15)) {
+      showToast('Opening shift is available 7:00 AM – 3:00 PM only ⏰', 'warn');
+      return;
+    }
+  }
   if (shift === 'closing') {
     const now = new Date();
-    const hourNow = getDubaiHour();
+    const hourNow = _hourNow;
     const isAfter3pm = hourNow >= 15 || hourNow < 2;
     if (!isAfter3pm) {
       const minsLeft = (15 - hourNow - 1) * 60 + (60 - now.getMinutes());

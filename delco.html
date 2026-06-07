@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="apple-mobile-web-app-title" content="Del.Co Checklist">
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
@@ -18,7 +19,7 @@
 </script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1A3C5E">
+<meta name="theme-color" content="#16A34A">
 <title>Del.Co Checklist</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -277,6 +278,29 @@ function prepareGallery() {
   if(!i) return;
   i.value=''; i.removeAttribute('capture'); i.setAttribute('accept','image/*');
 }
+// Compress image to max 60KB before upload
+function compressPhoto(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const maxDim = 600;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim/w); w = maxDim; }
+        else { w = Math.round(w * maxDim/h); h = maxDim; }
+      }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      let result = canvas.toDataURL('image/jpeg', 0.5);
+      if (result.length > 60 * 1024 * 1.37) result = canvas.toDataURL('image/jpeg', 0.25);
+      resolve(result);
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 async function uploadToCloudinary(dataUrl) {
   const fd=new FormData();
   fd.append('file', dataUrl);
@@ -291,13 +315,16 @@ async function handlePhotoFile(file) {
   const reader=new FileReader();
   reader.onload=async e=>{
     const dataUrl=e.target.result;
-    setVal(currentDay, tid, 'photo', dataUrl);
+    // Compress first — show compressed preview immediately
+    const compressed = await compressPhoto(dataUrl);
+    setVal(currentDay, tid, 'photo', compressed);
     renderDay();
     showToast('Uploading photo...','ok');
     try {
-      const url=await uploadToCloudinary(dataUrl);
+      const url=await uploadToCloudinary(compressed);
       if(url){ setVal(currentDay,tid,'photoUrl',url); setVal(currentDay,tid,'photo',url); renderDay(); }
-    } catch(err){}
+      else { showToast('Photo saved locally only','warn'); }
+    } catch(err){ showToast('Photo saved locally only','warn'); }
   };
   reader.readAsDataURL(file);
 }
@@ -309,6 +336,12 @@ async function handlePhotoFile(file) {
 // ── Shift logic ───────────────────────────────────────────────
 function selectShift(shift) {
   const hour = getDubaiHour();
+  if (shift === 'opening') {
+    if (!(hour >= 7 && hour < 15)) {
+      showToast('Opening shift is available 7:00 AM – 3:00 PM only ⏰', 'warn');
+      return;
+    }
+  }
   if (shift === 'closing') {
     const isAfter3pm = hour >= 15 || hour < 2;
     if (!isAfter3pm) {
@@ -332,7 +365,8 @@ function renderDay() {
   const dayKey=getTodayKey();
   const data=load();
   const _doneVal = data[dayKey]?._done;
-  const isDone = !!(_doneVal && getDubaiDateStr() === _doneVal.substring(0,10));
+  // _done stores Dubai date string OR ISO - handle both
+  const isDone = !!(_doneVal && (getDubaiDateStr() === _doneVal || getDubaiDateStr() === _doneVal.substring(0,10)));
   const _openDoneVal = data[dayKey]?._openDone;
   const openingDone = !!(_openDoneVal);
   const _closeDoneVal = data[dayKey]?._closeDone;
@@ -543,7 +577,7 @@ function submitDay() {
 
   const d=load(), dayKey=getTodayKey();
   if(!d[dayKey]) d[dayKey]={};
-  d[dayKey]._done=new Date().toISOString();
+  d[dayKey]._done=getDubaiDateStr(); // Store Dubai date for reliable comparison
   d[dayKey]._shift=currentShift;
   save(d);
 
@@ -561,7 +595,9 @@ function submitDay() {
     const yn=getVal(currentDay,t.id,'yn')||'';
     const photo=getVal(currentDay,t.id,'photoUrl')||getVal(currentDay,t.id,'photo')||'';
     const comment=getVal(currentDay,t.id,'comment')||'';
-    taskData['d'+currentDay+'_'+t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn,photoUrl:photo,comment};
+    // Strip base64 — only store Cloudinary URLs in Firebase, never raw base64
+    const safePhotoUrl = photo && photo.startsWith('http') ? photo : '';
+    taskData['d'+currentDay+'_'+t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn,photoUrl:safePhotoUrl,comment};
   }));
 
   const record={
@@ -611,12 +647,17 @@ window.addEventListener('DOMContentLoaded', () => {
         // Keep old data but don't lock today's checklist
       }
     });
-    // If today's key has _done but no tasks answered, clear it (corrupt state)
+    // Clear stale _done — if stored date doesn't match today's Dubai date
     if (d[todayKey] && d[todayKey]._done) {
-      const hasTasks = Object.keys(d[todayKey]).filter(k => k !== '_done' && k !== '_shift' && k !== '_start').length > 0;
-      if (!hasTasks) {
+      const storedDate = d[todayKey]._done;
+      const isToday = storedDate === getDubaiDateStr() || storedDate.substring(0,10) === getDubaiDateStr();
+      const hasTasks = Object.keys(d[todayKey]).filter(k => !['_done','_shift','_start','_openDone','_closeDone'].includes(k)).length > 0;
+      if (!isToday || !hasTasks) {
         delete d[todayKey]._done;
+        delete d[todayKey]._openDone;
+        delete d[todayKey]._closeDone;
         save(d);
+        console.log('Cleared stale _done for', todayKey);
       }
     }
   } catch(e) {}

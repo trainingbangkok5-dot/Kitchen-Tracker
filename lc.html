@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="apple-mobile-web-app-title" content="Line Cook Checklist">
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
@@ -29,7 +30,7 @@
 <meta name="app-version" content="20260606180000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1A3C5E">
+<meta name="theme-color" content="#2E6DA4">
 <meta name="format-detection" content="telephone=no">
 <title>Line Cook Checklist</title>
 <style>
@@ -294,7 +295,7 @@ const CLOUDINARY_PRESET = 'culex_uploads';
 async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   try {
     if (!dataUrl) return null;
-    const compressed = await compressToSize(dataUrl, 150);
+    const compressed = await compressToSize(dataUrl, 60);
     // Try Cloudinary first
     try {
       const res = await fetch(compressed);
@@ -387,7 +388,7 @@ function compressToSize(dataUrl, maxKB) {
       const canvas = document.createElement('canvas');
       let w = img.width, h = img.height;
       // Scale down if too large
-      const maxDim = 800;
+      const maxDim = 600;
       if (w > maxDim || h > maxDim) {
         if (w > h) { h = Math.round(h * maxDim/w); w = maxDim; }
         else { w = Math.round(w * maxDim/h); h = maxDim; }
@@ -395,9 +396,9 @@ function compressToSize(dataUrl, maxKB) {
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       // Try quality 0.7 first
-      let result = canvas.toDataURL('image/jpeg', 0.7);
+      let result = canvas.toDataURL('image/jpeg', 0.5);
       if (result.length > maxKB * 1024 * 1.37) {
-        result = canvas.toDataURL('image/jpeg', 0.4);
+        result = canvas.toDataURL('image/jpeg', 0.25);
       }
       resolve(result);
     };
@@ -486,14 +487,14 @@ function compressAndReturn(file, callback) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement('canvas');
-      const MAX = 600;
+      const MAX = 400;
       let w = img.width, h = img.height;
       if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
       if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', 0.75));
+      callback(canvas.toDataURL('image/jpeg', 0.5));
     };
     img.onerror = function() { callback(ev.target.result); };
     img.src = ev.target.result;
@@ -720,9 +721,18 @@ function selectShift(shift) {
   const data = load();
   const openingDone = !!data[getTodayKey()]?._openDone;
 
+  const _hour = getDubaiHour();
+  if (shift === 'opening') {
+    // Opening window: 7:00 AM – 3:00 PM
+    const openingAvail = _hour >= 7 && _hour < 15;
+    if (!openingAvail) {
+      showToast('Opening shift is available 7:00 AM – 3:00 PM only ⏰', 'warn');
+      return;
+    }
+  }
   if (shift === 'closing') {
     const now = new Date();
-    const hour = getDubaiHour();
+    const hour = _hour;
     const isAfter3pm = hour >= 15 || hour < 2; // Closing window: 3:00 PM – 2:00 AM
     if (!isAfter3pm) {
       const minutesLeft = (15 - hour - 1) * 60 + (60 - now.getMinutes());
@@ -778,6 +788,22 @@ function renderDay() {
     const openerName = data[dayKey]?._openerName || '';
     const nowH = getDubaiHour();
     const isAfter3pm = nowH >= 15 || nowH < 2;
+    // Opening: available 7AM-3PM
+    const openingAvailable = nowH >= 7 && nowH < 15;
+    let openingBtnStyle, openingBtnLabel, openingSubNote;
+    if (openingDone) {
+      openingBtnStyle = 'background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;cursor:pointer;';
+      openingBtnLabel = '🌅 Opening Shift ✓';
+      openingSubNote = '';
+    } else if (openingAvailable) {
+      openingBtnStyle = 'background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;cursor:pointer;';
+      openingBtnLabel = '🌅 Opening Shift';
+      openingSubNote = '<div style="font-size:11px;color:#93C5FD;margin-top:4px;">✓ Available now (7AM–3PM)</div>';
+    } else {
+      openingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
+      openingBtnLabel = '🌅 Opening Shift ⏰';
+      openingSubNote = '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Available 7:00 AM – 3:00 PM only</div>';
+    }
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
       closingBtnStyle = 'background:linear-gradient(135deg,#1A4731,#16A34A);color:#fff;cursor:pointer;';
@@ -933,9 +959,11 @@ function renderDay() {
   });
   const opO = oM>0 ? Math.round((oY/oM)*100) : null;
   const opC = cM>0 ? Math.round((cY/cM)*100) : null;
-  // Total = all YES / all answered tasks
+  // Total = current shift score if only one submitted, combined if both
   const tM=oM+cM, tY=oY+cY;
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
+  const op = currentShift==='opening' && oM>0 ? Math.round((oY/oM)*100) :
+             currentShift==='closing' && cM>0 ? Math.round((cY/cM)*100) :
+             tM>0 ? Math.round((tY/tM)*100) : 0;
   const pass = op>=95;
 
 
@@ -1030,7 +1058,9 @@ function tapYN(tid, val, el) {
   const opC = cM>0 ? Math.round((cY/cM)*100) : null;
   // Total = all YES / all answered tasks
   const tM  = oM+cM, tY = oY+cY;
-  const op  = tM>0 ? Math.round((tY/tM)*100) : 0;
+  const op  = currentShift==='opening' && oM>0 ? Math.round((oY/oM)*100) :
+              currentShift==='closing' && cM>0 ? Math.round((cY/cM)*100) :
+              tM>0 ? Math.round((tY/tM)*100) : 0;
   const pass = op >= 95;
   // Score bar
   document.getElementById('scoreFill').style.width = p + '%';
