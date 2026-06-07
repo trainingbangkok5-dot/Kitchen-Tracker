@@ -808,25 +808,29 @@ function renderDay() {
     const dayScore = total > 0 ? Math.round((yes/total)*100) : 0;
     const dayPass = dayScore >= 95;
     sc.className = `status-card ${dayPass?'pass':'fail'}`;
-    sc.innerHTML = `<div class="sc-icon">${dayPass?'✅':'❌'}</div>
-      <div class="sc-title">${dayPass?'Incentive Qualified!':'Keep going!'}</div>
-      <div class="sc-score" style="color:${dayPass?'#15803D':'#B91C1C'}">${dayScore}%</div>
-      <div class="sc-sub">Day ${currentDay} score (target: 95%)</div>`;
+    sc.innerHTML = `
+      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:12px;text-align:center;margin-top:10px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total Score</div>
+        <div style="font-size:36px;font-weight:700;color:${dayPass?'#15803D':'#B91C1C'}">${dayScore}%</div>
+        <div style="font-size:11px;color:${dayPass?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Below target (95%)'}</div>
+      </div>`;
   } else if (yes > 0) {
     // Show live current day score while answering
     const dayPass = curScore>=95;
     sc.className = `status-card ${dayPass?'pass':'fail'}`;
-    sc.innerHTML = `<div class="sc-icon">${dayPass?'✅':'❌'}</div>
-      <div class="sc-title">${dayPass?'Great job!':'Keep going!'}</div>
-      <div class="sc-score" style="color:${dayPass?'#15803D':'#B91C1C'}">${curScore}%</div>
-      <div class="sc-sub">Day ${currentDay} score so far</div>`;
+    sc.innerHTML = `
+      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:12px;text-align:center;margin-top:10px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total Score</div>
+        <div style="font-size:36px;font-weight:700;color:${dayPass?'#15803D':'#B91C1C'}">${curScore}%</div>
+        <div style="font-size:11px;color:${dayPass?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Keep going'}</div>
+      </div>`;
   } else {
     // No answers yet — show blank
     sc.className = 'status-card';
     sc.innerHTML = `<div class="sc-icon">📋</div>
       <div class="sc-title">Fill your checklist</div>
       <div class="sc-score" style="color:#94A3B8">0%</div>
-      <div class="sc-sub">Day ${currentDay} score (target: 95%)</div>`;
+      <div class="sc-sub">Today's score (target: 95%)</div>`;
   }
   container.appendChild(sc);
 
@@ -857,7 +861,7 @@ function renderDay() {
     msg2.textContent = '✓ Submitted and synced to dashboard';
     container.appendChild(msg2);
   } else {
-    btn.textContent = `Submit Day ${currentDay}`;
+    btn.textContent = '📋 Submit Checklist';
     btn.onclick = submitDay;
     container.appendChild(btn);
   }
@@ -895,17 +899,22 @@ function tapYN(tid, val, el) {
   document.getElementById('scoreFill').style.width=p+'%';
   document.getElementById('scoreFill').style.background=p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent=p+'%';
-  // Update score card at bottom live
+  // Update score bar and single total box live
+  const p = t>0 ? Math.round((y/t)*100) : 0;
+  document.getElementById('scoreFill').style.width=p+'%';
+  document.getElementById('scoreFill').style.background=p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
+  document.getElementById('scorePct').textContent=p+'%';
+  // Update single total score box
   const scCard = document.querySelector('.status-card');
-  if (scCard) {
+  if (scCard && t > 0) {
     const dayPass = p >= 95;
-    if (y > 0) {
-      scCard.className = `status-card ${dayPass?'pass':'fail'}`;
-      scCard.innerHTML = '<div class="sc-icon">' + (dayPass?'✅':'❌') + '</div>'
-        + '<div class="sc-title">' + (dayPass?'Great job!':'Keep going!') + '</div>'
-        + '<div class="sc-score" style="color:' + (dayPass?'#15803D':'#B91C1C') + '">' + p + '%</div>'
-        + '<div class="sc-sub">Today score so far</div>';
-    }
+    scCard.className = `status-card ${dayPass?'pass':'fail'}`;
+    scCard.innerHTML = `
+      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">🏆 Total Score</div>
+        <div style="font-size:36px;font-weight:700;color:${dayPass?'#15803D':'#B91C1C'}">${p}%</div>
+        <div style="font-size:11px;color:${dayPass?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Below target (95%)'}</div>
+      </div>`;
   }
 }
 
