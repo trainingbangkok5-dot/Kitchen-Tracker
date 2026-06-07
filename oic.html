@@ -152,8 +152,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 <option value="The Red Door" style="color:#000">The Red Door</option>
 </optgroup>
 </select></div>
-    <div class="info-field"><label>Today's Date</label><input id="fWeek" type="date" style="opacity:0.8;" title="Auto-set to current week" readonly></div>
-    <div class="info-field"><label>Verified By (Area Manager)</label><input id="fVerified" type="text" placeholder="Area Manager name..." autocorrect="off"></div>
+    <div class="info-field"><label>📅 Today's Date</label><div id="fWeek" style="color:#fff;font-size:13px;font-weight:600;padding:2px 0;min-height:20px;">—</div></div>
+    <div class="info-field"><label>Verified By (Area Manager)</label><div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.5);font-style:italic;">🔒 Filled by Area Manager via dashboard</div></div>
   </div>
   <div style="margin-top:4px;text-align:right;padding-right:4px;">
     <span onclick="clearAllData()" style="cursor:pointer;font-size:8px;color:transparent;user-select:none;">⚙</span>
@@ -234,7 +234,7 @@ const CLOUDINARY_PRESET = 'culex_uploads';
 async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   try {
     if (!dataUrl) return null;
-    const compressed = await compressToSize(dataUrl, 150);
+    const compressed = await compressToSize(dataUrl, 60);
     // Try Cloudinary first
     try {
       const res = await fetch(compressed);
@@ -319,7 +319,7 @@ function compressToSize(dataUrl, maxKB) {
       const canvas = document.createElement('canvas');
       let w = img.width, h = img.height;
       // Scale down if too large
-      const maxDim = 800;
+      const maxDim = 600;
       if (w > maxDim || h > maxDim) {
         if (w > h) { h = Math.round(h * maxDim/w); w = maxDim; }
         else { w = Math.round(w * maxDim/h); h = maxDim; }
@@ -327,9 +327,9 @@ function compressToSize(dataUrl, maxKB) {
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       // Try quality 0.7 first
-      let result = canvas.toDataURL('image/jpeg', 0.7);
+      let result = canvas.toDataURL('image/jpeg', 0.5);
       if (result.length > maxKB * 1024 * 1.37) {
-        result = canvas.toDataURL('image/jpeg', 0.4);
+        result = canvas.toDataURL('image/jpeg', 0.25);
       }
       resolve(result);
     };
@@ -412,14 +412,14 @@ function compressAndReturn(file, callback) {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement('canvas');
-      const MAX = 600;
+      const MAX = 400;
       let w = img.width, h = img.height;
       if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
       if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', 0.75));
+      callback(canvas.toDataURL('image/jpeg', 0.5));
     };
     img.onerror = function() { callback(ev.target.result); };
     img.src = ev.target.result;
@@ -741,7 +741,7 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { return document.getElementById('fWeek').value; }
+function getWeekStart() { const el = document.getElementById('fWeek'); return el ? (el.value || el.textContent || '').trim() : getDubaiDateStr(); }
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return document.getElementById('fVerified').value.trim(); }
@@ -781,7 +781,8 @@ function renderDay() {
       const photo = getVal(currentDay, task.id, 'photo');
 
       const card = document.createElement('div');
-      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '');
+      const isVerifyLocked = task.owner === 'verify' && !ALLOW_OVERWRITE;
+      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '') + (isVerifyLocked ? ' verify-locked' : '');
       if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
 
       const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
@@ -866,18 +867,18 @@ function renderDay() {
     <div class="sc-title">${tM2===0?'Fill your checklist':totalPass2?'Incentive Qualified!':'Keep going!'}</div>
     <div class="sc-score" style="color:${tM2===0?'#94A3B8':totalPass2?'#0F766E':'#B91C1C'}">${tM2>0?totalPct2+'%':'—'}</div>
     <div class="sc-sub">Day ${currentDay} score (target: 95%)</div>
-    ${tM2>0?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;">
-      <div style="background:#EFF6FF;border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌅 Opening</div>
-        <div style="font-size:16px;font-weight:700;color:${oPct2>=95?'#0F766E':oPct2>=70?'#D97706':'#B91C1C'}">${oPct2!==null?oPct2+'%':'—'}</div>
+    ${tM2>0?`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:10px;">
+      <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
+        <div class="sb-pct" style="font-size:18px;font-weight:700;color:${oPct2===null?'#94A3B8':oPct2>=95?'#0F766E':oPct2>=70?'#D97706':'#B91C1C'}">${oPct2!==null?oPct2+'%':'—'}</div>
       </div>
-      <div style="background:#F0FDF4;border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🌙 Closing</div>
-        <div style="font-size:16px;font-weight:700;color:${cPct2>=95?'#0F766E':cPct2>=70?'#D97706':'#B91C1C'}">${cPct2!==null?cPct2+'%':'—'}</div>
+      <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌙 Closing</div>
+        <div class="sb-pct" style="font-size:18px;font-weight:700;color:${cPct2===null?'#94A3B8':cPct2>=95?'#0F766E':cPct2>=70?'#D97706':'#B91C1C'}">${cPct2!==null?cPct2+'%':'—'}</div>
       </div>
-      <div style="background:${totalPass2?'#F0FDF4':'#FFF1F0'};border:2px solid ${totalPass2?'#22C55E':'#EF4444'};border-radius:8px;padding:8px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">🏆 Total</div>
-        <div style="font-size:16px;font-weight:700;color:${totalPass2?'#0F766E':'#B91C1C'}">${totalPct2}%</div>
+      <div data-scorebox="total" style="background:${tM2===0?'#F8FAFC':totalPass2?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM2===0?'#E2E8F0':totalPass2?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total</div>
+        <div class="sb-pct" style="font-size:18px;font-weight:700;color:${tM2===0?'#94A3B8':totalPass2?'#0F766E':'#B91C1C'}">${tM2>0?totalPct2+'%':'—'}</div>
       </div>
     </div>`:''}
   `;
@@ -924,34 +925,50 @@ function setComment(taskId, value) {
 function tapYN(tid, val, el) {
   const data = load();
   const todayData = data[getTodayKey()] || {};
-  const isClosing = currentShift === 'closing';
-  const lockOpening = (todayData._openDone || todayData._done) && !isClosing && !ALLOW_OVERWRITE;
-  const lockClosing = todayData._closeDone && isClosing && !ALLOW_OVERWRITE;
-  if (lockOpening || lockClosing) {
+  // kic2/oic has no shifts — only lock after full submit (_done)
+  if (todayData._done && !ALLOW_OVERWRITE) {
     showToast('Already submitted — cannot edit 🔒', 'error'); return;
+  }
+  // Lock 'verify' tasks — only Area Chef/Manager can fill via dashboard overwrite
+  const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
+  if (taskDef && taskDef.owner === 'verify' && !ALLOW_OVERWRITE) {
+    showToast('Verify by Area Manager only — manager fills this via dashboard 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
-  // update score bar
-  let t=0, y=0;
-  SECTIONS.forEach(s=>s.tasks.forEach(tk=>{t++;if(getVal(currentDay,tk.id,'yn')==='yes')y++;}));
-  const p=t>0?Math.round((y/t)*100):0;
+  // Update score bar and boxes live — only count answered tasks
+  let t=0, y=0, oY=0, oM=0, cY=0, cM=0;
+  const _td = load()[getTodayKey()] || {};
+  SECTIONS.forEach((s, si) => {
+    if (s.oicOnly) return;
+    s.tasks.forEach(tk => {
+      if (tk.owner === 'verify') return; // skip verify tasks in score
+      const v = _td[tk.id]?.yn;
+      if (v && v !== 'na') {
+        oM++; if(v==='yes') { oY++; y++; }
+        t++;
+      }
+    });
+  });
+  const p = t>0 ? Math.round((y/t)*100) : 0;
+  const oPct = oM>0 ? Math.round((oY/oM)*100) : null;
+  const cPct = cM>0 ? Math.round((cY/cM)*100) : null;
+  const tM   = oM+cM, tY = oY+cY;
+  const totPct = tM>0 ? Math.round((tY/tM)*100) : 0;
   document.getElementById('scoreFill').style.width=p+'%';
   document.getElementById('scoreFill').style.background=p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent=p+'%';
-  // Update score card at bottom live
-  const scCard = document.querySelector('.status-card');
-  if (scCard) {
-    const dayPass = p >= 95;
-    if (y > 0) {
-      scCard.className = `status-card ${dayPass?'pass':'fail'}`;
-      scCard.innerHTML = '<div class="sc-icon">' + (dayPass?'✅':'❌') + '</div>'
-        + '<div class="sc-title">' + (dayPass?'Great job!':'Keep going!') + '</div>'
-        + '<div class="sc-score" style="color:' + (dayPass?'#0F766E':'#B91C1C') + '">' + p + '%</div>'
-        + '<div class="sc-sub">Today score so far</div>';
-    }
-  }
+  // Update score boxes live
+  document.querySelectorAll('[data-scorebox]').forEach(b => {
+    const type = b.getAttribute('data-scorebox');
+    const pct  = type==='opening'?oPct : type==='closing'?cPct : totPct;
+    const isNull = pct===null;
+    const pctEl = b.querySelector('.sb-pct');
+    const lblEl = b.querySelector('.sb-lbl');
+    if(pctEl){ pctEl.textContent=isNull?'—':pct+'%'; pctEl.style.color=isNull?'#94A3B8':pct>=95?'#0F766E':pct>=70?'#D97706':'#B91C1C'; }
+    if(lblEl){ lblEl.textContent=isNull?'Not submitted':pct>=95?'✓ Pass':'✗ Below target'; lblEl.style.color=isNull?'#94A3B8':pct>=95?'#0F766E':'#B91C1C'; }
+  });
 }
 
 
@@ -1011,7 +1028,7 @@ function submitDay() {
           const photo= getVal(dd, t.id, 'photo');
           if (yn) tasks['d'+dd+'_'+t.id] = {
             day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:pUrl||photo||''
+            yn:yn||'', photoUrl:(pUrl && pUrl.startsWith('http')) ? pUrl : ''
           };
         }));
       }
@@ -1042,7 +1059,7 @@ function submitDay() {
               task: t.text,
               owner: t.ownerLbl,
               yn: yn||'',
-              photoUrl: pUrl || photo || '', // prefer firebase url, fall back to base64
+              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '', // Cloudinary URL only — never base64
             };
           }
         }));
@@ -1118,6 +1135,11 @@ document.getElementById('galInput').addEventListener('change', e => handlePhotoF
 
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // Auto-set Dubai date — locked, no user input
+  const _dubaiToday = getDubaiDateStr();
+  const _wf = document.getElementById('fWeek');
+  if (_wf) { if (_wf.tagName === 'INPUT') _wf.value = _dubaiToday; else _wf.textContent = _dubaiToday; }
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', _dubaiToday);
   checkAutoReset(); // Sets Dubai date — do not overwrite below
   ['fName','fOutlet','fWeek','fVerified'].forEach(id => {
     const el = document.getElementById(id);
@@ -1135,6 +1157,24 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDay();
   showAuditBanner();
 });
+
+// ── Midnight auto-reset (Dubai UTC+4) ───────────────────────
+function scheduleNextMidnight() {
+  const now = new Date();
+  const dubaiNow = new Date(now.getTime() + (now.getTimezoneOffset()*60000) + (4*3600000));
+  const next = new Date(dubaiNow); next.setHours(24,0,0,0);
+  setTimeout(function() {
+    const nd = getDubaiDateStr();
+    const wf = document.getElementById('fWeek');
+    if (wf) { if(wf.tagName==='INPUT') wf.value=nd; else wf.textContent=nd; }
+    localStorage.setItem('kic_info_' + ROLE + '_fWeek', nd);
+    currentShift = null; buildDayRail();
+    try { renderDay(); } catch(e) {}
+    showToast('📅 New day — ' + nd, 'ok');
+    scheduleNextMidnight();
+  }, next - dubaiNow);
+}
+scheduleNextMidnight();
 </script>
 </body>
 </html>
