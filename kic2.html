@@ -896,10 +896,6 @@ function tapYN(tid, val, el) {
     const v = _td[tk.id]?.yn;
     if (v && v !== 'na') { t++; if(v==='yes') y++; }
   }));
-  const p = t>0 ? Math.round((y/t)*100) : 0;
-  document.getElementById('scoreFill').style.width=p+'%';
-  document.getElementById('scoreFill').style.background=p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
-  document.getElementById('scorePct').textContent=p+'%';
   // Update score bar and single total box live
   const p = t>0 ? Math.round((y/t)*100) : 0;
   document.getElementById('scoreFill').style.width=p+'%';
