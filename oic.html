@@ -1001,39 +1001,17 @@ function submitDay() {
     verifiedBy: getVerified(),
     overallPct: op,
     qualified:  op>=95,
-    taskData: (function() {
-      const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn   = getVal(dd, t.id, 'yn');
-          const pUrl = getVal(dd, t.id, 'photoUrl');
-          const photo= getVal(dd, t.id, 'photo');
-          if (yn) tasks['d'+dd+'_'+t.id] = {
-            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:(pUrl && pUrl.startsWith('http')) ? pUrl : ''
-          };
-        }));
-      }
-      return tasks;
-    })(),
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
-    photos: (function() {
-      const photos = {};
-      SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const url = getVal(currentDay, t.id, 'photoUrl');
-        if (url) photos[t.id + '_day' + currentDay] = url;
-      }));
-      return photos;
-    })(),
-    // Store full task responses for dashboard detail view
+    submittedAt:new Date().toISOString(),
+    lastUpdated:new Date().toISOString(),
     taskData: (function() {
       const tasks = {};
       for (let dd=1; dd<=6; dd++) {
         SECTIONS.forEach(s => s.tasks.forEach(t => {
           const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
-          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
+          const pUrl  = getVal(dd, t.id, 'photoUrl');
+          const photo = getVal(dd, t.id, 'photo');
           if (yn || photo || pUrl) {
             tasks[`d${dd}_${t.id}`] = {
               day: dd,
@@ -1041,15 +1019,13 @@ function submitDay() {
               task: t.text,
               owner: t.ownerLbl,
               yn: yn||'',
-              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '', // Cloudinary URL only — never base64
+              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '',
             };
           }
         }));
       }
       return tasks;
     })(),
-    submittedAt:new Date().toISOString(),
-    lastUpdated:new Date().toISOString(),
   };
   pushToMasterDashboard(_fbRecord);
   pushToFirebase(_fbRecord);
