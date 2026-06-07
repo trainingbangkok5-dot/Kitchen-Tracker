@@ -3180,7 +3180,7 @@ function generateAuditPDF(a) {
       doc.setTextColor(120,80,80); doc.setFontSize(8); doc.setFont('helvetica','normal');
       doc.text((ca.section||'—')+' — Item '+(ca.item||''), margin+4, y+5);
       doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont('helvetica','bold');
-      doc.text('✗ '+(ca.criteria||'—'), margin+4, y+11, {maxWidth:colW-8});
+      doc.text('x '+(ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), margin+4, y+11, {maxWidth:colW-8});
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(70,70,70);
       if(ca.observation) doc.text('Observation: '+ca.observation, margin+4, y+17, {maxWidth:colW-8});
       if(ca.correctiveAction){doc.setTextColor(185,28,28); doc.text('Action: '+ca.correctiveAction, margin+4, y+22, {maxWidth:colW-8});}
@@ -3438,12 +3438,12 @@ async function exportDetailPDF() {
       Object.entries(bySec).forEach(([sec, secTasks]) => {
         doc.autoTable({
           startY: y,
-          head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim() || sec, colSpan:4, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
+          head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim().replace(/^\s+/, '') || 'Tasks', colSpan:4, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
           body: secTasks.map(t => [
-            t.owner||'',
-            t.task||'',
+            (t.owner||'').replace(/[^ -]/g,'').trim(),
+            (t.task||'').replace(/[^ -]/g,'').trim(),
             (t.yn||'').toUpperCase()||'—',
-            t.comment||''
+            (t.comment||'').replace(/[^ -]/g,'').trim()
           ]),
           columnStyles:{
             0:{cellWidth:28,fontSize:8,textColor:[100,100,100]},
@@ -3469,7 +3469,7 @@ async function exportDetailPDF() {
           if (!photoUrl || photoUrl.startsWith('db:')) continue;
           if (y > H-55) { doc.addPage(); y=16; }
           doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
-          doc.text('📷 ' + (t.task||'').substring(0,65), 16, y+4); y += 7;
+          doc.text('[Photo] ' + (t.task||'').replace(/[^\x00-\x7F]/g,'').trim().substring(0,65), 16, y+4); y += 7;
           if (photoUrl.startsWith('data:')) {
             try {
               const fmt = photoUrl.startsWith('data:image/png')?'PNG':'JPEG';
@@ -3479,7 +3479,7 @@ async function exportDetailPDF() {
           } else if (photoUrl.startsWith('http')) {
             doc.setFillColor(220,252,231); doc.roundedRect(16,y,55,10,2,2,'F');
             doc.setFontSize(7); doc.setTextColor(21,128,61);
-            doc.textWithLink('📷 View Photo', 18, y+7, {url: photoUrl});
+            doc.textWithLink('[View Photo]', 18, y+7, {url: photoUrl});
             y += 14;
           }
         }
@@ -4119,8 +4119,7 @@ function toggleEditMode(s) {
           style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;resize:vertical;font-family:inherit;">${existingComment}</textarea>
       </div>
       <div>
-        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo</label>
-        ${existingPhoto ? `<img src="${existingPhoto.startsWith('db:')?'':existingPhoto}" style="max-width:80px;max-height:60px;border-radius:6px;margin-bottom:4px;border:2px solid #22C55E;${existingPhoto.startsWith('db:')?'display:none;':''}">` : ''}
+        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo ${existingPhoto && !existingPhoto.startsWith('db:') ? '✓ (tap to replace)' : ''}</label>
         <div style="display:flex;gap:6px;margin-top:4px;">
           <label style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;">
             📸 Take Photo
@@ -5109,7 +5108,7 @@ function openFOHDetail(idx) {
               </div>
               <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Comment</div>
               <textarea data-fohtaskkey="${taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
-              <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Photo</div>
+              <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Photo ${t.photoUrl && t.photoUrl.startsWith('http') ? '✓ (tap to replace)' : ''}</div>
               <div style="display:flex;gap:4px;">
                 <label style="flex:1;padding:5px;background:#1A3C5E;color:#fff;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;">
                   📸 Take Photo<input type="file" accept="image/*" capture="environment" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
@@ -5118,7 +5117,6 @@ function openFOHDetail(idx) {
                   🖼️ Gallery<input type="file" accept="image/*" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
                 </label>
               </div>
-              ${t.photoUrl && t.photoUrl.startsWith('http') ? `<img src="${t.photoUrl}" style="max-width:100%;max-height:80px;border-radius:6px;border:2px solid #22C55E;margin-top:2px;" onerror="this.style.display='none'">` : ''}
             </div>
           </div>`;
         });
@@ -5594,17 +5592,21 @@ async function exportFOHDetailPDF() {
             doc.setTextColor(255,255,255);
             doc.setFontSize(9); doc.setFont('helvetica','bold');
             const dayScoreText = dayPct !== undefined ? ' — Score: ' + dayPct + '%' : '';
-            doc.text('📅 ' + dayLabel + dayScoreText, 16, y+2);
+            doc.text(dayLabel + dayScoreText, 16, y+2);
             y += 8;
 
             for (const [sec, secTasks] of Object.entries(bySec)) {
               if (y > H-20) { doc.addPage(); y=16; }
               doc.autoTable({
                 startY: y,
-                head: [[{content: sec, colSpan:3, styles:{fillColor:[196,83,58],textColor:255,fontStyle:'bold',fontSize:8}}]],
+                head: [[{content: sec.replace(/[^\x00-\x7F]/g,'').trim() || 'Tasks', colSpan:3, styles:{fillColor:[196,83,58],textColor:255,fontStyle:'bold',fontSize:8}}]],
                 body: secTasks.map(t => {
                   const yn = (t.yn||'').toUpperCase();
-                  return [t.owner||'', t.task||t.text||'—', yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'—'];
+                  return [
+                    (t.owner||'').replace(/[^ -]/g,'').trim(),
+                    (t.task||t.text||'—').replace(/[^ -]/g,'').trim(),
+                    yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'—'
+                  ];
                 }),
                 styles:{fontSize:8,cellPadding:3},
                 columnStyles:{
