@@ -28,12 +28,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest_kic.json">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
-<meta name="apple-mobile-web-app-title" content="Culex Kitchen">
+<meta name="apple-mobile-web-app-title" content="KIC Checklist">
 <meta name="application-name" content="Culex Kitchen">
-<meta name="theme-color" content="#7C2D12">
+<meta name="theme-color" content="#E87722">
 <meta name="format-detection" content="telephone=no">
 <title>KIC Checklist</title>
 <style>
@@ -880,10 +879,10 @@ function tapYN(tid, val, el) {
   if (todayData._done && !ALLOW_OVERWRITE) {
     showToast('Already submitted — cannot edit 🔒', 'error'); return;
   }
-  // Lock 'verify' tasks — only Area Chef/Manager can fill via dashboard overwrite
+  // Lock 'verify' tasks only AFTER submission — Area Chef verifies via dashboard overwrite
   const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
-  if (taskDef && taskDef.owner === 'verify' && !ALLOW_OVERWRITE) {
-    showToast('Verify by Area Chef only — manager fills this via dashboard 🔒', 'error'); return;
+  if (taskDef && taskDef.owner === 'verify' && todayData._done && !ALLOW_OVERWRITE) {
+    showToast('Already submitted — manager verifies this via dashboard 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
