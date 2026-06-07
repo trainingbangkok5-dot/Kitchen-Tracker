@@ -5,11 +5,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260606180000">
-<meta name="app-version" content="20260606180000">
+<meta name="app-version" content="20260607003225">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260605070000';
+  var v = '20260607003225';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -49,7 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .role-btn.selected{border-color:#1A3C5E;background:linear-gradient(135deg,#1A3C5E,#2563EB);color:#fff;box-shadow:0 4px 12px rgba(26,60,94,0.3);}
 .role-btn .rb-icon{font-size:20px;margin-bottom:2px;}
 .role-btn .rb-name{font-size:10px;font-weight:700;line-height:1.2;}
-.role-btn .rb-lock{font-size:9px;margin-top:1px;opacity:0.6;}
+.role-btn .rb-lock{font-size:13px;margin-top:2px;display:inline-block;}
 .outlet-sel{width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:16px;outline:none;display:none;}
 .outlet-sel.show{display:block;}
 .login-btn{width:100%;padding:13px;background:#1A3C5E;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s;}
@@ -193,14 +193,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="rb-name">Area Manager</div>
       </div>
     </div>
-    <div id="pinRow" style="display:none;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:#1A3C5E;margin-bottom:6px;text-align:left;">🔒 Enter PIN to continue:</div>
-      <input type="password" id="loginPin" placeholder="Enter PIN code..." maxlength="10"
-        style="width:100%;padding:10px 14px;border:2px solid #1A3C5E;border-radius:10px;font-size:16px;letter-spacing:4px;text-align:center;outline:none;margin-bottom:4px;"
-        oninput="checkLoginReady()">
-      <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Admin for your PIN</div>
-      <div style="text-align:center;margin-top:6px;"><button onclick="resetPinsToDefault()" style="background:none;border:none;color:#1A3C5E;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;">Reset all PINs to default</button></div>
-    </div>
 
     <input type="text" id="loginName" placeholder="Enter your name..." style="width:100%;padding:10px 14px;border:2px solid #E0DDD4;border-radius:10px;font-size:14px;margin-bottom:14px;outline:none;">
     <select class="outlet-sel" id="outletSel">
@@ -222,7 +214,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="The Red Door">The Red Door</option>
       </optgroup>
     </select>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()" disabled>Enter Dashboard</button>
+    <div id="pinRow" style="display:none;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#1A3C5E;margin-bottom:6px;text-align:left;">🔒 Enter PIN to continue:</div>
+      <input type="password" id="loginPin" placeholder="Enter PIN code..." maxlength="10"
+        style="width:100%;padding:10px 14px;border:2px solid #1A3C5E;border-radius:10px;font-size:16px;letter-spacing:4px;text-align:center;outline:none;margin-bottom:4px;"
+        oninput="checkLoginReady()">
+      <div style="font-size:10px;color:#94A3B8;text-align:center;">Contact Admin for your PIN</div>
+      <div style="text-align:center;margin-top:6px;"><button onclick="resetPinsToDefault()" style="background:none;border:none;color:#1A3C5E;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;">Reset all PINs to default</button></div>
+    </div>
+
+    <button class="login-btn" id="loginBtn"  onclick="doLogin()" disabled>Enter Dashboard</button>
   </div>
 </div>
 
@@ -890,17 +891,21 @@ const ROLES = {
 
 // Full-access roles
 const FULL_ACCESS = ['training','operations','director','ceo']; // PIN required
-const MGMT_ACCESS = ['training','operations','director','ceo']; // Full dashboard access — PIN roles
+const MGMT_ACCESS = ['training','operations','director','ceo']; // Full dashboard access
 const AREA_ACCESS = ['areachef','areamanager']; // Area roles — filtered access
 
 // Role PINs — stored in Firebase so each role can change their own PIN
 // Default PINs used if no PIN has been set in Firebase yet
 const DEFAULT_PINS = {
+  kic:             'KIC2025',
+  areachef:        'CHEF2025',
+  oic:             'OIC2025',
+  areamanager:     'AMGR2025',
+  maintsupervisor: 'MAINT2025',
   training:        'TRAIN2025',
   operations:      'OPS2025',
   director:        'DRI2025',
   ceo:             'CEO2025',
-  areamanager:     'AMGR2025',
 };
 let ROLE_PINS = {...DEFAULT_PINS};
 
@@ -1018,7 +1023,7 @@ function doChangePin() {
 }
 
 function resetPinsToDefault() {
-  if (!confirm('Reset ALL PINs back to default values?\n\nAdmin: TRAIN2025\nOps Manager: OPS2025\nDirector: DRI2025\nCEO: CEO2025')) return;
+  if (!confirm('Reset ALL PINs back to default values?\n\nKIC: KIC2025\nArea Chef: CHEF2025\nOIC: OIC2025\nArea Manager: AMGR2025\nMaint: MAINT2025\nAdmin: TRAIN2025\nOps: OPS2025\nDirector: DRI2025\nCEO: CEO2025')) return;
   if (!db) { alert('Firebase not ready — please wait and try again.'); return; }
   db.ref('settings/pins').set(DEFAULT_PINS).then(() => {
     ROLE_PINS = {...DEFAULT_PINS};
@@ -5604,7 +5609,7 @@ async function exportFOHDetailPDF() {
                   const yn = (t.yn||'').toUpperCase();
                   return [
                     (t.owner||'').replace(/[^ -]/g,'').trim(),
-                    (t.task||t.text||'—').replace(/[^ -]/g,'').trim(),
+                    (t.task||t.text||'—').replace(/[^\x00-\x7F]/g,'').trim(),
                     yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'—'
                   ];
                 }),
@@ -5954,7 +5959,11 @@ function initWeeklyDates() {
     <div id="pinRoleSelector" style="margin-bottom:12px;${currentRole === 'training' ? '' : 'display:none;'}">
       <label style="font-size:11px;font-weight:700;color:#1A3C5E;display:block;margin-bottom:4px;">CHANGE PIN FOR ROLE</label>
       <select id="pinRoleSelect" style="width:100%;padding:8px 12px;border:2px solid #E0DDD4;border-radius:8px;font-size:13px;outline:none;">
+        <option value="kic">👨‍🍳 KIC</option>
+        <option value="areachef">📊 Area Chef</option>
+        <option value="oic">🧑‍💼 OIC</option>
         <option value="areamanager">📋 Area Manager</option>
+        <option value="maintsupervisor">🔧 Maint. Supervisor</option>
         <option value="training">🔑 Admin (my PIN)</option>
         <option value="operations">⚙️ Ops Manager</option>
         <option value="director">🎯 Director</option>
