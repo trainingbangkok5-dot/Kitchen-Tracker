@@ -916,10 +916,10 @@ function tapYN(tid, val, el) {
   if (todayData._done && !ALLOW_OVERWRITE) {
     showToast('Already submitted — cannot edit 🔒', 'error'); return;
   }
-  // Lock 'verify' tasks — only Area Chef/Manager can fill via dashboard overwrite
+  // Lock 'verify' tasks only AFTER submission — Area Manager verifies via dashboard overwrite
   const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
-  if (taskDef && taskDef.owner === 'verify' && !ALLOW_OVERWRITE) {
-    showToast('Verify by Area Manager only — manager fills this via dashboard 🔒', 'error'); return;
+  if (taskDef && taskDef.owner === 'verify' && todayData._done && !ALLOW_OVERWRITE) {
+    showToast('Already submitted — manager verifies this via dashboard 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
