@@ -4203,14 +4203,27 @@ function updateLiveScore() {
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : null;
   const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
   const pass = newScore >= 95;
-  // Update score boxes in modal
-  const scoreBoxes = document.querySelectorAll('#modalBody [data-scorebox]');
-  scoreBoxes.forEach(el => {
-    const type = el.getAttribute('data-scorebox');
-    if (type === 'total') { el.textContent = newScore + '%'; el.style.color = pass ? '#15803D' : '#B91C1C'; }
-    if (type === 'opening' && opPct !== null) { el.textContent = opPct + '%'; }
-    if (type === 'closing' && clPct !== null) { el.textContent = clPct + '%'; }
+  // Update score boxes in modal header
+  document.querySelectorAll('#detailModal [data-scorebox], #detailBody [data-scorebox]').forEach(box => {
+    const type = box.getAttribute('data-scorebox');
+    const pctEl = box.querySelector('.sb-pct') || box;
+    const lblEl = box.querySelector('.sb-lbl');
+    let pct = type==='opening' ? opPct : type==='closing' ? clPct : newScore;
+    if (pct === null) return;
+    const isPass = pct >= 95;
+    pctEl.textContent = pct + '%';
+    pctEl.style.color = isPass ? '#15803D' : '#B91C1C';
+    if (lblEl) {
+      lblEl.textContent = isPass ? '✓ Pass' : '✗ Below target';
+      lblEl.style.color = isPass ? '#15803D' : '#B91C1C';
+    }
   });
+  // Also update the main score display in modal header if present
+  const headerScore = document.querySelector('#detailModal .detail-score, #detailModal [class*="score"]');
+  if (headerScore && headerScore.textContent.includes('%')) {
+    headerScore.textContent = newScore + '%';
+    headerScore.style.color = pass ? '#15803D' : '#B91C1C';
+  }
 }
 
 async function saveOverwrite(s) {
@@ -4950,7 +4963,7 @@ function openFOHDetail(idx) {
 
   const oicStatus = staff.role === 'service'
     ? (staff.staffSubmitted && staff.oicEvaluated ? '<span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">✅ Complete</span>'
-      : staff.staffSubmitted ? '<span style="background:#FEF3C7;color:#D97706;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">⚠️ Pending OIC Evaluation</span>'
+      : staff.staffSubmitted ? '<span style="background:#FEF3C7;color:#D97706;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;">⚠️ Pending OIC Observation</span>'
       : '<span style="font-size:12px;color:#94A3B8;">—</span>')
     : '';
 
@@ -5131,7 +5144,7 @@ function openFOHDetail(idx) {
       html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
     });
 
-    // Add OIC evaluation section for service role
+    // Add OIC observation section for service role
     if (staff.role === 'service') {
       const oicEvalTasks = [
         {id:'u1', section:'💰 Upselling', text:'Monthly Sales target achieved and the staff with highest Sales will also be rewarded'},
@@ -5164,7 +5177,7 @@ function openFOHDetail(idx) {
         oicBySec[t.section].push({...t, yn, comment, taskKey});
       });
 
-      html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Evaluation</div>';
+      html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Observation</div>';
       // Only show if at least one OIC task has been answered
       const hasAnyOIC = oicEvalTasks.some(t => {
         const existing = subs.reduce((found, sub) => {
@@ -5178,7 +5191,7 @@ function openFOHDetail(idx) {
         return existing && existing.yn;
       });
       if (!hasAnyOIC) {
-        html += '<div style="padding:12px;background:#fff;border-radius:0 0 8px 8px;text-align:center;font-size:12px;color:#94A3B8;">OIC evaluation not yet completed</div>';
+        html += '<div style="padding:12px;background:#fff;border-radius:0 0 8px 8px;text-align:center;font-size:12px;color:#94A3B8;">OIC observation not yet completed</div>';
       } else {
         Object.entries(oicBySec).forEach(([sec, tasks]) => {
           html += `<div style="background:#C4533A;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${sec}</div>`;
@@ -5318,6 +5331,26 @@ function setFOHTaskYN(btn, val) {
     b.style.background = labels[i] === val ? activeBg[i] : '#E5E7EB';
     b.style.color = labels[i] === val ? '#fff' : '#374151';
   });
+  // Update FOH score boxes live
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (!staff || !staff.taskData) return;
+  const merged = {...staff.taskData};
+  Object.entries(_fohEditChanges).forEach(([k, v]) => { if (merged[k]) merged[k] = {yn: v}; else merged[k] = {yn: v}; });
+  let yes=0, total=0, opY=0, opM=0, clY=0, clM=0;
+  Object.values(merged).forEach(t => {
+    if (t && t.yn && t.yn !== 'na') {
+      total++; if(t.yn==='yes') yes++;
+    }
+  });
+  const newScore = total>0 ? Math.round((yes/total)*100) : 0;
+  const pass = newScore >= 95;
+  document.querySelectorAll('#fohDetailModal [data-scorebox]').forEach(box => {
+    const pctEl = box.querySelector('.sb-pct') || box;
+    const lblEl = box.querySelector('.sb-lbl');
+    pctEl.textContent = newScore + '%';
+    pctEl.style.color = pass ? '#15803D' : '#B91C1C';
+    if (lblEl) { lblEl.textContent = pass ? '✓ Pass' : '✗ Below target'; lblEl.style.color = pass ? '#15803D' : '#B91C1C'; }
+  });
 }
 
 // ── FOH Overwrite / Edit Mode ─────────────────────────────────
@@ -5388,7 +5421,7 @@ async function saveFOHOverwrite(staff) {
     const oicIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
     Object.entries(_fohEditChanges).forEach(([taskKey, changes]) => {
       const isOicTask = oicIds.some(id => taskKey === id || taskKey.endsWith('_'+id) || taskKey.startsWith(id+'_'));
-      // Allow if task exists OR if it's an OIC evaluation task
+      // Allow if task exists OR if it's an OIC observation task
       if (sub.taskData && (sub.taskData[taskKey] !== undefined || isOicTask)) {
         const yn = typeof changes === 'string' ? changes : changes.yn;
         if (yn) updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
@@ -5396,7 +5429,7 @@ async function saveFOHOverwrite(staff) {
         if (changes && changes.photoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/photoUrl'] = changes.photoUrl;
         // Also store task metadata for new OIC tasks
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
-          updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = 'OIC Evaluation';
+          updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = 'OIC Observation';
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/owner'] = 'OIC Only';
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/day'] = sub.day || 1;
         }
@@ -5412,7 +5445,7 @@ async function saveFOHOverwrite(staff) {
           updatedTasks[k] = {...updatedTasks[k], yn};
         } else {
           // New OIC task not in original submission
-          updatedTasks[k] = {yn, section:'OIC Evaluation', owner:'OIC Only', day: sub.day||1, _key: k};
+          updatedTasks[k] = {yn, section:'OIC Observation', owner:'OIC Only', day: sub.day||1, _key: k};
         }
       });
       // Calculate opening, closing, oic scores separately
@@ -5448,10 +5481,10 @@ async function saveFOHOverwrite(staff) {
     const btn = document.getElementById('fohEditBtn');
     if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
     showToast('Changes saved ✓', 'ok');
-    // Reload FOH data and reopen detail
+    // Reload FOH data and reopen detail — wait for Firebase to propagate
     await new Promise(resolve => {
       loadFOHData();
-      setTimeout(resolve, 1500);
+      setTimeout(resolve, 2500);
     });
     openFOHDetail(_fohDetailIdx);
   } catch(e) {
