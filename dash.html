@@ -3959,22 +3959,24 @@ function renderRegistry() {
   const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac',areamanager:'pill-ac',operations:'pill-ac',director:'pill-ac',ceo:'pill-ac',training:'pill-ac'};
 
   body.innerHTML = `<div style="background:#fff;border-radius:10px;border:1px solid #E0DDD4;overflow:hidden;">
-    <div style="display:grid;grid-template-columns:80px 1fr 100px 100px 70px 160px;gap:8px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
-      <div>ID</div><div>Full Name</div><div>Role</div><div>Outlet</div><div>Status</div><div>Action</div>
+    <div style="display:grid;grid-template-columns:60px 1fr 80px 60px;gap:6px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
+      <div>ID</div><div>Name / Outlet</div><div>Role</div><div>Action</div>
     </div>
     ${filtered.sort((a,b)=>(a.id||'').localeCompare(b.id||'')).map(s => {
       const isActive = s.status === 'active';
-      return `<div style="display:grid;grid-template-columns:80px 1fr 100px 100px 70px 160px;gap:8px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;">
+      return `<div style="display:grid;grid-template-columns:60px 1fr 80px 60px;gap:6px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:start;">
         <div style="font-weight:600;font-size:12px;color:#1A3C5E;">${s.id||'—'}</div>
-        <div style="font-size:13px;color:#1A1A18;">${s.name||'—'}</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:#1A1A18;">${s.name||'—'}</div>
+          <div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'}</div>
+          <span style="font-size:10px;font-weight:600;color:${isActive?'#16A34A':'#DC2626'};">${isActive?'● Active':'● Inactive'}</span>
+        </div>
         <div><span class="role-badge ${roleCls[s.role]||'pill-lc'}" style="font-size:10px;padding:2px 6px;">${roleLabels[s.role]||s.role||'—'}</span></div>
-        <div style="font-size:12px;color:#6B6B60;">${s.outlet||'—'}</div>
-        <div><span style="font-size:11px;font-weight:600;color:${isActive?'#16A34A':'#DC2626'};">${isActive?'● Active':'● Inactive'}</span></div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          ${['areachef','areamanager'].includes(s.role) ? `<button onclick="viewKPIReport('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid #1A3C5E;border-radius:6px;background:#EFF6FF;color:#1A3C5E;cursor:pointer;font-weight:600;">📊 Report</button>` : ''}
-          <button onclick="editStaff('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid #E0DDD4;border-radius:6px;background:#fff;cursor:pointer;">Edit</button>
-          <button onclick="toggleStaff('${s._key}')" style="padding:3px 7px;font-size:11px;border:1px solid ${isActive?'#FCA5A5':'#C0DD97'};border-radius:6px;background:#fff;color:${isActive?'#DC2626':'#16A34A'};cursor:pointer;">${isActive?'Deactivate':'Reactivate'}</button>
-          ${currentRole==='training' ? `<button onclick="deleteStaffFromRegistry('${s._key}','${s.name}')" style="padding:3px 7px;font-size:11px;border:1px solid #FCA5A5;border-radius:6px;background:#FEE2E2;color:#B91C1C;cursor:pointer;font-weight:600;">🗑 Delete</button>` : ''}
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${['areachef','areamanager'].includes(s.role) ? `<button onclick="viewKPIReport('${s._key}')" style="padding:3px 6px;font-size:10px;border:1px solid #1A3C5E;border-radius:6px;background:#EFF6FF;color:#1A3C5E;cursor:pointer;">📊</button>` : ''}
+          <button onclick="editStaff('${s._key}')" style="padding:3px 6px;font-size:10px;border:1px solid #E0DDD4;border-radius:6px;background:#fff;cursor:pointer;">Edit</button>
+          <button onclick="toggleStaff('${s._key}')" style="padding:3px 6px;font-size:10px;border:1px solid ${isActive?'#FCA5A5':'#C0DD97'};border-radius:6px;background:#fff;color:${isActive?'#DC2626':'#16A34A'};cursor:pointer;">${isActive?'Off':'On'}</button>
+          ${currentRole==='training' ? `<button onclick="deleteStaffFromRegistry('${s._key}','${s.name}')" style="padding:3px 6px;font-size:10px;border:1px solid #FCA5A5;border-radius:6px;background:#FEE2E2;color:#B91C1C;cursor:pointer;">🗑</button>` : ''}
         </div>
       </div>`;
     }).join('')}
@@ -5990,8 +5992,8 @@ function renderWeekly() {
   </div>`;
   // Table
   html += `<div style="background:#fff;border-radius:10px;border:1px solid #E0DDD4;overflow:hidden;">
-    <div style="display:grid;grid-template-columns:1fr 90px 90px 80px 80px;gap:8px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
-      <div>STAFF / OUTLET</div><div>ROLE</div><div>SCORE</div><div>STATUS</div><div>DATE</div>
+    <div style="display:grid;grid-template-columns:1fr 80px 80px;gap:6px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
+      <div>STAFF / OUTLET</div><div>SCORE</div><div>STATUS</div>
     </div>`;
   filtered.sort((a,b) => new Date(b.submittedAt||'') - new Date(a.submittedAt||'')).forEach(s => {
     const pct = parseFloat(s.overallPct)||0;
@@ -5999,12 +6001,15 @@ function renderWeekly() {
     const role = ROLES[s.role]||{label:s.role||'—',cls:'pill-lc'};
     const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role]||'pill-lc';
     const dt = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : '—';
-    html += `<div style="display:grid;grid-template-columns:1fr 90px 90px 80px 80px;gap:8px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;cursor:pointer;" onclick="openWeeklyDetail(${JSON.stringify(s.staffName)}, ${JSON.stringify(s.week)})">
-      <div><div style="font-weight:500;font-size:13px;color:#1A1A18;">${s.staffName||'—'}</div><div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'}</div></div>
-      <div><span class="role-badge ${roleCls}" style="font-size:10px;padding:2px 6px;">${role.label}</span></div>
-      <div style="font-size:14px;font-weight:600;color:${qualified?'#16A34A':'#DC2626'};">${Math.round(pct)}%</div>
-      <div style="font-size:11px;color:${qualified?'#16A34A':'#DC2626'};">${qualified?'✓ Qualified':'✗ Not Qual'}</div>
-      <div style="font-size:11px;color:#94A3B8;">${dt}</div>
+    html += `<div style="display:grid;grid-template-columns:1fr 80px 80px;gap:6px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:center;cursor:pointer;" onclick="openWeeklyDetail(${JSON.stringify(s.staffName)}, ${JSON.stringify(s.week)})">
+      <div>
+        <div style="font-weight:600;font-size:13px;color:#1A1A18;">${s.staffName||'—'}</div>
+        <div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'}</div>
+        <span class="role-badge ${roleCls}" style="font-size:10px;padding:2px 6px;margin-top:2px;display:inline-block;">${role.label}</span>
+        <span style="font-size:10px;color:#94A3B8;margin-left:4px;">${dt}</span>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:${qualified?'#16A34A':'#DC2626'};text-align:center;">${Math.round(pct)}%</div>
+      <div style="font-size:11px;font-weight:600;color:${qualified?'#16A34A':'#DC2626'};text-align:center;">${qualified?'✓ Qual':'✗ Fail'}</div>
     </div>`;
   });
   html += '</div>';
