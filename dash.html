@@ -5382,7 +5382,6 @@ function toggleFOHEditMode() {
   area.querySelectorAll('.foh-yn-edit').forEach(el => el.style.display = 'flex');
 
   // Replace "not yet completed" message with OIC task edit buttons
-  const staff = _fohFiltered[_fohDetailIdx];
   if (staff && staff.role === 'service') {
     const notYet = area.querySelector('div[style*="OIC observation not yet"]') ||
       Array.from(area.querySelectorAll('div')).find(d => d.textContent.includes('OIC observation not yet completed'));
@@ -5431,6 +5430,7 @@ function toggleFOHEditMode() {
     };
     area.appendChild(cancelBtn);
   }
+}
 
 async function saveFOHOverwrite(staff) {
   if (!Object.keys(_fohEditChanges).length) {
