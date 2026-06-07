@@ -60,6 +60,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .header{background:#1A3C5E;padding:16px 20px;}
 .header-row{display:flex;align-items:center;gap:10px;}
 .header h1{color:#fff;font-size:18px;font-weight:700;flex:1;}
+@media(max-width:480px){
+  .header{padding:10px 12px;}
+  .header h1{font-size:15px;}
+  .header-row{gap:6px;flex-wrap:wrap;}
+  .header-row button{font-size:10px!important;padding:4px 7px!important;}
+  .tab-bar{gap:2px;padding:0 6px;}
+  .tab{font-size:11px!important;padding:8px 6px!important;}
+  .kpi-grid{grid-template-columns:1fr 1fr!important;}
+  .staff-table td,.staff-table th{font-size:11px;padding:6px 8px;}
+}
 .role-badge{background:rgba(255,255,255,0.2);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;}
 .sync-bar{display:flex;align-items:center;gap:8px;margin-top:8px;}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#F59E0B;}
@@ -251,7 +261,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:4px;">
       <span style="font-size:11px;color:rgba(255,255,255,0.6);">📅 Week:</span>
       <select id="weekFilter" onchange="reloadAllData()" style="padding:4px 8px;border-radius:6px;border:none;font-size:11px;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;">
-        <option value="">Current Week</option>
+        <option value="all">All Submissions</option>
       </select>
       <span style="font-size:11px;color:rgba(255,255,255,0.4);" id="loadingIndicator"></span>
     </div>
@@ -412,10 +422,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
       <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
 <div style="position:relative;margin-left:auto;">
-        <select id="bohWeekFilter" onchange="loadBOHData()" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;outline:none;margin-right:6px;">
-          <option value="current">Current Week</option>
-          <option value="all">All Weeks</option>
-        </select>
+        
         <button id="bohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
         <div style="display:none;position:absolute;top:34px;right:0;background:#fff;border:1.5px solid #E0DDD4;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;padding:6px;min-width:160px;">
           <div style="display:flex;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
@@ -492,10 +499,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="fohSubDelco" onclick="setFOHSub('delco')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🚚 Del.Co</button>
       <button id="fohSubBartender" onclick="setFOHSub('bartender')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍹 Bartender</button>
       <div style="position:relative;margin-left:auto;">
-        <select id="fohWeekFilter" onchange="loadFOHData()" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;outline:none;margin-right:6px;">
-          <option value="current">Current Week</option>
-          <option value="all">All Weeks</option>
-        </select>
+        
         <button id="fohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'"  style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
         <div style="display:none;position:absolute;top:34px;right:0;background:#fff;border:1.5px solid #E0DDD4;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;padding:6px;min-width:160px;">
           <div style="display:flex;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;">
@@ -1156,9 +1160,9 @@ function filterByRole(staff) {
   const myOutlet = (currentOutlet||'').trim().toLowerCase();
   // KIC sees only LC and ST from their outlet
   if (currentRole === 'kic') return staff.filter(s =>
-    (s.outlet||'').trim().toLowerCase() === myOutlet &&
+    (s.outlet||'').trim().toLowerCase().includes(myOutlet) || myOutlet.includes((s.outlet||'').trim().toLowerCase()) &&
     ['linecook','steward'].includes(s.role)
-  );
+  ).filter(s => ['linecook','steward'].includes(s.role));
   // Area Chef sees LC, ST, KIC (BOH) — across all outlets
   if (currentRole === 'areachef') return staff.filter(s =>
     ['linecook','steward','kic'].includes(s.role)
@@ -1228,17 +1232,16 @@ function setLoadingIndicator(msg) {
 function loadData() {
   if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
   setSyncStatus('syncing','Connecting...');
-  const selectedWeek = getSelectedWeek();
   setLoadingIndicator('⏳ Loading...');
-  const bohQuery = selectedWeek === 'all'
-    ? db.ref('submissions').orderByChild('week').limitToLast(500)
-    : db.ref('submissions').orderByChild('week').equalTo(selectedWeek);
+  // Load all submissions — no week filter (week formats differ between files)
+  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(500);
   bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     // Deduplicate BOH — keep latest per staffName+role+week
     const rawFiltered = filterByRole(raw);
     const dedupBOH = {};
     rawFiltered.forEach(s => {
+      if (!s.staffName) return; // skip submissions with no name
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'');
       if (!dedupBOH[key] || new Date(s.submittedAt||0) > new Date(dedupBOH[key].submittedAt||0)) {
         dedupBOH[key] = s;
@@ -1260,6 +1263,7 @@ function loadData() {
     const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
     const dedupMap = {};
     combined.forEach(s => {
+      if (!s.staffName) return; // skip submissions with no name
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'');
       if (!dedupMap[key] || new Date(s.submittedAt||0) > new Date(dedupMap[key].submittedAt||0)) {
         dedupMap[key] = s;
@@ -4507,11 +4511,8 @@ let currentBOHSub = 'all';
 function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
-  const bohWeekSel = document.getElementById('bohWeekFilter')?.value || 'current';
-  const bohWeek = bohWeekSel === 'all' ? 'all' : getCurrentWeekStart();
-  const bohQ = bohWeek === 'all'
-    ? db.ref('submissions').orderByChild('week').limitToLast(500)
-    : db.ref('submissions').orderByChild('week').equalTo(bohWeek);
+  // Show all submissions — no week filter
+  const bohQ = db.ref('submissions').orderByChild('week').limitToLast(500);
   bohQ.once('value', snap => {
     allBOHData = [];
     if (snap.exists()) {
@@ -4745,11 +4746,8 @@ function loadFOHData() {
     return;
   }
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
-  const fohWeekSel = document.getElementById('fohWeekFilter')?.value || 'current';
-  const fohWeek = fohWeekSel === 'all' ? 'all' : getCurrentWeekStart();
-  const fohQ = fohWeek === 'all'
-    ? fohDb.ref('submissions').orderByChild('week').limitToLast(500)
-    : fohDb.ref('submissions').orderByChild('week').equalTo(fohWeek);
+  // Show all submissions — no week filter
+  const fohQ = fohDb.ref('submissions').orderByChild('week').limitToLast(500);
   fohQ.once('value', snap => {
     if (snap.exists()) {
       // Group by staffName + role + week
