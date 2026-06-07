@@ -5190,7 +5190,7 @@ function openFOHDetail(idx) {
         }, null);
         return existing && existing.yn;
       });
-      if (!hasAnyOIC) {
+      if (!hasAnyOIC && !_fohEditMode) {
         html += '<div style="padding:12px;background:#fff;border-radius:0 0 8px 8px;text-align:center;font-size:12px;color:#94A3B8;">OIC observation not yet completed</div>';
       } else {
         Object.entries(oicBySec).forEach(([sec, tasks]) => {
@@ -5376,11 +5376,45 @@ function toggleFOHEditMode() {
   const area = document.getElementById('fohChecklistArea');
   if (!area) return;
 
-  // Show yn edit buttons, hide display badges and photos
+  // Show edit buttons, hide display badges
   area.querySelectorAll('.foh-yn-display').forEach(el => el.style.display = 'none');
   area.querySelectorAll('.foh-photo-display').forEach(el => el.style.display = 'none');
-  area.querySelectorAll('.photo-thumb, img.photo-thumb, .photo-row img').forEach(el => el.style.display = 'none');
   area.querySelectorAll('.foh-yn-edit').forEach(el => el.style.display = 'flex');
+
+  // Replace "not yet completed" message with OIC task edit buttons
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (staff && staff.role === 'service') {
+    const notYet = area.querySelector('div[style*="OIC observation not yet"]') ||
+      Array.from(area.querySelectorAll('div')).find(d => d.textContent.includes('OIC observation not yet completed'));
+    if (notYet) {
+      const oicTasks = [
+        {id:'u1', text:'Monthly Sales target achieved'},
+        {id:'s1', text:'Customer interaction'},
+        {id:'s2', text:'Sequence of service'},
+        {id:'s3', text:'Service awareness'},
+        {id:'f1', text:'Complaints'},
+        {id:'f2', text:'Grooming (hair neatly tied and wearing make up)'},
+        {id:'t1', text:'Be a team player with OIC and teammates'},
+        {id:'t2', text:'Helpful attitude'},
+        {id:'t3', text:'Follow instruction'},
+        {id:'t4', text:'Attendance'},
+      ];
+      let oicHtml = '';
+      oicTasks.forEach((t, i) => {
+        oicHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
+          <div style="flex:1;font-size:12px;font-weight:500;">${t.text}</div>
+          <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+            <div style="display:flex;gap:4px;">
+              <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">✓ YES</button>
+              <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">✗ NO</button>
+              <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">N/A</button>
+            </div>
+          </div>
+        </div>`;
+      });
+      notYet.outerHTML = oicHtml;
+    }
+  }
 
   // Add cancel button
   let cancelBtn = document.getElementById('fohCancelEditBtn');
@@ -5393,11 +5427,10 @@ function toggleFOHEditMode() {
       _fohEditMode = false; _fohEditChanges = {};
       const b = document.getElementById('fohEditBtn');
       if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
-      openFOHDetail(_fohDetailIdx); // reopens fresh
+      openFOHDetail(_fohDetailIdx);
     };
     area.appendChild(cancelBtn);
   }
-}
 
 async function saveFOHOverwrite(staff) {
   if (!Object.keys(_fohEditChanges).length) {
