@@ -5322,7 +5322,10 @@ function setFOHTaskYN(btn, val) {
   const row = btn.closest('[data-fohtaskkey]');
   if (!row) return;
   const taskKey = row.getAttribute('data-fohtaskkey');
-  _fohEditChanges[taskKey] = val;
+  // Preserve existing comment if already set
+  const existing = _fohEditChanges[taskKey];
+  const existingComment = (existing && typeof existing === 'object') ? existing.comment : undefined;
+  _fohEditChanges[taskKey] = existingComment ? {yn: val, comment: existingComment} : val;
   // Update button styles
   const btns = row.querySelectorAll('.foh-yn-edit button');
   const labels = ['yes','no','na'];
@@ -5351,6 +5354,26 @@ function setFOHTaskYN(btn, val) {
     pctEl.style.color = pass ? '#15803D' : '#B91C1C';
     if (lblEl) { lblEl.textContent = pass ? '✓ Pass' : '✗ Below target'; lblEl.style.color = pass ? '#15803D' : '#B91C1C'; }
   });
+  // Also update OIC Eval score box in header
+  const oicBox = document.querySelector('#fohDetailModal [data-scorebox="oic"]');
+  if (oicBox) {
+    // Calculate OIC score separately
+    const oicIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+    let oY=0, oT=0;
+    Object.entries({...(_fohFiltered[_fohDetailIdx]?.taskData||{}), ...(()=>{const r={}; Object.entries(_fohEditChanges).forEach(([k,v])=>{r[k]={yn:typeof v==='string'?v:v.yn}}); return r;})()}).forEach(([k,v]) => {
+      if (oicIds.some(id => k===id || k.endsWith('_'+id)) && v.yn && v.yn!=='na') {
+        oT++; if(v.yn==='yes') oY++;
+      }
+    });
+    const oicPct = oT>0 ? Math.round((oY/oT)*100) : null;
+    const oicEl = oicBox.querySelector('.sb-pct') || oicBox;
+    const oicLbl = oicBox.querySelector('.sb-lbl');
+    if (oicPct !== null) {
+      oicEl.textContent = oicPct + '%';
+      oicEl.style.color = oicPct>=95 ? '#0F766E' : '#B91C1C';
+      if (oicLbl) { oicLbl.textContent = oicPct>=95 ? '✓ Pass' : '✗ Below target'; }
+    }
+  }
 }
 
 // ── FOH Overwrite / Edit Mode ─────────────────────────────────
@@ -5400,14 +5423,15 @@ function toggleFOHEditMode() {
       ];
       let oicHtml = '';
       oicTasks.forEach((t, i) => {
-        oicHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
-          <div style="flex:1;font-size:12px;font-weight:500;">${t.text}</div>
-          <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+        oicHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
+          <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+          <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
             <div style="display:flex;gap:4px;">
               <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">✓ YES</button>
               <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">✗ NO</button>
               <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">N/A</button>
             </div>
+            <textarea data-fohtaskkey="${t.id}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Add comment..."></textarea>
           </div>
         </div>`;
       });
