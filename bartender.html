@@ -330,9 +330,12 @@ function renderDay() {
 
   const dayKey=getTodayKey();
   const data=load();
-  // Only consider done if _done was set today (prevents stale lock from yesterday)
   const _doneVal = data[dayKey]?._done;
   const isDone = !!(_doneVal && getDubaiDateStr() === _doneVal.substring(0,10));
+  const _openDoneVal = data[dayKey]?._openDone;
+  const openingDone = !!(_openDoneVal);
+  const _closeDoneVal = data[dayKey]?._closeDone;
+  const closingDone = !!(_closeDoneVal);
 
   // Show shift selector if no shift chosen
   if (!currentShift) {
@@ -372,9 +375,20 @@ function renderDay() {
       const photo=getVal(currentDay,task.id,'photo')||getVal(currentDay,task.id,'photoUrl');
       const comment=getVal(currentDay,task.id,'comment')||'';
       const ownerCls={'self':'ot-self','verify':'ot-verify'}[task.owner]||'ot-self';
+      const isOpenSection = section.shift === 'opening';
+      const isCloseSection = section.shift === 'closing';
+      const sectionLocked = !ALLOW_OVERWRITE && ((isOpenSection && openingDone) || (isCloseSection && closingDone) || isDone);
+      const commentDisabled = sectionLocked ? 'disabled' : '';
 
+      // Show submitted banner at top of locked section (once)
+      if (sectionLocked && ti === 0) {
+        const lockBanner = document.createElement('div');
+        lockBanner.style.cssText = 'background:#FEF9C3;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#92400E;';
+        lockBanner.innerHTML = '🔒 This shift has been submitted and is locked. Only managers can edit via the dashboard.';
+        container.appendChild(lockBanner);
+      }
       const card=document.createElement('div');
-      card.className='task-card'+(isDone&&!ALLOW_OVERWRITE?' locked-card':'');
+      card.className='task-card'+(sectionLocked?' locked-card':'');
       card.innerHTML=`
         <div class="task-top">
           <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
@@ -408,6 +422,7 @@ function renderDay() {
     clSections.forEach(s=>s.tasks.forEach(t=>{const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){cM2++;if(v==='yes')cY2++;}}));
     const oPct=oM2>0?Math.round((oY2/oM2)*100):null;
     const cPct=cM2>0?Math.round((cY2/cM2)*100):null;
+    // Total = all YES / all answered tasks
     const totalM=oM2+cM2, totalY=oY2+cY2;
     const totalPct=totalM>0?Math.round((totalY/totalM)*100):0;
     const totalPass=totalPct>=95;
@@ -455,8 +470,15 @@ function renderDay() {
 
 function tapYN(tid, val, el) {
   const data=load(), dayKey=getTodayKey();
-  const _tapDone = data[dayKey]?._done;
-  if(_tapDone && getDubaiDateStr()===_tapDone.substring(0,10) && !ALLOW_OVERWRITE){ showToast('Already submitted — use overwrite to edit 🔒','error'); return; }
+  if (!ALLOW_OVERWRITE) {
+    const _shift = SECTIONS.find(s => s.tasks.some(t => t.id === tid))?.shift;
+    const _openDone = data[dayKey]?._openDone;
+    const _closeDone = data[dayKey]?._closeDone;
+    const _done = data[dayKey]?._done;
+    if (_done || (_shift === 'opening' && _openDone) || (_shift === 'closing' && _closeDone)) {
+      showToast('Already submitted — cannot edit 🔒', 'error'); return;
+    }
+  }
   setVal(currentDay,tid,'yn',val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
@@ -468,14 +490,18 @@ function tapYN(tid, val, el) {
     const isClose = s.shift === 'closing';
     s.tasks.forEach(tk => {
       const v = _td[tk.id]?.yn;
-      if (isOpen) { oM++; if(v==='yes') oY++; }
-      if (isClose){ cM++; if(v==='yes') cY++; }
-      if (s.shift === currentShift) { t++; if(v==='yes') y++; }
+      // Only count answered tasks
+      if (v && v !== 'na') {
+        if (isOpen)  { oM++; if(v==='yes') oY++; }
+        if (isClose) { cM++; if(v==='yes') cY++; }
+        if (s.shift === currentShift) { t++; if(v==='yes') y++; }
+      }
     });
   });
   const p    = t>0  ? Math.round((y/t)*100)   : 0;
   const oPct = oM>0 ? Math.round((oY/oM)*100) : null;
   const cPct = cM>0 ? Math.round((cY/cM)*100) : null;
+  // Total = all YES / all answered tasks
   const tM   = oM+cM, tY = oY+cY;
   const totPct = tM>0 ? Math.round((tY/tM)*100) : 0;
   // Score bar
