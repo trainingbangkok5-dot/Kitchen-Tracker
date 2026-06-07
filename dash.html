@@ -5065,9 +5065,13 @@ function openFOHDetail(idx) {
           ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'})
           : 'Day ' + day);
 
-      // Group by section
+      // Group by section — skip OIC observation tasks (rendered separately below)
+      const oicObsIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
       const bySec = {};
       tasks.forEach(t => {
+        const key = t._key || '';
+        const isOicTask = oicObsIds.some(id => key===id || key.endsWith('_'+id) || key.startsWith(id+'_'));
+        if (isOicTask || (t.owner||'').toLowerCase() === 'oic only') return; // skip — shown in OIC section
         const sec = t.section || 'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -5203,7 +5207,7 @@ function openFOHDetail(idx) {
           const isLast = ti === tasks.length-1;
           html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
             <div style="flex:1;">
-              <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FCE7F3;color:#9D174D;">OIC Eval</span>
+              <div style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FCE7F3;color:#9D174D;">OIC Eval</span>
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.text}</div>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
             </div>
