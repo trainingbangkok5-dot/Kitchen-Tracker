@@ -5205,22 +5205,19 @@ function openFOHDetail(idx) {
           const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
           const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
           const isLast = ti === tasks.length-1;
-          html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
-            <div style="flex:1;">
-              <div style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;background:#FCE7F3;color:#9D174D;">OIC Eval</span>
-              <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.text}</div>
-              ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
-            </div>
-            <div class="foh-yn-display" style="flex-shrink:0;">
+          html += `<div style="padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
+            <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+            <div class="foh-yn-display">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+              ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:4px;font-style:italic;">💬 ${t.comment}</div>` : ''}
             </div>
-            <div class="foh-yn-edit" style="display:none;flex-direction:column;gap:6px;flex-shrink:0;min-width:200px;">
+            <div class="foh-yn-edit" style="display:none;flex-direction:column;gap:6px;">
               <div style="display:flex;gap:4px;">
-                <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
-                <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
-                <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
+                <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:6px 8px;font-size:12px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
+                <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:6px 8px;font-size:12px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
+                <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:6px 8px;font-size:12px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
               </div>
-              <textarea data-fohtaskkey="${t.taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
+              <textarea data-fohtaskkey="${t.taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
             </div>
           </div>`;
           });
