@@ -720,7 +720,8 @@ function renderDay() {
   // _start set at submit time
 
   const data = load();
-  const isDone = !!data[dayKey]?._done;
+  const _dv = data[dayKey]?._done;
+  const isDone = !!(_dv && (_dv === getDubaiDateStr() || _dv.substring(0,10) === getDubaiDateStr()));
   const weekStart = getWeekStart();
   const unlocked = isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
@@ -943,7 +944,7 @@ function submitDay() {
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
   d[getTodayKey()]._start = new Date().toISOString();
-  d[getTodayKey()]._done = new Date().toISOString();
+  d[getTodayKey()]._done = getDubaiDateStr();
   save(d);
 
   // Calc overall
@@ -1061,26 +1062,28 @@ function handlePhotoFile(file) {
     }
   });
 }
-document.getElementById('camInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-document.getElementById('galInput').addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-
 // ── Persist info fields ───────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // Photo input listeners — inside DOMContentLoaded so DOM exists
+  const camIn = document.getElementById('camInput');
+  const galIn = document.getElementById('galInput');
+  if (camIn) camIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+  if (galIn) galIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+
   // Auto-set Dubai date — locked, no user input
   const _dubaiToday = getDubaiDateStr();
   const _wf = document.getElementById('fWeek');
   if (_wf) { if (_wf.tagName === 'INPUT') _wf.value = _dubaiToday; else _wf.textContent = _dubaiToday; }
   localStorage.setItem('kic_info_' + ROLE + '_fWeek', _dubaiToday);
-  checkAutoReset(); // Sets Dubai date — do not overwrite below
-  ['fName','fOutlet','fWeek','fVerified'].forEach(id => {
+  ['fName','fOutlet','fVerified'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    if (id !== 'fWeek') {
-      const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
-      if (saved) el.value = saved;
-    }
+    const saved = localStorage.getItem('kic_info_' + ROLE + '_' + id);
+    if (saved) el.value = saved;
     el.addEventListener('input', () => {
-      if (id !== 'fWeek') localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      const name = document.getElementById('fName')?.value?.trim();
+      if (name) SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
       buildDayRail(); renderDay();
     });
   });
