@@ -888,6 +888,29 @@ function renderDay() {
     msg.textContent = '✓ Submitted and synced to dashboard';
     container.appendChild(btn);
     container.appendChild(msg);
+    // Clear & Start New button
+    const newBtn = document.createElement('button');
+    newBtn.className = 'submit-btn';
+    newBtn.style.cssText = 'background:#1A3C5E;margin-top:10px;';
+    newBtn.textContent = '🔄 Clear & Start New Checklist';
+    newBtn.onclick = () => {
+      if (confirm('Clear this checklist and start fresh?\nYour submitted data is already saved to the dashboard.\nName and outlet will be kept.')) {
+        const d = load();
+        const todayKey = getTodayKey();
+        // Keep _done so if same staff tries to submit again it shows already submitted
+        // Just clear the task answers for visual reset
+        if (d[todayKey]) {
+          Object.keys(d[todayKey]).forEach(k => {
+            if (!k.startsWith('_')) delete d[todayKey][k];
+          });
+        }
+        save(d);
+        buildDayRail();
+        renderDay();
+        showToast('Checklist cleared — ready for next use ✓', 'ok');
+      }
+    };
+    container.appendChild(newBtn);
   } else if (isDone && ALLOW_OVERWRITE) {
     btn.disabled = true;
     btn.textContent = '✓ Checklist Submitted';
