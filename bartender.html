@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260608092116';
+  var v = '20260608163826';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -522,7 +522,7 @@ function tapYN(tid, val, el) {
   }
   // Lock verify tasks — OIC fills via dashboard only
   const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
-  if (taskDef && taskDef.owner === 'verify' && !ALLOW_OVERWRITE) {
+  if (taskDef && taskDef.owner === 'verify' && (lockOpening || lockClosing) && !ALLOW_OVERWRITE) {
     showToast('Verify by OIC only — manager fills this via dashboard 🔒', 'error'); return;
   }
   setVal(currentDay,tid,'yn',val);
