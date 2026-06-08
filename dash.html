@@ -4984,42 +4984,70 @@ function openFOHDetail(idx) {
   const isOIC = staff.role === 'oic';
 
   // Show loading state immediately
+  const fohRoleLabel = roleLabels[staff.role] || staff.role;
+  const fmtFohDT = iso => { try { return iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; } catch(e){return iso||'—';} };
+  const fmtFohDate = iso => { try { return iso ? new Date(iso).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'; } catch(e){return '—';} };
+
   document.getElementById('fohDetailBody').innerHTML = `
-    ${isOIC ? `
-    <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">🏆 Total Score</div>
-      <div class="sb-pct" style="font-size:32px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
-      <div class="sb-lbl" style="font-size:11px;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${staff.qualified?'✓ Qualified':'✗ Not Qualified (target: 95%)'}</div>
-    </div>` : `
-    <div style="display:grid;grid-template-columns:${isService?'1fr 1fr':'1fr 1fr 1fr'};gap:8px;margin-bottom:14px;">
-      <div style="background:#EFF6FF;border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 Opening</div>
-        <div style="font-size:22px;font-weight:800;color:${scoreColor(oPctFoh||op)}">${oPctFoh!=null?oPctFoh+'%':op+'%'}</div>
-      </div>
-      ${isService?`<div style="background:#F5F3FF;border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🧑‍💼 OIC Eval</div>
-        <div style="font-size:22px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
-      </div>`:''}
-      <div style="background:#F0FDF4;border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 Closing</div>
-        <div style="font-size:22px;font-weight:800;color:${scoreColor(cPctFoh||op)}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
-      </div>
-      ${!isService?'':`<div></div>`}
-    </div>`}
-    ${!isOIC ? `<div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:8px;padding:10px;text-align:center;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px;">🏆 Total Score</div>
-      <div class="sb-pct" style="font-size:28px;font-weight:800;color:${staff.qualified?'#0F766E':'#B91C1C'}">${op}%</div>
-      <div class="sb-lbl" style="font-size:11px;font-weight:600;color:${staff.qualified?'#0F766E':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
-    </div>` : ''}
-    ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
-    <div style="background:#F8F9FA;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">👤 Verified By (OIC)</div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="fohVerifiedByInput" type="text" placeholder="Enter OIC name..." value="${staff.verifiedBy||''}"
-          style="flex:1;padding:7px 10px;border:1px solid #E0DDD4;border-radius:6px;font-size:13px;font-family:inherit;">
-        <button onclick="saveFOHVerifiedBy()" style="padding:7px 14px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">✓ Save</button>
+    <!-- Header summary row -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:#F5F3EE;border-radius:10px;margin-bottom:14px;font-size:13px;">
+      <span style="font-weight:700;font-size:15px;">${staff.staffName||'—'}</span>
+      <span>${fohRoleLabel}</span>
+      <span>📍 ${staff.outlet||'—'}</span>
+      <span>📅 ${staff.week||'—'}</span>
+      <span style="color:${scoreColor(op)};font-weight:700;">${op>0?op+'%':'—'} ${staff.qualified?'✅ Qualified':'❌ Not Qualified'}</span>
+    </div>
+
+    <!-- Started / Submitted / Verified -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin-bottom:14px;">
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtFohDT(staff.startedAt)}</div>
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtFohDT(staff.submittedAt)}</div>
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${fmtFohDate(staff.submittedAt)}</div>
+      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
+        ${staff.verifiedBy
+          ? `<div style="font-size:12px;font-weight:700;color:#15803D;">✅ ${staff.verifiedBy}</div>`
+          : `<div style="display:flex;gap:6px;margin-top:2px;">
+               <input id="fohVerifiedByInput" type="text" placeholder="Enter OIC name..." value=""
+                 style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
+               <button onclick="saveFOHVerifiedBy()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✓ Verify</button>
+             </div>
+             <div style="font-size:10px;color:#D97706;margin-top:3px;">🟡 Pending verification</div>`
+        }
       </div>
     </div>
+
+    <!-- Score boxes -->
+    ${isOIC ? `
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:14px;">
+      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
+        <div class="sb-pct" style="font-size:32px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
+        <div class="sb-lbl" style="font-size:11px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:4px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
+      </div>
+    </div>` : `
+    <div style="display:grid;grid-template-columns:1fr 1fr ${isService?'':'1fr'};gap:8px;margin-bottom:14px;">
+      <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">OPENING</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(oPctFoh!=null?oPctFoh:op)}">${oPctFoh!=null?oPctFoh+'%':op>0?op+'%':'—'}</div>
+      </div>
+      ${isService ? `
+      <div data-scorebox="oic" style="background:#F5F3FF;border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">OIC EVAL</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
+      </div>` : `
+      <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">CLOSING</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(cPctFoh!=null?cPctFoh:op)}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
+      </div>
+      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">TOTAL</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(op)}">${op>0?op+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Qualified':'❌ Not Qualified'}</div>
+      </div>`}
+    </div>`}
+
+    ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
     <div id="fohChecklistArea" style="margin-top:4px;">
       <div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading full checklist...</div>
     </div>
