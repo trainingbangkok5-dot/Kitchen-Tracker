@@ -1110,9 +1110,16 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     el.addEventListener('input', () => {
       if (id !== 'fWeek') localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
+      // Update SK when name changes so data saves to correct key
+      const nameVal = document.getElementById('fName')?.value?.trim();
+      if (nameVal) SK = SK_BASE + '_' + nameVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+      else SK = SK_BASE;
       buildDayRail(); renderDay();
     });
   });
+  // Also set SK from saved name on load
+  const _savedName = localStorage.getItem('kic_info_' + ROLE + '_fName');
+  if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   buildDayRail();
   renderDay();
   showAuditBanner();
