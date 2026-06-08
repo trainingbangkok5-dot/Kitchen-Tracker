@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608121612';
+  var v = '20260608122025';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -762,9 +762,7 @@ function renderDay() {
   // _start set at submit time
 
   const data = load();
-  const _outlet = (document.getElementById('fOutlet')?.value||'').trim().replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
-  const _doneKey = '_done' + (_outlet ? '_' + _outlet : '');
-  const _dv = data[dayKey]?.[_doneKey];
+  const _dv = data[dayKey]?._done;
   const isDone = !!(_dv && (_dv === getDubaiDateStr() || _dv.substring(0,10) === getDubaiDateStr()));
   const weekStart = getWeekStart();
   const unlocked = isDayUnlocked(currentDay, weekStart);
@@ -998,9 +996,7 @@ function submitDay() {
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
   d[getTodayKey()]._start = new Date().toISOString();
-  const _outletKey = (document.getElementById('fOutlet')?.value||'').trim().replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
-  const _doneKeySubmit = '_done' + (_outletKey ? '_' + _outletKey : '');
-  d[getTodayKey()][_doneKeySubmit] = getDubaiDateStr();
+  d[getTodayKey()]._done = getDubaiDateStr();
   save(d);
 
   // Calc overall
@@ -1143,6 +1139,12 @@ window.addEventListener('DOMContentLoaded', () => {
       const nameVal = document.getElementById('fName')?.value?.trim();
       if (nameVal) SK = SK_BASE + '_' + nameVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
       else SK = SK_BASE;
+      // If outlet changed, clear today's data for fresh start
+      if (id === 'fOutlet') {
+        const d2 = load();
+        delete d2[getTodayKey()];
+        save(d2);
+      }
       buildDayRail(); renderDay();
     });
   });
