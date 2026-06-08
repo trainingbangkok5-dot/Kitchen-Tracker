@@ -631,7 +631,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
         <div id="outletFieldWrap" style="margin-bottom:10px;">
           <label style="font-size:12px;color:#6B6B60;display:block;margin-bottom:4px;">Outlet</label>
-          <input id="staffOutletInput" type="text" placeholder="e.g. LB DHE" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+          <select id="staffOutletInput" style="width:100%;padding:8px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">
+            <option value="">Select outlet...</option>
+            <optgroup label="Little Bangkok">
+              <option>LB DSO</option>
+              <option>LB Tower</option>
+              <option>LB Hamra</option>
+              <option>LB JLT</option>
+              <option>LB OM</option>
+              <option>LB DHE</option>
+              <option>LB MTC</option>
+            </optgroup>
+            <optgroup label="Superbowl">
+              <option>SB Deira</option>
+              <option>SB DG</option>
+            </optgroup>
+            <optgroup label="The Red Door">
+              <option>The Red Door</option>
+            </optgroup>
+          </select>
         </div>
         <div style="display:flex;gap:8px;margin-top:14px;">
           <button onclick="closeAddStaffModal()" style="flex:1;padding:9px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;">Cancel</button>
