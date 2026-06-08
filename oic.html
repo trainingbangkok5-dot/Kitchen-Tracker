@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608100613';
+  var v = '20260608121612';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -762,7 +762,9 @@ function renderDay() {
   // _start set at submit time
 
   const data = load();
-  const _dv = data[dayKey]?._done;
+  const _outlet = (document.getElementById('fOutlet')?.value||'').trim().replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  const _doneKey = '_done' + (_outlet ? '_' + _outlet : '');
+  const _dv = data[dayKey]?.[_doneKey];
   const isDone = !!(_dv && (_dv === getDubaiDateStr() || _dv.substring(0,10) === getDubaiDateStr()));
   const weekStart = getWeekStart();
   const unlocked = isDayUnlocked(currentDay, weekStart);
@@ -921,10 +923,9 @@ function setComment(taskId, value) {
 }
 
 function tapYN(tid, val, el) {
-  // Always ensure SK is current before reading data
+  // Ensure SK is current before reading data
   const _n = document.getElementById('fName')?.value?.trim();
-  const _o = document.getElementById('fOutlet')?.value?.trim();
-  if (_n) SK = SK_BASE + '_' + _n.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (_o ? '_' + _o.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
+  if (_n) SK = SK_BASE + '_' + _n.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   else SK = SK_BASE;
 
   const data = load();
@@ -991,14 +992,15 @@ function fmtTimeOnly(iso) {
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
-  // Always update SK from current name+outlet before submitting
-  const _o = document.getElementById('fOutlet')?.value?.trim();
-  SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (_o ? '_' + _o.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
+  // Update SK from name only (outlet handled in Firebase key)
+  SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   // getWeekStart always returns Dubai date as fallback
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
   d[getTodayKey()]._start = new Date().toISOString();
-  d[getTodayKey()]._done = getDubaiDateStr();
+  const _outletKey = (document.getElementById('fOutlet')?.value||'').trim().replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  const _doneKeySubmit = '_done' + (_outletKey ? '_' + _outletKey : '');
+  d[getTodayKey()][_doneKeySubmit] = getDubaiDateStr();
   save(d);
 
   // Calc overall
@@ -1137,18 +1139,16 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     el.addEventListener('input', () => {
       if (id !== 'fWeek') localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
-      // Update SK when name OR outlet changes — unique key per name+outlet
+      // Update SK when name changes
       const nameVal = document.getElementById('fName')?.value?.trim();
-      const outletVal = document.getElementById('fOutlet')?.value?.trim();
-      if (nameVal) SK = SK_BASE + '_' + nameVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (outletVal ? '_' + outletVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
+      if (nameVal) SK = SK_BASE + '_' + nameVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
       else SK = SK_BASE;
       buildDayRail(); renderDay();
     });
   });
-  // Also set SK from saved name+outlet on load
+  // Set SK from saved name on load
   const _savedName = localStorage.getItem('kic_info_' + ROLE + '_fName');
-  const _savedOutlet = localStorage.getItem('kic_info_' + ROLE + '_fOutlet');
-  if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (_savedOutlet ? '_' + _savedOutlet.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
+  if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   // Critical: clear any stale _done from the shared SK_BASE key
   // This prevents "already submitted" showing for new staff opening the page
   try {
