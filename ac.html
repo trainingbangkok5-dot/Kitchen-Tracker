@@ -7,7 +7,7 @@
 <meta name="app-version" content="20260606180000">
 <script>
 (function() {
-  var v = '20260608152709';
+  var v = '20260608153240';
   var stored = localStorage.getItem('app_version_ac_kpi2');
   if (stored !== v) {
     localStorage.setItem('app_version_ac_kpi2', v);
@@ -504,7 +504,7 @@ function submitKPI() {
   if (!outlet) { showToast('Please enter your outlet', 'warn'); return; }
 
   const kpiScores = {};
-  // All 6 KPIs active  const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
+  const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
   let total = 0;
   for (let i = 0; i < 6; i++) {
     const val = Math.min(kpiVals[i] || 0, MAX[i]);
