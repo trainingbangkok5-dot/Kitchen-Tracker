@@ -2010,7 +2010,7 @@ function openStaffDetail(s) {
       (currentRole === 'kic' && ['linecook','steward'].includes(s.role)) ||
       (currentRole === 'areachef' && ['linecook','steward','kic'].includes(s.role)) ||
       (currentRole === 'areamanager' && ['linecook','steward','kic','service','delco','bartender'].includes(s.role)) ||
-      (currentRole === 'director' && ['areachef','areamanager'].includes(s.role)) ||
+      (currentRole === 'director') ||
       (['training','operations','ceo'].includes(currentRole))
     );
     if (canOverwrite) {
