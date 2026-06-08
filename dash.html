@@ -341,6 +341,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div>
           <div style="font-size:15px;font-weight:700;" id="fohDetailName">—</div>
           <div style="font-size:11px;opacity:0.8;" id="fohDetailSub">—</div>
+          <div style="font-size:11px;opacity:0.8;margin-top:4px;" id="fohVerifiedBy"></div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           <button onclick="exportFOHDetailPDF()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;">📄 PDF</button>
@@ -4985,10 +4986,10 @@ function openFOHDetail(idx) {
   // Show loading state immediately
   document.getElementById('fohDetailBody').innerHTML = `
     ${isOIC ? `
-    <div style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;">
+    <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;margin-bottom:14px;">
       <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">🏆 Total Score</div>
-      <div style="font-size:32px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
-      <div style="font-size:11px;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${staff.qualified?'✓ Qualified':'✗ Not Qualified (target: 95%)'}</div>
+      <div class="sb-pct" style="font-size:32px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
+      <div class="sb-lbl" style="font-size:11px;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${staff.qualified?'✓ Qualified':'✗ Not Qualified (target: 95%)'}</div>
     </div>` : `
     <div style="display:grid;grid-template-columns:${isService?'1fr 1fr':'1fr 1fr 1fr'};gap:8px;margin-bottom:14px;">
       <div style="background:#EFF6FF;border-radius:8px;padding:10px;text-align:center;">
@@ -5005,12 +5006,20 @@ function openFOHDetail(idx) {
       </div>
       ${!isService?'':`<div></div>`}
     </div>`}
-    ${!isOIC ? `<div style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:8px;padding:10px;text-align:center;margin-bottom:14px;">
+    ${!isOIC ? `<div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:8px;padding:10px;text-align:center;margin-bottom:14px;">
       <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:2px;">🏆 Total Score</div>
-      <div style="font-size:28px;font-weight:800;color:${staff.qualified?'#0F766E':'#B91C1C'}">${op}%</div>
-      <div style="font-size:11px;font-weight:600;color:${staff.qualified?'#0F766E':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
+      <div class="sb-pct" style="font-size:28px;font-weight:800;color:${staff.qualified?'#0F766E':'#B91C1C'}">${op}%</div>
+      <div class="sb-lbl" style="font-size:11px;font-weight:600;color:${staff.qualified?'#0F766E':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
     </div>` : ''}
     ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
+    <div style="background:#F8F9FA;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">👤 Verified By (OIC)</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="fohVerifiedByInput" type="text" placeholder="Enter OIC name..." value="${staff.verifiedBy||''}"
+          style="flex:1;padding:7px 10px;border:1px solid #E0DDD4;border-radius:6px;font-size:13px;font-family:inherit;">
+        <button onclick="saveFOHVerifiedBy()" style="padding:7px 14px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">✓ Save</button>
+      </div>
+    </div>
     <div id="fohChecklistArea" style="margin-top:4px;">
       <div style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading full checklist...</div>
     </div>
@@ -5332,6 +5341,34 @@ function handleFOHEditPhoto(input) {
       .catch(() => {});
   };
   reader.readAsDataURL(file);
+}
+
+function saveFOHVerifiedBy() {
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (!staff) return;
+  const name = document.getElementById('fohVerifiedByInput')?.value?.trim();
+  if (!name) { showToast('Please enter OIC name', 'warn'); return; }
+  if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
+  fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap => {
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      const subDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : '';
+      const staffDate = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
+      if (subDate === staffDate && sub.role === staff.role) {
+        updates['submissions/' + child.key + '/verifiedBy'] = name;
+      }
+    });
+    if (Object.keys(updates).length) {
+      fohDb.ref().update(updates).then(() => {
+        staff.verifiedBy = name;
+        const el = document.getElementById('fohVerifiedBy');
+        if (el) el.innerHTML = `<span style="color:#93C5FD;">✅ ${name}</span>`;
+        showToast('Verified By saved ✓', 'ok');
+      });
+    }
+  });
 }
 
 function setFOHTaskYN(btn, val) {
