@@ -1082,6 +1082,16 @@ window.addEventListener('DOMContentLoaded', () => {
       buildDayRail(); renderDay();
     });
   });
+  // Critical: clear any stale _done from the shared SK_BASE key
+  try {
+    const _baseData = JSON.parse(localStorage.getItem(SK_BASE)||'{}');
+    const _todayKey = 'dt' + getDubaiDateStr();
+    if (_baseData[_todayKey]?._done) {
+      delete _baseData[_todayKey]._done;
+      localStorage.setItem(SK_BASE, JSON.stringify(_baseData));
+    }
+  } catch(e) {}
+
   buildDayRail();
   renderDay();
   showAuditBanner();

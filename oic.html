@@ -1120,6 +1120,17 @@ window.addEventListener('DOMContentLoaded', () => {
   // Also set SK from saved name on load
   const _savedName = localStorage.getItem('kic_info_' + ROLE + '_fName');
   if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  // Critical: clear any stale _done from the shared SK_BASE key
+  // This prevents "already submitted" showing for new staff opening the page
+  try {
+    const _baseData = JSON.parse(localStorage.getItem(SK_BASE)||'{}');
+    const _todayKey = 'dt' + getDubaiDateStr();
+    if (_baseData[_todayKey]?._done) {
+      delete _baseData[_todayKey]._done;
+      localStorage.setItem(SK_BASE, JSON.stringify(_baseData));
+    }
+  } catch(e) {}
+
   buildDayRail();
   renderDay();
   showAuditBanner();
