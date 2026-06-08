@@ -888,29 +888,11 @@ function renderDay() {
     msg.textContent = '✓ Submitted and synced to dashboard';
     container.appendChild(btn);
     container.appendChild(msg);
-    // Clear & Start New button
-    const newBtn = document.createElement('button');
-    newBtn.className = 'submit-btn';
-    newBtn.style.cssText = 'background:#1A3C5E;margin-top:10px;';
-    newBtn.textContent = '🔄 Clear & Start New Checklist';
-    newBtn.onclick = () => {
-      if (confirm('Clear this checklist and start fresh?\nYour submitted data is already saved to the dashboard.\nName and outlet will be kept.')) {
-        const d = load();
-        const todayKey = getTodayKey();
-        // Keep _done so if same staff tries to submit again it shows already submitted
-        // Just clear the task answers for visual reset
-        if (d[todayKey]) {
-          Object.keys(d[todayKey]).forEach(k => {
-            if (!k.startsWith('_')) delete d[todayKey][k];
-          });
-        }
-        save(d);
-        buildDayRail();
-        renderDay();
-        showToast('Checklist cleared — ready for next use ✓', 'ok');
-      }
-    };
-    container.appendChild(newBtn);
+    // Tip for multi-outlet OIC
+    const tipDiv = document.createElement('div');
+    tipDiv.style.cssText = 'margin-top:10px;padding:10px 12px;background:rgba(255,255,255,0.1);border-radius:8px;font-size:12px;color:rgba(255,255,255,0.7);text-align:center;';
+    tipDiv.textContent = '💡 To submit for another outlet — just change the outlet above and fill again.';
+    container.appendChild(tipDiv);
   } else if (isDone && ALLOW_OVERWRITE) {
     btn.disabled = true;
     btn.textContent = '✓ Checklist Submitted';
@@ -939,6 +921,12 @@ function setComment(taskId, value) {
 }
 
 function tapYN(tid, val, el) {
+  // Always ensure SK is current before reading data
+  const _n = document.getElementById('fName')?.value?.trim();
+  const _o = document.getElementById('fOutlet')?.value?.trim();
+  if (_n) SK = SK_BASE + '_' + _n.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (_o ? '_' + _o.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
+  else SK = SK_BASE;
+
   const data = load();
   const todayData = data[getTodayKey()] || {};
   // kic2/oic has no shifts — only lock after full submit (_done)
@@ -1148,16 +1136,18 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     el.addEventListener('input', () => {
       if (id !== 'fWeek') localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
-      // Update SK when name changes so data saves to correct key
+      // Update SK when name OR outlet changes — unique key per name+outlet
       const nameVal = document.getElementById('fName')?.value?.trim();
-      if (nameVal) SK = SK_BASE + '_' + nameVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+      const outletVal = document.getElementById('fOutlet')?.value?.trim();
+      if (nameVal) SK = SK_BASE + '_' + nameVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (outletVal ? '_' + outletVal.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
       else SK = SK_BASE;
       buildDayRail(); renderDay();
     });
   });
-  // Also set SK from saved name on load
+  // Also set SK from saved name+outlet on load
   const _savedName = localStorage.getItem('kic_info_' + ROLE + '_fName');
-  if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  const _savedOutlet = localStorage.getItem('kic_info_' + ROLE + '_fOutlet');
+  if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (_savedOutlet ? '_' + _savedOutlet.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
   // Critical: clear any stale _done from the shared SK_BASE key
   // This prevents "already submitted" showing for new staff opening the page
   try {
