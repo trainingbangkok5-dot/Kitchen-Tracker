@@ -3981,24 +3981,31 @@ function renderRegistry() {
   const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac',areamanager:'pill-ac',operations:'pill-ac',director:'pill-ac',ceo:'pill-ac',training:'pill-ac'};
 
   body.innerHTML = `<div style="background:#fff;border-radius:10px;border:1px solid #E0DDD4;overflow:hidden;">
-    <div style="display:grid;grid-template-columns:60px 1fr 80px 60px;gap:6px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;">
-      <div>ID</div><div>Name / Outlet</div><div>Role</div><div>Action</div>
+    <div style="display:grid;grid-template-columns:80px 1fr 120px 120px;gap:0;background:#F0EDE4;border-radius:8px 8px 0 0;overflow:hidden;">
+      <div style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.5px;">ID</div>
+      <div style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.5px;">Name / Outlet</div>
+      <div style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.5px;text-align:center;">Role</div>
+      <div style="padding:10px 14px;font-size:11px;font-weight:700;color:#6B6B60;text-transform:uppercase;letter-spacing:.5px;text-align:center;">Actions</div>
     </div>
-    ${filtered.sort((a,b)=>(a.id||'').localeCompare(b.id||'')).map(s => {
+    ${filtered.sort((a,b)=>(a.id||'').localeCompare(b.id||'')).map((s,idx) => {
       const isActive = s.status === 'active';
-      return `<div style="display:grid;grid-template-columns:60px 1fr 80px 60px;gap:6px;padding:9px 12px;border-top:1px solid #F0EDE4;align-items:start;">
-        <div style="font-weight:600;font-size:12px;color:#1A3C5E;">${s.id||'—'}</div>
-        <div>
-          <div style="font-size:13px;font-weight:500;color:#1A1A18;">${s.name||'—'}</div>
-          <div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'}</div>
-          <span style="font-size:10px;font-weight:600;color:${isActive?'#16A34A':'#DC2626'};">${isActive?'● Active':'● Inactive'}</span>
+      return `<div style="display:grid;grid-template-columns:80px 1fr 120px 120px;gap:0;padding:0;border-top:1px solid #F0EDE4;background:${idx%2===0?'#fff':'#FAFAF8'};align-items:center;transition:background .15s;" onmouseover="this.style.background='#F5F3EE'" onmouseout="this.style.background='${idx%2===0?'#fff':'#FAFAF8'}'">
+        <div style="padding:12px 14px;">
+          <span style="font-size:11px;font-weight:700;color:#1A3C5E;background:#EFF6FF;padding:3px 8px;border-radius:20px;">${s.id||'—'}</span>
         </div>
-        <div><span class="role-badge ${roleCls[s.role]||'pill-lc'}" style="font-size:10px;padding:2px 6px;">${roleLabels[s.role]||s.role||'—'}</span></div>
-        <div style="display:flex;flex-direction:column;gap:3px;">
-          ${['areachef','areamanager'].includes(s.role) ? `<button onclick="viewKPIReport('${s._key}')" style="padding:3px 6px;font-size:10px;border:1px solid #1A3C5E;border-radius:6px;background:#EFF6FF;color:#1A3C5E;cursor:pointer;">📊</button>` : ''}
-          <button onclick="editStaff('${s._key}')" style="padding:3px 6px;font-size:10px;border:1px solid #E0DDD4;border-radius:6px;background:#fff;cursor:pointer;">Edit</button>
-          <button onclick="toggleStaff('${s._key}')" style="padding:3px 6px;font-size:10px;border:1px solid ${isActive?'#FCA5A5':'#C0DD97'};border-radius:6px;background:#fff;color:${isActive?'#DC2626':'#16A34A'};cursor:pointer;">${isActive?'Off':'On'}</button>
-          ${currentRole==='training' ? `<button onclick="deleteStaffFromRegistry('${s._key}','${s.name}')" style="padding:3px 6px;font-size:10px;border:1px solid #FCA5A5;border-radius:6px;background:#FEE2E2;color:#B91C1C;cursor:pointer;">🗑</button>` : ''}
+        <div style="padding:12px 14px;">
+          <div style="font-size:14px;font-weight:600;color:#1A1A18;">${s.name||'—'}</div>
+          <div style="font-size:12px;color:#94A3B8;margin-top:1px;">📍 ${s.outlet||'—'}</div>
+          <span style="font-size:10px;font-weight:700;color:${isActive?'#16A34A':'#DC2626'};margin-top:3px;display:inline-block;">${isActive?'● Active':'● Inactive'}</span>
+        </div>
+        <div style="padding:12px 14px;text-align:center;">
+          <span class="role-badge ${roleCls[s.role]||'pill-lc'}" style="font-size:11px;padding:4px 10px;">${roleLabels[s.role]||s.role||'—'}</span>
+        </div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:4px;align-items:center;">
+          ${['areachef','areamanager'].includes(s.role) ? `<button onclick="viewKPIReport('${s._key}')" style="width:90px;padding:4px 8px;font-size:11px;font-weight:600;border:1px solid #1A3C5E;border-radius:6px;background:#EFF6FF;color:#1A3C5E;cursor:pointer;">📊 Report</button>` : ''}
+          <button onclick="editStaff('${s._key}')" style="width:90px;padding:4px 8px;font-size:11px;font-weight:600;border:1px solid #E0DDD4;border-radius:6px;background:#fff;color:#374151;cursor:pointer;">✏️ Edit</button>
+          <button onclick="toggleStaff('${s._key}')" style="width:90px;padding:4px 8px;font-size:11px;font-weight:600;border:1px solid ${isActive?'#FCA5A5':'#86EFAC'};border-radius:6px;background:${isActive?'#FFF1F0':'#F0FDF4'};color:${isActive?'#DC2626':'#16A34A'};cursor:pointer;">${isActive?'⏸ Deactivate':'▶ Activate'}</button>
+          ${currentRole==='training' ? `<button onclick="deleteStaffFromRegistry('${s._key}','${s.name}')" style="width:90px;padding:4px 8px;font-size:11px;font-weight:600;border:1px solid #FCA5A5;border-radius:6px;background:#FEF2F2;color:#B91C1C;cursor:pointer;">🗑 Delete</button>` : ''}
         </div>
       </div>`;
     }).join('')}
