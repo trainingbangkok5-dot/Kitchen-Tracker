@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260605990000';
+  var v = '20260608100613';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -18,7 +18,9 @@
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (k && (k.startsWith('kic_') || k.startsWith('oic_'))) keysToRemove.push(k);
-      }
+      
+    location.reload(true);
+  }
       keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
     } catch(e) {}
     try { localStorage.setItem('app_version', v); } catch(e) {}
@@ -751,7 +753,11 @@ function renderDay() {
           <button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
             ${photo ? '✓ Photo saved' : '📷 Tap to take photo'}
           </button>
-          ${photo ? `<img class="photo-thumb" src="${photo}" alt="proof">` : ''}
+          ${photo ? `
+            <div style="display:inline-block;text-align:center;vertical-align:top;">
+              <img class="photo-thumb" src="${photo}" alt="proof">
+              <button onclick="removePhoto(task.id,0)" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>
+            </div>` : ''}
         </div>`;
       }
       const cmnt = getVal(currentDay, task.id, 'comment') || '';
@@ -1058,6 +1064,15 @@ function handlePhotoFile(file) {
   });
 }
 // ── Persist info fields ───────────────────────────────────────
+function removePhoto(taskId, idx) {
+  if (!confirm('Remove this photo?')) return;
+  const key = idx === 0 ? 'photo' : 'photo_' + idx;
+  setVal(currentDay, taskId, key, '');
+  setVal(currentDay, taskId, 'photoUrl', '');
+  renderDay();
+  showToast('Photo removed ✓', 'ok');
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   // Photo input listeners — inside DOMContentLoaded so DOM exists
   const camIn = document.getElementById('camInput');
@@ -1114,6 +1129,19 @@ function scheduleNextMidnight() {
   }, next - dubaiNow);
 }
 scheduleNextMidnight();
+
+// Warn before page refresh if checklist not submitted
+window.addEventListener('beforeunload', function(e) {
+  const data = load();
+  const todayKey = getTodayKey();
+  const isDone = !!data[todayKey]?._done;
+  const hasAnswers = data[todayKey] && Object.keys(data[todayKey]).some(k => !k.startsWith('_'));
+  if (hasAnswers && !isDone) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved progress. Your answers are saved locally but please submit before leaving.';
+    return e.returnValue;
+  }
+});
 </script>
 </body>
 </html>
