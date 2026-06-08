@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608130004';
+  var v = '20260608130638';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -1037,9 +1037,12 @@ function submitDay() {
   pushToMasterDashboard(_fbRecord);
   pushToFirebase(_fbRecord);
 
-  showToast(`Day ${currentDay} submitted ✓`, 'ok');
-  buildDayRail();
-  renderDay();
+  showToast('✓ Checklist submitted!', 'ok');
+  // Use setTimeout to ensure _done is saved before re-render
+  setTimeout(function() {
+    buildDayRail();
+    renderDay();
+  }, 100);
 }
 
 // ── Overwrite (Area Manager/Admin) ────────────────────────────
