@@ -4836,7 +4836,7 @@ function loadFOHData() {
       // Role-based visibility filter
       if (currentRole === 'oic') {
         // OIC sees service, delco, bartender from their outlet only
-        fohRaw = fohRaw.filter(s => ['service','delco','bartender'].includes(s.role) && s.outlet === currentOutlet);
+        fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role) && s.outlet === currentOutlet);
       } else if (currentRole === 'areamanager') {
         // Area Manager sees service, delco, bartender, oic
         fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role));
