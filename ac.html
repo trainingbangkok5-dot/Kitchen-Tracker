@@ -7,7 +7,7 @@
 <meta name="app-version" content="20260606180000">
 <script>
 (function() {
-  var v = '20260605020000';
+  var v = '20260608152709';
   var stored = localStorage.getItem('app_version_ac_kpi2');
   if (stored !== v) {
     localStorage.setItem('app_version_ac_kpi2', v);
@@ -528,14 +528,21 @@ function submitKPI() {
     lastUpdated: new Date().toISOString(),
   };
 
-  if (!_db) { showToast('Firebase not ready — try again', 'warn'); return; }
+  if (!_db) { 
+    showToast('Firebase not ready — please wait and try again', 'warn'); 
+    setTimeout(submitKPI, 1500);
+    return; 
+  }
   const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areachef_' + getDubaiDateStr() + '_' + Date.now();
   _db.ref('submissions/' + key).set(record)
     .then(() => {
       document.getElementById('synced-msg').style.display = 'block';
       showToast('KPI submitted successfully ✓', 'ok');
     })
-    .catch(e => showToast('Submit failed: ' + e.message, 'error'));
+    .catch(e => { 
+      showToast('Submit failed: ' + e.message, 'error');
+      console.error('Submit error:', e);
+    });
 }
 
 // ── Init ────────────────────────────────────────────────────
