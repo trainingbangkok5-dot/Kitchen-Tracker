@@ -982,14 +982,15 @@ function submitDay() {
   save(d);
 
   // Calc overall
+  // Calculate score from today's data directly
   let tY=0, tM=0;
-  for (let dd=1;dd<=6;dd++) {
-    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
-      const v=getVal(dd,t.id,'yn');
-      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
-    }));
-  }
-  const op = tM>0?Math.round((tY/tM)*100):0;
+  const _todaySubmitData = load()[getTodayKey()] || {};
+  SECTIONS.forEach(s => s.tasks.forEach(t => {
+    if (s.oicOnly) return; // skip OIC eval tasks from self-score
+    const v = _todaySubmitData[t.id]?.yn;
+    if (v && v !== 'na') { tM++; if(v==='yes') tY++; }
+  }));
+  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
 
   // Push to master dashboard
   const _fbRecord = {
