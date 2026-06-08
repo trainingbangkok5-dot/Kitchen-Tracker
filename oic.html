@@ -991,6 +991,9 @@ function fmtTimeOnly(iso) {
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  // Always update SK from current name+outlet before submitting
+  const _o = document.getElementById('fOutlet')?.value?.trim();
+  SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() + (_o ? '_' + _o.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : '');
   // getWeekStart always returns Dubai date as fallback
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
