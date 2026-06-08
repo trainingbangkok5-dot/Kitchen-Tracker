@@ -941,7 +941,7 @@ function fmtTimeOnly(iso) {
 function submitDay() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
-  if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // getWeekStart always returns Dubai date — no block needed
   const d = load();
   if (!d[getTodayKey()]) d[getTodayKey()] = {};
   d[getTodayKey()]._start = new Date().toISOString();
@@ -949,14 +949,15 @@ function submitDay() {
   save(d);
 
   // Calc overall
+  // Read score directly from today's date key
   let tY=0, tM=0;
-  for (let dd=1;dd<=6;dd++) {
-    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
-      const v=getVal(dd,t.id,'yn');
-      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
-    }));
-  }
-  const op = tM>0?Math.round((tY/tM)*100):0;
+  const _sd = load()[getTodayKey()] || {};
+  SECTIONS.forEach(s => s.tasks.forEach(t => {
+    if (t.owner === 'verify') return;
+    const v = _sd[t.id]?.yn;
+    if (v && v !== 'na') { tM++; if(v==='yes') tY++; }
+  }));
+  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
 
   // Push to master dashboard
   const _fbRecord = {

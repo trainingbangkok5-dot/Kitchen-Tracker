@@ -4938,6 +4938,13 @@ function openFOHDetail(idx) {
 
   document.getElementById('fohDetailName').textContent = staff.staffName;
   document.getElementById('fohDetailSub').textContent = staff.role.toUpperCase() + ' • ' + staff.outlet + ' • Week: ' + staff.week;
+  // Show verifiedBy in FOH detail
+  const fohVerEl = document.getElementById('fohVerifiedBy');
+  if (fohVerEl) {
+    fohVerEl.innerHTML = staff.verifiedBy
+      ? `<span style="color:#15803D;font-weight:700;">✅ ${staff.verifiedBy}</span>`
+      : `<span style="color:#94A3B8;font-style:italic;">Pending OIC verification</span>`;
+  }
 
   const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
   const scoreColor = p => p>=95?'#0F766E':p>=70?'#D97706':'#B91C1C';
