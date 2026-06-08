@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608130638';
+  var v = '20260608131626';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -701,10 +701,10 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { const el = document.getElementById('fWeek'); return el ? (el.value || el.textContent || '').trim() : getDubaiDateStr(); }
+function getWeekStart() { return getDubaiDateStr(); } // Always use today's Dubai date
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
-function getVerified() { return document.getElementById('fVerified').value.trim(); }
+function getVerified() { return ''; }
 
 // ── Day rail ──────────────────────────────────────────────────
 function buildDayRail() {} // Day rail removed — single daily submission
@@ -965,7 +965,7 @@ function submitDay() {
     role:       ROLE,
     roleLabel:  ROLE_LABEL,
     outlet:     getOutlet(),
-    week:       getWeekStart(),
+    week:       getDubaiDateStr(), // Always today's Dubai date
     verifiedBy: getVerified(),
     overallPct: op,
     qualified:  op>=95,
