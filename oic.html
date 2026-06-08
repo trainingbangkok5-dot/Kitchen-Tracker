@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608124150';
+  var v = '20260608125515';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -754,6 +754,7 @@ function renderDay() {
   const data = load();
   const _dv = data[dayKey]?._done;
   const isDone = !!(_dv && (_dv === getDubaiDateStr() || _dv.substring(0,10) === getDubaiDateStr()));
+  console.log('OIC renderDay: dayKey='+dayKey+' _dv='+_dv+' isDone='+isDone+' SK='+SK);
   const weekStart = getWeekStart();
   const unlocked = isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
@@ -900,8 +901,14 @@ function renderDay() {
     container.appendChild(msg2);
   } else {
     btn.textContent = '📋 Submit Checklist';
-    btn.onclick = submitDay;
+    btn.style.cssText += ';position:relative;z-index:10;pointer-events:all;';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      console.log('Submit button clicked directly');
+      submitDay();
+    });
     container.appendChild(btn);
+    console.log('Submit button created, onclick set: true');
   }
 }
 
