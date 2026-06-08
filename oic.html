@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608122025';
+  var v = '20260608122506';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -988,6 +988,7 @@ function fmtTimeOnly(iso) {
 
 // ── Submit day ────────────────────────────────────────────────
 function submitDay() {
+  alert('Submit tapped — name: ' + getStaffName() + ' outlet: ' + (document.getElementById('fOutlet')?.value||'none'));
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   // Update SK from name only (outlet handled in Firebase key)
