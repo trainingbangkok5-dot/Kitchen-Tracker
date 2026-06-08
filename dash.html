@@ -1234,7 +1234,7 @@ function loadData() {
   setSyncStatus('syncing','Connecting...');
   setLoadingIndicator('⏳ Loading...');
   // Load all submissions — no week filter (week formats differ between files)
-  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(500);
+  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(2000);
   bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     // Deduplicate BOH — keep latest per staffName+role+week
@@ -1242,7 +1242,9 @@ function loadData() {
     const dedupBOH = {};
     rawFiltered.forEach(s => {
       if (!s.staffName) return; // skip submissions with no name
-      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'');
+      // Use date of submission (not week) to avoid week format mismatch
+      const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
+      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key] || new Date(s.submittedAt||0) > new Date(dedupBOH[key].submittedAt||0)) {
         dedupBOH[key] = s;
       }
@@ -1264,7 +1266,8 @@ function loadData() {
     const dedupMap = {};
     combined.forEach(s => {
       if (!s.staffName) return; // skip submissions with no name
-      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'');
+      const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
+      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key] || new Date(s.submittedAt||0) > new Date(dedupMap[key].submittedAt||0)) {
         dedupMap[key] = s;
       }
@@ -4745,7 +4748,7 @@ function loadFOHData() {
   }
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
   // Show all submissions — no week filter
-  const fohQ = fohDb.ref('submissions').orderByChild('week').limitToLast(500);
+  const fohQ = fohDb.ref('submissions').orderByChild('week').limitToLast(2000);
   fohQ.once('value', snap => {
     if (snap.exists()) {
       // Group by staffName + role + week
