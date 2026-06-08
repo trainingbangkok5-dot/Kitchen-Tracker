@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260608092116';
+  var v = '20260608163319';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -1042,7 +1042,7 @@ function tapYN(tid, val, el) {
   }
   // Lock verify tasks — KIC fills via dashboard only
   const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
-  if (taskDef && taskDef.owner === 'verify' && !ALLOW_OVERWRITE) {
+  if (taskDef && taskDef.owner === 'verify' && (lockOpening || lockClosing) && !ALLOW_OVERWRITE) {
     showToast('Verify by KIC only — manager fills this via dashboard 🔒', 'error'); return;
   }
   setVal(currentDay, tid, 'yn', val);
