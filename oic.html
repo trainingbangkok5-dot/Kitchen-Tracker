@@ -1028,23 +1028,21 @@ function submitDay() {
     lastUpdated:new Date().toISOString(),
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn    = getVal(dd, t.id, 'yn');
-          const pUrl  = getVal(dd, t.id, 'photoUrl');
-          const photo = getVal(dd, t.id, 'photo');
-          if (yn || photo || pUrl) {
-            tasks[`d${dd}_${t.id}`] = {
-              day: dd,
-              section: s.title,
-              task: t.text,
-              owner: t.ownerLbl,
-              yn: yn||'',
-              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '',
-            };
-          }
-        }));
-      }
+      const _td = load()[getTodayKey()] || {};
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const yn   = _td[t.id]?.yn;
+        const pUrl = _td[t.id]?.photoUrl;
+        if (yn || pUrl) {
+          tasks[t.id] = {
+            day: currentDay,
+            section: s.title,
+            task: t.text,
+            owner: t.ownerLbl,
+            yn: yn||'',
+            photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '',
+          };
+        }
+      }));
       return tasks;
     })(),
   };
