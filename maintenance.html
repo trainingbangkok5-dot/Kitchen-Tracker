@@ -1896,11 +1896,11 @@ async function checkNotifStatus() {
 
 async function sendNewIssueNotification(logId, outlet, description, priority) {
   try {
-    const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://onesignal.com/api/v1/notifications'), {
+    const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.onesignal.com/notifications'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic os_v2_app_acyqbcsdyzadlgzcj6bfrwnzow3go1k4zqjejeexkrntcplosoispxq3gr3eh7jaf4msbnyezthttjg543vq3zzhsvreqty5a5sdea'
+        'Authorization': 'Key os_v2_app_acyqbcsdyzadlgzcj6bfrwnzox4zwl6gfvne3jn2466x6ix2hb3ydfxcrepgml3575vj25qauuj6wmqfgvklnfjgmacmm62pzyxcmla'
       },
       body: JSON.stringify({
         app_id: '00b1008a-43c6-4035-9b22-4f8258d9b975',
