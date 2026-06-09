@@ -493,8 +493,9 @@ function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('logoutBtn').style.display = 'block';
   // Show notification enable button for supervisor/director
-  if (['director','maintsupervisor','maintenance','operations'].includes(role)) {
+  if (['director','maintsupervisor','training','operations','ceo'].includes(role)) {
     document.getElementById('notifBtn').style.display = 'inline-block';
+    setTimeout(checkNotifStatus, 2000);
   }
   document.getElementById('logoutBtn').style.display = 'block';
   const dashLnk = document.getElementById('dashLink');
@@ -1285,7 +1286,8 @@ function renderMonthlyReport() {
 
 function renderLogRow(log, tbody) {
   const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
-  const canSetPriority = ['director','maintsupervisor','ceo','training'].includes(currentRole);
+  const canSetPriority = ['director','maintsupervisor'].includes(currentRole);
+  const canAssign = ['director','maintsupervisor'].includes(currentRole);
   const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
   const daysCls = log.status==='Yes' ? 'days-done' : days >= 3 ? 'days-warn' : 'days-ok';
   const daysLbl = days !== null ? days+'d' : '—';
@@ -1316,16 +1318,18 @@ function renderLogRow(log, tbody) {
       }
     </td>
     <td style="padding:8px 10px">
-      <select onchange="updateAssigned('${log._key}', this.value)" style="padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
-        <option value="Unassigned" ${!log.assignedTo||log.assignedTo==='Unassigned'?'selected':''}>Unassigned</option>
-        <option value="Baldev" ${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
-        <option value="Angelo" ${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
-        <option value="Asad" ${log.assignedTo==='Asad'?'selected':''}>Asad</option>
-        <option value="Shridhar" ${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
-        <option value="Awais" ${log.assignedTo==='Awais'?'selected':''}>Awais</option>
-        ${!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? '<option value="'+log.assignedTo+'" selected>'+log.assignedTo+'</option>' : ''}
-        <option value="__other__">Other...</option>
-      </select>
+      ${canAssign
+        ? ('<select onchange="updateAssigned(\'' + log._key + '\', this.value)" style="padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">'
+          + '<option value="Unassigned"' + (!log.assignedTo||log.assignedTo==='Unassigned'?' selected':'') + '>Unassigned</option>'
+          + '<option value="Baldev"' + (log.assignedTo==='Baldev'?' selected':'') + '>Baldev</option>'
+          + '<option value="Angelo"' + (log.assignedTo==='Angelo'?' selected':'') + '>Angelo</option>'
+          + '<option value="Asad"' + (log.assignedTo==='Asad'?' selected':'') + '>Asad</option>'
+          + '<option value="Shridhar"' + (log.assignedTo==='Shridhar'?' selected':'') + '>Shridhar</option>'
+          + '<option value="Awais"' + (log.assignedTo==='Awais'?' selected':'') + '>Awais</option>'
+          + (!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? '<option value="' + log.assignedTo + '" selected>' + log.assignedTo + '</option>' : '')
+          + '</select>')
+        : ('<span style="font-size:12px;color:#475569;">' + (log.assignedTo||'Unassigned') + '</span>')
+      }
     </td>
     <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsColors[log.status]||'#FEF3C7;color:#D97706'}">${log.status||'—'}</span></td>
     <td style="padding:8px 10px;max-width:140px;">
@@ -1819,29 +1823,72 @@ async function savePreventiveSchedule() {
 
 // ── OneSignal Notifications ──────────────────────────────────
 async function enableNotifications() {
+  const btn = document.getElementById('notifBtn');
   try {
-    const OneSignal = window.OneSignal;
-    if (!OneSignal) { showToast('Notifications not available', 'warn'); return; }
-    const permission = await OneSignal.Notifications.requestPermission();
+    if (!window.OneSignal) {
+      showToast('Notifications not ready — please wait and try again', 'warn');
+      return;
+    }
+    btn.textContent = '⏳ Enabling...';
+    btn.disabled = true;
+
+    await OneSignalDeferred;
+    const permission = await window.OneSignal.Notifications.requestPermission();
+
     if (permission) {
-      showToast('✅ Notifications enabled! You will be notified of new issues.', 'ok');
-      document.getElementById('notifBtn').textContent = '🔔 Notifications ON';
-      document.getElementById('notifBtn').style.background = 'rgba(34,197,94,0.3)';
-      // Save this device as a supervisor/director subscriber
-      const userId = await OneSignal.User.PushSubscription.id;
-      if (userId && db) {
-        db.ref('notifSubscribers/' + userId).set({
-          name: currentName,
-          role: currentRole,
-          subscribedAt: new Date().toISOString()
-        });
-      }
+      btn.textContent = '✅ Notifications ON';
+      btn.style.background = 'rgba(34,197,94,0.4)';
+      btn.disabled = false;
+      btn.onclick = disableNotifications;
+      showToast('✅ Notifications enabled! You will receive alerts for new issues.', 'ok');
+      // Save subscriber
+      try {
+        const subId = window.OneSignal.User.PushSubscription.id;
+        if (subId && db) {
+          db.ref('notifSubscribers/' + subId).set({
+            name: currentName, role: currentRole,
+            subscribedAt: new Date().toISOString()
+          });
+        }
+      } catch(e2) {}
     } else {
-      showToast('Notifications blocked. Please allow in browser settings.', 'warn');
+      btn.textContent = '🔕 Notifications Blocked';
+      btn.style.background = 'rgba(239,68,68,0.3)';
+      btn.disabled = false;
+      showToast('Notifications blocked. Go to browser settings → allow notifications for this site.', 'warn');
     }
   } catch(e) {
-    showToast('Could not enable notifications: ' + e.message, 'error');
+    btn.textContent = '🔔 Enable Notifications';
+    btn.disabled = false;
+    showToast('Error: ' + e.message, 'error');
+    console.error('Notification error:', e);
   }
+}
+
+function disableNotifications() {
+  const btn = document.getElementById('notifBtn');
+  if (window.OneSignal) {
+    window.OneSignal.User.PushSubscription.optOut();
+  }
+  btn.textContent = '🔔 Enable Notifications';
+  btn.style.background = 'rgba(255,255,255,0.15)';
+  btn.onclick = enableNotifications;
+  showToast('Notifications disabled', 'warn');
+}
+
+// Check notification status on load
+async function checkNotifStatus() {
+  const btn = document.getElementById('notifBtn');
+  if (!btn || btn.style.display === 'none') return;
+  try {
+    if (!window.OneSignal) return;
+    const isSubscribed = window.OneSignal.User.PushSubscription.optedIn;
+    if (isSubscribed) {
+      btn.textContent = '✅ Notifications ON';
+      btn.style.background = 'rgba(34,197,94,0.4)';
+      btn.onclick = disableNotifications;
+    }
+  } catch(e) {}
 }
 
 async function sendNewIssueNotification(logId, outlet, description, priority) {
@@ -1892,8 +1939,9 @@ window.addEventListener('DOMContentLoaded', function() {
     const dashLink = document.getElementById('dashLink');
     if (dashLink) dashLink.style.display = 'block';
     // Show notification button for eligible roles
-    if (['director','maintsupervisor','maintenance','operations'].includes(currentRole)) {
+    if (['director','maintsupervisor','training','operations','ceo'].includes(currentRole)) {
       document.getElementById('notifBtn').style.display = 'inline-block';
+      setTimeout(checkNotifStatus, 2000);
     }
     // Load after Firebase ready
     setTimeout(() => { if (db) loadLogs(); }, 1500);

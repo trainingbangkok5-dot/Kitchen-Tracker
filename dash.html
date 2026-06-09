@@ -31,6 +31,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "00b1008a-43c6-4035-9b22-4f8258d9b975",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+  });
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F3EE;color:#0A0A0A;min-height:100vh;}
@@ -246,6 +257,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="hdr-btns">
         <button class="hdr-btn" onclick="loadData()">⟳</button>
         <button class="hdr-btn" id="changePinBtn" onclick="openChangePinModal()" style="display:none;">🔑 Change PIN</button>
+        <button class="hdr-btn" id="dashNotifBtn" onclick="dashEnableNotifications()" style="display:none;">🔔 Enable Alerts</button>
         <button class="hdr-btn" id="resetChecklistBtn" onclick="openResetChecklistModal()" style="display:none;background:#B91C1C;">🔄 Reset Checklist</button>
         <button class="hdr-btn" id="deleteAllDataBtn" onclick="openDeleteAllModal()" style="display:none;background:#7F1D1D;">🗑 Delete All Data</button>
         <button class="hdr-btn" onclick="doLogout()">↩ Exit</button>
@@ -1215,6 +1227,11 @@ function doLogin() {
   document.getElementById('changePinBtn').style.display = FULL_ACCESS.includes(currentRole) ? 'block' : 'none';
   document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('deleteAllDataBtn').style.display = currentRole === 'training' ? 'block' : 'none';
+  // Show notification button for director and maintenance supervisor
+  if (['director','maintsupervisor','training','operations','ceo'].includes(currentRole)) {
+    document.getElementById('dashNotifBtn').style.display = 'block';
+    setTimeout(dashCheckNotifStatus, 2000);
+  }
   document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
@@ -6506,6 +6523,55 @@ function renderArchive() {
       </div>`;
     }).join('')}
   `;
+}
+
+// ── OneSignal Notifications (Dash) ───────────────────────────
+async function dashEnableNotifications() {
+  const btn = document.getElementById('dashNotifBtn');
+  try {
+    if (!window.OneSignal) { showToast('Notifications not ready — try again in a moment', 'warn'); return; }
+    btn.textContent = '⏳ Enabling...';
+    btn.disabled = true;
+    const permission = await window.OneSignal.Notifications.requestPermission();
+    if (permission) {
+      btn.textContent = '✅ Alerts ON';
+      btn.style.background = 'rgba(34,197,94,0.4)';
+      btn.disabled = false;
+      btn.onclick = dashDisableNotifications;
+      showToast('✅ Notifications enabled! You will receive alerts for new maintenance issues.', 'ok');
+    } else {
+      btn.textContent = '🔕 Blocked';
+      btn.style.background = 'rgba(239,68,68,0.3)';
+      btn.disabled = false;
+      showToast('Notifications blocked. Go to browser settings and allow notifications for this site.', 'warn');
+    }
+  } catch(e) {
+    btn.textContent = '🔔 Enable Alerts';
+    btn.disabled = false;
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function dashDisableNotifications() {
+  const btn = document.getElementById('dashNotifBtn');
+  if (window.OneSignal) window.OneSignal.User.PushSubscription.optOut();
+  btn.textContent = '🔔 Enable Alerts';
+  btn.style.background = '';
+  btn.onclick = dashEnableNotifications;
+  showToast('Notifications disabled', 'warn');
+}
+
+async function dashCheckNotifStatus() {
+  const btn = document.getElementById('dashNotifBtn');
+  if (!btn || !window.OneSignal) return;
+  try {
+    const isOn = window.OneSignal.User.PushSubscription.optedIn;
+    if (isOn) {
+      btn.textContent = '✅ Alerts ON';
+      btn.style.background = 'rgba(34,197,94,0.4)';
+      btn.onclick = dashDisableNotifications;
+    }
+  } catch(e) {}
 }
 
 </script>
