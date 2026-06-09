@@ -1891,6 +1891,10 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('logoutBtn').style.display = 'block';
     const dashLink = document.getElementById('dashLink');
     if (dashLink) dashLink.style.display = 'block';
+    // Show notification button for eligible roles
+    if (['director','maintsupervisor','maintenance','operations'].includes(currentRole)) {
+      document.getElementById('notifBtn').style.display = 'inline-block';
+    }
     // Load after Firebase ready
     setTimeout(() => { if (db) loadLogs(); }, 1500);
   }
