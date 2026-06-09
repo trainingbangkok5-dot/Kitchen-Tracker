@@ -6530,20 +6530,34 @@ async function dashEnableNotifications() {
   const btn = document.getElementById('dashNotifBtn');
   try {
     if (!window.OneSignal) { showToast('Notifications not ready — try again in a moment', 'warn'); return; }
+
+    // Check if already granted
+    const permState = Notification.permission;
+    if (permState === 'granted') {
+      // Already allowed — just opt in
+      await window.OneSignal.User.PushSubscription.optIn();
+      dashSetNotifOn(btn);
+      showToast('✅ Alerts enabled!', 'ok');
+      return;
+    }
+    if (permState === 'denied') {
+      showToast('Notifications are blocked. Tap the 🔒 lock icon in your browser address bar → Notifications → Allow, then refresh.', 'warn');
+      btn.textContent = '🔕 Blocked — tap to fix';
+      btn.style.background = 'rgba(239,68,68,0.3)';
+      return;
+    }
+
     btn.textContent = '⏳ Enabling...';
     btn.disabled = true;
     const permission = await window.OneSignal.Notifications.requestPermission();
+    btn.disabled = false;
     if (permission) {
-      btn.textContent = '✅ Alerts ON';
-      btn.style.background = 'rgba(34,197,94,0.4)';
-      btn.disabled = false;
-      btn.onclick = dashDisableNotifications;
-      showToast('✅ Notifications enabled! You will receive alerts for new maintenance issues.', 'ok');
+      dashSetNotifOn(btn);
+      showToast('✅ Alerts enabled! You will receive notifications for new maintenance issues.', 'ok');
     } else {
-      btn.textContent = '🔕 Blocked';
+      btn.textContent = '🔕 Blocked — tap to fix';
       btn.style.background = 'rgba(239,68,68,0.3)';
-      btn.disabled = false;
-      showToast('Notifications blocked. Go to browser settings and allow notifications for this site.', 'warn');
+      showToast('Go to browser settings → allow notifications for this site, then refresh.', 'warn');
     }
   } catch(e) {
     btn.textContent = '🔔 Enable Alerts';
@@ -6552,26 +6566,42 @@ async function dashEnableNotifications() {
   }
 }
 
+function dashSetNotifOn(btn) {
+  btn = btn || document.getElementById('dashNotifBtn');
+  if (!btn) return;
+  btn.textContent = '✅ Alerts ON';
+  btn.style.background = 'rgba(34,197,94,0.4)';
+  btn.onclick = dashDisableNotifications;
+}
+
 function dashDisableNotifications() {
   const btn = document.getElementById('dashNotifBtn');
   if (window.OneSignal) window.OneSignal.User.PushSubscription.optOut();
   btn.textContent = '🔔 Enable Alerts';
   btn.style.background = '';
   btn.onclick = dashEnableNotifications;
-  showToast('Notifications disabled', 'warn');
+  showToast('Alerts disabled', 'warn');
 }
 
 async function dashCheckNotifStatus() {
   const btn = document.getElementById('dashNotifBtn');
-  if (!btn || !window.OneSignal) return;
-  try {
-    const isOn = window.OneSignal.User.PushSubscription.optedIn;
-    if (isOn) {
-      btn.textContent = '✅ Alerts ON';
-      btn.style.background = 'rgba(34,197,94,0.4)';
-      btn.onclick = dashDisableNotifications;
-    }
-  } catch(e) {}
+  if (!btn) return;
+  // Check native permission first
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    setTimeout(() => {
+      try {
+        if (window.OneSignal && window.OneSignal.User.PushSubscription.optedIn) {
+          dashSetNotifOn(btn);
+        } else {
+          // Permission granted but not opted in — auto opt in
+          if (window.OneSignal) window.OneSignal.User.PushSubscription.optIn().then(()=>dashSetNotifOn(btn)).catch(()=>{});
+        }
+      } catch(e) {}
+    }, 1500);
+  } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+    btn.textContent = '🔕 Blocked — tap to fix';
+    btn.style.background = 'rgba(239,68,68,0.3)';
+  }
 }
 
 </script>
