@@ -1911,9 +1911,17 @@ async function sendNewIssueNotification(logId, outlet, description, priority) {
         priority: priority === 'Urgent' ? 10 : priority === 'High' ? 9 : 7
       })
     });
-    if (response.ok) console.log('Notification sent ✓');
+    const result = await response.json();
+    if (response.ok) {
+      console.log('Notification sent ✓', result);
+      showToast('🔔 Notification sent!', 'ok');
+    } else {
+      console.error('Notification failed:', result);
+      showToast('Notification error: ' + JSON.stringify(result), 'error');
+    }
   } catch(e) {
-    console.warn('Notification send failed:', e);
+    console.error('Notification send failed:', e);
+    showToast('Notification error: ' + e.message, 'error');
   }
 }
 
