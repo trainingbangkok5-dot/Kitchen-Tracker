@@ -185,14 +185,17 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <label class="f-lbl">Issue / Description</label>
       <textarea class="f-inp" id="sr_desc" rows="3" placeholder="Describe the issue in detail..." style="margin-bottom:0;resize:vertical;"></textarea>
     </div>
-    <div style="margin-bottom:10px;">
-      <label class="f-lbl">Priority</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    <div style="margin-bottom:10px;" id="sr_prioritySection">
+      <label class="f-lbl">Priority <span id="sr_priorityLock" style="font-size:10px;color:#94A3B8;font-weight:400;"></span></label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="sr_priorityBtns">
         <button class="pri-btn urgent" onclick="setSRPri(this,'Urgent')">🔴 Urgent</button>
         <button class="pri-btn high" onclick="setSRPri(this,'High')">🟠 High</button>
         <button class="pri-btn medium" onclick="setSRPri(this,'Medium')">🔵 Medium</button>
         <button class="pri-btn low" onclick="setSRPri(this,'Low')">🟢 Low</button>
         <button class="pri-btn preventive" onclick="setSRPri(this,'Preventive')">🟣 Preventive</button>
+      </div>
+      <div id="sr_priorityLockedMsg" style="display:none;background:#F8F9FA;border-radius:8px;padding:8px 12px;font-size:12px;color:#64748B;">
+        🔒 Priority will be assigned by Director or Maintenance Supervisor
       </div>
     </div>
     <div style="margin-bottom:10px;">
@@ -241,6 +244,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <button id="rtab-log" onclick="setReportTab('log')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:#7F1D1D;color:#fff;border-radius:8px 8px 0 0;cursor:pointer;">📋 Log</button>
     <button id="rtab-weekly" onclick="setReportTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
     <button id="rtab-monthly" onclick="setReportTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
+    <button id="rtab-preventive" onclick="setReportTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Preventive</button>
     <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;gap:6px;padding:4px;">
       <input type="date" id="filterFrom" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;" onchange="renderCurrentTab()">
       <span style="font-size:11px;color:#64748B">to</span>
@@ -355,6 +359,52 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
   </div>
 </div>
 
+<!-- Preventive Maintenance Panel -->
+<div id="preventivePanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
+  <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🔧 Preventive Maintenance Schedule</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="prevMonthSelect" onchange="loadPreventiveSchedule()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+        <option value="2026-06">June 2026</option>
+        <option value="2026-07">July 2026</option>
+        <option value="2026-08">August 2026</option>
+        <option value="2026-09">September 2026</option>
+        <option value="2026-10">October 2026</option>
+        <option value="2026-11">November 2026</option>
+        <option value="2026-12">December 2026</option>
+        <option value="2027-01">January 2027</option>
+        <option value="2027-02">February 2027</option>
+        <option value="2027-03">March 2027</option>
+        <option value="2027-04">April 2027</option>
+        <option value="2027-05">May 2027</option>
+        <option value="2027-06">June 2027</option>
+      </select>
+      <span id="prevSaveStatus" style="font-size:11px;color:#94A3B8;"></span>
+      <button id="prevAddRowBtn" onclick="addPreventiveRow()" style="display:none;padding:5px 12px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">+ Add Row</button>
+      <button id="prevSaveBtn" onclick="savePreventiveSchedule()" style="display:none;padding:5px 12px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save Schedule</button>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;" id="preventiveTable">
+      <thead>
+        <tr style="background:#F8F7F2;">
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">#</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Day</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Equipment / Task</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned Staff</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Remarks</th>
+          <th id="prevActionCol" style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;display:none;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="preventiveTbody"></tbody>
+    </table>
+  </div>
+  <div id="prevEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No schedule found for this month.<br>Click <strong>+ Add Row</strong> to create one.</div>
+</div>
+
 <!-- Photo Modal -->
 <div class="modal" id="photoModal">
   <div class="modal-inner">
@@ -440,6 +490,11 @@ function doLogin() {
     document.getElementById('appScreen').style.display = 'none';
     document.getElementById('sr_date').value = getDubaiDate();
     document.getElementById('sr_reporter').value = currentName;
+    // Priority: only director and maintsupervisor can set it
+    const canSetPriority = ['director','maintsupervisor'].includes(role);
+    document.getElementById('sr_priorityBtns').style.display = canSetPriority ? 'flex' : 'none';
+    document.getElementById('sr_priorityLockedMsg').style.display = canSetPriority ? 'none' : 'block';
+    if (!canSetPriority) srPriority = 'Unassigned';
   } else {
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('staffScreen').style.display = 'none';
@@ -1100,7 +1155,7 @@ let currentReportTab = 'log';
 
 function setReportTab(tab) {
   currentReportTab = tab;
-  ['log','weekly','monthly'].forEach(t => {
+  ['log','weekly','monthly','preventive'].forEach(t => {
     const btn = document.getElementById('rtab-'+t);
     if (btn) {
       btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
@@ -1108,11 +1163,17 @@ function setReportTab(tab) {
       btn.style.fontWeight = t===tab ? '600' : '500';
     }
   });
-  const titles = {log:'📋 Maintenance Log', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report'};
+  const titles = {log:'📋 Maintenance Log', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report', preventive:'🔧 Preventive Maintenance'};
   const titleEl = document.getElementById('tabTitle');
-  if (titleEl) titleEl.textContent = titles[tab];
+  if (titleEl) titleEl.textContent = titles[tab]||'';
   const addBtn = document.getElementById('addRowBtn');
   if (addBtn) addBtn.style.display = tab==='log' ? 'block' : 'none';
+  // Show/hide table and preventive panel
+  const tblWrap = document.querySelector('.tbl-wrap');
+  const prevPanel = document.getElementById('preventivePanel');
+  if (tblWrap) tblWrap.style.display = tab==='preventive' ? 'none' : '';
+  if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
+  if (tab==='preventive') { loadPreventiveSchedule(); return; }
   renderCurrentTab();
 }
 
@@ -1532,14 +1593,15 @@ function submitStaffReport() {
 
   if (!outlet)      { showToast('Please select outlet', 'warn'); return; }
   if (!desc)        { showToast('Please describe the issue', 'warn'); return; }
-  if (!srPriority)  { showToast('Please select priority', 'warn'); return; }
+  const canSetPriority = ['director','maintsupervisor'].includes(currentRole);
+  if (canSetPriority && !srPriority) { showToast('Please select priority', 'warn'); return; }
   if (!srPhoto)     { showToast('Please attach a photo', 'warn'); return; }
   if (!db)          { showToast('Firebase not ready', 'warn'); return; }
 
   const logId = 'M-' + String(logCounter++).padStart(4,'0');
   const record = {
     logId, dateReported: date, reportedBy: reporter, reportedByRole: currentRole,
-    outlet, description: desc, priority: srPriority, assignedTo: 'Unassigned',
+    outlet, description: desc, priority: srPriority || 'Unassigned', assignedTo: 'Unassigned',
     status: 'Pending', remarks, beforePhoto: srPhoto, afterPhoto: '',
     fixedBy: '', dateResolved: '', loggedAt: new Date().toISOString()
   };
@@ -1562,6 +1624,172 @@ function resetStaffForm() {
   document.getElementById('sr_photoPlaceholder').style.display = 'flex';
   document.querySelectorAll('#staffScreen .pri-btn').forEach(b => b.classList.remove('active'));
   // form already visible - just clear fields
+}
+
+// ── Preventive Maintenance Schedule ──────────────────────────
+
+const JUNE_2026_SCHEDULE = [
+  {date:'2026-06-01',day:'Monday',outlet:'',equipment:'',staff:''},
+  {date:'2026-06-02',day:'Tuesday',outlet:'',equipment:'',staff:''},
+  {date:'2026-06-03',day:'Wednesday',outlet:'',equipment:'',staff:''},
+  {date:'2026-06-04',day:'Thursday',outlet:'MTC',equipment:'Floor Kitchen Tiles',staff:'Sridhar / Asad'},
+  {date:'2026-06-05',day:'Friday',outlet:'DSO',equipment:'Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-06',day:'Saturday',outlet:'MTC',equipment:'Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-07',day:'Sunday',outlet:'MTC',equipment:'Kitchen AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-08',day:'Monday',outlet:'DHE',equipment:'Kitchen Equipment',staff:'Asad'},
+  {date:'2026-06-09',day:'Tuesday',outlet:'DSO',equipment:'AC Service / Duct Cleaning',staff:'Sridhar / Asad'},
+  {date:'2026-06-10',day:'Wednesday',outlet:'DG',equipment:'Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-11',day:'Thursday',outlet:'OM',equipment:'Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-12',day:'Friday',outlet:'OM',equipment:'Kitchen AC Service / Kitchen Equipment',staff:'Sridhar'},
+  {date:'2026-06-13',day:'Saturday',outlet:'OM',equipment:'Store AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-14',day:'Sunday',outlet:'TWR',equipment:'Store AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-15',day:'Monday',outlet:'TWR',equipment:'Kitchen Equipment / Silicon Work',staff:'Asad'},
+  {date:'2026-06-16',day:'Tuesday',outlet:'Deira',equipment:'Kitchen Equipment / Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-17',day:'Wednesday',outlet:'Deira',equipment:'Kitchen Equipment / Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-18',day:'Thursday',outlet:'Deira',equipment:'Kitchen Equipment / Kitchen AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-19',day:'Friday',outlet:'JLT',equipment:'Kitchen Equipment',staff:'Sridhar'},
+  {date:'2026-06-20',day:'Saturday',outlet:'DHE',equipment:'Kitchen Equipment / Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-21',day:'Sunday',outlet:'DHE',equipment:'Kitchen Equipment / Kitchen AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-22',day:'Monday',outlet:'CK',equipment:'CK Equipment Service',staff:'Asad'},
+  {date:'2026-06-23',day:'Tuesday',outlet:'CK',equipment:'AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-24',day:'Wednesday',outlet:'CK',equipment:'AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-25',day:'Thursday',outlet:'TRD',equipment:'Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-26',day:'Friday',outlet:'TRD',equipment:'Kitchen AC Service',staff:'Sridhar'},
+  {date:'2026-06-27',day:'Saturday',outlet:'TRD',equipment:'Electrical Room / Pump Room / Store Room AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-28',day:'Sunday',outlet:'JLT',equipment:'Dining AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-29',day:'Monday',outlet:'JLT',equipment:'Kitchen AC Service',staff:'Sridhar / Asad'},
+  {date:'2026-06-30',day:'Tuesday',outlet:'DG',equipment:'Kitchen AC Service',staff:'Sridhar / Asad'}
+];
+
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+let _prevSchedule = [];
+let _prevEditMode = false;
+
+function canEditPreventive() {
+  return ['director','maintsupervisor','training'].includes(currentRole);
+}
+
+function generateMonthDays(month) {
+  const [yr, mo] = month.split('-').map(Number);
+  const days = [];
+  const daysInMonth = new Date(yr, mo, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(yr, mo-1, d);
+    const dateStr = dt.toISOString().substring(0,10);
+    days.push({date:dateStr, day:DAYS[dt.getDay()], outlet:'', equipment:'', staff:'', status:'Pending', remarks:''});
+  }
+  return days;
+}
+
+async function loadPreventiveSchedule() {
+  const month = document.getElementById('prevMonthSelect').value;
+  document.getElementById('prevSaveStatus').textContent = '⏳ Loading...';
+
+  try {
+    const snap = await db.ref('preventiveSchedule/' + month).once('value');
+    if (snap.exists()) {
+      _prevSchedule = Object.values(snap.val()).sort((a,b)=>a.date.localeCompare(b.date));
+    } else if (month === '2026-06') {
+      _prevSchedule = JUNE_2026_SCHEDULE.map(r => ({...r, status:'Pending', remarks:''}));
+    } else {
+      // Auto-generate all days of the month
+      _prevSchedule = generateMonthDays(month);
+    }
+  } catch(e) {
+    if (month === '2026-06') {
+      _prevSchedule = JUNE_2026_SCHEDULE.map(r => ({...r, status:'Pending', remarks:''}));
+    } else {
+      _prevSchedule = generateMonthDays(month);
+    }
+  }
+
+  document.getElementById('prevSaveStatus').textContent = '';
+  const canEdit = canEditPreventive();
+  document.getElementById('prevAddRowBtn').style.display = canEdit ? 'inline-block' : 'none';
+  document.getElementById('prevSaveBtn').style.display = canEdit ? 'inline-block' : 'none';
+  document.getElementById('prevActionCol').style.display = canEdit ? '' : 'none';
+  renderPreventiveTable();
+}
+
+function renderPreventiveTable() {
+  const tbody = document.getElementById('preventiveTbody');
+  const canEdit = canEditPreventive();
+  const isEmpty = _prevSchedule.length === 0;
+  document.getElementById('prevEmpty').style.display = isEmpty ? 'block' : 'none';
+
+  tbody.innerHTML = _prevSchedule.map((row, i) => {
+    const hasTask = row.outlet || row.equipment;
+    const statusColor = row.status === 'Done' ? '#15803D' : row.status === 'In Progress' ? '#D97706' : '#64748B';
+    const rowBg = row.status === 'Done' ? '#F0FDF4' : hasTask ? '#fff' : '#FAFAF8';
+    return `<tr style="background:${rowBg};border-bottom:1px solid #F0EDE4;">
+      <td style="padding:8px 12px;color:#94A3B8;font-size:11px;">${i+1}</td>
+      <td style="padding:8px 12px;white-space:nowrap;font-weight:600;">${row.date}</td>
+      <td style="padding:8px 12px;white-space:nowrap;color:#475569;">${row.day}</td>
+      <td style="padding:8px 12px;">
+        ${canEdit
+          ? `<input value="${row.outlet||''}" onchange="_prevSchedule[${i}].outlet=this.value" style="width:70px;padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">`
+          : `<span style="font-weight:600;color:#1A3C5E;">${row.outlet||'—'}</span>`}
+      </td>
+      <td style="padding:8px 12px;min-width:180px;">
+        ${canEdit
+          ? `<input value="${row.equipment||''}" onchange="_prevSchedule[${i}].equipment=this.value" style="width:100%;min-width:160px;padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">`
+          : `${row.equipment||'—'}`}
+      </td>
+      <td style="padding:8px 12px;white-space:nowrap;">
+        ${canEdit
+          ? `<input value="${row.staff||''}" onchange="_prevSchedule[${i}].staff=this.value" style="width:110px;padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">`
+          : `${row.staff||'—'}`}
+      </td>
+      <td style="padding:8px 12px;">
+        <select onchange="_prevSchedule[${i}].status=this.value;renderPreventiveTable()" style="padding:4px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;color:${statusColor};font-weight:600;background:${rowBg};" ${!canEdit && !['maintsupervisor','maintenance'].includes(currentRole) ? 'disabled' : ''}>
+          <option value="Pending" ${row.status==='Pending'?'selected':''}>⏳ Pending</option>
+          <option value="In Progress" ${row.status==='In Progress'?'selected':''}>🔄 In Progress</option>
+          <option value="Done" ${row.status==='Done'?'selected':''}>✅ Done</option>
+          <option value="Skipped" ${row.status==='Skipped'?'selected':''}>⏭ Skipped</option>
+        </select>
+      </td>
+      <td style="padding:8px 12px;">
+        <input value="${row.remarks||''}" placeholder="Remarks..." onchange="_prevSchedule[${i}].remarks=this.value" style="width:120px;padding:4px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;" ${!canEdit && !['maintsupervisor','maintenance'].includes(currentRole) ? 'disabled' : ''}>
+      </td>
+      ${canEdit ? `<td style="padding:8px 12px;"><button onclick="deletePreventiveRow(${i})" style="padding:3px 8px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:6px;font-size:11px;color:#B91C1C;cursor:pointer;">🗑</button></td>` : '<td style="display:none;"></td>'}
+    </tr>`;
+  }).join('');
+}
+
+function addPreventiveRow() {
+  const month = document.getElementById('prevMonthSelect').value;
+  const [yr, mo] = month.split('-').map(Number);
+  const lastDate = _prevSchedule.length ? _prevSchedule[_prevSchedule.length-1].date : month+'-01';
+  const nextD = new Date(lastDate);
+  nextD.setDate(nextD.getDate()+1);
+  if (nextD.getMonth()+1 !== mo) nextD.setDate(1), nextD.setMonth(mo-1), nextD.setFullYear(yr);
+  const dateStr = nextD.toISOString().substring(0,10);
+  _prevSchedule.push({date:dateStr, day:DAYS[nextD.getDay()], outlet:'', equipment:'', staff:'', status:'Pending', remarks:''});
+  renderPreventiveTable();
+}
+
+function deletePreventiveRow(i) {
+  if (!confirm('Delete this row?')) return;
+  _prevSchedule.splice(i,1);
+  renderPreventiveTable();
+}
+
+async function savePreventiveSchedule() {
+  if (!canEditPreventive()) { showToast('No permission to save', 'error'); return; }
+  if (!db) { showToast('Firebase not ready', 'warn'); return; }
+  const month = document.getElementById('prevMonthSelect').value;
+  document.getElementById('prevSaveStatus').textContent = '⏳ Saving...';
+  const data = {};
+  _prevSchedule.forEach((row, i) => { data['r'+String(i).padStart(3,'0')] = row; });
+  try {
+    await db.ref('preventiveSchedule/' + month).set(data);
+    document.getElementById('prevSaveStatus').textContent = '✅ Saved';
+    showToast('Schedule saved ✓', 'ok');
+    setTimeout(()=>{ document.getElementById('prevSaveStatus').textContent=''; }, 3000);
+  } catch(e) {
+    document.getElementById('prevSaveStatus').textContent = '❌ Save failed';
+    showToast('Save failed: '+e.message, 'error');
+  }
 }
 
 window.addEventListener('DOMContentLoaded', function() {
