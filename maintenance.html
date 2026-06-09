@@ -448,7 +448,7 @@ let db = null;
 let allLogs = [];
 let currentName = '';
 let currentRole = '';
-let logCounter = 1001;
+let logCounter = 1;
 
 const DEFAULT_PINS = {
   areachef:'CHEF2025', areamanager:'AMGR2025', operations:'OPS2025',
@@ -608,7 +608,7 @@ function loadLogs() {
   // Load last 300 records — enough for any active period
   db.ref('maintenanceLogs').orderByChild('loggedAt').limitToLast(300).on('value', snap => {
     allLogs = [];
-    logCounter = 1001;
+    logCounter = 1;
     if (snap.exists()) {
       snap.forEach(child => {
         const v = child.val(); v._key = child.key;
