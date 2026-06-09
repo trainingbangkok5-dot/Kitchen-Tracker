@@ -1940,6 +1940,9 @@ window.addEventListener('DOMContentLoaded', function() {
       document.getElementById('staffScreen').style.display = 'block';
       document.getElementById('sr_date').value = getDubaiDate();
       document.getElementById('sr_reporter').value = currentName;
+      document.getElementById('sr_priorityBtns').style.display = 'none';
+      document.getElementById('sr_priorityLockedMsg').style.display = 'block';
+      srPriority = 'Unassigned';
     } else {
       document.getElementById('appScreen').style.display = 'block';
     }
