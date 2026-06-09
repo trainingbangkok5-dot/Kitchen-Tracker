@@ -1894,35 +1894,32 @@ async function checkNotifStatus() {
   } catch(e) {}
 }
 
-async function sendNewIssueNotification(logId, outlet, description, priority) {
-  try {
-    const response = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.onesignal.com/notifications'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Key os_v2_app_acyqbcsdyzadlgzcj6bfrwnzox4zwl6gfvne3jn2466x6ix2hb3ydfxcrepgml3575vj25qauuj6wmqfgvklnfjgmacmm62pzyxcmla'
-      },
-      body: JSON.stringify({
-        app_id: '00b1008a-43c6-4035-9b22-4f8258d9b975',
-        included_segments: ['All'],
-        headings: { en: '🔧 ' + priority + ' Maintenance Issue' },
-        contents: { en: logId + ' | ' + outlet + ' — ' + description },
-        url: 'https://trainingbangkok5-dot.github.io/Kitchen-Tracker/maintenance.html',
-        priority: priority === 'Urgent' ? 10 : priority === 'High' ? 9 : 7
-      })
-    });
-    const result = await response.json();
-    if (response.ok) {
-      console.log('Notification sent ✓', result);
+function sendNewIssueNotification(logId, outlet, description, priority) {
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://api.onesignal.com/notifications', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Authorization', 'Key os_v2_app_acyqbcsdyzadlgzcj6bfrwnzox4zwl6gfvne3jn2466x6ix2hb3ydfxcrepgml3575vj25qauuj6wmqfgvklnfjgmacmm62pzyxcmla');
+  xhr.onload = function() {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      console.log('Notification sent ✓', xhr.responseText);
       showToast('🔔 Notification sent!', 'ok');
     } else {
-      console.error('Notification failed:', result);
-      showToast('Notification error: ' + JSON.stringify(result), 'error');
+      console.error('Notification failed:', xhr.responseText);
+      showToast('Notification error: ' + xhr.responseText, 'error');
     }
-  } catch(e) {
-    console.error('Notification send failed:', e);
-    showToast('Notification error: ' + e.message, 'error');
-  }
+  };
+  xhr.onerror = function() {
+    console.warn('Notification send failed - CORS blocked');
+    showToast('Notification blocked by browser', 'warn');
+  };
+  xhr.send(JSON.stringify({
+    app_id: '00b1008a-43c6-4035-9b22-4f8258d9b975',
+    included_segments: ['All'],
+    headings: { en: '🔧 ' + priority + ' Maintenance Issue' },
+    contents: { en: logId + ' | ' + outlet + ' — ' + description },
+    url: 'https://trainingbangkok5-dot.github.io/Kitchen-Tracker/maintenance.html',
+    priority: priority === 'Urgent' ? 10 : priority === 'High' ? 9 : 7
+  }));
 }
 
 window.addEventListener('DOMContentLoaded', function() {
