@@ -275,6 +275,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
+    <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
   </div>
 
   <div class="page active" id="page-overview">
@@ -560,6 +561,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div id="fohEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No FOH submissions found</div>
     </div>
+  </div>
+
+  <div class="page" id="page-archive" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">🗄️ Archive</h2>
+        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">Submissions older than 60 days — stored permanently</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="archiveRoleFilter" onchange="renderArchive()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Roles</option>
+          <option value="linecook">Line Cook</option>
+          <option value="steward">Steward</option>
+          <option value="kic">KIC</option>
+          <option value="service">Service</option>
+          <option value="bartender">Bartender</option>
+          <option value="delco">Del.Co</option>
+          <option value="oic">OIC</option>
+          <option value="areachef">Area Chef</option>
+        </select>
+        <select id="archiveOutletFilter" onchange="renderArchive()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Outlets</option>
+        </select>
+        <button onclick="runArchive()" style="padding:6px 14px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗄️ Archive Now</button>
+      </div>
+    </div>
+    <div id="archiveStatus" style="font-size:12px;color:#94A3B8;margin-bottom:10px;"></div>
+    <div id="archiveList"></div>
   </div>
 
   <div class="page" id="page-registry">
@@ -1143,6 +1172,7 @@ function doLogin() {
   document.getElementById('resetChecklistBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('deleteAllDataBtn').style.display = currentRole === 'training' ? 'block' : 'none';
   document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
@@ -1256,6 +1286,8 @@ function loadData() {
   if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
   setSyncStatus('syncing','Connecting...');
   setLoadingIndicator('⏳ Loading...');
+  // Auto-archive submissions older than 60 days on every load
+  autoArchiveOldSubmissions();
   // Load all submissions — no week filter (week formats differ between files)
   const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(2000);
   bohQuery.once('value', snap => {
@@ -6147,6 +6179,160 @@ function initWeeklyDates() {
   const toEl   = document.getElementById('weeklyTo');
   if (fromEl && !fromEl.value) fromEl.value = fmt(mon);
   if (toEl   && !toEl.value)   toEl.value   = fmt(sun);
+}
+
+// ── Auto Archive (runs on every dashboard load) ──────────────
+async function autoArchiveOldSubmissions() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 60);
+  const cutoffStr = cutoff.toISOString().substring(0,10);
+  let archived = 0;
+
+  try {
+    const snap = await db.ref('submissions').once('value');
+    if (snap.exists()) {
+      const updates = {};
+      snap.forEach(child => {
+        const sub = child.val();
+        const subDate = (sub.submittedAt||'').substring(0,10);
+        if (subDate && subDate < cutoffStr) {
+          updates['archive/boh/' + child.key] = sub;
+          updates['submissions/' + child.key] = null;
+          archived++;
+        }
+      });
+      if (Object.keys(updates).length > 0) await db.ref().update(updates);
+    }
+  } catch(e) {}
+
+  try {
+    const snap = await fohDb.ref('submissions').once('value');
+    if (snap.exists()) {
+      const updates = {};
+      snap.forEach(child => {
+        const sub = child.val();
+        const subDate = (sub.submittedAt||'').substring(0,10);
+        if (subDate && subDate < cutoffStr) {
+          updates['archive/foh/' + child.key] = sub;
+          updates['submissions/' + child.key] = null;
+          archived++;
+        }
+      });
+      if (Object.keys(updates).length > 0) await fohDb.ref().update(updates);
+    }
+  } catch(e) {}
+
+  if (archived > 0) console.log(`Auto-archived ${archived} submissions older than 60 days`);
+}
+
+// ── Archive System (60-day retention) ────────────────────────
+let _archiveData = [];
+
+async function runArchive() {
+  if (!['training','director','operations','ceo'].includes(currentRole)) return;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 60);
+  const cutoffStr = cutoff.toISOString().substring(0,10);
+  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 60 days...';
+
+  let archived = 0;
+  try {
+    const snap = await db.ref('submissions').once('value');
+    if (snap.exists()) {
+      const updates = {};
+      snap.forEach(child => {
+        const sub = child.val();
+        const subDate = (sub.submittedAt||'').substring(0,10);
+        if (subDate && subDate < cutoffStr) {
+          updates['archive/boh/' + child.key] = sub;
+          updates['submissions/' + child.key] = null;
+          archived++;
+        }
+      });
+      if (Object.keys(updates).length > 0) await db.ref().update(updates);
+    }
+  } catch(e) { console.error('BOH archive error:', e); }
+
+  try {
+    const snap = await fohDb.ref('submissions').once('value');
+    if (snap.exists()) {
+      const updates = {};
+      snap.forEach(child => {
+        const sub = child.val();
+        const subDate = (sub.submittedAt||'').substring(0,10);
+        if (subDate && subDate < cutoffStr) {
+          updates['archive/foh/' + child.key] = sub;
+          updates['submissions/' + child.key] = null;
+          archived++;
+        }
+      });
+      if (Object.keys(updates).length > 0) await fohDb.ref().update(updates);
+    }
+  } catch(e) { console.error('FOH archive error:', e); }
+
+  showToast(archived > 0 ? `✓ ${archived} submissions archived` : 'No submissions to archive yet', 'ok');
+  loadArchive();
+}
+
+async function loadArchive() {
+  const statusEl = document.getElementById('archiveStatus');
+  if (statusEl) statusEl.textContent = '⏳ Loading archive...';
+  _archiveData = [];
+
+  try {
+    const bohSnap = await db.ref('archive/boh').limitToLast(2000).once('value');
+    if (bohSnap.exists()) bohSnap.forEach(child => _archiveData.push({...child.val(), _src:'BOH'}));
+  } catch(e) {}
+
+  try {
+    const fohSnap = await fohDb.ref('archive/foh').limitToLast(2000).once('value');
+    if (fohSnap.exists()) fohSnap.forEach(child => _archiveData.push({...child.val(), _src:'FOH'}));
+  } catch(e) {}
+
+  _archiveData.sort((a,b) => new Date(b.submittedAt||0) - new Date(a.submittedAt||0));
+
+  const outlets = [...new Set(_archiveData.map(s=>s.outlet||'').filter(Boolean))].sort();
+  const outletSel = document.getElementById('archiveOutletFilter');
+  if (outletSel) outletSel.innerHTML = '<option value="">All Outlets</option>' + outlets.map(o=>`<option>${o}</option>`).join('');
+
+  if (statusEl) statusEl.textContent = `📦 ${_archiveData.length} archived records`;
+  renderArchive();
+}
+
+function renderArchive() {
+  const roleF = document.getElementById('archiveRoleFilter')?.value||'';
+  const outletF = document.getElementById('archiveOutletFilter')?.value||'';
+  const filtered = _archiveData.filter(s =>
+    (!roleF || s.role === roleF) &&
+    (!outletF || (s.outlet||'') === outletF)
+  );
+  const list = document.getElementById('archiveList');
+  if (!list) return;
+  const sc2col = p => p>=95?'#0F766E':p>=70?'#D97706':'#B91C1C';
+  if (!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:13px;">No archived records found.<br><br>Records older than 60 days will appear here after clicking <strong>🗄️ Archive Now</strong>.</div>';
+    return;
+  }
+  list.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 100px 110px 70px 70px;gap:6px;padding:8px 12px;background:#F8F7F2;font-size:11px;font-weight:600;color:#6B6B60;border-radius:8px 8px 0 0;">
+      <div>Staff / Outlet</div><div>Role</div><div>Date</div><div>Score</div><div>Status</div>
+    </div>
+    ${filtered.map((s,i) => {
+      const sc = parseFloat(s.overallPct)||0;
+      const pass = sc>=95;
+      const date = s.submittedAt ? s.submittedAt.substring(0,10) : '—';
+      return `<div style="display:grid;grid-template-columns:1fr 100px 110px 70px 70px;gap:6px;padding:10px 12px;border-top:1px solid #F0EDE4;background:${i%2===0?'#fff':'#FAFAF8'};align-items:center;">
+        <div>
+          <div style="font-weight:600;font-size:13px;">${s.staffName||'—'}</div>
+          <div style="font-size:11px;color:#94A3B8;">${s.outlet||'—'} • ${s._src||''}</div>
+        </div>
+        <div><span style="font-size:10px;font-weight:700;background:#F1F5F9;color:#475569;padding:3px 8px;border-radius:10px;">${s.roleLabel||s.role||'—'}</span></div>
+        <div style="font-size:12px;color:#475569;">${date}</div>
+        <div style="font-size:14px;font-weight:700;color:${sc2col(sc)}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:11px;font-weight:600;color:${pass?'#16A34A':'#DC2626'}">${pass?'✅':'❌'}</div>
+      </div>`;
+    }).join('')}
+  `;
 }
 
 </script>
