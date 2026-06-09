@@ -516,6 +516,8 @@ function doLogin() {
     document.getElementById('sr_priorityBtns').style.display = canSetPriority ? 'flex' : 'none';
     document.getElementById('sr_priorityLockedMsg').style.display = canSetPriority ? 'none' : 'block';
     if (!canSetPriority) srPriority = 'Unassigned';
+    // Load logs to get correct logCounter
+    setTimeout(() => { if (db) loadLogs(); }, 1000);
   } else if (maintRoles.includes(role)) {
     // Maintenance team: show appScreen with preventive tab active
     document.getElementById('appScreen').style.display = 'block';
@@ -1943,6 +1945,7 @@ window.addEventListener('DOMContentLoaded', function() {
       document.getElementById('sr_priorityBtns').style.display = 'none';
       document.getElementById('sr_priorityLockedMsg').style.display = 'block';
       srPriority = 'Unassigned';
+      setTimeout(() => { if (db) loadLogs(); }, 1000);
     } else {
       document.getElementById('appScreen').style.display = 'block';
     }
