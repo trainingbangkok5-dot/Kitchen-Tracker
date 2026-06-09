@@ -1905,8 +1905,8 @@ async function sendNewIssueNotification(logId, outlet, description, priority) {
       body: JSON.stringify({
         app_id: '00b1008a-43c6-4035-9b22-4f8258d9b975',
         included_segments: ['All'],
-        headings: { en: '🔧 New Maintenance Issue — ' + priority },
-        contents: { en: logId + ' | ' + outlet + ': ' + description },
+        headings: { en: '🔧 ' + priority + ' Maintenance Issue' },
+        contents: { en: logId + ' | ' + outlet + ' — ' + description },
         url: 'https://trainingbangkok5-dot.github.io/Kitchen-Tracker/maintenance.html',
         priority: priority === 'Urgent' ? 10 : priority === 'High' ? 9 : 7
       })
