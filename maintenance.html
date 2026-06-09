@@ -213,6 +213,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <input class="f-inp" id="sr_remarks" type="text" placeholder="Any additional notes..." style="margin-bottom:0">
     </div>
     <button onclick="submitStaffReport()" style="width:100%;padding:13px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">📝 Submit Report</button>
+    <button onclick="document.getElementById('staffScreen').style.display='none';document.getElementById('appScreen').style.display='block';loadLogs();setReportTab('preventive');" style="width:100%;padding:10px;background:#fff;color:#1A3C5E;border:1.5px solid #1A3C5E;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">🔧 View Preventive Schedule</button>
   </div>
 
 
@@ -495,6 +496,12 @@ function doLogin() {
     document.getElementById('sr_priorityBtns').style.display = canSetPriority ? 'flex' : 'none';
     document.getElementById('sr_priorityLockedMsg').style.display = canSetPriority ? 'none' : 'block';
     if (!canSetPriority) srPriority = 'Unassigned';
+  } else if (maintRoles.includes(role)) {
+    // Maintenance team: show appScreen with preventive tab active
+    document.getElementById('appScreen').style.display = 'block';
+    document.getElementById('staffScreen').style.display = 'none';
+    loadLogs();
+    setReportTab('preventive');
   } else {
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('staffScreen').style.display = 'none';
@@ -1666,7 +1673,7 @@ let _prevSchedule = [];
 let _prevEditMode = false;
 
 function canEditPreventive() {
-  return ['director','maintsupervisor','training'].includes(currentRole);
+  return ['director','maintsupervisor','training','operations','ceo'].includes(currentRole);
 }
 
 function generateMonthDays(month) {
