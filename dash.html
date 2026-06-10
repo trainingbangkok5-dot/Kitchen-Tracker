@@ -1263,6 +1263,9 @@ function doLogin() {
   // FOH tab — visible to OIC, Area Manager and full access roles
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
+  // Hide OIC sub-tab from OIC role
+  const fohSubOicBtn = document.getElementById('fohSubOic');
+  if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
   // KIC defaults to BOH tab, OIC defaults to FOH tab
   if (currentRole === 'kic') {
     setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
@@ -1629,7 +1632,7 @@ function renderStaff() {
       + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
       + '<div class="td td-sm">' + (s ? s.week||'—' : '—') + '</div>'
       + '<div class="td" style="font-weight:700;color:' + (sc===null?'#94A3B8':sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc!==null&&sc>0?sc+'%':'—') + '</div>'
-      + '<div class="td">' + (sc===null?'<span class="sp sp-prog">⏳ Pending</span>':(sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅':'❌') + ' ' + (pass?'Pass':'Fail') + '</span>':'<span class="sp sp-prog">⏳</span>')) + '</div>'
+      + '<div class="td">' + (sc===null?'<span class="sp sp-prog">⏳ Pending</span>':(sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅ Completed':'❌ Pending') + '</span>':'<span class="sp sp-prog">⏳ Pending</span>')) + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.startedAt) : '—') + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.submittedAt) : '—') + '</div>';
 
@@ -1669,7 +1672,7 @@ function renderStaff() {
       + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
       + '<div class="td td-sm">' + (s.week||'—') + '</div>'
       + '<div class="td" style="font-weight:700;color:' + (sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>'
-      + '<div class="td">' + (sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅':'❌') + ' ' + (pass?'Pass':'Fail') + '</span>':'<span class="sp sp-prog">⏳</span>') + '</div>'
+      + '<div class="td">' + (sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅ Completed':'❌ Pending') + '</span>':'<span class="sp sp-prog">⏳ Pending</span>') + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.startedAt) + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.submittedAt) + '</div>';
 
@@ -2256,20 +2259,33 @@ function openStaffDetail(s) {
       </div>
     </div>`;
 
-  // Score boxes — opening/closing/total
-  if (opO !== null || opC !== null) {
-    html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
+  // Score boxes — opening/oic eval/closing/total
+  if (opO !== null || opC !== null || ['service','oic'].includes(s.role)) {
+    const oColor = opO===null?'#94A3B8':opO>=95?'#15803D':opO>=70?'#D97706':'#B91C1C';
+    const cColor = opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C';
+    const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
+    const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
+    const isService = ['service','oic'].includes(s.role);
+    html += `<div style="display:grid;grid-template-columns:${isService?'1fr 1fr 1fr 1fr':'1fr 1fr 1fr'};gap:8px;margin-bottom:14px;text-align:center;">
       <div style="background:#EFF6FF;border-radius:10px;padding:10px;">
-        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Opening</div>
-        <div data-scorebox="opening" style="font-size:20px;font-weight:700;color:${opO>=95?'#15803D':opO>=70?'#D97706':'#B91C1C'}">${opO!=null?opO+'%':'—'}</div>
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 Opening</div>
+        <div style="font-size:20px;font-weight:700;color:${oColor}">${opO!=null?opO+'%':'—'}</div>
+        <div style="font-size:9px;color:${oColor};margin-top:2px;">${opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
+      ${isService ? `<div style="background:#F5F3EE;border-radius:10px;padding:10px;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">👥 OIC Eval</div>
+        <div style="font-size:20px;font-weight:700;color:${eColor}">${oicEvalPct!=null?oicEvalPct+'%':'—'}</div>
+        <div style="font-size:9px;color:${eColor};margin-top:2px;">${oicEvalPct===null?'Pending OIC':oicEvalPct>=95?'✓ Pass':'✗ Below target'}</div>
+      </div>` : ''}
       <div style="background:#F0FDF4;border-radius:10px;padding:10px;">
-        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Closing</div>
-        <div data-scorebox="closing" style="font-size:20px;font-weight:700;color:${opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C'}">${opC!=null?opC+'%':'—'}</div>
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 Closing</div>
+        <div style="font-size:20px;font-weight:700;color:${cColor}">${opC!=null?opC+'%':'—'}</div>
+        <div style="font-size:9px;color:${cColor};margin-top:2px;">${opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
       <div style="background:${pass?'#F0FDF4':'#FEF2F2'};border-radius:10px;padding:10px;border:2px solid ${pass?'#22C55E':'#EF4444'};">
-        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">Total</div>
-        <div data-scorebox="total" style="font-size:20px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 Total</div>
+        <div style="font-size:20px;font-weight:700;color:${pass?'#15803D':'#B91C1C'}">${sc>0?sc+'%':'—'}</div>
+        <div style="font-size:9px;color:${pass?'#15803D':'#B91C1C'};margin-top:2px;">${sc>0?(pass?'✓ Qualified':'✗ Not qualified'):'—'}</div>
       </div>
     </div>`;
   }
@@ -6475,7 +6491,7 @@ function initWeeklyDates() {
 // ── Auto Archive (runs on every dashboard load) ──────────────
 async function autoArchiveOldSubmissions() {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 7);
+  cutoff.setDate(cutoff.getDate() - 60);
   const cutoffStr = cutoff.toISOString().substring(0,10);
   let archived = 0;
 
@@ -6522,9 +6538,9 @@ let _archiveData = [];
 async function runArchive() {
   if (!['training','director','operations','ceo'].includes(currentRole)) return;
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 7);
+  cutoff.setDate(cutoff.getDate() - 60);
   const cutoffStr = cutoff.toISOString().substring(0,10);
-  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 7 days...';
+  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 60 days...';
 
   let archived = 0;
   try {
