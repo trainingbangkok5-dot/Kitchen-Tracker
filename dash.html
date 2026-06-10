@@ -29,10 +29,8 @@
 <meta name="application-name" content="Culex Kitchen">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
-  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js';document.head.appendChild(s);"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"
-  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js';document.head.appendChild(s);"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -1245,9 +1243,13 @@ function doLogin() {
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
-  // FOH tab — visible to OIC, Area Manager and full access roles
-  const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
+  // FOH tab — visible to Area Chef, Area Manager and full access roles
+  // OIC/KIC can only see their own tab (BOH for KIC, FOH for OIC) — not management view
+  const fohRoles = ['areachef','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
+  // Hide OIC sub-tab from OIC/KIC — they only see their own submissions
+  const fohSubOicBtn = document.getElementById('fohSubOic');
+  if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
   // KIC defaults to BOH tab, OIC defaults to FOH tab
   if (currentRole === 'kic') {
     setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
