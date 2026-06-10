@@ -517,7 +517,7 @@ function showAuditBanner() {
     banner.style.cssText += (pass
       ? 'background:#DCFCE7;border:1px solid #22C55E;color:#15803D;display:block;'
       : 'background:#FEE2E2;border:1px solid #EF4444;color:#B91C1C;display:block;');
-    const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+    const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Asia/Dubai'});
     banner.textContent = (pass ? '✅' : '❌') + ' ' + outlet + ' ' + audit.auditType +
       ' Audit: ' + audit.score + '% (' + audit.rawScore + '/' + audit.maxScore + ' pts)' +
       ' — Auditor: ' + audit.auditor + ' — ' + d;
@@ -607,7 +607,393 @@ function checkOverwritePin(code) {
   return validRoles.some(r => _overwritePins[r] && _overwritePins[r] === code);
 }
 
-const SECTIONS = [{"title": "Opening Today", "tasks": [{"id": "o1", "owner": "self", "ownerLbl": "Self-Report", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true, "translations": {"hi": "सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)", "ne": "सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)", "bn": "সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)", "ur": "تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)", "my": "အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)", "th": "ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)"}}, {"id": "o2", "owner": "self", "ownerLbl": "Self-Report", "text": "Storage check: stock level, check high value items inventory", "photo": true, "translations": {"hi": "स्टोरेज जाँच: स्टॉक स्तर, उच्च मूल्य वस्तुओं की इन्वेंट्री", "ne": "भण्डारण जाँच: स्टक स्तर, उच्च मूल्य सामानको इन्भेन्ट्री", "bn": "স্টোরেজ চেক: স্টক লেভেল, মূল্যবান পণ্যের ইনভেন্টরি", "ur": "اسٹوریج چیک: اسٹاک لیول، قیمتی اشیاء کی انوینٹری", "my": "သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ တန်ဖိုးကြီးပစ္စည်းများ", "th": "ตรวจสอบการจัดเก็บ: ระดับสต็อก สินค้ามูลค่าสูง"}}, {"id": "o3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: everything in proper running condition", "photo": true, "translations": {"hi": "उपकरण जाँच: सब कुछ सही चलने की स्थिति में", "ne": "उपकरण जाँच: सबै ठीकसँग चल्ने अवस्थामा", "bn": "সরঞ্জাম চেক: সব কিছু সঠিক চালু অবস্থায়", "ur": "آلات کی جانچ: سب کچھ صحیح چلنے کی حالت میں", "my": "စက်ပစ္စည်း စစ်ဆေး: အားလုံး မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ", "th": "ตรวจสอบอุปกรณ์: ทุกอย่างอยู่ในสภาพพร้อมใช้งาน"}}, {"id": "o4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team briefing: constructive, follow agenda", "photo": false, "translations": {"hi": "टीम ब्रीफिंग: रचनात्मक, एजेंडा का पालन", "ne": "टिम ब्रिफिङ: रचनात्मक, एजेन्डा पालन", "bn": "টিম ব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ", "ur": "ٹیم بریفنگ: تعمیری، ایجنڈا کی پیروی", "my": "အဖွဲ့ briefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ", "th": "บรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ"}}]}, {"title": "Closing Yesterday", "tasks": [{"id": "cy1", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Line check all sections (Line Cooks, Stewards)", "photo": true, "translations": {"hi": "सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)", "ne": "सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)", "bn": "সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)", "ur": "تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)", "my": "အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)", "th": "ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)"}}, {"id": "cy2", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Storage check: stock level, next day stock availability", "photo": true, "translations": {"hi": "स्टोरेज जाँच: स्टॉक स्तर, अगले दिन स्टॉक उपलब्धता", "ne": "भण्डारण जाँच: स्टक स्तर, भोलिपल्ट स्टक उपलब्धता", "bn": "স্টোরেজ চেক: স্টক লেভেল, পরের দিন স্টক উপলব্ধতা", "ur": "اسٹوریج چیک: اسٹاک لیول، اگلے دن اسٹاک دستیابی", "my": "သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ နောက်တစ်နေ့ စတော့ရရှိနိုင်မှု", "th": "ตรวจสอบการจัดเก็บ: ระดับสต็อก ความพร้อมของสต็อกวันถัดไป"}}, {"id": "cy3", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Equipment check: any maintenance required", "photo": true, "translations": {"hi": "उपकरण जाँच: कोई रखरखाव आवश्यक है", "ne": "उपकरण जाँच: कुनै मर्मत आवश्यक छ", "bn": "সরঞ্জাম চেক: কোনো রক্ষণাবেক্ষণ প্রয়োজন", "ur": "آلات کی جانچ: کوئی دیکھ بھال ضروری ہے", "my": "စက်ပစ္စည်း စစ်ဆေး: ပြုပြင်ထိန်းသိမ်းမှု လိုအပ်သည်", "th": "ตรวจสอบอุปกรณ์: ต้องการการซ่อมบำรุงหรือไม่"}}, {"id": "cy4", "owner": "verify", "ownerLbl": "Verify by Area Chef", "text": "Team debriefing: constructive, follow agenda", "photo": false, "translations": {"hi": "टीम डीब्रीफिंग: रचनात्मक, एजेंडा का पालन", "ne": "टिम डिब्रिफिङ: रचनात्मक, एजेन्डा पालन", "bn": "টিম ডিব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ", "ur": "ٹیم ڈی بریفنگ: تعمیری، ایجنڈا کی پیروی", "my": "အဖွဲ့ debriefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ", "th": "ดีบรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ"}}]}, {"title": "Food Consistency Today", "tasks": [{"id": "fc1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served cooked as per recipes", "photo": true, "translations": {"hi": "सभी व्यंजन रेसिपी के अनुसार पकाए गए", "ne": "सबै परिकार रेसिपी अनुसार पकाइएको", "bn": "সব রান্না রেসিপি অনুযায়ী তৈরি", "ur": "تمام پکوان ترکیب کے مطابق پکائے گئے", "my": "ထမင်းသွတ်အားလုံး レシピ အတိုင်း ချက်ပြုတ်", "th": "อาหารทุกจานปรุงตามสูตรที่กำหนด"}}, {"id": "fc2", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "All dishes served presented as per correct presentation", "photo": true, "translations": {"hi": "सभी व्यंजन सही प्रस्तुति के अनुसार परोसे गए", "ne": "सबै परिकार सही प्रस्तुतीकरण अनुसार परोसिएको", "bn": "সব রান্না সঠিক উপস্থাপনা অনুযায়ী পরিবেশিত", "ur": "تمام پکوان درست پیشکش کے مطابق پیش کیے گئے", "my": "ထမင်းသွတ်အားလုံး မှန်ကန်သော တင်ဆက်မှုနှင့် အညီ", "th": "อาหารทุกจานจัดวางตามมาตรฐานการนำเสนอ"}}, {"id": "fc3", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Ticket timing as per standard", "photo": false, "translations": {"hi": "टिकट टाइमिंग मानक के अनुसार", "ne": "टिकट टाइमिङ मानक अनुसार", "bn": "টিকিট টাইমিং মানদণ্ড অনুযায়ী", "ur": "ٹکٹ ٹائمنگ معیار کے مطابق", "my": "Ticket timing စံချိန်အတိုင်း", "th": "เวลาออกตั๋วตามมาตรฐาน"}}, {"id": "fc4", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Comments are read and actioned", "photo": false, "translations": {"hi": "टिप्पणियाँ पढ़ी और कार्रवाई की गई", "ne": "टिप्पणीहरू पढिएको र कार्यान्वयन गरिएको", "bn": "মন্তব্য পড়া এবং ব্যবস্থা নেওয়া হয়েছে", "ur": "تبصرے پڑھے اور ان پر عمل کیا گیا", "my": "မှတ်ချက်များ ဖတ်ရှုပြီး ဆောင်ရွက်ထား", "th": "อ่านความคิดเห็นและดำเนินการแล้ว"}}, {"id": "fc5", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Delivery: packing, customer comments, small sides not missed", "photo": false, "translations": {"hi": "डिलीवरी: पैकिंग, ग्राहक टिप्पणी, छोटे साइड न छूटें", "ne": "डेलिभरी: प्याकिङ, ग्राहक टिप्पणी, साना साइड नछुटोस्", "bn": "ডেলিভারি: প্যাকিং, গ্রাহকের মন্তব্য, ছোট সাইড মিস না", "ur": "ڈیلیوری: پیکنگ، گاہک کے تبصرے، چھوٹے سائیڈ نہ چھوٹیں", "my": "ပေးပို့ရေး: ထုပ်ပိုး၊ ဖောက်သည်မှတ်ချက်၊ ငယ်သောဘေးများ မပျောက်", "th": "จัดส่ง: การบรรจุ ความคิดเห็นลูกค้า ไม่ลืมของเล็กน้อย"}}]}, {"title": "Leadership Today", "tasks": [{"id": "l1", "owner": "record", "ownerLbl": "Self-Report", "text": "Display professional control of operation flow", "photo": false, "translations": {"hi": "ऑपरेशन प्रवाह का पेशेवर नियंत्रण प्रदर्शित करें", "ne": "अपरेशन प्रवाहको व्यावसायिक नियन्त्रण देखाउनुस्", "bn": "অপারেশন প্রবাহের পেশাদার নিয়ন্ত্রণ প্রদর্শন", "ur": "آپریشن کے بہاؤ کا پیشہ ورانہ کنٹرول ظاہر کریں", "my": "လုပ်ငန်းစီးဆင်းမှု ကျွမ်းကျင်သောထိန်းချုပ်မှု ပြသ", "th": "แสดงการควบคุมการดำเนินงานอย่างมืออาชีพ"}}, {"id": "l2", "owner": "record", "ownerLbl": "Self-Report", "text": "Display efficient and professional communication skill", "photo": false, "translations": {"hi": "कुशल और पेशेवर संचार कौशल प्रदर्शित करें", "ne": "दक्ष र व्यावसायिक संचार सीप देखाउनुस्", "bn": "দক্ষ ও পেশাদার যোগাযোগ দক্ষতা প্রদর্শন", "ur": "موثر اور پیشہ ورانہ مواصلاتی مہارت ظاہر کریں", "my": "ထိရောက်သောနှင့် ကျွမ်းကျင်သောဆက်သွယ်ရေးကျွမ်းကျင်မှု ပြသ", "th": "แสดงทักษะการสื่อสารที่มีประสิทธิภาพและเป็นมืออาชีพ"}}, {"id": "l3", "owner": "record", "ownerLbl": "Self-Report", "text": "Display culinary knowledge and integrity", "photo": false, "translations": {"hi": "पाक ज्ञान और ईमानदारी प्रदर्शित करें", "ne": "पाककला ज्ञान र इमानदारी देखाउनुस्", "bn": "রান্নার জ্ঞান ও সততা প্রদর্শন", "ur": "پکانے کا علم اور دیانت داری ظاہر کریں", "my": "ချက်ပြုတ်ရေးဗဟုသုတနှင့် ဆောင်ရွက်မှုတည်ညီမှု ပြသ", "th": "แสดงความรู้ด้านการทำอาหารและความซื่อสัตย์"}}, {"id": "l4", "owner": "record", "ownerLbl": "Self-Report", "text": "Cleanliness of all stations including steward area", "photo": true, "translations": {"hi": "स्टीवर्ड क्षेत्र सहित सभी स्टेशनों की सफाई", "ne": "स्टुवार्ड क्षेत्र सहित सबै स्टेशनहरूको सफाई", "bn": "স্টুয়ার্ড এলাকা সহ সব স্টেশনের পরিচ্ছন্নতা", "ur": "اسٹیوارڈ علاقے سمیت تمام اسٹیشنز کی صفائی", "my": "Steward နေရာအပါအဝင် စခန်းအားလုံး သန့်ရှင်းရေး", "th": "ความสะอาดของทุกสถานีรวมถึงพื้นที่ของสจ๊วต"}}, {"id": "l5", "owner": "record", "ownerLbl": "Self-Report", "text": "Storage area neat and clean, items arranged", "photo": true, "translations": {"hi": "स्टोरेज क्षेत्र साफ और व्यवस्थित, सामान सजाया हुआ", "ne": "भण्डारण क्षेत्र सफा र व्यवस्थित, सामान मिलाइएको", "bn": "স্টোরেজ এলাকা পরিষ্কার, পণ্য সাজানো", "ur": "اسٹوریج علاقہ صاف اور ترتیب سے، اشیاء ترتیب دی گئی", "my": "သိုလှောင်ရေးနေရာ သပ်ရပ်သန့်ရှင်း၊ ပစ္စည်းများ စီစဉ်ထား", "th": "พื้นที่จัดเก็บสะอาดเรียบร้อย สินค้าจัดวางอย่างเป็นระเบียบ"}}, {"id": "l6", "owner": "record", "ownerLbl": "Self-Report", "text": "All stations are properly set up and filled", "photo": true, "translations": {"hi": "सभी स्टेशन सही तरीके से सेट अप और भरे हुए", "ne": "सबै स्टेशनहरू ठीकसँग सेटअप र भरिएको", "bn": "সব স্টেশন সঠিকভাবে সেটআপ ও পূর্ণ", "ur": "تمام اسٹیشنز صحیح طریقے سے ترتیب دیے اور بھرے گئے", "my": "စခန်းအားလုံး မှန်ကန်စွာ ပြင်ဆင်ထားပြီး ဖြည့်ထား", "th": "ทุกสถานีติดตั้งและเติมของครบถ้วนอย่างถูกต้อง"}}, {"id": "l7", "owner": "record", "ownerLbl": "Self-Report", "text": "Staff are ready physically and mentally motivated", "photo": false, "translations": {"hi": "कर्मचारी शारीरिक रूप से तैयार और मानसिक रूप से प्रेरित", "ne": "कर्मचारी शारीरिक रूपमा तयार र मानसिक रूपमा प्रेरित", "bn": "কর্মীরা শারীরিকভাবে প্রস্তুত ও মানসিকভাবে অনুপ্রাণিত", "ur": "عملہ جسمانی طور پر تیار اور ذہنی طور پر حوصلہ افزا", "my": "ဝန်ထမ်းများ ကိုယ်ခန္ဓာအားဖြင့် အဆင်သင့်နှင့် စိတ်ဓာတ်ကောင်း", "th": "พนักงานพร้อมทางกายและมีแรงจูงใจทางจิตใจ"}}]}, {"title": "Food Cost & Staff", "tasks": [{"id": "cost1", "owner": "monitor", "ownerLbl": "Monitor / Area Chef", "text": "Theory vs actual difference less than 1.5%", "photo": false, "translations": {"hi": "सैद्धांतिक बनाम वास्तविक अंतर 1.5% से कम", "ne": "सैद्धान्तिक बनाम वास्तविक अन्तर 1.5% भन्दा कम", "bn": "তাত্ত্বিক বনাম বাস্তব পার্থক্য ১.৫% এর কম", "ur": "نظری بمقابلہ اصل فرق 1.5% سے کم", "my": "သီအိုရီနှင့် တကယ့်ကွာခြားမှု 1.5% အောက်", "th": "ความแตกต่างระหว่างทฤษฎีและความเป็นจริงน้อยกว่า 1.5%"}}, {"id": "sp1", "owner": "record", "ownerLbl": "Self-Report", "text": "Staff monitoring done properly and scored fairly", "photo": false, "translations": {"hi": "कर्मचारी निगरानी सही तरीके से की गई और निष्पक्ष अंक दिए गए", "ne": "कर्मचारी अनुगमन ठीकसँग गरिएको र निष्पक्ष स्कोर दिइएको", "bn": "কর্মী পর্যবেক্ষণ সঠিকভাবে করা এবং ন্যায্যভাবে স্কোর দেওয়া", "ur": "عملے کی نگرانی صحیح طریقے سے کی گئی اور منصفانہ نمبر دیے گئے", "my": "ဝန်ထမ်းစောင့်ကြည့်ရေး မှန်ကန်စွာ ပြုလုပ်ပြီး မျှတစွာ အမှတ်ပေး", "th": "การติดตามพนักงานทำอย่างถูกต้องและให้คะแนนอย่างยุติธรรม"}}, {"id": "sp2", "owner": "record", "ownerLbl": "Self-Report", "text": "Overall team score above 80%", "photo": false, "translations": {"hi": "समग्र टीम स्कोर 80% से ऊपर", "ne": "समग्र टिम स्कोर 80% भन्दा माथि", "bn": "সামগ্রিক টিম স্কোর ৮০% এর উপরে", "ur": "مجموعی ٹیم اسکور 80% سے اوپر", "my": "အဖွဲ့ကုန်းပြားမှတ်အားလုံး 80% အထက်", "th": "คะแนนรวมของทีมสูงกว่า 90%"}}, {"id": "cc1", "owner": "record", "ownerLbl": "Self-Report", "text": "Two or fewer genuine food-related customer complaints", "photo": false, "translations": {"hi": "दो या उससे कम वास्तविक खाद्य संबंधित ग्राहक शिकायतें", "ne": "दुई वा कम वास्तविक खाना सम्बन्धित ग्राहक गुनासो", "bn": "দুই বা তার কম খাদ্য সম্পর্কিত গ্রাহকের অভিযোগ", "ur": "دو یا اس سے کم حقیقی کھانے سے متعلق گاہک کی شکایات", "my": "စစ်မှန်သောအစားအသောက်ဆိုင်ရာ ဖောက်သည်တိုင်ကြားချက် နှစ်ခုနှင့်အောက်", "th": "ข้อร้องเรียนจากลูกค้าเกี่ยวกับอาหารไม่เกินสองครั้ง"}}, {"id": "aud1", "owner": "auditor", "ownerLbl": "Auditor", "text": "Section audit score on last visit above 90%", "photo": false, "translations": {"hi": "अंतिम यात्रा पर सेक्शन ऑडिट स्कोर 80% से ऊपर", "ne": "अन्तिम भ्रमणमा सेक्शन अडिट स्कोर 80% भन्दा माथि", "bn": "শেষ পরিদর্শনে সেকশন অডিট স্কোর ৮০% এর উপরে", "ur": "آخری دورے پر سیکشن آڈٹ اسکور 80% سے اوپر", "my": "နောက်ဆုံးသွားရောက်စစ်ဆေးမှုတွင် Section audit မှတ် 80% အထက်", "th": "คะแนนตรวจสอบส่วนในการเยี่ยมครั้งล่าสุดสูงกว่า 90%"}}]}];
+const SECTIONS = [
+  {
+    title: 'Opening Today',
+    tasks: [
+      {
+        id: 'o1',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Line Check: Verify that all Line Cook and Steward stations are clean, organized, fully stocked, and ready for operation.',
+        photo: true,
+        translations: {
+          hi: 'सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)',
+          ne: 'सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)',
+          bn: 'সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)',
+          ur: 'تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)',
+          my: 'အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)',
+          th: 'ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)'
+        }
+      },
+      {
+        id: 'o2',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Storage Check: Verify stock levels and check the inventory of high-value items.',
+        photo: true,
+        translations: {
+          hi: 'स्टोरेज जाँच: स्टॉक स्तर, उच्च मूल्य वस्तुओं की इन्वेंट्री',
+          ne: 'भण्डारण जाँच: स्टक स्तर, उच्च मूल्य सामानको इन्भेन्ट्री',
+          bn: 'স্টোরেজ চেক: স্টক লেভেল, মূল্যবান পণ্যের ইনভেন্টরি',
+          ur: 'اسٹوریج چیک: اسٹاک لیول، قیمتی اشیاء کی انوینٹری',
+          my: 'သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ တန်ဖိုးကြီးပစ္စည်းများ',
+          th: 'ตรวจสอบการจัดเก็บ: ระดับสต็อก สินค้ามูลค่าสูง'
+        }
+      },
+      {
+        id: 'o3',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Equipment Check: All equipment is in proper working condition. Report any equipment that is not functioning properly.',
+        photo: true,
+        translations: {
+          hi: 'उपकरण जाँच: सब कुछ सही चलने की स्थिति में',
+          ne: 'उपकरण जाँच: सबै ठीकसँग चल्ने अवस्थामा',
+          bn: 'সরঞ্জাম চেক: সব কিছু সঠিক চালু অবস্থায়',
+          ur: 'آلات کی جانچ: سب کچھ صحیح چلنے کی حالت میں',
+          my: 'စက်ပစ္စည်း စစ်ဆေး: အားလုံး မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ',
+          th: 'ตรวจสอบอุปกรณ์: ทุกอย่างอยู่ในสภาพพร้อมใช้งาน'
+        }
+      },
+      {
+        id: 'o4',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Team briefing was completed on time, with clear delegation of tasks and focus areas discussed with the team.',
+        photo: false,
+        translations: {
+          hi: 'टीम ब्रीफिंग: रचनात्मक, एजेंडा का पालन',
+          ne: 'टिम ब्रिफिङ: रचनात्मक, एजेन्डा पालन',
+          bn: 'টিম ব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ',
+          ur: 'ٹیم بریفنگ: تعمیری، ایجنڈا کی پیروی',
+          my: 'အဖွဲ့ briefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ',
+          th: 'บรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ'
+        }
+      }
+    ]
+  },
+  {
+    title: 'Closing Yesterday',
+    tasks: [
+      {
+        id: 'cy1',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Line Check: Verify that all Line Cook and Steward sections were properly cleaned, organized, and stocked during the previous closing shift and are ready for operation.',
+        photo: true,
+        translations: {
+          hi: 'सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)',
+          ne: 'सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)',
+          bn: 'সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)',
+          ur: 'تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)',
+          my: 'အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)',
+          th: 'ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)'
+        }
+      },
+      {
+        id: 'cy2',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Storage Check: Verify stock levels and ensure sufficient stock is available for the day's operation.',
+        photo: true,
+        translations: {
+          hi: 'स्टोरेज जाँच: स्टॉक स्तर, अगले दिन स्टॉक उपलब्धता',
+          ne: 'भण्डारण जाँच: स्टक स्तर, भोलिपल्ट स्टक उपलब्धता',
+          bn: 'স্টোরেজ চেক: স্টক লেভেল, পরের দিন স্টক উপলব্ধতা',
+          ur: 'اسٹوریج چیک: اسٹاک لیول، اگلے دن اسٹاک دستیابی',
+          my: 'သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ နောက်တစ်နေ့ စတော့ရရှိနိုင်မှု',
+          th: 'ตรวจสอบการจัดเก็บ: ระดับสต็อก ความพร้อมของสต็อกวันถัดไป'
+        }
+      },
+      {
+        id: 'cy3',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Equipment Check: Check all equipment and report any maintenance issues.',
+        photo: true,
+        translations: {
+          hi: 'उपकरण जाँच: कोई रखरखाव आवश्यक है',
+          ne: 'उपकरण जाँच: कुनै मर्मत आवश्यक छ',
+          bn: 'সরঞ্জাম চেক: কোনো রক্ষণাবেক্ষণ প্রয়োজন',
+          ur: 'آلات کی جانچ: کوئی دیکھ بھال ضروری ہے',
+          my: 'စက်ပစ္စည်း စစ်ဆေး: ပြုပြင်ထိန်းသိမ်းမှု လိုအပ်သည်',
+          th: 'ตรวจสอบอุปกรณ์: ต้องการการซ่อมบำรุงหรือไม่'
+        }
+      },
+      {
+        id: 'cy4',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Team Debriefing: Discuss key issues, guest feedback, and operational improvements with the team before ending the shift.',
+        photo: false,
+        translations: {
+          hi: 'टीम डीब्रीफिंग: रचनात्मक, एजेंडा का पालन',
+          ne: 'टिम डिब्रिफिङ: रचनात्मक, एजेन्डा पालन',
+          bn: 'টিম ডিব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ',
+          ur: 'ٹیم ڈی بریفنگ: تعمیری، ایجنڈا کی پیروی',
+          my: 'အဖွဲ့ debriefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ',
+          th: 'ดีบรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ'
+        }
+      }
+    ]
+  },
+  {
+    title: 'Food Consistency Today',
+    tasks: [
+      {
+        id: 'fc1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.',
+        photo: true,
+        translations: {
+          hi: 'सभी व्यंजन रेसिपी के अनुसार पकाए गए',
+          ne: 'सबै परिकार रेसिपी अनुसार पकाइएको',
+          bn: 'সব রান্না রেসিপি অনুযায়ী তৈরি',
+          ur: 'تمام پکوان ترکیب کے مطابق پکائے گئے',
+          my: 'ထမင်းသွတ်အားလုံး レシピ အတိုင်း ချက်ပြုတ်',
+          th: 'อาหารทุกจานปรุงตามสูตรที่กำหนด'
+        }
+      },
+      {
+        id: 'fc2',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Food Presentation: Ensure all dishes are plated and presented correctly as per standard.',
+        photo: true,
+        translations: {
+          hi: 'सभी व्यंजन सही प्रस्तुति के अनुसार परोसे गए',
+          ne: 'सबै परिकार सही प्रस्तुतीकरण अनुसार परोसिएको',
+          bn: 'সব রান্না সঠিক উপস্থাপনা অনুযায়ী পরিবেশিত',
+          ur: 'تمام پکوان درست پیشکش کے مطابق پیش کیے گئے',
+          my: 'ထမင်းသွတ်အားလုံး မှန်ကန်သော တင်ဆက်မှုနှင့် အညီ',
+          th: 'อาหารทุกจานจัดวางตามมาตรฐานการนำเสนอ'
+        }
+      },
+      {
+        id: 'fc3',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Ticket Timing: Ensure ticket times are monitored and maintained according to standards.',
+        photo: false,
+        translations: {
+          hi: 'टिकट टाइमिंग मानक के अनुसार',
+          ne: 'टिकट टाइमिङ मानक अनुसार',
+          bn: 'টিকিট টাইমিং মানদণ্ড অনুযায়ী',
+          ur: 'ٹکٹ ٹائمنگ معیار کے مطابق',
+          my: 'Ticket timing စံချိန်အတိုင်း',
+          th: 'เวลาออกตั๋วตามมาตรฐาน'
+        }
+      },
+      {
+        id: 'fc4',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Comments Review: Check all dine-in and delivery comments and take any required action.',
+        photo: false,
+        translations: {
+          hi: 'टिप्पणियाँ पढ़ी और कार्रवाई की गई',
+          ne: 'टिप्पणीहरू पढिएको र कार्यान्वयन गरिएको',
+          bn: 'মন্তব্য পড়া এবং ব্যবস্থা নেওয়া হয়েছে',
+          ur: 'تبصرے پڑھے اور ان پر عمل کیا گیا',
+          my: 'မှတ်ချက်များ ဖတ်ရှုပြီး ဆောင်ရွက်ထား',
+          th: 'อ่านความคิดเห็นและดำเนินการแล้ว'
+        }
+      },
+      {
+        id: 'fc5',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Delivery Check: Ensure orders are packed correctly, customer comments are followed, and all small sides and condiments are included.',
+        photo: false,
+        translations: {
+          hi: 'डिलीवरी: पैकिंग, ग्राहक टिप्पणी, छोटे साइड न छूटें',
+          ne: 'डेलिभरी: प्याकिङ, ग्राहक टिप्पणी, साना साइड नछुटोस्',
+          bn: 'ডেলিভারি: প্যাকিং, গ্রাহকের মন্তব্য, ছোট সাইড মিস না',
+          ur: 'ڈیلیوری: پیکنگ، گاہک کے تبصرے، چھوٹے سائیڈ نہ چھوٹیں',
+          my: 'ပေးပို့ရေး: ထုပ်ပိုး၊ ဖောက်သည်မှတ်ချက်၊ ငယ်သောဘေးများ မပျောက်',
+          th: 'จัดส่ง: การบรรจุ ความคิดเห็นลูกค้า ไม่ลืมของเล็กน้อย'
+        }
+      }
+    ]
+  },
+  {
+    title: 'Flow of Operation for the Day (to be submitted before end of shift)',
+    tasks: [
+      {
+        id: 'l1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Operational Control: Ensure the operation runs smoothly throughout the shift.',
+        photo: false,
+        translations: {
+          hi: 'ऑपरेशन प्रवाह का पेशेवर नियंत्रण प्रदर्शित करें',
+          ne: 'अपरेशन प्रवाहको व्यावसायिक नियन्त्रण देखाउनुस्',
+          bn: 'অপারেশন প্রবাহের পেশাদার নিয়ন্ত্রণ প্রদর্শন',
+          ur: 'آپریشن کے بہاؤ کا پیشہ ورانہ کنٹرول ظاہر کریں',
+          my: 'လုပ်ငန်းစီးဆင်းမှု ကျွမ်းကျင်သောထိန်းချုပ်မှု ပြသ',
+          th: 'แสดงการควบคุมการดำเนินงานอย่างมืออาชีพ'
+        }
+      },
+      {
+        id: 'l2',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Communication: Demonstrate clear, professional, and effective communication throughout the shift.',
+        photo: false,
+        translations: {
+          hi: 'कुशल और पेशेवर संचार कौशल प्रदर्शित करें',
+          ne: 'दक्ष र व्यावसायिक संचार सीप देखाउनुस्',
+          bn: 'দক্ষ ও পেশাদার যোগাযোগ দক্ষতা প্রদর্শন',
+          ur: 'موثر اور پیشہ ورانہ مواصلاتی مہارت ظاہر کریں',
+          my: 'ထိရောက်သောနှင့် ကျွမ်းကျင်သောဆက်သွယ်ရေးကျွမ်းကျင်မှု ပြသ',
+          th: 'แสดงทักษะการสื่อสารที่มีประสิทธิภาพและเป็นมืออาชีพ'
+        }
+      },
+      {
+        id: 'l3',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Displays strong culinary knowledge and integrity.',
+        photo: false,
+        translations: {
+          hi: 'पाक ज्ञान और ईमानदारी प्रदर्शित करें',
+          ne: 'पाककला ज्ञान र इमानदारी देखाउनुस्',
+          bn: 'রান্নার জ্ঞান ও সততা প্রদর্শন',
+          ur: 'پکانے کا علم اور دیانت داری ظاہر کریں',
+          my: 'ချက်ပြုတ်ရေးဗဟုသုတနှင့် ဆောင်ရွက်မှုတည်ညီမှု ပြသ',
+          th: 'แสดงความรู้ด้านการทำอาหารและความซื่อสัตย์'
+        }
+      },
+      {
+        id: 'l4',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Cleanliness of all stations, including the steward area, was checked and maintained.',
+        photo: true,
+        translations: {
+          hi: 'स्टीवर्ड क्षेत्र सहित सभी स्टेशनों की सफाई',
+          ne: 'स्टुवार्ड क्षेत्र सहित सबै स्टेशनहरूको सफाई',
+          bn: 'স্টুয়ার্ড এলাকা সহ সব স্টেশনের পরিচ্ছন্নতা',
+          ur: 'اسٹیوارڈ علاقے سمیت تمام اسٹیشنز کی صفائی',
+          my: 'Steward နေရာအပါအဝင် စခန်းအားလုံး သန့်ရှင်းရေး',
+          th: 'ความสะอาดของทุกสถานีรวมถึงพื้นที่ของสจ๊วต'
+        }
+      },
+      {
+        id: 'l5',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Storage area kept clean and items arranged in order.',
+        photo: true,
+        translations: {
+          hi: 'स्टोरेज क्षेत्र साफ और व्यवस्थित, सामान सजाया हुआ',
+          ne: 'भण्डारण क्षेत्र सफा र व्यवस्थित, सामान मिलाइएको',
+          bn: 'স্টোরেজ এলাকা পরিষ্কার, পণ্য সাজানো',
+          ur: 'اسٹوریج علاقہ صاف اور ترتیب سے، اشیاء ترتیب دی گئی',
+          my: 'သိုလှောင်ရေးနေရာ သပ်ရပ်သန့်ရှင်း၊ ပစ္စည်းများ စီစဉ်ထား',
+          th: 'พื้นที่จัดเก็บสะอาดเรียบร้อย สินค้าจัดวางอย่างเป็นระเบียบ'
+        }
+      },
+      {
+        id: 'l6',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'All stations are properly set up and fully filled.',
+        photo: true,
+        translations: {
+          hi: 'सभी स्टेशन सही तरीके से सेट अप और भरे हुए',
+          ne: 'सबै स्टेशनहरू ठीकसँग सेटअप र भरिएको',
+          bn: 'সব স্টেশন সঠিকভাবে সেটআপ ও পূর্ণ',
+          ur: 'تمام اسٹیشنز صحیح طریقے سے ترتیب دیے اور بھرے گئے',
+          my: 'စခန်းအားလုံး မှန်ကန်စွာ ပြင်ဆင်ထားပြီး ဖြည့်ထား',
+          th: 'ทุกสถานีติดตั้งและเติมของครบถ้วนอย่างถูกต้อง'
+        }
+      },
+      {
+        id: 'l7',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Staff are physically prepared, mentally focused, and motivated for the shift.',
+        photo: false,
+        translations: {
+          hi: 'कर्मचारी शारीरिक रूप से तैयार और मानसिक रूप से प्रेरित',
+          ne: 'कर्मचारी शारीरिक रूपमा तयार र मानसिक रूपमा प्रेरित',
+          bn: 'কর্মীরা শারীরিকভাবে প্রস্তুত ও মানসিকভাবে অনুপ্রাণিত',
+          ur: 'عملہ جسمانی طور پر تیار اور ذہنی طور پر حوصلہ افزا',
+          my: 'ဝန်ထမ်းများ ကိုယ်ခန္ဓာအားဖြင့် အဆင်သင့်နှင့် စိတ်ဓာတ်ကောင်း',
+          th: 'พนักงานพร้อมทางกายและมีแรงจูงใจทางจิตใจ'
+        }
+      }
+    ]
+  },
+  {
+    title: 'Food Cost & Staff',
+    tasks: [
+      {
+        id: 'cost1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Day‑to‑day purchasing, receiving, and stock‑on‑hand are being monitored consistently.',
+        photo: false,
+        translations: {
+          hi: 'सैद्धांतिक बनाम वास्तविक अंतर 1.5% से कम',
+          ne: 'सैद्धान्तिक बनाम वास्तविक अन्तर 1.5% भन्दा कम',
+          bn: 'তাত্ত্বিক বনাম বাস্তব পার্থক্য ১.৫% এর কম',
+          ur: 'نظری بمقابلہ اصل فرق 1.5% سے کم',
+          my: 'သီအိုရီနှင့် တကယ့်ကွာခြားမှု 1.5% အောက်',
+          th: 'ความแตกต่างระหว่างทฤษฎีและความเป็นจริงน้อยกว่า 1.5%'
+        }
+      },
+      {
+        id: 'sp2',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Team performance maintains an overall score above 90% each shift.',
+        photo: false,
+        translations: {
+          hi: 'समग्र टीम स्कोर 90% से ऊपर',
+          ne: 'समग्र टिम स्कोर 90% भन्दा माथि',
+          bn: 'সামগ্রিক টিম স্কোর ৯০% এর উপরে',
+          ur: 'مجموعی ٹیم اسکور 90% سے اوپر',
+          my: 'အဖွဲ့ကုန်းပြားမှတ်အားလုံး 90% အထက်',
+          th: 'คะแนนรวมของทีมสูงกว่า 90%'
+        }
+      },
+      {
+        id: 'cc1',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'If any food‑related customer complaints occur, ensure a photo and a clear explanation are provided.',
+        photo: false,
+        translations: {
+          hi: 'दो या उससे कम वास्तविक खाद्य संबंधित ग्राहक शिकायतें',
+          ne: 'दुई वा कम वास्तविक खाना सम्बन्धित ग्राहक गुनासो',
+          bn: 'দুই বা তার কম খাদ্য সম্পর্কিত গ্রাহকের অভিযোগ',
+          ur: 'دو یا اس سے کم حقیقی کھانے سے متعلق گاہک کی شکایات',
+          my: 'စစ်မှန်သောအစားအသောက်ဆိုင်ရာ ဖောက်သည်တိုင်ကြားချက် နှစ်ခုနှင့်အောက်',
+          th: 'ข้อร้องเรียนจากลูกค้าเกี่ยวกับอาหารไม่เกินสองครั้ง'
+        }
+      },
+      {
+        id: 'aud1',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'The outlet achieved a score above 90% in the last monthly audit visit.',
+        photo: false,
+        translations: {
+          hi: 'अंतिम यात्रा पर सेक्शन ऑडिट स्कोर 90% से ऊपर',
+          ne: 'अन्तिम भ्रमणमा सेक्शन अडिट स्कोर 90% भन्दा माथि',
+          bn: 'শেষ পরিদর্শনে সেকশন অডিট স্কোর ৯০% এর উপরে',
+          ur: 'آخری دورے پر سیکشن آڈٹ اسکور 90% سے اوپر',
+          my: 'နောက်ဆုံးသွားရောက်စစ်ဆေးမှုတွင် Section audit မှတ် 90% အထက်',
+          th: 'คะแนนตรวจสอบส่วนในการเยี่ยมครั้งล่าสุดสูงกว่า 90%'
+        }
+      }
+    ]
+  }
+];
 
 let currentDay = 1; // Single daily submission — day rail removed
 let activePhotoTask = null;
@@ -925,15 +1311,15 @@ function fmtDateTime(iso) {
   if (!iso) return '—';
   try {
     const d = new Date(iso);
-    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
-    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
+    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
+    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'});
     return date + ' ' + time;
   } catch(e) { return iso; }
 }
 function fmtTimeOnly(iso) {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
+    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'});
   } catch(e) { return '—'; }
 }
 
@@ -1120,19 +1506,36 @@ window.addEventListener('DOMContentLoaded', () => {
 function scheduleNextMidnight() {
   const now = new Date();
   const dubaiNow = new Date(now.getTime() + (now.getTimezoneOffset()*60000) + (4*3600000));
-  const next = new Date(dubaiNow); next.setHours(24,0,0,0);
+  const next = new Date(dubaiNow); next.setHours(24,0,5,0); // 5 seconds past midnight
   setTimeout(function() {
     const nd = getDubaiDateStr();
+    // Update week field to new Dubai date
     const wf = document.getElementById('fWeek');
     if (wf) { if(wf.tagName==='INPUT') wf.value=nd; else wf.textContent=nd; }
     localStorage.setItem('kic_info_' + ROLE + '_fWeek', nd);
-    currentShift = null; buildDayRail();
-    try { renderDay(); } catch(e) {}
-    showToast('📅 New day — ' + nd, 'ok');
+    // Re-render with fresh day
+    try { buildDayRail(); renderDay(); } catch(e) {}
+    showToast('📅 New day started — ' + nd, 'ok');
     scheduleNextMidnight();
   }, next - dubaiNow);
 }
 scheduleNextMidnight();
+
+// ── Also check every minute if date has changed (handles sleep/wake) ──────────
+(function() {
+  var _lastDate = getDubaiDateStr();
+  setInterval(function() {
+    var now = getDubaiDateStr();
+    if (now !== _lastDate) {
+      _lastDate = now;
+      var wf = document.getElementById('fWeek');
+      if (wf) { if(wf.tagName==='INPUT') wf.value=now; else wf.textContent=now; }
+      localStorage.setItem('kic_info_' + ROLE + '_fWeek', now);
+      try { buildDayRail(); renderDay(); } catch(e) {}
+      showToast('📅 New day started — ' + now, 'ok');
+    }
+  }, 60000); // check every 60 seconds
+})();
 
 // Warn before page refresh if checklist not submitted
 window.addEventListener('beforeunload', function(e) {
