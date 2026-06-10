@@ -1231,7 +1231,7 @@ function renderDay() {
   btn.className = 'submit-btn';
   if (isDone && !ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Checklist Submitted — Locked`;
+    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
     const msg = document.createElement('div');
     msg.className = 'synced-msg';
     msg.textContent = '✓ Submitted and synced to dashboard';
@@ -1239,7 +1239,7 @@ function renderDay() {
     container.appendChild(msg);
   } else if (isDone && ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Checklist Submitted`;
+    btn.textContent = `✓ Day ${currentDay} Submitted`;
     container.appendChild(btn);
     // Overwrite panel
     const owp = document.createElement('div');
@@ -1253,6 +1253,14 @@ function renderDay() {
     msg2.textContent = '✓ Submitted and synced to dashboard';
     container.appendChild(msg2);
   } else {
+    // Save Progress button
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'submit-btn';
+    saveBtn.style.cssText = 'background:#E87722;margin-bottom:8px;';
+    saveBtn.textContent = '💾 Save Progress';
+    saveBtn.onclick = function() { showToast('Progress saved ✓', 'ok'); };
+    container.appendChild(saveBtn);
+    // Submit button
     btn.textContent = '📋 Submit Checklist';
     btn.onclick = submitDay;
     container.appendChild(btn);
@@ -1436,26 +1444,18 @@ function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
   const taskId = activePhotoTask;
   activePhotoTask = null;
-  closePhotoModal();
   compressAndReturn(file, async function(dataUrl) {
-    // Find next available photo slot
-    const _d = load(); const _dk = getTodayKey();
-    if (!_d[_dk]) _d[_dk] = {};
-    if (!_d[_dk][taskId]) _d[_dk][taskId] = {};
-    let _idx = 0;
-    while (_d[_dk][taskId][_idx === 0 ? 'photo' : 'photo_' + _idx]) _idx++;
-    const _photoKey = _idx === 0 ? 'photo' : 'photo_' + _idx;
-    setVal(currentDay, taskId, _photoKey, dataUrl);
+    // Save locally first for instant display
+    setVal(currentDay, taskId, 'photo', dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
 
-    // Save compressed photo to Firebase
+    // Save compressed photo to Firebase Realtime Database
     const staffName = getStaffName();
     if (staffName && _db) {
       const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
       if (dbRef) {
-        const _urlKey = _idx === 0 ? 'photoUrl' : 'photoUrl_' + _idx;
-        setVal(currentDay, taskId, _urlKey, dbRef);
+        setVal(currentDay, taskId, 'photoUrl', dbRef);
         showToast('Photo synced ✓', 'ok');
       }
     }
@@ -1505,6 +1505,17 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   } catch(e) {}
 
+  // Clear today's answers on fresh page load (unless already submitted)
+  (function() {
+    try {
+      const _d = load();
+      const _tk = getTodayKey();
+      if (_d[_tk] && !_d[_tk]._done) {
+        delete _d[_tk];
+        save(_d);
+      }
+    } catch(e) {}
+  })();
   buildDayRail();
   renderDay();
   showAuditBanner();
