@@ -598,47 +598,235 @@ function checkOverwritePin(code) {
 }
 
 const SECTIONS = [
-  {"title":"🌅 Opening Today","tasks":[
-    {"id":"o1","owner":"self","ownerLbl":"Self-report","text":"Line check all front-of-house sections (Stations, Cashier, Bar, Dining Area)","photo":true,"translations":{}},
-    {"id":"o2","owner":"self","ownerLbl":"Self-report","text":"FOH Inventory check: operating supplies, printed menus, promo collateral, bar stock level","photo":true,"translations":{}},
-    {"id":"o3","owner":"verify","ownerLbl":"Verify by Area","text":"Equipment check: POS systems, AC units, music system, lighting & bar equipment in proper order","photo":true,"translations":{}},
-    {"id":"o4","owner":"verify","ownerLbl":"Verify by Area","text":"Service Team Briefing: grooming check, target allocation, constructive agenda & motivation","photo":true,"translations":{}}
-  ]},
-  {"title":"🌙 Closing Yesterday","tasks":[
-    {"id":"c1","owner":"verify","ownerLbl":"Verify by Area","text":"Line check all front-of-house sections (Side stations, outdoor setup, clean & reset)","photo":true,"translations":{}},
-    {"id":"c2","owner":"verify","ownerLbl":"Verify by Area","text":"Closing side-duties completed, POS settlement reconciled, cash drop secured without variance","photo":true,"translations":{}},
-    {"id":"c3","owner":"verify","ownerLbl":"Verify by Area","text":"FOH Equipment check: systems switched off safely, any maintenance reported","photo":true,"translations":{}},
-    {"id":"c4","owner":"verify","ownerLbl":"Verify by Area","text":"Team Debriefing: highlight top sellers, resolve service gaps, verify operational feedback","photo":true,"translations":{}}
-  ]},
-  {"title":"⭐ Service Standards & Speed Today","tasks":[
-    {"id":"s1","owner":"monitor","ownerLbl":"Monitor by Area","text":"Sequence of service executed fully as per brand standards across all tables","photo":false,"translations":{}},
-    {"id":"s2","owner":"monitor","ownerLbl":"Monitor by Area","text":"Table turnover & ticket timing (food/beverage delivery speed) meet expectations","photo":false,"translations":{}},
-    {"id":"s3","owner":"monitor","ownerLbl":"Monitor by Area","text":"Guest complaints handled immediately on the floor with active resolution metrics","photo":false,"translations":{}},
-    {"id":"s4","owner":"monitor","ownerLbl":"Monitor by Area","text":"Delivery & Takeaway operations: secure packing, correct modifiers, zero missed items","photo":false,"translations":{}}
-  ]},
-  {"title":"👥 Manpower & Labour Management","tasks":[
-    {"id":"m1","owner":"record","ownerLbl":"Record","text":"FOH attendance logged; staff deployed accurately to match peak trading hours","photo":false,"translations":{}},
-    {"id":"m2","owner":"record","ownerLbl":"Record","text":"Cross-training active: service team members allocated to optimize productivity and minimize overtime","photo":false,"translations":{}}
-  ]},
-  {"title":"💰 Sales Targets & Upselling Last Week","tasks":[
-    {"id":"u1","owner":"monitor","ownerLbl":"Monitor by Area","text":"Weekly outlet sales target achieved (Target vs Actual validation)","photo":false,"translations":{}},
-    {"id":"u2","owner":"record","ownerLbl":"Record","text":"Daily upselling items pushed actively; top upselling staff identified and tracked","photo":false,"translations":{}}
-  ]},
-  {"title":"📊 FOH Wastage & Cost Control Last Week","tasks":[
-    {"id":"w1","owner":"record","ownerLbl":"Record","text":"Bar beverage and FOH consumable wastage recorded properly target limit","photo":false,"translations":{}},
-    {"id":"w2","owner":"record","ownerLbl":"Record","text":"Operating supplies & chemical dilution standards monitored to prevent cost leaks","photo":false,"translations":{}}
-  ]},
-  {"title":"📋 Staff Performance Last Week","tasks":[
-    {"id":"p1","owner":"record","ownerLbl":"Record","text":"FOH staff performance monitored properly and scored fairly in the digital platform","photo":false,"translations":{}},
-    {"id":"p2","owner":"record","ownerLbl":"Record","text":"Overall weekly score of the service team members remains above 90%","photo":false,"translations":{}}
-  ]},
-  {"title":"📅 Manpower Planning This Month","tasks":[
-    {"id":"mp1","owner":"record","ownerLbl":"Record","text":"FOH shift roster aligns with operational requirements and forecasted peak days","photo":false,"translations":{}},
-    {"id":"mp2","owner":"record","ownerLbl":"Record","text":"Labor budget control: scheduled manpower matches target headcount parameters","photo":false,"translations":{}}
-  ]},
-  {"title":"🔍 Auditor Verification","tasks":[
-    {"id":"a1","owner":"auditor","ownerLbl":"Auditor","text":"FOH audit score on the last visit is above 90%","photo":false,"translations":{}}
-  ]}
+  {
+    title: '🌅 Opening Today',
+    tasks: [
+      {
+        id: 'o1',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Line check conducted across all fronts‑of‑house sections, including Stations, Cashier, Bar, and Dining Area.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o2',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'FOH Inventory Check: operating supplies, printed menus, promo collateral, bar stock level — all verified.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o3',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Equipment Check: POS, AC units, music system, lighting, bar equipment — all functioning properly.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o4',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Service Team Briefing conducted, covering grooming checks, target allocation, constructive points, and team motivation.',
+        photo: true,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '🌙 Closing Yesterday',
+    tasks: [
+      {
+        id: 'c1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Line check conducted across all FOH sections, including side stations, outdoor setup, and clean‑and‑reset areas.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c2',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'All closing side‑duties were completed, POS settlement was fully reconciled, and the cash drop was secured without any variance.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c3',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'FOH equipment check conducted to ensure all systems were switched off safely and any maintenance issues were reported.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c4',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Team debriefing conducted, covering top sellers, service‑gap resolutions, and verification of operational feedback.',
+        photo: true,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '⭐ Service Standards & Speed Today',
+    tasks: [
+      {
+        id: 's1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Full sequence of service was followed consistently and in line with brand standards across all tables.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 's2',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Table turnover and ticket timing for both food and beverage orders are within expected performance standards.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 's3',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'All guest complaints were addressed on the floor without delay, supported by clear resolution actions and measurable follow‑up metrics.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 's4',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Delivery/Takeaway: secure packing, correct modifiers, zero missed items — all verified.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '👥 Manpower & Labour Management',
+    tasks: [
+      {
+        id: 'm1',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'FOH: attendance logged; deployment matched to peak hours.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 'm2',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Cross‑Training: team allocation optimized for productivity and minimal overtime.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '💰 Sales Targets & Upselling Last Week',
+    tasks: [
+      {
+        id: 'u1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Daily sales targets were assigned to the team and successfully achieved.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 'u2',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Daily upselling items were actively pushed, with top‑performing staff identified and tracked for consistency.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '📊 FOH Wastage & Cost Control Last Week',
+    tasks: [
+      {
+        id: 'w1',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Beverage and FOH consumable wastage was recorded accurately and maintained within the approved target limits.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 'w2',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Operating supplies and chemical dilution ratios were checked and maintained within standards to avoid unnecessary cost leakage.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '📋 Staff Performance Last Week',
+    tasks: [
+      {
+        id: 'p1',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'FOH staff performance was monitored accurately, with fair scoring recorded through the digital platform.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 'p2',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'The service team’s overall weekly performance score consistently remains above 90%.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '📅 Manpower Planning This Month',
+    tasks: [
+      {
+        id: 'mp1',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'FOH shift roster structured to match operational needs and forecasted peak‑day demand.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 'mp2',
+        owner: 'record',
+        ownerLbl: 'Record',
+        text: 'Scheduled manpower remained within target headcount parameters, supporting effective labor budget control.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '🔍 Auditor Verification',
+    tasks: [
+      {
+        id: 'a1',
+        owner: 'auditor',
+        ownerLbl: 'auditor',
+        text: 'FOH audit score on the last visit is above 90%',
+        photo: false,
+        translations: {}
+      }
+    ]
+  }
 ];
 let currentDay = 1; // Single daily submission — day rail removed
 let activePhotoTask = null;
