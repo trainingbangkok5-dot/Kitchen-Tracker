@@ -635,7 +635,8 @@ function updateStats() {
 
 // ── Render Table ─────────────────────────────────────────────
 function renderTable() {
-  const filtered = getFilteredByDate(allLogs);
+  // Log tab shows only non-completed — completed items go to Completed tab
+  const filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
   const canManage = ['areachef','areamanager','operations','director','ceo','training'].includes(currentRole);
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
