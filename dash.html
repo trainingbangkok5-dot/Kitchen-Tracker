@@ -433,11 +433,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
       </div>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="bohSubAll" onclick="setBOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
       <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍳 Line Cook</button>
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
       <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;">📅 From</label>
+      <input type="date" id="bohDateFrom" onchange="renderBOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;">To</label>
+      <input type="date" id="bohDateTo" onchange="renderBOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <button onclick="document.getElementById('bohDateFrom').value='';document.getElementById('bohDateTo').value='';renderBOHStaff();" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:11px;background:#fff;cursor:pointer;color:#64748B;">Clear</button>
 <div style="position:relative;margin-left:auto;">
         
         <button id="bohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
@@ -509,12 +516,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
       </div>
     </div>
-    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="fohSubAll" onclick="setFOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
       <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🛎️ Service</button>
       <button id="fohSubOic" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
       <button id="fohSubDelco" onclick="setFOHSub('delco')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🚚 Del.Co</button>
       <button id="fohSubBartender" onclick="setFOHSub('bartender')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍹 Bartender</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;">📅 From</label>
+      <input type="date" id="fohDateFrom" onchange="renderFOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <label style="font-size:11px;font-weight:600;color:#64748B;">To</label>
+      <input type="date" id="fohDateTo" onchange="renderFOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <button onclick="document.getElementById('fohDateFrom').value='';document.getElementById('fohDateTo').value='';renderFOHStaff();" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:11px;background:#fff;cursor:pointer;color:#64748B;">Clear</button>
       <div style="position:relative;margin-left:auto;">
         
         <button id="fohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'"  style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
@@ -1243,13 +1257,12 @@ function doLogin() {
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
-  // FOH tab — visible to Area Chef, Area Manager and full access roles
-  // OIC/KIC can only see their own tab (BOH for KIC, FOH for OIC) — not management view
-  const fohRoles = ['areachef','areamanager','training','operations','director','ceo','maintsupervisor'];
+  // Hide KIC sub-tab from KIC role — they only see their own submissions
+  const bohSubKicBtn = document.getElementById('bohSubKic');
+  if (bohSubKicBtn) bohSubKicBtn.style.display = currentRole === 'kic' ? 'none' : '';
+  // FOH tab — visible to OIC, Area Manager and full access roles
+  const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
-  // Hide OIC sub-tab from OIC/KIC — they only see their own submissions
-  const fohSubOicBtn = document.getElementById('fohSubOic');
-  if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
   // KIC defaults to BOH tab, OIC defaults to FOH tab
   if (currentRole === 'kic') {
     setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
@@ -5021,9 +5034,16 @@ function openBOHDetailFull(s) {
 function renderBOHStaff() {
   const bohChecked = Array.from(document.querySelectorAll('#bohOutletBtn ~ div input:checked')).map(c=>c.value);
   const outlet = '';  // replaced by multi-select below
+  const bohFrom = document.getElementById('bohDateFrom')?.value || '';
+  const bohTo   = document.getElementById('bohDateTo')?.value || '';
   let filtered = allBOHData.filter(s => {
     if (currentBOHSub !== 'all' && s.role !== currentBOHSub) return false;
     if (bohChecked.length && !bohChecked.includes(s.outlet)) return false;
+    if (bohFrom || bohTo) {
+      const d = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
+      if (bohFrom && d < bohFrom) return false;
+      if (bohTo   && d > bohTo)   return false;
+    }
     return true;
   });
   // Update day column headers with actual dates from first record's week
@@ -5203,9 +5223,16 @@ function setFOHSub(sub) {
 
 function renderFOHStaff() {
   const fohChecked = Array.from(document.querySelectorAll('#fohOutletBtn ~ div input:checked')).map(c=>c.value);
+  const fohFrom = document.getElementById('fohDateFrom')?.value || '';
+  const fohTo   = document.getElementById('fohDateTo')?.value || '';
   let filtered = allFOHData.filter(s => {
     if (currentFOHSub !== 'all' && s.role !== currentFOHSub) return false;
     if (fohChecked.length && !fohChecked.includes(s.outlet)) return false;
+    if (fohFrom || fohTo) {
+      const d = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
+      if (fohFrom && d < fohFrom) return false;
+      if (fohTo   && d > fohTo)   return false;
+    }
     return true;
   });
 
