@@ -455,13 +455,13 @@ function pushToMasterDashboard(record) {
   saveSharedDB(db);
 }
 
-// ── Cross-device Camera & Gallery (Android compatible) ───────
+// ── Cross-device Camera & Gallery ────────────────────────────
 function triggerCamera() {
   const input = document.getElementById('camInput');
   if (!input) return;
   input.setAttribute('capture', 'environment');
   input.setAttribute('accept', 'image/*');
-  try { input.value = ''; } catch(e) {}
+  input.value = '';
   input.click();
 }
 
@@ -470,24 +470,8 @@ function triggerGallery() {
   if (!input) return;
   input.removeAttribute('capture');
   input.setAttribute('accept', 'image/*');
-  try { input.value = ''; } catch(e) {}
+  input.value = '';
   input.click();
-}
-
-function prepareCamera() {
-  const input = document.getElementById('camInput');
-  if (!input) return;
-  input.setAttribute('capture', 'environment');
-  input.setAttribute('accept', 'image/*');
-  try { input.value = ''; } catch(e) {}
-}
-
-function prepareGallery() {
-  const input = document.getElementById('galInput');
-  if (!input) return;
-  input.removeAttribute('capture');
-  input.setAttribute('accept', 'image/*');
-  try { input.value = ''; } catch(e) {}
 }
 
 function iosPhotoFix(inputEl, onDataUrl) {
@@ -1026,8 +1010,9 @@ function renderDay() {
       }
     });
   });
-  const opO = oM>0 ? Math.round((oY/oM)*100) : null;
-  const opC = cM>0 ? Math.round((cY/cM)*100) : null;
+  // Only show score for the current shift being filled
+  const opO = (currentShift === 'opening' || openingDone) && oM>0 ? Math.round((oY/oM)*100) : null;
+  const opC = (currentShift === 'closing' || closingDone) && cM>0 ? Math.round((cY/cM)*100) : null;
   // Total = all YES / all answered tasks
   const tM=oM+cM, tY=oY+cY;
   const op = tM>0 ? Math.round((tY/tM)*100) : 0;
@@ -1075,7 +1060,6 @@ function renderDay() {
     </div>
   `;
   container.appendChild(sc);
-  container.appendChild(sc);
 
   // Submit closing button
   if (currentShift === 'closing') {
@@ -1083,12 +1067,20 @@ function renderDay() {
     btn.className = 'submit-btn';
     if (closingDone) {
       btn.disabled = true;
-      btn.textContent = `✓ Checklist Submitted — Locked`;
+      btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
       container.appendChild(btn);
       const msg = document.createElement('div');
       msg.className = 'synced-msg';
       msg.textContent = '✓ Submitted and synced to dashboard';
       container.appendChild(msg);
+      // KIC overwrite panel
+      const owp = document.createElement('div');
+      owp.className = 'overwrite-panel';
+      owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN (OIC / Area Manager / Admin)</div>
+        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter OIC/Manager PIN to unlock and edit Day ${currentDay}</div>
+        <input class="overwrite-input" id="owCode" type="password" placeholder="Enter OIC/Manager PIN...">
+        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      container.appendChild(owp);
     } else {
       const wasOvr = !!data[dayKey]?._overwritten;
       btn.textContent = wasOvr ? '💾 Resubmit Closing Tasks ✓' : 'Submit Closing Tasks ✓';
@@ -1232,15 +1224,15 @@ function fmtDateTime(iso) {
   if (!iso) return '—';
   try {
     const d = new Date(iso);
-    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
-    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'});
+    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
     return date + ' ' + time;
   } catch(e) { return iso; }
 }
 function fmtTimeOnly(iso) {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'});
+    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
   } catch(e) { return '—'; }
 }
 
@@ -1322,8 +1314,6 @@ function submitDay() {
   const closingTasks = SECTIONS[1].tasks;
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
-  const missingClosingPhoto = closingTasks.filter(t => t.photo && !getVal(currentDay, t.id, 'photo'));
-  if (missingClosingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
   const d = load();
   const todayKey2 = getTodayKey();
   if (!d[todayKey2]) d[todayKey2] = {};
@@ -1529,18 +1519,15 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Photo input listeners — Android compatible
+  // Photo input listeners
   ['camInput','galInput'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', function(e) {
-      const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
-      if (file) {
-        handlePhotoFile(file);
-        setTimeout(() => { try { this.value = ''; } catch(e2) {} }, 600);
-      }
+      const file = e.target.files && e.target.files[0];
+      if (file) { handlePhotoFile(file); setTimeout(() => { this.value = ''; }, 500); }
     });
-    el.addEventListener('cancel', function() { try { this.value = ''; } catch(e) {} });
+    el.addEventListener('cancel', function() { this.value = ''; });
   });
 
   window._selectShiftReady = selectShift;
