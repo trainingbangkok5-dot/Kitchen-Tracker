@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260606180000">
+<meta http-equiv="Expires" content="20260610220529">
 <meta name="app-version" content="20260610215748">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260610215748';
+  var v = '20260610220529';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -309,7 +309,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="staff-table">
       <div class="t-head">
         <div class="th">Staff / Outlet</div><div class="th">Role</div><div class="th">Week</div>
-        <div class="th">Score</div><div class="th">Status</div><div class="th">Started</div><div class="th">Submitted</div>
+        <div class="th">Score</div><div class="th">Status</div><div class="th">Started</div><div class="th">Submitted</div><div class="th">Verification</div>
       </div>
       <div id="staffBody"></div>
     </div>
@@ -1633,7 +1633,8 @@ function renderStaff() {
       + '<div class="td" style="font-weight:700;color:' + (sc===null?'#94A3B8':sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc!==null&&sc>0?sc+'%':'—') + '</div>'
       + '<div class="td">' + (sc===null?'<span class="sp sp-prog">⏳ Pending</span>':(sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅ Completed':'❌ Pending') + '</span>':'<span class="sp sp-prog">⏳ Pending</span>')) + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.startedAt) : '—') + '</div>'
-      + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.submittedAt) : '—') + '</div>';
+      + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.submittedAt) : '—') + '</div>'
+      + '<div class="td">' + (s && s.verifiedBy ? '<span class="sp sp-pass" style="font-size:10px;">✅ Verified by ' + s.verifiedBy + '</span>' : '<span class="sp sp-prog" style="font-size:10px;">⏳ Not verified</span>') + '</div>';
 
     wrapper.appendChild(row);
 
@@ -1673,7 +1674,8 @@ function renderStaff() {
       + '<div class="td" style="font-weight:700;color:' + (sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>'
       + '<div class="td">' + (sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅ Completed':'❌ Pending') + '</span>':'<span class="sp sp-prog">⏳ Pending</span>') + '</div>'
       + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.startedAt) + '</div>'
-      + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.submittedAt) + '</div>';
+      + '<div class="td td-sm" style="line-height:1.5">' + fmtT(s.submittedAt) + '</div>'
+      + '<div class="td">' + (s.verifiedBy ? '<span class="sp sp-pass" style="font-size:10px;">✅ Verified by ' + s.verifiedBy + '</span>' : '<span class="sp sp-prog" style="font-size:10px;">⏳ Not verified</span>') + '</div>';
 
     wrapper.appendChild(row);
 
