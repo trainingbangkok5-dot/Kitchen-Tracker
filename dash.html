@@ -1556,9 +1556,8 @@ function renderStaff() {
   const weekF   = (document.getElementById('fWeek')||{}).value||'';
   const outletF = (document.getElementById('fOutlet')||{}).value||'';
 
-  // ── Normalize name helper — trims, lowercases, removes extra spaces ──
+  // ── Normalize name helper ──
   const normName = n => (n||'').toLowerCase().trim().replace(/\s+/g,' ');
-
   // ── Build submission lookup: name+role -> latest submission ──
   const subMap = {};
   allStaff.forEach(s => {
@@ -1578,10 +1577,10 @@ function renderStaff() {
   });
 
   // ── Also include submissions from staff NOT in registry ──
-  const regNames = new Set(regStaff.map(r => normName(r.name) + '|' + r.role));
+  const regNames = new Set(regStaff.map(r => r.name.toLowerCase().trim() + '|' + r.role));
   const extraSubs = allStaff.filter(s => {
     if (!s.staffName) return false;
-    const k = normName(s.staffName) + '|' + (s.role||'');
+    const k = s.staffName.toLowerCase().trim() + '|' + (s.role||'');
     if (regNames.has(k)) return false;
     if (roleF   && s.role !== roleF) return false;
     if (outletF && (s.outlet||'').toLowerCase() !== outletF.toLowerCase()) return false;
@@ -1606,7 +1605,7 @@ function renderStaff() {
 
   // ── Render registry staff first ──
   regStaff.sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(r => {
-    const k   = normName(r.name) + '|' + (r.role||'');
+    const k   = r.name.toLowerCase().trim() + '|' + (r.role||'');
     const s   = subMap[k]; // submission if exists
     // Apply week filter to submission
     if (weekF && s && s.week !== weekF) return;
@@ -4250,7 +4249,7 @@ function closeAddStaffModal() {
   document.getElementById('addStaffModal').style.display = 'none';
 }
 
-const NO_OUTLET_ROLES = ['areachef','operations','director','ceo','training'];
+const NO_OUTLET_ROLES = ['areachef','areamanager','operations','director','ceo','training'];
 
 function toggleOutletField() {
   const role = document.getElementById('staffRoleInput').value;
@@ -4270,7 +4269,7 @@ function saveStaff() {
   const outlet = document.getElementById('staffOutletInput').value.trim();
   const key    = document.getElementById('editStaffKey').value;
 
-  const noOutletRoles = ['areachef','operations','director','ceo','training'];
+  const noOutletRoles = ['areachef','areamanager','operations','director','ceo','training'];
   const outletRequired = !noOutletRoles.includes(role);
   if (!id || !name || (outletRequired && !outlet)) { alert('Please fill in all fields.'); return; }
 
