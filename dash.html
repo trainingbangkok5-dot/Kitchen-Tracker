@@ -1532,48 +1532,121 @@ function renderRecent() {
 // ── STAFF TABLE ───────────────────────────────────────────────
 function renderStaff() {
   const body = document.getElementById('staffBody');
-  const subs = getFiltered();
-  if (!subs.length) {
-    body.innerHTML = '<div class="empty">No entries yet</div>';
-    return;
-  }
   body.innerHTML = '';
 
   const isAdmin = currentRole === 'training';
+  const roleF   = (document.getElementById('fRole')||{}).value||'';
+  const weekF   = (document.getElementById('fWeek')||{}).value||'';
+  const outletF = (document.getElementById('fOutlet')||{}).value||'';
 
-  [...subs].sort((a,b) => new Date(b.lastUpdated||0) - new Date(a.lastUpdated||0)).forEach((s, i) => {
-    const role    = ROLES[s.role] || {label:s.role,icon:'',cls:'pill-lc'};
-    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role] || 'pill-lc';
-    const sc      = parseFloat(s.overallPct) || 0;
-    const pass    = sc >= 95;
+  // ── Build submission lookup: name+role -> latest submission ──
+  const subMap = {};
+  allStaff.forEach(s => {
+    if (!s.staffName) return;
+    const k = (s.staffName).toLowerCase().trim() + '|' + (s.role||'');
+    if (!subMap[k] || new Date(s.submittedAt||0) > new Date(subMap[k].submittedAt||0)) {
+      subMap[k] = s;
+    }
+  });
 
-    function fmtT(iso) {
-      if (!iso) return '—';
-      try {
-        return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})
-          + '<br><span style="font-size:10px;color:#94A3B8">'
-          + new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
-          + '</span>';
-      } catch(e) { return '—'; }
+  // ── Use registry as source of truth (active staff only) ──
+  const regStaff = Object.values(_registry).filter(r => {
+    if (r.status !== 'active') return false;
+    if (roleF   && r.role !== roleF) return false;
+    if (outletF && (r.outlet||'').toLowerCase() !== outletF.toLowerCase()) return false;
+    return true;
+  });
+
+  // ── Also include submissions from staff NOT in registry ──
+  const regNames = new Set(regStaff.map(r => r.name.toLowerCase().trim() + '|' + r.role));
+  const extraSubs = allStaff.filter(s => {
+    if (!s.staffName) return false;
+    const k = s.staffName.toLowerCase().trim() + '|' + (s.role||'');
+    if (regNames.has(k)) return false;
+    if (roleF   && s.role !== roleF) return false;
+    if (outletF && (s.outlet||'').toLowerCase() !== outletF.toLowerCase()) return false;
+    if (weekF   && s.week !== weekF) return false;
+    return true;
+  });
+
+  if (!regStaff.length && !extraSubs.length) {
+    body.innerHTML = '<div class="empty">No entries yet</div>';
+    return;
+  }
+
+  function fmtT(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:true})
+        + '<br><span style="font-size:10px;color:#94A3B8">'
+        + new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})
+        + '</span>';
+    } catch(e) { return '—'; }
+  }
+
+  // ── Render registry staff first ──
+  regStaff.sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(r => {
+    const k   = r.name.toLowerCase().trim() + '|' + (r.role||'');
+    const s   = subMap[k]; // submission if exists
+    // Apply week filter to submission
+    if (weekF && s && s.week !== weekF) return;
+    if (weekF && !s) return; // if week filter set, only show those with a matching submission
+
+    const role    = ROLES[r.role] || {label:r.role, icon:'', cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[r.role] || 'pill-lc';
+    const sc      = s ? (parseFloat(s.overallPct)||0) : null;
+    const pass    = sc !== null && sc >= 95;
+    const fbKey   = s ? ((s.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_') + '_' + (s.role||'') + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_')) : '';
+
+    const wrapper = document.createElement('div');
+    const row = document.createElement('div');
+    row.className = 't-row';
+    row.style.cursor = s ? 'pointer' : 'default';
+    if (s) row.onclick = () => openStaffDetail(s);
+
+    row.innerHTML =
+      '<div class="td"><div style="font-weight:600;color:#1A3C5E">' + (r.name||'—') + '</div>'
+      + '<div class="td-sm">' + (r.outlet||'—') + '</div></div>'
+      + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
+      + '<div class="td td-sm">' + (s ? s.week||'—' : '—') + '</div>'
+      + '<div class="td" style="font-weight:700;color:' + (sc===null?'#94A3B8':sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc!==null&&sc>0?sc+'%':'—') + '</div>'
+      + '<div class="td">' + (sc===null?'<span class="sp sp-prog">⏳ Pending</span>':(sc>0?'<span class="sp ' + (pass?'sp-pass':'sp-fail') + '">' + (pass?'✅':'❌') + ' ' + (pass?'Pass':'Fail') + '</span>':'<span class="sp sp-prog">⏳</span>')) + '</div>'
+      + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.startedAt) : '—') + '</div>'
+      + '<div class="td td-sm" style="line-height:1.5">' + (s ? fmtT(s.submittedAt) : '—') + '</div>';
+
+    wrapper.appendChild(row);
+
+    if (isAdmin && s && fbKey) {
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑 Delete this record (' + (s.week||'') + ')';
+      delBtn.style.cssText = 'display:block;width:100%;padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
+      delBtn.onclick = function(e) { e.stopPropagation(); confirmDelete(fbKey, r.name, s.week||''); };
+      wrapper.appendChild(delBtn);
     }
 
-    // Build Firebase key
-    const fbKey = (s.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
-                + '_' + (s.role||'')
-                + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+    const sep = document.createElement('div');
+    sep.style.cssText = 'border-top:1px solid #E0DDD4;';
+    wrapper.appendChild(sep);
+    body.appendChild(wrapper);
+  });
 
-    // Create wrapper div
+  // ── Render extra submissions (staff not in registry) ──
+  extraSubs.sort((a,b) => new Date(b.lastUpdated||0) - new Date(a.lastUpdated||0)).forEach(s => {
+    const role    = ROLES[s.role] || {label:s.role,icon:'',cls:'pill-lc'};
+    const roleCls = {linecook:'pill-lc',steward:'pill-st',kic:'pill-kic',areachef:'pill-ac'}[s.role] || 'pill-lc';
+    const sc      = parseFloat(s.overallPct)||0;
+    const pass    = sc >= 95;
+    const fbKey   = (s.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_') + '_' + (s.role||'') + '_' + (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+
     const wrapper = document.createElement('div');
-
-    // Create row
     const row = document.createElement('div');
     row.className = 't-row';
     row.style.cursor = 'pointer';
     row.onclick = () => openStaffDetail(s);
 
     row.innerHTML =
-      '<div class="td"><div style="font-weight:600;color:#1A3C5E;text-decoration:underline">' + (s.staffName||'—') + '</div>'
-      + '<div class="td-sm">' + (s.outlet||'—') + '</div></div>'
+      '<div class="td"><div style="font-weight:600;color:#94A3B8">' + (s.staffName||'—') + '</div>'
+      + '<div class="td-sm" style="color:#F59E0B;">⚠️ Not in registry</div></div>'
       + '<div class="td"><span class="role-pill ' + roleCls + '">' + role.icon + ' ' + role.label + '</span></div>'
       + '<div class="td td-sm">' + (s.week||'—') + '</div>'
       + '<div class="td" style="font-weight:700;color:' + (sc===0?'#94A3B8':pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>'
@@ -1583,25 +1656,17 @@ function renderStaff() {
 
     wrapper.appendChild(row);
 
-    // Delete button — Training only
     if (isAdmin) {
-      const staffName = s.staffName || '';
-      const week      = s.week || '';
-      const delBtn    = document.createElement('button');
-      delBtn.textContent = '🗑 Delete this record (' + week + ')';
-      delBtn.style.cssText = 'display:block;width:calc(100% - 0px);padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
-      delBtn.onclick = function(e) {
-        e.stopPropagation();
-        confirmDelete(fbKey, staffName, week);
-      };
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑 Delete this record (' + (s.week||'') + ')';
+      delBtn.style.cssText = 'display:block;width:100%;padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
+      delBtn.onclick = function(e) { e.stopPropagation(); confirmDelete(fbKey, s.staffName||'', s.week||''); };
       wrapper.appendChild(delBtn);
     }
 
-    // Separator line
     const sep = document.createElement('div');
     sep.style.cssText = 'border-top:1px solid #E0DDD4;';
     wrapper.appendChild(sep);
-
     body.appendChild(wrapper);
   });
 }
