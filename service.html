@@ -461,7 +461,7 @@ function triggerCamera() {
   if (!input) return;
   input.setAttribute('capture', 'environment');
   input.setAttribute('accept', 'image/*');
-  input.value = '';
+  try { input.value = ''; } catch(e) {}
   input.click();
 }
 
@@ -470,7 +470,7 @@ function triggerGallery() {
   if (!input) return;
   input.removeAttribute('capture');
   input.setAttribute('accept', 'image/*');
-  input.value = '';
+  try { input.value = ''; } catch(e) {}
   input.click();
 }
 
@@ -1524,10 +1524,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', function(e) {
-      const file = e.target.files && e.target.files[0];
-      if (file) { handlePhotoFile(file); setTimeout(() => { this.value = ''; }, 500); }
+      const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
+      if (file) { handlePhotoFile(file); setTimeout(() => { try { this.value = ''; } catch(e2) {} }, 600); }
     });
-    el.addEventListener('cancel', function() { this.value = ''; });
+    el.addEventListener('cancel', function() { try { this.value = ''; } catch(e) {} });
   });
 
   window._selectShiftReady = selectShift;

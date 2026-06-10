@@ -6475,7 +6475,7 @@ function initWeeklyDates() {
 // ── Auto Archive (runs on every dashboard load) ──────────────
 async function autoArchiveOldSubmissions() {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 60);
+  cutoff.setDate(cutoff.getDate() - 7);
   const cutoffStr = cutoff.toISOString().substring(0,10);
   let archived = 0;
 
@@ -6522,9 +6522,9 @@ let _archiveData = [];
 async function runArchive() {
   if (!['training','director','operations','ceo'].includes(currentRole)) return;
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 60);
+  cutoff.setDate(cutoff.getDate() - 7);
   const cutoffStr = cutoff.toISOString().substring(0,10);
-  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 60 days...';
+  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 7 days...';
 
   let archived = 0;
   try {
