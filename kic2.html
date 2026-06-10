@@ -1231,7 +1231,7 @@ function renderDay() {
   btn.className = 'submit-btn';
   if (isDone && !ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted — Locked`;
+    btn.textContent = `✓ Checklist Submitted — Locked`;
     const msg = document.createElement('div');
     msg.className = 'synced-msg';
     msg.textContent = '✓ Submitted and synced to dashboard';
@@ -1239,7 +1239,7 @@ function renderDay() {
     container.appendChild(msg);
   } else if (isDone && ALLOW_OVERWRITE) {
     btn.disabled = true;
-    btn.textContent = `✓ Day ${currentDay} Submitted`;
+    btn.textContent = `✓ Checklist Submitted`;
     container.appendChild(btn);
     // Overwrite panel
     const owp = document.createElement('div');
@@ -1438,17 +1438,24 @@ function handlePhotoFile(file) {
   activePhotoTask = null;
   closePhotoModal();
   compressAndReturn(file, async function(dataUrl) {
-    // Save locally first for instant display
-    setVal(currentDay, taskId, 'photo', dataUrl);
+    // Find next available photo slot
+    const _d = load(); const _dk = getTodayKey();
+    if (!_d[_dk]) _d[_dk] = {};
+    if (!_d[_dk][taskId]) _d[_dk][taskId] = {};
+    let _idx = 0;
+    while (_d[_dk][taskId][_idx === 0 ? 'photo' : 'photo_' + _idx]) _idx++;
+    const _photoKey = _idx === 0 ? 'photo' : 'photo_' + _idx;
+    setVal(currentDay, taskId, _photoKey, dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
 
-    // Save compressed photo to Firebase Realtime Database
+    // Save compressed photo to Firebase
     const staffName = getStaffName();
     if (staffName && _db) {
       const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
       if (dbRef) {
-        setVal(currentDay, taskId, 'photoUrl', dbRef);
+        const _urlKey = _idx === 0 ? 'photoUrl' : 'photoUrl_' + _idx;
+        setVal(currentDay, taskId, _urlKey, dbRef);
         showToast('Photo synced ✓', 'ok');
       }
     }
