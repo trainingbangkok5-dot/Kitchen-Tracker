@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611071102">
+<meta http-equiv="Expires" content="20260611071759">
 <meta name="app-version" content="20260610220529">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611071102';
+  var v = '20260611071759';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1568,18 +1568,12 @@ function renderStaff() {
     if (!subMap[k]) {
       subMap[k] = {...s};
     } else {
-      // Always preserve both opening and closing scores
       const merged = subMap[k];
-      // Keep whichever openingPct exists
       if (merged.openingPct == null && s.openingPct != null) merged.openingPct = s.openingPct;
       if (merged.closingPct == null && s.closingPct != null) merged.closingPct = s.closingPct;
-      // Keep verifiedBy from whichever has it
       if (!merged.verifiedBy && s.verifiedBy) { merged.verifiedBy = s.verifiedBy; merged.verifiedAt = s.verifiedAt; }
-      // Keep startedAt from whichever has it
       if (!merged.startedAt && s.startedAt) merged.startedAt = s.startedAt;
-      // Use latest submittedAt
       if (new Date(s.submittedAt||0) > new Date(merged.submittedAt||0)) merged.submittedAt = s.submittedAt;
-      // Recalc overall from merged scores
       const scores = [merged.openingPct, merged.closingPct].filter(v => v != null);
       if (scores.length > 1) merged.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
       else if (s.overallPct != null && parseFloat(s.overallPct) > (parseFloat(merged.overallPct)||0)) merged.overallPct = s.overallPct;
@@ -5121,11 +5115,11 @@ function renderBOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;font-size:14px">${staff.qualified?'✅':op>0?'❌':'—'}</td>
+      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}</td>
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
         ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
         : op > 0
-          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Pending</span>`
+          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">⚪ Not Verified</span>`
           : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
       }</td>
       <td style="padding:6px 8px;text-align:center;">
@@ -5320,7 +5314,7 @@ function renderFOHStaff() {
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
         ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
         : op > 0
-          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">🟡 Pending</span>`
+          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">⚪ Not Verified</span>`
           : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
       }</td>
       <td style="padding:8px 12px;text-align:center;">
