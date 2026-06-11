@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611180000';
+  var v = '20260611220000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611180000">
-<meta name="app-version" content="20260611180000">
+<meta http-equiv="Expires" content="20260611220000">
+<meta name="app-version" content="20260611220000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -172,6 +172,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
     <button id="btnOpenShift" onclick="selectShift('opening')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌅 Opening Shift</button>
     <button id="btnCloseShift" onclick="selectShift('closing')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌙 Closing Shift</button>
+    <button onclick="clearTodayData()" style="padding:8px 10px;border-radius:8px;border:2px solid rgba(255,100,100,0.5);background:rgba(255,50,50,0.15);color:#ffaaaa;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🗑 Clear</button>
   </div>
 <script>function selectShift(s){window._pendingShift=s;if(window._selectShiftReady)window._selectShiftReady(s);}</script>
 </div>
@@ -187,8 +188,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="modal-box">
     <div class="modal-title">📷 Photo Proof</div>
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
-    <label class="mbtn mbtn-cam" for="camInput" onclick="prepareCamera()">📸 Take Photo</label>
-    <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼️ Choose from Gallery</label>
+    <button class="mbtn mbtn-cam" onclick="triggerCamera()">📸 Take Photo</button>
+    <button class="mbtn mbtn-gal" onclick="triggerGallery()">🖼️ Choose from Gallery</button>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
@@ -519,13 +520,19 @@ function _setupFileInput(id, withCapture) {
 }
 
 function triggerCamera() {
-  const input = _setupFileInput('camInput', true);
-  if (input) setTimeout(() => input.click(), 100);
+  closePhotoModal();
+  setTimeout(() => {
+    const input = _setupFileInput('camInput', true);
+    if (input) setTimeout(() => input.click(), 50);
+  }, 150);
 }
 
 function triggerGallery() {
-  const input = _setupFileInput('galInput', false);
-  if (input) setTimeout(() => input.click(), 100);
+  closePhotoModal();
+  setTimeout(() => {
+    const input = _setupFileInput('galInput', false);
+    if (input) setTimeout(() => input.click(), 50);
+  }, 150);
 }
 
 function iosPhotoFix(inputEl, onDataUrl) {
@@ -647,6 +654,21 @@ function clearAllData() {
   localStorage.removeItem(SK);
   showToast('Data cleared — fresh start ✓', 'ok');
   currentShift = null;
+  buildDayRail();
+  renderDay();
+}
+
+// ── Clear today only — keeps name and outlet ──────────────────
+function clearTodayData() {
+  if (!confirm('Clear today\'s answers and photos?\n\nYour name and outlet will be kept.\nThis cannot be undone.')) return;
+  const d = load();
+  const todayKey = getTodayKey();
+  if (d[todayKey]) {
+    delete d[todayKey];
+    save(d);
+  }
+  currentShift = null;
+  showToast('Today\'s checklist cleared ✓', 'ok');
   buildDayRail();
   renderDay();
 }
