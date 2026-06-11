@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611115401">
-<meta name="app-version" content="20260611115401">
+<meta http-equiv="Expires" content="20260611120748">
+<meta name="app-version" content="20260611120748">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611115401';
+  var v = '20260611120748';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2305,7 +2305,7 @@ function openStaffDetail(s) {
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
     const isService = ['service','oic'].includes(s.role);
-    html += `<div style="display:grid;grid-template-columns:${isService?'1fr 1fr 1fr 1fr':'1fr 1fr 1fr'};gap:8px;margin-bottom:14px;text-align:center;">
+    html += `<div style="display:grid;grid-template-columns:${isService?'1fr 1fr':'1fr 1fr 1fr'};gap:8px;margin-bottom:14px;text-align:center;">
       <div style="background:#EFF6FF;border-radius:10px;padding:10px;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 Opening</div>
         <div style="font-size:20px;font-weight:700;color:${oColor}">${opO!=null?opO+'%':'—'}</div>
