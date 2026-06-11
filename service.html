@@ -304,7 +304,13 @@ function pushToFirebase(record) {
       });
       cleanRecord.taskData = cleanTasks;
     }
+    // Check if name is in registry — flag for dashboard display
+    const _regNames = await loadRegistryNames();
+    const _norm = (staffName||'').toLowerCase().trim().replace(/\s+/g,' ');
+    const _inRegistry = _regNames ? _regNames.includes(_norm) : true;
+
     _db.ref('submissions/' + key).set({
+      inRegistry: _inRegistry,
       ...cleanRecord,
       lastUpdated: new Date().toISOString()
     }).then(() => {
@@ -1282,14 +1288,11 @@ function fmtTimeOnly(iso) {
 }
 
 // ── Submit day ────────────────────────────────────────────────
-async function submitOpening() {
+async async function submitOpening() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
-  // Validate name against registry
-  const nameValid = await validateStaffName(name);
-  if (!nameValid) { showToast('❌ Name not found in registry. Please enter your full registered name.', 'warn'); document.getElementById('fName').focus(); return; }
   const openingTasks = SECTIONS[0].tasks;
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
@@ -1353,15 +1356,12 @@ async function submitOpening() {
   buildDayRail(); renderDay();
 }
 
-async function submitDay() {
+async async function submitDay() {
   const name = getStaffName();
   const closerName = name;
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
-  // Validate name against registry
-  const nameValid = await validateStaffName(name);
-  if (!nameValid) { showToast('❌ Name not found in registry. Please enter your full registered name.', 'warn'); document.getElementById('fName').focus(); return; }
   const closingTasks = SECTIONS[1].tasks;
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
