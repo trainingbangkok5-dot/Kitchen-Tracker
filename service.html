@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611240000';
+  var v = '20260611260000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611240000">
-<meta name="app-version" content="20260611240000">
+<meta http-equiv="Expires" content="20260611260000">
+<meta name="app-version" content="20260611260000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -1285,18 +1285,24 @@ async function submitOpening() {
       // Collect all photo slots for this task
       const _tdOpen = load()[getTodayKey()] || {};
       const _allPhotosOpen = [];
-      // Collect all Cloudinary URLs (photoUrl, photoUrl_1...) — these are the permanent URLs
+      // Collect Cloudinary URLs first (photoUrl, photoUrl_1...)
       ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
         const p = _tdOpen[t.id]?.[pk];
         if (p && p.startsWith('http') && !_allPhotosOpen.includes(p)) _allPhotosOpen.push(p);
+      });
+      // If no Cloudinary URLs yet, check if local photos exist (base64 slots)
+      // hasPhoto flag tells dash a photo was taken even if URL not ready
+      const _hasLocalPhotos = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+        const p = _tdOpen[t.id]?.[pk];
+        return p && p.startsWith('data:');
       });
       openingTaskData[`d1_${t.id}`] = {
         day: currentDay, section: SECTIONS[0].title,
         task: t.text, owner: t.ownerLbl,
         yn: yn||'', comment: comment2,
-        photoUrl: _allPhotosOpen[0] || pUrl || '',
+        photoUrl: _allPhotosOpen[0] || (pUrl && pUrl.startsWith('http') ? pUrl : '') || '',
         photoUrls: _allPhotosOpen,
-        hasPhoto: _allPhotosOpen.length > 0 || !!(pUrl||photo),
+        hasPhoto: _allPhotosOpen.length > 0 || _hasLocalPhotos || !!(pUrl||photo),
       };
     }
   });
@@ -1389,14 +1395,19 @@ async function submitDay() {
           const yn    = _tdData[t.id]?.yn;
           const photo = _tdData[t.id]?.photo || _tdData[t.id]?.photo_0;
           const pUrl  = _tdData[t.id]?.photoUrl;
-          // Collect ALL photo slots — use photoUrl_N keys (Cloudinary URLs)
+          // Collect ALL Cloudinary URLs
           const _allPhotos = [];
           ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
             const p = _tdData[t.id]?.[pk];
             if (p && p.startsWith('http') && !_allPhotos.includes(p)) _allPhotos.push(p);
           });
           const finalPhotoUrl = _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : '');
-          if (yn || photo || pUrl || _allPhotos.length > 0) {
+          // hasPhoto true if any local base64 photo exists even if Cloudinary not done
+          const _hasLocalClose = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+            const p = _tdData[t.id]?.[pk];
+            return p && p.startsWith('data:');
+          });
+          if (yn || photo || pUrl || _allPhotos.length > 0 || _hasLocalClose) {
             tasks[`d1_${t.id}`] = {
               day: 1,
               section: s.title,
@@ -1406,6 +1417,7 @@ async function submitDay() {
               comment: _tdData[t.id]?.comment||'',
               photoUrl: finalPhotoUrl,
               photoUrls: _allPhotos,
+              hasPhoto: _allPhotos.length > 0 || _hasLocalClose,
             };
           }
         });

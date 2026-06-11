@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611200000">
-<meta name="app-version" content="20260611200000">
+<meta http-equiv="Expires" content="20260611260000">
+<meta name="app-version" content="20260611260000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611200000';
+  var v = '20260611260000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2244,7 +2244,11 @@ function buildPhotoHtml(t) {
     pi++;
     if (pi > 10) break;
   }
-  if (!imgs.length) return '';
+  // 3) If no URLs but hasPhoto flag set — show placeholder
+  if (!imgs.length) {
+    if (t.hasPhoto) return '<span style="font-size:11px;color:#0F766E;background:#DCFCE7;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;">📷 Photo taken</span>';
+    return '';
+  }
   return imgs.map(url =>
     url.startsWith('db:')
       ? `<img data-dbref="${url.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;display:none;">`
@@ -6153,7 +6157,7 @@ async function saveFOHOverwrite(staff) {
       Object.entries(updatedTasks).forEach(([k, t]) => {
         if (!t.yn || t.yn === 'na') return;
         // Determine task type by ID suffix
-        const taskId = k.replace(/^d\d+_/, ''); // strip day prefix e.g. d1_o1 -> o1
+        const taskId = k.replace(/^d[0-9]+_/, ''); // strip day prefix e.g. d1_o1 -> o1
         const isOic   = oicTaskIds.includes(taskId);
         const isOpen  = openTaskIds.includes(taskId);
         const isClose = closeTaskIds.includes(taskId);
