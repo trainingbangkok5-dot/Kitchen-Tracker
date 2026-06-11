@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611140000">
-<meta name="app-version" content="20260611140000">
+<meta http-equiv="Expires" content="20260611160000">
+<meta name="app-version" content="20260611160000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611140000';
+  var v = '20260611160000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1381,12 +1381,27 @@ function loadData() {
     const rawFiltered = filterByRole(raw);
     const dedupBOH = {};
     rawFiltered.forEach(s => {
-      if (!s.staffName) return; // skip submissions with no name
-      // Use date of submission (not week) to avoid week format mismatch
+      if (!s.staffName) return;
       const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
-      if (!dedupBOH[key] || new Date(s.submittedAt||0) > new Date(dedupBOH[key].submittedAt||0)) {
-        dedupBOH[key] = s;
+      if (!dedupBOH[key]) {
+        dedupBOH[key] = {...s};
+      } else {
+        // Merge opening+closing — preserve both scores, never discard either
+        const m = dedupBOH[key];
+        if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
+        if (s.closingPct != null && m.closingPct == null) m.closingPct = s.closingPct;
+        if (s.taskData) {
+          if (!m.taskData) m.taskData = {};
+          Object.assign(m.taskData, s.taskData);
+        }
+        // Recalculate overallPct from both shifts
+        const scores = [m.openingPct, m.closingPct].filter(v => v != null);
+        if (scores.length > 0) m.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+        // Keep latest submittedAt
+        if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
+        if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
+        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
       }
     });
     allStaff = Object.values(dedupBOH);
@@ -1405,11 +1420,27 @@ function loadData() {
     const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
     const dedupMap = {};
     combined.forEach(s => {
-      if (!s.staffName) return; // skip submissions with no name
+      if (!s.staffName) return;
       const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
-      if (!dedupMap[key] || new Date(s.submittedAt||0) > new Date(dedupMap[key].submittedAt||0)) {
-        dedupMap[key] = s;
+      if (!dedupMap[key]) {
+        dedupMap[key] = {...s};
+      } else {
+        // Merge opening+closing — preserve both scores, never discard either
+        const m = dedupMap[key];
+        if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
+        if (s.closingPct != null && m.closingPct == null) m.closingPct = s.closingPct;
+        if (s.taskData) {
+          if (!m.taskData) m.taskData = {};
+          Object.assign(m.taskData, s.taskData);
+        }
+        // Recalculate overallPct from both shifts
+        const scores = [m.openingPct, m.closingPct].filter(v => v != null);
+        if (scores.length > 0) m.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+        // Keep latest submittedAt
+        if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
+        if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
+        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
       }
     });
     allStaff = Object.values(dedupMap);
@@ -2305,7 +2336,7 @@ function openStaffDetail(s) {
     </div>`;
 
   // Score boxes — opening/oic eval/closing/total
-  if (opO !== null || opC !== null || ['service','oic'].includes(s.role)) {
+  if (opO !== null || opC !== null || ['service','oic','bartender','delco'].includes(s.role)) {
     const oColor = opO===null?'#94A3B8':opO>=95?'#15803D':opO>=70?'#D97706':'#B91C1C';
     const cColor = opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C';
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
@@ -5542,26 +5573,38 @@ function openFOHDetail(idx) {
         <div class="sb-lbl" style="font-size:11px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:4px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
       </div>
     </div>` : `
-    <div style="display:grid;grid-template-columns:1fr 1fr ${isService?'':'1fr'};gap:8px;margin-bottom:14px;">
-      <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">OPENING</div>
-        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(oPctFoh!=null?oPctFoh:op)}">${oPctFoh!=null?oPctFoh+'%':op>0?op+'%':'—'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">
+      <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 OPENING</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'}">${oPctFoh!=null?oPctFoh+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'Not submitted':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
-      ${isService ? `
-      <div data-scorebox="oic" style="background:#F5F3FF;border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">OIC EVAL</div>
+      <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 CLOSING</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'Not submitted':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+      </div>
+    </div>
+    ${isService ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
+      <div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">👥 OIC EVAL</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
-      </div>` : `
-      <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">CLOSING</div>
-        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(cPctFoh!=null?cPctFoh:op)}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'};margin-top:2px;">${oicPctFoh===null?'Pending OIC':oicPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
-      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">TOTAL</div>
+      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(op)}">${op>0?op+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Qualified':'❌ Not Qualified'}</div>
-      </div>`}
-    </div>`}
+      </div>
+    </div>` : `
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:14px;text-align:center;">
+      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(op)}">${op>0?op+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Qualified':'❌ Not Qualified'}</div>
+      </div>
+    </div>`}`}
 
     ${oicStatus ? `<div style="margin-bottom:14px;">${oicStatus}</div>` : ''}
     <div id="fohChecklistArea" style="margin-top:4px;">
@@ -5681,13 +5724,7 @@ function openFOHDetail(idx) {
               ${t.owner ? `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;${ownerStyle};white-space:nowrap;">${t.owner}</span>` : ''}
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.task || t.text || '—'}</div>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
-              <div class="foh-photo-display">
-              ${t.photoUrl
-                ? t.photoUrl.startsWith('db:')
-                  ? `<img data-fohdbref="${t.photoUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;display:none;" onerror="this.style.display='none'">`
-                  : `<img src="${t.photoUrl}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
-                : ''}
-              </div>
+              <div class="foh-photo-display">${buildPhotoHtml(t)}</div>
             </div>
             <div class="foh-yn-display" style="flex-shrink:0;">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
