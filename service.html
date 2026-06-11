@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611130000';
+  var v = '20260611170000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611130000">
-<meta name="app-version" content="20260611130000">
+<meta http-equiv="Expires" content="20260611170000">
+<meta name="app-version" content="20260611170000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -210,21 +210,30 @@ const FIREBASE_CONFIG = {
 // ══════════════════════════════════════════════════════════════
 
 // Update photo ref in existing Firebase submission after async upload completes
-async function updatePhotoInSubmission(staffName, taskId, dbRef) {
+async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
   if (!_db || !staffName) return;
   try {
-    const key = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
-    // Find the most recent submission for this staff+role+week and update the task photoUrl
+    // Save to the correct slot key — same as local storage
+    const photoKey = (slotIdx === undefined || slotIdx === 0) ? 'photoUrl' : 'photoUrl_' + slotIdx;
     const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
     if (!snap.exists()) return;
     const updates = {};
     snap.forEach(child => {
       const sub = child.val();
       if (sub.role === ROLE && sub.week === getWeekStart() && sub.taskData) {
-        // Find matching task key (any day)
         Object.keys(sub.taskData).forEach(k => {
-          if (k.endsWith('_' + taskId)) {
-            updates['submissions/' + child.key + '/taskData/' + k + '/photoUrl'] = dbRef;
+          if (k === 'd1_' + taskId || k.endsWith('_' + taskId)) {
+            updates['submissions/' + child.key + '/taskData/' + k + '/' + photoKey] = dbRef;
+            // Also rebuild photoUrls array from all current URL slots
+            const existing = sub.taskData[k] || {};
+            const allUrls = [];
+            ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach((pk, idx) => {
+              const url = idx === (slotIdx||0) ? dbRef : (existing[pk] || '');
+              if (url && url.startsWith('http')) allUrls.push(url);
+            });
+            if (allUrls.length > 0) {
+              updates['submissions/' + child.key + '/taskData/' + k + '/photoUrls'] = allUrls;
+            }
           }
         });
       }
@@ -1250,9 +1259,10 @@ async function submitOpening() {
       // Collect all photo slots for this task
       const _tdOpen = load()[getTodayKey()] || {};
       const _allPhotosOpen = [];
-      ['photo','photo_1','photo_2','photo_3','photo_4'].forEach(pk => {
+      // Collect all Cloudinary URLs (photoUrl, photoUrl_1...) — these are the permanent URLs
+      ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
         const p = _tdOpen[t.id]?.[pk];
-        if (p && p.startsWith('http')) _allPhotosOpen.push(p);
+        if (p && p.startsWith('http') && !_allPhotosOpen.includes(p)) _allPhotosOpen.push(p);
       });
       openingTaskData[`d1_${t.id}`] = {
         day: currentDay, section: SECTIONS[0].title,
@@ -1351,11 +1361,11 @@ async function submitDay() {
         const yn    = _tdData[t.id]?.yn;
         const photo = _tdData[t.id]?.photo || _tdData[t.id]?.photo_0;
         const pUrl  = _tdData[t.id]?.photoUrl;
-        // Collect ALL photo slots — preserve all photos including after overwrite
+        // Collect ALL photo slots — use photoUrl_N keys (Cloudinary URLs)
         const _allPhotos = [];
-        ['photo','photo_1','photo_2','photo_3','photo_4'].forEach(pk => {
+        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
           const p = _tdData[t.id]?.[pk];
-          if (p && p.startsWith('http')) _allPhotos.push(p);
+          if (p && p.startsWith('http') && !_allPhotos.includes(p)) _allPhotos.push(p);
         });
         const finalPhotoUrl = _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : '');
         if (yn || photo || pUrl || _allPhotos.length > 0) {
@@ -1452,15 +1462,17 @@ function handlePhotoFile(file) {
     renderDay();
     showToast('Photo saved ✓', 'ok');
 
-    // Save compressed photo to Firebase Realtime Database
+    // Save compressed photo to Firebase / Cloudinary
     const staffName = getStaffName();
     if (staffName && _db) {
       const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
       if (dbRef) {
-        setVal(currentDay, taskId, 'photoUrl', dbRef);
+        // Save Cloudinary URL to the SAME slot key as the local base64 — not always 'photoUrl'
+        const cloudSlotKey = slotIdx === 0 ? 'photoUrl' : 'photoUrl_' + slotIdx;
+        setVal(currentDay, taskId, cloudSlotKey, dbRef);
         showToast('Photo synced ✓', 'ok');
-        // Update existing Firebase submission record with the db: photo ref
-        updatePhotoInSubmission(staffName, taskId, dbRef);
+        // Update Firebase submission with the new URL in the correct slot
+        updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx);
       }
     }
   });
