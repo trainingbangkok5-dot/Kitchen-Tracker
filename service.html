@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611110245';
+  var v = '20260611130000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611110245">
-<meta name="app-version" content="20260611110245">
+<meta http-equiv="Expires" content="20260611130000">
+<meta name="app-version" content="20260611130000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -862,85 +862,14 @@ function renderDay() {
     if (currentShift === 'closing' && isOpenSection) return;
     // OIC sections always accessible when unlocked
 
-    // OIC sections — filled by OIC from Master Dashboard only
+    // OIC sections — staff never sees results, always shows locked panel
     if (isOicSection && !oicPanelAdded) {
       oicPanelAdded = true;
       const oicPanel = document.createElement('div');
       oicPanel.id = 'oicEvalPanel';
       oicPanel.style.cssText = 'margin:16px 0 8px;';
-      // Build OIC tasks list from all oicOnly sections
-      const allOicTasks = SECTIONS.filter(s => s.oicOnly).flatMap(s => s.tasks.map(t => ({...t, sectionTitle: s.title})));
-      // Try to load OIC observation from Firebase
-      const staffName = getStaffName();
-      const todayDate = getDubaiDateStr();
-      if (staffName && _db) {
-        oicPanel.innerHTML = '';
-        container.appendChild(oicPanel);
-        // Fetch from Firebase
-        const shiftSuffix = '_opening'; // check both shifts
-        const keyBase = staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_');
-        const fetchOIC = async () => {
-          try {
-            const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(10).once('value');
-            let oicTasks = {};
-            if (snap.exists()) {
-              snap.forEach(child => {
-                const sub = child.val();
-                if (sub.role !== ROLE) return;
-                if (sub.taskData) {
-                  const oicIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
-                  Object.entries(sub.taskData).forEach(([k, v]) => {
-                    if (oicIds.some(id => k === id || k.endsWith('_'+id))) {
-                      const id = k.replace(/^d\d+_/, '');
-                      if (v && v.yn) oicTasks[id] = v;
-                    }
-                  });
-                }
-              });
-            }
-            const hasOIC = Object.keys(oicTasks).length > 0;
-            let panelHtml = '';
-            if (!hasOIC) {
-              panelHtml = `<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;">
-                <div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑‍💼 OIC Observation</div>
-                <div style="font-size:12px;color:#64748B;">This section is filled by the OIC from the<br><strong>Master Dashboard</strong> after you submit.</div>
-              </div>`;
-            } else {
-              let oicY = 0, oicT = 0;
-              panelHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;border-radius:10px 10px 0 0;">🧑‍💼 OIC Observation Results</div>';
-              let lastSection = '';
-              allOicTasks.forEach(t => {
-                const v = oicTasks[t.id] || {};
-                const yn = v.yn || '';
-                if (yn && yn !== 'na') { oicT++; if (yn === 'yes') oicY++; }
-                if (t.sectionTitle !== lastSection) {
-                  lastSection = t.sectionTitle;
-                  panelHtml += `<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.sectionTitle}</div>`;
-                }
-                const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
-                const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
-                const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'— N/A':'—';
-                panelHtml += `<div style="background:#fff;padding:10px 14px;border-bottom:.5px solid #E2E8F0;display:flex;align-items:center;gap:10px;">
-                  <div style="flex:1;font-size:12px;font-weight:500;">${t.text}</div>
-                  <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
-                </div>`;
-              });
-              const oicPct = oicT > 0 ? Math.round((oicY/oicT)*100) : 0;
-              panelHtml += `<div style="background:#fff;padding:10px 14px;border-radius:0 0 10px 10px;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;font-weight:600;color:#475569;">OIC Score</span>
-                <span style="font-size:16px;font-weight:700;color:${oicPct>=95?'#15803D':'#B91C1C'};">${oicPct}%</span>
-              </div>`;
-            }
-            oicPanel.innerHTML = panelHtml;
-          } catch(e) {
-            oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;font-size:12px;color:#64748B;">🧑‍💼 OIC Observation — filled by OIC from Master Dashboard</div>';
-          }
-        };
-        fetchOIC();
-      } else {
-        oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;"><div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑‍💼 OIC Observation</div><div style="font-size:12px;color:#64748B;">Submit your checklist first, then the OIC will evaluate your performance from the Master Dashboard.</div></div>';
-        container.appendChild(oicPanel);
-      }
+      oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;"><div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑\u200d💼 OIC Observation</div><div style="font-size:12px;color:#64748B;">This section is filled by the OIC from the<br><strong>Master Dashboard</strong> after you submit.</div></div>';
+      container.appendChild(oicPanel);
     }
 
     // Skip OIC sections — shown via panel above, not as individual task cards
@@ -1318,12 +1247,20 @@ async function submitOpening() {
     const photo= getVal(currentDay, t.id, 'photo');
     const comment2 = getVal(currentDay, t.id, 'comment') || '';
     if (yn) {
+      // Collect all photo slots for this task
+      const _tdOpen = load()[getTodayKey()] || {};
+      const _allPhotosOpen = [];
+      ['photo','photo_1','photo_2','photo_3','photo_4'].forEach(pk => {
+        const p = _tdOpen[t.id]?.[pk];
+        if (p && p.startsWith('http')) _allPhotosOpen.push(p);
+      });
       openingTaskData[`d1_${t.id}`] = {
         day: currentDay, section: SECTIONS[0].title,
         task: t.text, owner: t.ownerLbl,
         yn: yn||'', comment: comment2,
-        photoUrl: pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : ''),
-        hasPhoto: !!(pUrl||photo),
+        photoUrl: _allPhotosOpen[0] || pUrl || '',
+        photoUrls: _allPhotosOpen,
+        hasPhoto: _allPhotosOpen.length > 0 || !!(pUrl||photo),
       };
     }
   });
@@ -1367,18 +1304,18 @@ async function submitDay() {
   d[todayKey2]._done       = new Date().toISOString(); // keep _done for compatibility
   save(d);
 
-  // Calc overall — split by opening and closing
+  // Calc overall — today only, split by opening (si=0) and closing (si=1)
   let tY=0,tM=0,oY=0,oM=0,cY=0,cM=0;
-  for(let dd=1;dd<=6;dd++){
-    SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
-      const v=getVal(dd,t.id,'yn');
-      if(v&&v!=='na'){
-        tM++;if(v==='yes')tY++;
-        if(si===0){oM++;if(v==='yes')oY++;}
-        else{cM++;if(v==='yes')cY++;}
-      }
-    }));
-  }
+  const _tdSubmit = load()[getTodayKey()] || {};
+  SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
+    if(s.oicOnly) return;
+    const v=_tdSubmit[t.id]?.yn;
+    if(v&&v!=='na'){
+      tM++;if(v==='yes')tY++;
+      if(si===0){oM++;if(v==='yes')oY++;}
+      else if(si===1){cM++;if(v==='yes')cY++;}
+    }
+  }));
   const op=tM>0?Math.round((tY/tM)*100):0;
   const opO=oM>0?Math.round((oY/oM)*100):null;
   const opC=cM>0?Math.round((cY/cM)*100):null;
@@ -1406,29 +1343,34 @@ async function submitDay() {
       }));
       return photos;
     })(),
-    // Store full task responses for dashboard detail view
+    // Store full task responses for dashboard detail view — today only
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo') || getVal(dd, t.id, 'photo_0');
-          const pUrl  = getVal(dd, t.id, 'photoUrl');
-          // Always use latest photo — prefer Cloudinary URL, fall back to local base64
-          const finalPhotoUrl = (pUrl && pUrl.startsWith('http')) ? pUrl : ''; // Cloudinary URL only
-          if (yn || photo || pUrl) {
-            tasks[`d${dd}_${t.id}`] = {
-              day: dd,
-              section: s.title,
-              task: t.text,
-              owner: t.ownerLbl,
-              yn: yn||'',
-              comment: getVal(dd, t.id, 'comment')||'',
-              photoUrl: finalPhotoUrl,
-            };
-          }
-        }));
-      }
+      const _tdData = load()[getTodayKey()] || {};
+      SECTIONS.forEach(s => s.tasks.forEach(t => {
+        const yn    = _tdData[t.id]?.yn;
+        const photo = _tdData[t.id]?.photo || _tdData[t.id]?.photo_0;
+        const pUrl  = _tdData[t.id]?.photoUrl;
+        // Collect ALL photo slots — preserve all photos including after overwrite
+        const _allPhotos = [];
+        ['photo','photo_1','photo_2','photo_3','photo_4'].forEach(pk => {
+          const p = _tdData[t.id]?.[pk];
+          if (p && p.startsWith('http')) _allPhotos.push(p);
+        });
+        const finalPhotoUrl = _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : '');
+        if (yn || photo || pUrl || _allPhotos.length > 0) {
+          tasks[`d1_${t.id}`] = {
+            day: 1,
+            section: s.title,
+            task: t.text,
+            owner: t.ownerLbl,
+            yn: yn||'',
+            comment: _tdData[t.id]?.comment||'',
+            photoUrl: finalPhotoUrl,
+            photoUrls: _allPhotos,
+          };
+        }
+      }));
       return tasks;
     })(),
     submittedAt:new Date().toISOString(),
@@ -1449,11 +1391,13 @@ function doOverwrite() {
   if (!checkOverwritePin(code)) { showToast('Wrong PIN — access denied 🔒', 'error'); return; }
   const d = load();
   if (d[getTodayKey()]) {
+    // Only delete submission flags — preserve all task answers and photos
     delete d[getTodayKey()]._done;
     delete d[getTodayKey()]._closeDone;
     delete d[getTodayKey()]._openDone;
     d[getTodayKey()]._overwritten = true;
     d[getTodayKey()]._overwrittenAt = new Date().toISOString();
+    // Note: task answers (yn, photo, photo_1..4, photoUrl) are preserved intentionally
   }
   save(d);
   showToast(`Day ${currentDay} unlocked — edit tasks then Resubmit ✓`, 'ok');

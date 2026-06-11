@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611130720">
-<meta name="app-version" content="20260611130720">
+<meta http-equiv="Expires" content="20260611140000">
+<meta name="app-version" content="20260611140000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611130720';
+  var v = '20260611140000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2188,18 +2188,22 @@ function openWeeklyDetail(staffName, week) {
 
 // ── Multi-photo helper ──────────────────────────────────────
 function buildPhotoHtml(t) {
+  const seen = new Set();
   const imgs = [];
-  // Collect all photo keys: photoUrl, photoUrl_1, photoUrl_2...
+  // 1) Read photoUrls array (new format from service.html fix)
+  if (Array.isArray(t.photoUrls)) {
+    t.photoUrls.forEach(url => { if (url && !seen.has(url)) { seen.add(url); imgs.push(url); } });
+  }
+  // 2) Read photoUrl, photoUrl_1, photoUrl_2... (sequential keys)
   let pi = 0;
   while (true) {
     const key = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
-    // Also check photo key as fallback
     const fallback = pi === 0 ? 'photo' : 'photo_' + pi;
     const url = t[key] || t[fallback];
     if (!url) break;
-    imgs.push(url);
+    if (!seen.has(url)) { seen.add(url); imgs.push(url); }
     pi++;
-    if (pi > 10) break; // safety limit
+    if (pi > 10) break;
   }
   if (!imgs.length) return '';
   return imgs.map(url =>
@@ -2357,8 +2361,15 @@ function openStaffDetail(s) {
   if (s.taskData) {
     Object.keys(s.taskData).forEach(k => {
       const t = s.taskData[k];
-      // Copy all photo keys from local storage format to photoUrl format
       if (t) {
+        // Unpack photoUrls array into sequential photoUrl keys so buildPhotoHtml works
+        if (Array.isArray(t.photoUrls) && t.photoUrls.length > 0) {
+          t.photoUrls.forEach((url, idx) => {
+            const uk = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
+            if (!t[uk]) t[uk] = url;
+          });
+        }
+        // Copy photo_N -> photoUrl_N
         let _pi = 0;
         while (true) {
           const _pk = _pi === 0 ? 'photo' : 'photo_' + _pi;
@@ -4596,6 +4607,11 @@ async function saveOverwrite(s) {
   // Preserve all existing photos — never delete staff photos during overwrite
   if (s.taskData) {
     Object.entries(s.taskData).forEach(([k, t]) => {
+      // Preserve photoUrls array (new format)
+      if (Array.isArray(t.photoUrls) && t.photoUrls.length > 0) {
+        updates['submissions/' + fbKey + '/taskData/' + k + '/photoUrls'] = t.photoUrls;
+      }
+      // Preserve sequential photoUrl keys
       let pi = 0;
       while (true) {
         const pk = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
