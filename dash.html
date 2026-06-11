@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611072223">
-<meta name="app-version" content="20260610220529">
+<meta http-equiv="Expires" content="20260611073235">
+<meta name="app-version" content="20260611073235">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611072223';
+  var v = '20260611073235';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2277,12 +2277,23 @@ function openStaffDetail(s) {
         ${s.verifiedBy
           ? `<div style="font-size:12px;font-weight:700;color:#15803D;">✅ ${s.verifiedBy}</div>
              <div style="font-size:10px;color:#94A3B8;margin-top:2px;">📅 ${s.verifiedAt ? new Date(s.verifiedAt).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>`
-          : `<div style="display:flex;gap:6px;margin-top:4px;">
+          : ((function() {
+              const subRole = s.role || '';
+              const canVerify =
+                ['training','operations','director','ceo'].includes(currentRole) ||
+                (currentRole === 'kic'          && ['steward','linecook'].includes(subRole)) ||
+                (currentRole === 'oic'          && ['service','bartender','delco'].includes(subRole)) ||
+                (currentRole === 'areachef'     && ['linecook','steward','kic'].includes(subRole)) ||
+                (currentRole === 'areamanager'  && ['oic','service','bartender','delco'].includes(subRole));
+              return canVerify;
+            })()
+            ? `<div style="display:flex;gap:6px;margin-top:4px;">
                <input id="verifyNameInput" type="text" placeholder="Enter your name..." value=""
                  style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
                <button onclick="saveVerification()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✅ Verify</button>
              </div>
-             <div style="font-size:10px;color:#F59E0B;font-weight:600;margin-top:4px;">🟡 Pending verification</div>`
+             <div style="font-size:10px;color:#F59E0B;font-weight:600;margin-top:4px;">⚪ Pending verification</div>`
+            : `<div style="font-size:10px;color:#F59E0B;font-weight:600;margin-top:4px;">⚪ Pending verification</div>`)
         }
       </div>
     </div>`;
