@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611123436">
-<meta name="app-version" content="20260611123436">
+<meta http-equiv="Expires" content="20260611130720">
+<meta name="app-version" content="20260611130720">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611123436';
+  var v = '20260611130720';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2305,31 +2305,49 @@ function openStaffDetail(s) {
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
     const isService = ['service','oic'].includes(s.role);
-    const oicBox = isService ? (
-      '<div style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
-      '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">👥 OIC Eval</div>' +
-      '<div style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
-      '<div style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?'Pending OIC':oicEvalPct>=95?'✓ Pass':'✗ Below target') + '</div>' +
+    // Build all 4 score boxes as separate rows for mobile compatibility
+    const scoreRows = [];
+    scoreRows.push(
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
+        '<div style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
+          '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
+          '<div style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
+          '<div style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
+        '</div>' +
+        '<div style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
+          '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
+          '<div style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
+          '<div style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
+        '</div>' +
       '</div>'
-    ) : '';
-    html += '<div style="display:grid;grid-template-columns:' + (isService?'1fr 1fr':'1fr 1fr 1fr') + ';gap:8px;margin-bottom:14px;text-align:center;">' +
-      '<div style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
-        '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 Opening</div>' +
-        '<div style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
-        '<div style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below target') + '</div>' +
-      '</div>' +
-      oicBox +
-      '<div style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
-        '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 Closing</div>' +
-        '<div style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
-        '<div style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target') + '</div>' +
-      '</div>' +
-      '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
-        '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 Total</div>' +
-        '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>' +
-        '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (sc>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
-      '</div>' +
-    '</div>';
+    );
+    if (isService) {
+      scoreRows.push(
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
+          '<div style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">👥 OIC EVAL</div>' +
+            '<div style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
+            '<div style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?'Pending OIC':oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+          '</div>' +
+          '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
+            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>' +
+            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (sc>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    } else {
+      scoreRows.push(
+        '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
+          '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
+            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>' +
+            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (sc>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+    html += scoreRows.join('');
   }
 
   // Task checklist
