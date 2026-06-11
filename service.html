@@ -304,13 +304,7 @@ function pushToFirebase(record) {
       });
       cleanRecord.taskData = cleanTasks;
     }
-    // Check if name is in registry — flag for dashboard display
-    const _regNames = await loadRegistryNames();
-    const _norm = (staffName||'').toLowerCase().trim().replace(/\s+/g,' ');
-    const _inRegistry = _regNames ? _regNames.includes(_norm) : true;
-
     _db.ref('submissions/' + key).set({
-      inRegistry: _inRegistry,
       ...cleanRecord,
       lastUpdated: new Date().toISOString()
     }).then(() => {
