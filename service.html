@@ -477,34 +477,38 @@ function pushToMasterDashboard(record) {
 }
 
 // ── Cross-device Camera & Gallery ────────────────────────────
-function triggerCamera() {
-  // OPPO fix: clone and replace input to force fresh state
-  const old = document.getElementById('camInput');
-  if (!old) return;
-  const input = old.cloneNode(true);
-  input.setAttribute('capture', 'environment');
-  input.setAttribute('accept', 'image/*');
+function _setupFileInput(id, withCapture) {
+  // Remove old input and create fresh one — fixes OPPO and other Android browsers
+  const old = document.getElementById(id);
+  if (!old) return null;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.id = id;
+  input.accept = 'image/*';
+  input.style.cssText = 'position:absolute;top:0;left:0;opacity:0;width:0.1px;height:0.1px;overflow:hidden;pointer-events:none;';
+  if (withCapture) {
+    input.setAttribute('capture', 'environment');
+  }
   old.parentNode.replaceChild(input, old);
   input.addEventListener('change', function(e) {
     const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
-    if (file) { handlePhotoFile(file); setTimeout(() => { try { this.value = ''; } catch(e2) {} }, 600); }
+    if (file) {
+      closePhotoModal();
+      handlePhotoFile(file);
+      setTimeout(() => { try { input.value = ''; } catch(e2) {} }, 600);
+    }
   });
-  setTimeout(() => input.click(), 50);
+  return input;
+}
+
+function triggerCamera() {
+  const input = _setupFileInput('camInput', true);
+  if (input) setTimeout(() => input.click(), 100);
 }
 
 function triggerGallery() {
-  // OPPO fix: clone and replace input to force fresh state
-  const old = document.getElementById('galInput');
-  if (!old) return;
-  const input = old.cloneNode(true);
-  input.removeAttribute('capture');
-  input.setAttribute('accept', 'image/*');
-  old.parentNode.replaceChild(input, old);
-  input.addEventListener('change', function(e) {
-    const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
-    if (file) { handlePhotoFile(file); setTimeout(() => { try { this.value = ''; } catch(e2) {} }, 600); }
-  });
-  setTimeout(() => input.click(), 50);
+  const input = _setupFileInput('galInput', false);
+  if (input) setTimeout(() => input.click(), 100);
 }
 
 function iosPhotoFix(inputEl, onDataUrl) {
