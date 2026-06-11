@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611065921">
+<meta http-equiv="Expires" content="20260611071102">
 <meta name="app-version" content="20260610220529">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611065921';
+  var v = '20260611071102';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1568,21 +1568,22 @@ function renderStaff() {
     if (!subMap[k]) {
       subMap[k] = {...s};
     } else {
-      // Merge: keep latest submittedAt, combine scores
-      if (new Date(s.submittedAt||0) > new Date(subMap[k].submittedAt||0)) {
-        const prevOpening = subMap[k].openingPct;
-        const prevClosing = subMap[k].closingPct;
-        subMap[k] = {...s};
-        // Preserve whichever score exists
-        if (subMap[k].openingPct == null && prevOpening != null) subMap[k].openingPct = prevOpening;
-        if (subMap[k].closingPct == null && prevClosing != null) subMap[k].closingPct = prevClosing;
-      } else {
-        if (subMap[k].openingPct == null && s.openingPct != null) subMap[k].openingPct = s.openingPct;
-        if (subMap[k].closingPct == null && s.closingPct != null) subMap[k].closingPct = s.closingPct;
-      }
+      // Always preserve both opening and closing scores
+      const merged = subMap[k];
+      // Keep whichever openingPct exists
+      if (merged.openingPct == null && s.openingPct != null) merged.openingPct = s.openingPct;
+      if (merged.closingPct == null && s.closingPct != null) merged.closingPct = s.closingPct;
+      // Keep verifiedBy from whichever has it
+      if (!merged.verifiedBy && s.verifiedBy) { merged.verifiedBy = s.verifiedBy; merged.verifiedAt = s.verifiedAt; }
+      // Keep startedAt from whichever has it
+      if (!merged.startedAt && s.startedAt) merged.startedAt = s.startedAt;
+      // Use latest submittedAt
+      if (new Date(s.submittedAt||0) > new Date(merged.submittedAt||0)) merged.submittedAt = s.submittedAt;
       // Recalc overall from merged scores
-      const scores = [subMap[k].openingPct, subMap[k].closingPct].filter(v => v != null);
-      if (scores.length) subMap[k].overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+      const scores = [merged.openingPct, merged.closingPct].filter(v => v != null);
+      if (scores.length > 1) merged.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+      else if (s.overallPct != null && parseFloat(s.overallPct) > (parseFloat(merged.overallPct)||0)) merged.overallPct = s.overallPct;
+      subMap[k] = merged;
     }
   });
 
@@ -2243,31 +2244,6 @@ function openStaffDetail(s) {
     pdfBtn.onclick = () => exportDetailPDF();
     const closeBtn = modalHeader.querySelector('.modal-close');
     if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
-    // Admin name bypass — fix unregistered name directly in Firebase
-    const bypassRoles = ['training','operations','director','ceo','areamanager','areachef'];
-    if (bypassRoles.includes(currentRole) && s._fbKey) {
-      const fixNameBtn = document.createElement('button');
-      fixNameBtn.style.cssText = 'padding:6px 12px;background:#F59E0B;border:none;color:#fff;font-size:11px;font-weight:700;border-radius:8px;cursor:pointer;margin-right:6px;';
-      fixNameBtn.textContent = '✏️ Fix Name';
-      fixNameBtn.onclick = function() {
-        const newName = prompt('Enter the correct registered name for this staff:', s.staffName||'');
-        if (!newName || !newName.trim()) return;
-        if (!confirm('Change name from "' + s.staffName + '" to "' + newName.trim() + '"?')) return;
-        if (!db) { alert('Not connected to database'); return; }
-        db.ref('submissions/' + s._fbKey).update({
-          staffName: newName.trim(),
-          nameOverrideBy: currentStaffName,
-          nameOverrideAt: new Date().toISOString()
-        }).then(() => {
-          showToast('Name updated ✓', 'ok');
-          s.staffName = newName.trim();
-          closeDetail();
-          loadData();
-        }).catch(e => showToast('Update failed: ' + e.message, 'error'));
-      };
-      document.getElementById('detailActions').appendChild(fixNameBtn);
-    }
-
     // Edit/Overwrite button — role-based access
     const canOverwrite = (
       (currentRole === 'kic' && ['linecook','steward'].includes(s.role)) ||
