@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611260000">
-<meta name="app-version" content="20260611260000">
+<meta http-equiv="Expires" content="20260611290000">
+<meta name="app-version" content="20260611290000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611260000';
+  var v = '20260611290000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2226,6 +2226,19 @@ function openWeeklyDetail(staffName, week) {
 }
 
 // ── Multi-photo helper ──────────────────────────────────────
+// Convert data: URL to Blob — works on all mobile browsers including iOS/Android
+function dataURLtoBlob(dataUrl) {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  } catch(e) { return null; }
+}
+
 function buildPhotoHtml(t) {
   const seen = new Set();
   const imgs = [];
@@ -4604,6 +4617,19 @@ function _editTakePhoto(taskKey, withCapture) {
       const preview = document.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
       if (preview) preview.innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;">`;
       _editPhotoChanges[taskKey] = e.target.result;
+      // Also try Cloudinary upload immediately using dataURLtoBlob
+      try {
+        const blob = dataURLtoBlob(e.target.result);
+        if (blob) {
+          const fd = new FormData();
+          fd.append('file', blob, 'photo.jpg');
+          fd.append('upload_preset', 'culex_uploads');
+          fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
+            .then(r => r.json())
+            .then(j => { if (j.secure_url) _editPhotoChanges[taskKey] = j.secure_url; })
+            .catch(() => {});
+        }
+      } catch(e2) {}
     };
     reader.readAsDataURL(file);
     setTimeout(() => { try { document.body.removeChild(input); } catch(e){} }, 1000);
@@ -4692,20 +4718,26 @@ async function saveOverwrite(s) {
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
   });
 
-  let yes = 0, total = 0, opY = 0, opM = 0, clY = 0, clM = 0;
-  Object.values(updatedTaskData).forEach(t => {
-    if (t.yn && t.yn !== 'na') {
-      total++; if (t.yn === 'yes') yes++;
-      const sec = (t.section||'').toLowerCase();
-      if (sec.includes('open')) { opM++; if (t.yn==='yes') opY++; }
-      else { clM++; if (t.yn==='yes') clY++; }
-    }
+  // Use task ID to identify opening/closing/OIC — never use section name (unreliable)
+  const _oicIds   = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+  const _openIds  = ['o1','o2','o3','o4','o5'];
+  const _closeIds = ['c1','c2','c3','c4','c5'];
+  let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
+  Object.entries(updatedTaskData).forEach(([k, t]) => {
+    if (!t.yn || t.yn === 'na') return;
+    const tid = k.replace(/^d[0-9]+_/, '');
+    if (_oicIds.includes(tid))   { eM++;  if (t.yn==='yes') eY++;  }
+    else if (_openIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
+    else if (_closeIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
 
-  const newScore     = total > 0 ? Math.round((yes/total)*100) : 0;
+  // overallPct = staff tasks only (opening + closing), NOT OIC eval
+  const staffT = opM + clM, staffY = opY + clY;
+  const newScore     = staffT > 0 ? Math.round((staffY/staffT)*100) : parseFloat(s.overallPct||0);
   const newQualified = newScore >= 95;
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
-  const clPct = clM > 0 ? Math.round((clY/clM)*100) : (s.closingPct != null ? parseFloat(s.closingPct) : null);
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null; // never fallback to old closingPct
+  const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : null;
 
   updates['submissions/' + fbKey + '/overallPct']    = newScore;
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
@@ -4713,6 +4745,7 @@ async function saveOverwrite(s) {
   updates['submissions/' + fbKey + '/overwrittenAt'] = new Date().toISOString();
   if (opPct !== null) updates['submissions/' + fbKey + '/openingPct'] = opPct;
   if (clPct !== null) updates['submissions/' + fbKey + '/closingPct'] = clPct;
+  if (ePct  !== null) updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
 
   try {
     await db.ref().update(updates);
@@ -5924,14 +5957,19 @@ function handleFOHEditPhoto(input) {
       preview.src = e.target.result;
     }
     showToast('Photo added ✓', 'ok');
-    // Upload to Cloudinary
-    const fd = new FormData();
-    fd.append('file', e.target.result);
-    fd.append('upload_preset', 'culex_uploads');
-    fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
-      .then(r => r.json())
-      .then(j => { if (j.secure_url) _fohEditChanges[taskKey].photoUrl = j.secure_url; })
-      .catch(() => {});
+    // Upload to Cloudinary using dataURLtoBlob (works on iOS/Android)
+    try {
+      const blob = dataURLtoBlob(e.target.result);
+      if (blob) {
+        const fd = new FormData();
+        fd.append('file', blob, 'photo.jpg');
+        fd.append('upload_preset', 'culex_uploads');
+        fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
+          .then(r => r.json())
+          .then(j => { if (j.secure_url) _fohEditChanges[taskKey].photoUrl = j.secure_url; })
+          .catch(() => {});
+      }
+    } catch(e2) {}
   };
   reader.readAsDataURL(file);
 }
