@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611260000';
+  var v = '20260611270000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611260000">
-<meta name="app-version" content="20260611260000">
+<meta http-equiv="Expires" content="20260611270000">
+<meta name="app-version" content="20260611270000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -1245,6 +1245,32 @@ function fmtTimeOnly(iso) {
   } catch(e) { return '—'; }
 }
 
+// ── Wait for Cloudinary uploads to complete ──────────────────
+async function waitForPhotoUploads(tasks, maxWaitMs) {
+  const start = Date.now();
+  const interval = 300;
+  while (Date.now() - start < maxWaitMs) {
+    const _td = load()[getTodayKey()] || {};
+    // Check if all tasks with local photos now have http URLs
+    const allDone = tasks.every(t => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+        const p = _td[t.id]?.[pk];
+        return p && p.startsWith('data:');
+      });
+      if (!hasLocal) return true; // no photo taken — OK
+      // Has local photo — check if at least one http URL exists
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => {
+        const p = _td[t.id]?.[pk];
+        return p && p.startsWith('http');
+      });
+    });
+    if (allDone) { showToast('Photos ready ✓', 'ok'); return; }
+    await new Promise(r => setTimeout(r, interval));
+  }
+  // Timeout — proceed anyway with whatever URLs we have
+  showToast('Submitting with available photos...', 'warn');
+}
+
 // ── Submit day ────────────────────────────────────────────────
 async function submitOpening() {
   const name = getStaffName();
@@ -1257,6 +1283,9 @@ async function submitOpening() {
   // Mandatory photo check
   const missingPhoto = openingTasks.filter(t => t.photo && !getVal(currentDay, t.id, 'photo'));
   if (missingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
+  // Wait for any pending Cloudinary uploads to finish (max 8 seconds)
+  showToast('⏳ Uploading photos...', 'ok');
+  await waitForPhotoUploads(SECTIONS[0].tasks, 8000);
   const d = load();
   const todayKey = getTodayKey();
   if (!d[todayKey]) d[todayKey] = {};
