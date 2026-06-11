@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611101312">
+<meta http-equiv="Expires" content="20260611111409">
 <meta name="app-version" content="20260611101312">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611101312';
+  var v = '20260611111409';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4969,7 +4969,7 @@ function loadBOHData() {
       snap.forEach(child => {
         const sub = child.val();
         if (!sub.staffName || !sub.role) return;
-        if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : 'unknown';
+        if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : (sub.lastUpdated ? sub.lastUpdated.substring(0,10) : new Date().toISOString().substring(0,10));
         const bohRoles = ['linecook','steward','kic'];
         if (!bohRoles.includes(sub.role)) return;
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
@@ -5292,8 +5292,9 @@ function loadFOHData() {
       let fohRaw = Object.values(grouped);
       // Role-based visibility filter
       if (currentRole === 'oic') {
-        // OIC sees service, delco, bartender from their outlet only
-        fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role) && s.outlet === currentOutlet);
+        // OIC sees service, delco, bartender from their outlet only (case-insensitive)
+        const oicOutlet = (currentOutlet||'').toLowerCase().trim();
+        fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role) && (s.outlet||'').toLowerCase().trim() === oicOutlet);
       } else if (currentRole === 'areamanager') {
         // Area Manager sees service, delco, bartender, oic
         fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role));
