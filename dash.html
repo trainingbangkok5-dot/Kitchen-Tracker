@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611160000">
-<meta name="app-version" content="20260611160000">
+<meta http-equiv="Expires" content="20260611190000">
+<meta name="app-version" content="20260611190000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611160000';
+  var v = '20260611190000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1385,7 +1385,11 @@ function loadData() {
       const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
-        dedupBOH[key] = {...s};
+        const rec = {...s};
+        // Set overallPct = whichever shift score exists
+        if (rec.openingPct != null && rec.closingPct == null) rec.overallPct = rec.openingPct;
+        else if (rec.closingPct != null && rec.openingPct == null) rec.overallPct = rec.closingPct;
+        dedupBOH[key] = rec;
       } else {
         // Merge opening+closing — preserve both scores, never discard either
         const m = dedupBOH[key];
@@ -1424,7 +1428,11 @@ function loadData() {
       const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key]) {
-        dedupMap[key] = {...s};
+        const rec2 = {...s};
+        // Set overallPct = whichever shift score exists
+        if (rec2.openingPct != null && rec2.closingPct == null) rec2.overallPct = rec2.openingPct;
+        else if (rec2.closingPct != null && rec2.openingPct == null) rec2.overallPct = rec2.closingPct;
+        dedupMap[key] = rec2;
       } else {
         // Merge opening+closing — preserve both scores, never discard either
         const m = dedupMap[key];
@@ -6028,9 +6036,9 @@ function toggleFOHEditMode() {
   const area = document.getElementById('fohChecklistArea');
   if (!area) return;
 
-  // Show edit buttons, hide display badges
+  // Show edit buttons, hide yn display badges — but KEEP photos visible
   area.querySelectorAll('.foh-yn-display').forEach(el => el.style.display = 'none');
-  area.querySelectorAll('.foh-photo-display').forEach(el => el.style.display = 'none');
+  // Do NOT hide .foh-photo-display — staff photos must remain visible during overwrite
   area.querySelectorAll('.foh-yn-edit').forEach(el => el.style.display = 'flex');
 
   // Replace "not yet completed" message with OIC task edit buttons

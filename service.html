@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611170000';
+  var v = '20260611180000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611170000">
-<meta name="app-version" content="20260611170000">
+<meta http-equiv="Expires" content="20260611180000">
+<meta name="app-version" content="20260611180000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -1314,25 +1314,25 @@ async function submitDay() {
   d[todayKey2]._done       = new Date().toISOString(); // keep _done for compatibility
   save(d);
 
-  // Calc overall — today only, split by opening (si=0) and closing (si=1)
-  let tY=0,tM=0,oY=0,oM=0,cY=0,cM=0;
+  // Calc closing score only — closing staff only fills closing tasks (si=1)
+  // Opening score belongs to the opener and already exists in Firebase — do NOT recalculate it
+  let cY=0,cM=0;
   const _tdSubmit = load()[getTodayKey()] || {};
   SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
     if(s.oicOnly) return;
+    if(si!==1) return; // closing tasks only (si=1)
     const v=_tdSubmit[t.id]?.yn;
     if(v&&v!=='na'){
-      tM++;if(v==='yes')tY++;
-      if(si===0){oM++;if(v==='yes')oY++;}
-      else if(si===1){cM++;if(v==='yes')cY++;}
+      cM++;if(v==='yes')cY++;
     }
   }));
-  const op=tM>0?Math.round((tY/tM)*100):0;
-  const opO=oM>0?Math.round((oY/oM)*100):null;
   const opC=cM>0?Math.round((cY/cM)*100):null;
+  // Overall = closing score only (opening score is in the opener's separate record)
+  const op=opC!==null?opC:0;
 
   // Push to master dashboard
   const _fbRecord = {
-    staffName:    d[getTodayKey()]._openerName || name,
+    staffName:    closerName,
     closingStaff: closerName,
     role:         ROLE,
     roleLabel:    ROLE_LABEL,
@@ -1340,9 +1340,9 @@ async function submitDay() {
     week:         getWeekStart(),
     verifiedBy:   getVerified(),
     overallPct:   op,
-    openingPct:   opO,
+    openingPct:   null,
     closingPct:   opC,
-    qualified:    op>=95,
+    qualified:    false,
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     photos: (function() {
@@ -1353,34 +1353,37 @@ async function submitDay() {
       }));
       return photos;
     })(),
-    // Store full task responses for dashboard detail view — today only
+    // Store closing task responses only — opening tasks belong to opener's record
     taskData: (function() {
       const tasks = {};
       const _tdData = load()[getTodayKey()] || {};
-      SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const yn    = _tdData[t.id]?.yn;
-        const photo = _tdData[t.id]?.photo || _tdData[t.id]?.photo_0;
-        const pUrl  = _tdData[t.id]?.photoUrl;
-        // Collect ALL photo slots — use photoUrl_N keys (Cloudinary URLs)
-        const _allPhotos = [];
-        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
-          const p = _tdData[t.id]?.[pk];
-          if (p && p.startsWith('http') && !_allPhotos.includes(p)) _allPhotos.push(p);
+      SECTIONS.forEach((s, si) => {
+        if (si !== 1) return; // closing tasks only (si=1)
+        s.tasks.forEach(t => {
+          const yn    = _tdData[t.id]?.yn;
+          const photo = _tdData[t.id]?.photo || _tdData[t.id]?.photo_0;
+          const pUrl  = _tdData[t.id]?.photoUrl;
+          // Collect ALL photo slots — use photoUrl_N keys (Cloudinary URLs)
+          const _allPhotos = [];
+          ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
+            const p = _tdData[t.id]?.[pk];
+            if (p && p.startsWith('http') && !_allPhotos.includes(p)) _allPhotos.push(p);
+          });
+          const finalPhotoUrl = _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : '');
+          if (yn || photo || pUrl || _allPhotos.length > 0) {
+            tasks[`d1_${t.id}`] = {
+              day: 1,
+              section: s.title,
+              task: t.text,
+              owner: t.ownerLbl,
+              yn: yn||'',
+              comment: _tdData[t.id]?.comment||'',
+              photoUrl: finalPhotoUrl,
+              photoUrls: _allPhotos,
+            };
+          }
         });
-        const finalPhotoUrl = _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : '');
-        if (yn || photo || pUrl || _allPhotos.length > 0) {
-          tasks[`d1_${t.id}`] = {
-            day: 1,
-            section: s.title,
-            task: t.text,
-            owner: t.ownerLbl,
-            yn: yn||'',
-            comment: _tdData[t.id]?.comment||'',
-            photoUrl: finalPhotoUrl,
-            photoUrls: _allPhotos,
-          };
-        }
-      }));
+      });
       return tasks;
     })(),
     submittedAt:new Date().toISOString(),
