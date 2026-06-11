@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611190000">
-<meta name="app-version" content="20260611190000">
+<meta http-equiv="Expires" content="20260611200000">
+<meta name="app-version" content="20260611200000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611190000';
+  var v = '20260611200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5534,7 +5534,7 @@ function openFOHDetail(idx) {
   // Calculate opening/closing/oic scores from days data
   const oPctFoh = staff.openingPct != null ? staff.openingPct : null;
   const cPctFoh = staff.closingPct != null ? staff.closingPct : null;
-  const oicPctFoh = staff.oicPct != null ? staff.oicPct : null;
+  const oicPctFoh = staff.oicEvalPct != null ? staff.oicEvalPct : (staff.oicPct != null ? staff.oicPct : null);
   const isService = staff.role === 'service';
   const isOIC = staff.role === 'oic';
 
@@ -6143,27 +6143,36 @@ async function saveFOHOverwrite(staff) {
         }
       });
       // Calculate opening, closing, oic scores separately
+      // OIC task IDs — never count these toward opening or closing score
       const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
-      let yes=0,total=0, oY=0,oT=0, cY=0,cT=0, eY=0,eT=0;
-      Object.values(updatedTasks).forEach(t => {
-        if (t.yn && t.yn !== 'na') {
-          const isOic = oicTaskIds.some(id => t._key===id || (t._key||'').includes('_'+id) || (t._key||'').startsWith(id+'_'));
-          const isOpen = (t._key||'').includes('_o') || (t.section||'').toLowerCase().includes('open');
-          const isClose = (t._key||'').includes('_c') || (t.section||'').toLowerCase().includes('clos');
-          if (isOic) { eT++; if(t.yn==='yes') eY++; }
-          else if (isOpen) { oT++; if(t.yn==='yes') oY++; }
-          else if (isClose) { cT++; if(t.yn==='yes') cY++; }
-          total++; if(t.yn==='yes') yes++;
-        }
+      // Opening task IDs — o1..o5
+      const openTaskIds = ['o1','o2','o3','o4','o5'];
+      // Closing task IDs — c1..c5
+      const closeTaskIds = ['c1','c2','c3','c4','c5'];
+      let oY=0,oT=0, cY=0,cT=0, eY=0,eT=0;
+      Object.entries(updatedTasks).forEach(([k, t]) => {
+        if (!t.yn || t.yn === 'na') return;
+        // Determine task type by ID suffix
+        const taskId = k.replace(/^d\d+_/, ''); // strip day prefix e.g. d1_o1 -> o1
+        const isOic   = oicTaskIds.includes(taskId);
+        const isOpen  = openTaskIds.includes(taskId);
+        const isClose = closeTaskIds.includes(taskId);
+        if (isOic)   { eT++; if(t.yn==='yes') eY++; }
+        else if (isOpen)  { oT++; if(t.yn==='yes') oY++; }
+        else if (isClose) { cT++; if(t.yn==='yes') cY++; }
       });
-      const newPct = total > 0 ? Math.round((yes/total)*100) : 0;
+      // overallPct = only staff tasks (opening + closing), NOT OIC eval
+      const staffT = oT + cT, staffY = oY + cY;
+      const newPct = staffT > 0 ? Math.round((staffY/staffT)*100) : parseFloat(sub.overallPct||0);
       updates['submissions/' + child.key + '/overallPct'] = newPct;
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
-      if (oT>0) updates['submissions/' + child.key + '/openingPct'] = Math.round((oY/oT)*100);
-      if (cT>0) updates['submissions/' + child.key + '/closingPct'] = Math.round((cY/cT)*100);
-      if (eT>0) updates['submissions/' + child.key + '/oicPct'] = Math.round((eY/eT)*100);
+      // Only update opening/closing pct if those tasks were actually answered
+      if (oT > 0) updates['submissions/' + child.key + '/openingPct'] = Math.round((oY/oT)*100);
+      if (cT > 0) updates['submissions/' + child.key + '/closingPct'] = Math.round((cY/cT)*100);
+      // OIC eval stored separately — never bleeds into opening/closing
+      if (eT > 0) updates['submissions/' + child.key + '/oicEvalPct'] = Math.round((eY/eT)*100);
     }
   });
 
