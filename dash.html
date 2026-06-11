@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611064719">
+<meta http-equiv="Expires" content="20260611065921">
 <meta name="app-version" content="20260610220529">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611064719';
+  var v = '20260611065921';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2243,6 +2243,31 @@ function openStaffDetail(s) {
     pdfBtn.onclick = () => exportDetailPDF();
     const closeBtn = modalHeader.querySelector('.modal-close');
     if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
+    // Admin name bypass — fix unregistered name directly in Firebase
+    const bypassRoles = ['training','operations','director','ceo','areamanager','areachef'];
+    if (bypassRoles.includes(currentRole) && s._fbKey) {
+      const fixNameBtn = document.createElement('button');
+      fixNameBtn.style.cssText = 'padding:6px 12px;background:#F59E0B;border:none;color:#fff;font-size:11px;font-weight:700;border-radius:8px;cursor:pointer;margin-right:6px;';
+      fixNameBtn.textContent = '✏️ Fix Name';
+      fixNameBtn.onclick = function() {
+        const newName = prompt('Enter the correct registered name for this staff:', s.staffName||'');
+        if (!newName || !newName.trim()) return;
+        if (!confirm('Change name from "' + s.staffName + '" to "' + newName.trim() + '"?')) return;
+        if (!db) { alert('Not connected to database'); return; }
+        db.ref('submissions/' + s._fbKey).update({
+          staffName: newName.trim(),
+          nameOverrideBy: currentStaffName,
+          nameOverrideAt: new Date().toISOString()
+        }).then(() => {
+          showToast('Name updated ✓', 'ok');
+          s.staffName = newName.trim();
+          closeDetail();
+          loadData();
+        }).catch(e => showToast('Update failed: ' + e.message, 'error'));
+      };
+      document.getElementById('detailActions').appendChild(fixNameBtn);
+    }
+
     // Edit/Overwrite button — role-based access
     const canOverwrite = (
       (currentRole === 'kic' && ['linecook','steward'].includes(s.role)) ||

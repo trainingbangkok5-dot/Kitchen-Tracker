@@ -237,6 +237,27 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef) {
 
 // Init Firebase — wait for SDK to be ready
 let _db = null;
+let _registryNames = null; // cached registry names for validation
+
+async function loadRegistryNames() {
+  if (_registryNames !== null) return _registryNames;
+  if (!_db) return null;
+  try {
+    const snap = await _db.ref('registry').once('value');
+    const data = snap.val() || {};
+    _registryNames = Object.values(data)
+      .filter(r => r.status === 'active')
+      .map(r => (r.name||'').toLowerCase().trim().replace(/\s+/g,' '));
+    return _registryNames;
+  } catch(e) { return null; }
+}
+
+async function validateStaffName(name) {
+  const names = await loadRegistryNames();
+  if (!names) return true; // if registry fails to load, allow submit
+  const norm = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
+  return names.includes(norm);
+}
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') {
@@ -1237,11 +1258,14 @@ function fmtTimeOnly(iso) {
 }
 
 // ── Submit day ────────────────────────────────────────────────
-function submitOpening() {
+async function submitOpening() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // Validate name against registry
+  const nameValid = await validateStaffName(name);
+  if (!nameValid) { showToast('❌ Name not found in registry. Please enter your full registered name.', 'warn'); document.getElementById('fName').focus(); return; }
   const openingTasks = SECTIONS[0].tasks;
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
@@ -1305,12 +1329,15 @@ function submitOpening() {
   buildDayRail(); renderDay();
 }
 
-function submitDay() {
+async function submitDay() {
   const name = getStaffName();
-  const closerName = name; // closing staff enters their own name in the Staff Name field
+  const closerName = name;
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
+  // Validate name against registry
+  const nameValid = await validateStaffName(name);
+  if (!nameValid) { showToast('❌ Name not found in registry. Please enter your full registered name.', 'warn'); document.getElementById('fName').focus(); return; }
   const closingTasks = SECTIONS[1].tasks;
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
