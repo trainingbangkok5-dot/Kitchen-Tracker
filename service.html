@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611310000';
+  var v = '20260611320000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611310000">
-<meta name="app-version" content="20260611310000">
+<meta http-equiv="Expires" content="20260611320000">
+<meta name="app-version" content="20260611320000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -1212,11 +1212,13 @@ function tapYN(tid, val, el) {
     });
   });
   const p   = t>0  ? Math.round((y/t)*100)   : 0;
-  const opO = oM>0 ? Math.round((oY/oM)*100) : null;
-  const opC = cM>0 ? Math.round((cY/cM)*100) : null;
-  // Total = all YES / all answered tasks
-  const tM  = oM+cM, tY = oY+cY;
-  const op  = tM>0 ? Math.round((tY/tM)*100) : 0;
+  const opO = currentShift==='opening' && oM>0 ? Math.round((oY/oM)*100) : null;
+  const opC = currentShift==='closing' && cM>0 ? Math.round((cY/cM)*100) : null;
+  // Total = average of all available scores (opening + closing + OIC eval)
+  // OIC eval not available live — use current shift score only for live update
+  const _liveScores = [opO, opC].filter(v => v !== null);
+  const op = _liveScores.length > 0 ? Math.round(_liveScores.reduce((a,b)=>a+b,0)/_liveScores.length) : 0;
+  const tM = _liveScores.length;
   // Score bar
   document.getElementById('scoreFill').style.width = p + '%';
   document.getElementById('scoreFill').style.background = p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
@@ -1344,6 +1346,13 @@ async function submitOpening() {
     }
   });
 
+  // Explicitly remove closingPct from Firebase for opening-only record
+  // Firebase ignores null so we must delete it separately
+  try {
+    const _openKey = name.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_') + '_opening';
+    if (_db) _db.ref('submissions/' + _openKey + '/closingPct').remove().catch(()=>{});
+  } catch(e) {}
+
   pushToFirebase({
     staffName:   name,
     role:        ROLE,
@@ -1352,7 +1361,6 @@ async function submitOpening() {
     week:        getWeekStart(),
     overallPct:  opO2,
     openingPct:  opO2,
-    closingPct:  null,
     qualified:   false,
     day:         currentDay,
     status:      'opening_submitted',

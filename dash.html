@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611310000">
-<meta name="app-version" content="20260611310000">
+<meta http-equiv="Expires" content="20260611320000">
+<meta name="app-version" content="20260611320000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611310000';
+  var v = '20260611320000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1386,6 +1386,8 @@ function loadData() {
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
         const rec = {...s};
+        // Opening-only record — clear any stale closingPct
+        if (rec.status === 'opening_submitted') rec.closingPct = null;
         // Set overallPct = whichever shift score exists
         if (rec.openingPct != null && rec.closingPct == null) rec.overallPct = rec.openingPct;
         else if (rec.closingPct != null && rec.openingPct == null) rec.overallPct = rec.closingPct;
@@ -1429,6 +1431,8 @@ function loadData() {
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key]) {
         const rec2 = {...s};
+        // Opening-only record — clear any stale closingPct
+        if (rec2.status === 'opening_submitted') rec2.closingPct = null;
         // Set overallPct = whichever shift score exists
         if (rec2.openingPct != null && rec2.closingPct == null) rec2.overallPct = rec2.openingPct;
         else if (rec2.closingPct != null && rec2.openingPct == null) rec2.overallPct = rec2.closingPct;
@@ -4618,10 +4622,19 @@ function _editTakePhoto(taskKey, withCapture) {
     if (!file) { document.body.removeChild(input); return; }
     const reader = new FileReader();
     reader.onload = e => {
-      const preview = document.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
-      if (preview) preview.innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;">`;
+      // Show preview immediately in the task row
+      let preview = document.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
+      if (!preview) {
+        preview = document.createElement('img');
+        preview.className = 'edit-photo-preview';
+        preview.setAttribute('data-taskkey', taskKey);
+        preview.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin-top:6px;display:block;';
+        const row = document.querySelector('[data-taskkey="'+taskKey+'"]');
+        if (row) row.appendChild(preview);
+      }
+      preview.src = e.target.result;
       _editPhotoChanges[taskKey] = e.target.result;
-      // Also try Cloudinary upload immediately using dataURLtoBlob
+      // Upload to Cloudinary immediately
       try {
         const blob = dataURLtoBlob(e.target.result);
         if (blob) {
@@ -4630,7 +4643,7 @@ function _editTakePhoto(taskKey, withCapture) {
           fd.append('upload_preset', 'culex_uploads');
           fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
             .then(r => r.json())
-            .then(j => { if (j.secure_url) _editPhotoChanges[taskKey] = j.secure_url; })
+            .then(j => { if (j.secure_url) { _editPhotoChanges[taskKey] = j.secure_url; if (preview) preview.src = j.secure_url; } })
             .catch(() => {});
         }
       } catch(e2) {}
