@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260608163826';
+  var v = '20260611110245';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260606180000">
-<meta name="app-version" content="20260606180000">
+<meta http-equiv="Expires" content="20260611110245">
+<meta name="app-version" content="20260611110245">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -241,12 +241,19 @@ let _registryNames = null; // cached registry names for validation
 
 async function loadRegistryNames() {
   if (_registryNames !== null) return _registryNames;
+  // Wait up to 5 seconds for Firebase to initialize
+  let waited = 0;
+  while (!_db && waited < 5000) {
+    await new Promise(r => setTimeout(r, 200));
+    waited += 200;
+  }
   if (!_db) return null;
   try {
     const snap = await _db.ref('registry').once('value');
     const data = snap.val() || {};
+    // Include all registry entries regardless of status
     _registryNames = Object.values(data)
-      .filter(r => r.status === 'active')
+      .filter(r => r.name && r.name.trim())
       .map(r => (r.name||'').toLowerCase().trim().replace(/\s+/g,' '));
     return _registryNames;
   } catch(e) { return null; }
@@ -256,7 +263,8 @@ async function validateStaffName(name) {
   const names = await loadRegistryNames();
   if (!names) return true; // if registry fails to load, allow submit
   const norm = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
-  return names.includes(norm);
+  if (!names.includes(norm)) return false;
+  return true;
 }
 function initFirebase() {
   try {
