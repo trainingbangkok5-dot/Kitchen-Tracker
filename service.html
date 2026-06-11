@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611220000';
+  var v = '20260611230000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611220000">
-<meta name="app-version" content="20260611220000">
+<meta http-equiv="Expires" content="20260611230000">
+<meta name="app-version" content="20260611230000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -520,7 +520,10 @@ function _setupFileInput(id, withCapture) {
 }
 
 function triggerCamera() {
+  // Save activePhotoTask BEFORE closing modal — closePhotoModal nulls it
+  const savedTask = activePhotoTask;
   closePhotoModal();
+  activePhotoTask = savedTask; // restore so handlePhotoFile can use it
   setTimeout(() => {
     const input = _setupFileInput('camInput', true);
     if (input) setTimeout(() => input.click(), 50);
@@ -528,7 +531,10 @@ function triggerCamera() {
 }
 
 function triggerGallery() {
+  // Save activePhotoTask BEFORE closing modal — closePhotoModal nulls it
+  const savedTask = activePhotoTask;
   closePhotoModal();
+  activePhotoTask = savedTask; // restore so handlePhotoFile can use it
   setTimeout(() => {
     const input = _setupFileInput('galInput', false);
     if (input) setTimeout(() => input.click(), 50);
@@ -1016,10 +1022,14 @@ function renderDay() {
     });
   });
   // Only show score for the current shift being filled
-  const opO = (currentShift === 'opening' || openingDone) && oM>0 ? Math.round((oY/oM)*100) : null;
+  // When closing shift: NEVER show opening score — it belongs to the opener
+  const opO = currentShift === 'opening' && oM>0 ? Math.round((oY/oM)*100) :
+              currentShift !== 'opening' && openingDone && oM>0 ? Math.round((oY/oM)*100) : null;
   const opC = (currentShift === 'closing' || closingDone) && cM>0 ? Math.round((cY/cM)*100) : null;
-  // Total = all YES / all answered tasks
-  const tM=oM+cM, tY=oY+cY;
+  // When closing shift: Total = closing score only (opening belongs to opener)
+  // When opening shift: Total = opening score only
+  const tM = currentShift === 'closing' ? cM : currentShift === 'opening' ? oM : oM+cM;
+  const tY = currentShift === 'closing' ? cY : currentShift === 'opening' ? oY : oY+cY;
   const op = tM>0 ? Math.round((tY/tM)*100) : 0;
   const pass=op>=95;
   const hasStaff=staffT>0, hasOIC=oicT>0;
