@@ -29,8 +29,10 @@
 <meta name="application-name" content="Culex Kitchen">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js';document.head.appendChild(s);"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"
+  onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js';document.head.appendChild(s);"></script>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -6505,7 +6507,16 @@ function saveMaintOverwrite() {
 }
 
 window.addEventListener('DOMContentLoaded', function() {
-  initFirebase();
+  function tryInitFirebase(attempts) {
+    if (typeof firebase !== 'undefined') {
+      initFirebase();
+    } else if (attempts > 0) {
+      setTimeout(function() { tryInitFirebase(attempts - 1); }, 300);
+    } else {
+      console.error('Firebase SDK failed to load after retries');
+    }
+  }
+  tryInitFirebase(15);
   // Restore session if exists
   const savedRole = sessionStorage.getItem('dash_role');
   const savedName = sessionStorage.getItem('dash_name');
