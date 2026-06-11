@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611063808">
+<meta http-equiv="Expires" content="20260611064719">
 <meta name="app-version" content="20260610220529">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611063808';
+  var v = '20260611064719';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1560,13 +1560,29 @@ function renderStaff() {
 
   // ── Normalize name helper ──
   const normName = n => (n||'').toLowerCase().trim().replace(/\s+/g,' ');
-  // ── Build submission lookup: name+role -> latest submission ──
+  // ── Build submission lookup: name+role+week -> merge opening+closing ──
   const subMap = {};
   allStaff.forEach(s => {
     if (!s.staffName) return;
-    const k = normName(s.staffName) + '|' + (s.role||'');
-    if (!subMap[k] || new Date(s.submittedAt||0) > new Date(subMap[k].submittedAt||0)) {
-      subMap[k] = s;
+    const k = normName(s.staffName) + '|' + (s.role||'') + '|' + (s.week||'');
+    if (!subMap[k]) {
+      subMap[k] = {...s};
+    } else {
+      // Merge: keep latest submittedAt, combine scores
+      if (new Date(s.submittedAt||0) > new Date(subMap[k].submittedAt||0)) {
+        const prevOpening = subMap[k].openingPct;
+        const prevClosing = subMap[k].closingPct;
+        subMap[k] = {...s};
+        // Preserve whichever score exists
+        if (subMap[k].openingPct == null && prevOpening != null) subMap[k].openingPct = prevOpening;
+        if (subMap[k].closingPct == null && prevClosing != null) subMap[k].closingPct = prevClosing;
+      } else {
+        if (subMap[k].openingPct == null && s.openingPct != null) subMap[k].openingPct = s.openingPct;
+        if (subMap[k].closingPct == null && s.closingPct != null) subMap[k].closingPct = s.closingPct;
+      }
+      // Recalc overall from merged scores
+      const scores = [subMap[k].openingPct, subMap[k].closingPct].filter(v => v != null);
+      if (scores.length) subMap[k].overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
     }
   });
 
@@ -1608,7 +1624,9 @@ function renderStaff() {
   // ── Render registry staff first ──
   regStaff.sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(r => {
     const k   = r.name.toLowerCase().trim() + '|' + (r.role||'');
-    const s   = subMap[k]; // submission if exists
+    // Find best matching submission (latest week)
+    const regK = Object.keys(subMap).filter(sk => sk.startsWith(k + '|')).sort().pop() || (k + '|');
+    const s   = subMap[regK] || subMap[k]; // submission if exists
     // Apply week filter to submission
     if (weekF && s && s.week !== weekF) return;
     if (weekF && !s) return; // if week filter set, only show those with a matching submission
@@ -2325,32 +2343,21 @@ function openStaffDetail(s) {
     });
   }
   if (s.taskData && Object.keys(s.taskData).length > 0) {
-    const byDay = {};
-    // Only show tasks for the submitted day — not the full weekly dump
+    // Group by section only — ignore day number, use submission date as header
+    const bySec = {};
     Object.entries(s.taskData).forEach(([k,t]) => {
       t.taskKey = k;
-      const d = t.day||1;
-      // Show all answered tasks
-      if (!byDay[d]) byDay[d] = [];
-      byDay[d].push(t);
+      if (!t.yn || t.yn === '') return;
+      const sec = t.section||'Tasks';
+      if (!bySec[sec]) bySec[sec] = [];
+      bySec[sec].push(t);
     });
 
-    Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
-      const tasks = byDay[day];
-      const bySec = {};
-      tasks.forEach(t => {
-        // Only include tasks that were actually answered (yn not empty)
-        if (!t.yn || t.yn === '') return;
-        const sec = t.section||'Tasks';
-        if (!bySec[sec]) bySec[sec] = [];
-        bySec[sec].push(t);
-      });
-
-      // Skip day entirely if no answered tasks
-      if (Object.keys(bySec).length === 0) return;
-
-      const daySubDate = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—';
-      html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;">📅 ${daySubDate}</div>`;
+    // Single date header using submission date
+    if (Object.keys(bySec).length > 0) {
+      const daySubDate = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'}) : '—';
+      const dayScore = s.overallPct != null ? Math.round(parseFloat(s.overallPct)) : null;
+      html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><span>📅 ${daySubDate}</span>${dayScore!==null?`<span style="background:${dayScore>=95?'#15803D':dayScore>=70?'#D97706':'#B91C1C'};padding:2px 10px;border-radius:20px;font-size:11px;">${dayScore}%</span>`:''}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
       html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec || 'Tasks'}</div>`;
@@ -2380,7 +2387,7 @@ function openStaffDetail(s) {
         });
       });
       html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
-    });
+    }
   } else if (s.kpiScores && s.role === 'areamanager') {
     // ── Area Manager KPI Report ──────────────────────────────
     const amKpiNames = {
