@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611290000">
-<meta name="app-version" content="20260611290000">
+<meta http-equiv="Expires" content="20260611310000">
+<meta name="app-version" content="20260611310000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611290000';
+  var v = '20260611310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2367,6 +2367,10 @@ function openStaffDetail(s) {
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
     const isService = ['service','oic'].includes(s.role);
+    // Total = average of all available scores: opening + closing + OIC eval
+    const _scoreComponents = [opO, opC, oicEvalPct].filter(v => v !== null);
+    const totalScore = _scoreComponents.length > 0 ? Math.round(_scoreComponents.reduce((a,b)=>a+b,0)/_scoreComponents.length) : sc;
+    const pass = totalScore >= 95;
     // Build all 4 score boxes as separate rows for mobile compatibility
     const scoreRows = [];
     scoreRows.push(
@@ -2393,8 +2397,8 @@ function openStaffDetail(s) {
           '</div>' +
           '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
-            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>' +
-            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (sc>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
+            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
           '</div>' +
         '</div>'
       );
@@ -2403,8 +2407,8 @@ function openStaffDetail(s) {
         '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
           '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
-            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (sc>0?sc+'%':'—') + '</div>' +
-            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (sc>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
+            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
           '</div>' +
         '</div>'
       );
@@ -5110,7 +5114,10 @@ function loadBOHData() {
           if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         }
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
-        if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
+        // Only use closingPct if this record is actually a closing submission
+        if (sub.closingPct != null && sub.status !== 'opening_submitted') {
+          grouped[gKey].closingPct = sub.closingPct;
+        }
         // Recalculate overall from opening+closing if both exist
         const _op = grouped[gKey].openingPct;
         const _cl = grouped[gKey].closingPct;
@@ -5382,7 +5389,10 @@ function loadFOHData() {
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
-        if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
+        // Only use closingPct if this record is actually a closing submission
+        if (sub.closingPct != null && sub.status !== 'opening_submitted') {
+          grouped[gKey].closingPct = sub.closingPct;
+        }
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
@@ -5572,6 +5582,10 @@ function openFOHDetail(idx) {
   const oPctFoh = staff.openingPct != null ? staff.openingPct : null;
   const cPctFoh = staff.closingPct != null ? staff.closingPct : null;
   const oicPctFoh = staff.oicEvalPct != null ? staff.oicEvalPct : (staff.oicPct != null ? staff.oicPct : null);
+  // Total = average of all available scores: opening + closing + OIC eval
+  const _fohScores = [oPctFoh, cPctFoh, oicPctFoh].filter(v => v != null);
+  const fohTotal = _fohScores.length > 0 ? Math.round(_fohScores.reduce((a,b)=>a+b,0)/_fohScores.length) : op;
+  const fohTotalPass = fohTotal >= 95;
   const isService = staff.role === 'service';
   const isOIC = staff.role === 'oic';
 
@@ -5637,17 +5651,17 @@ function openFOHDetail(idx) {
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'};margin-top:2px;">${oicPctFoh===null?'Pending OIC':oicPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
-      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
+      <div data-scorebox="total" style="background:${fohTotalPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${fohTotalPass?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
-        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(op)}">${op>0?op+'%':'—'}</div>
-        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Qualified':'❌ Not Qualified'}</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(fohTotal)}">${fohTotal>0?fohTotal+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${fohTotalPass?'#15803D':'#B91C1C'};margin-top:2px;">${fohTotalPass?'✅ Qualified':'❌ Not Qualified'}</div>
       </div>
     </div>` : `
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:14px;text-align:center;">
-      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
+      <div data-scorebox="total" style="background:${fohTotalPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${fohTotalPass?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
-        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(op)}">${op>0?op+'%':'—'}</div>
-        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:2px;">${staff.qualified?'✅ Qualified':'❌ Not Qualified'}</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(fohTotal)}">${fohTotal>0?fohTotal+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${fohTotalPass?'#15803D':'#B91C1C'};margin-top:2px;">${fohTotalPass?'✅ Qualified':'❌ Not Qualified'}</div>
       </div>
     </div>`}`}
 
@@ -5945,14 +5959,18 @@ function handleFOHEditPhoto(input) {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
     _fohEditChanges[taskKey].photoUrl = e.target.result;
     // Show preview
-    const card = input.closest('[data-fohtaskkey]') || input.closest('.foh-yn-edit');
+    // Show preview in the task row
+    const card = input.closest('[data-fohtaskkey]');
     if (card) {
       let preview = card.querySelector('img.foh-edit-preview');
       if (!preview) {
         preview = document.createElement('img');
         preview.className = 'foh-edit-preview';
-        preview.style.cssText = 'max-width:100%;max-height:80px;border-radius:6px;border:2px solid #22C55E;margin-top:4px;';
-        card.appendChild(preview);
+        preview.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin-top:4px;display:block;';
+        // Insert after the photo-display div
+        const photoDiv = card.querySelector('.foh-photo-display');
+        if (photoDiv) photoDiv.parentNode.insertBefore(preview, photoDiv.nextSibling);
+        else card.appendChild(preview);
       }
       preview.src = e.target.result;
     }
@@ -6210,9 +6228,16 @@ async function saveFOHOverwrite(staff) {
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
-      // Only update opening/closing pct if those tasks were actually answered
+      // Update opening score if opening tasks answered
       if (oT > 0) updates['submissions/' + child.key + '/openingPct'] = Math.round((oY/oT)*100);
-      if (cT > 0) updates['submissions/' + child.key + '/closingPct'] = Math.round((cY/cT)*100);
+      // Update closing score ONLY if closing tasks answered — otherwise explicitly null it
+      // This prevents old closingPct values from persisting in opening-only records
+      if (cT > 0) {
+        updates['submissions/' + child.key + '/closingPct'] = Math.round((cY/cT)*100);
+      } else if (sub.status === 'opening_submitted' || (sub.openingPct != null && sub.closingPct != null)) {
+        // Opening-only record — clear any stale closingPct
+        updates['submissions/' + child.key + '/closingPct'] = null;
+      }
       // OIC eval stored separately — never bleeds into opening/closing
       if (eT > 0) updates['submissions/' + child.key + '/oicEvalPct'] = Math.round((eY/eT)*100);
     }

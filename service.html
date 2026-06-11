@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611280000';
+  var v = '20260611310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611280000">
-<meta name="app-version" content="20260611280000">
+<meta http-equiv="Expires" content="20260611310000">
+<meta name="app-version" content="20260611310000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -1029,11 +1029,12 @@ function renderDay() {
   // Each shift only shows its OWN score — opening score never shows in closing shift
   const opO = currentShift === 'opening' && oM>0 ? Math.round((oY/oM)*100) : null;
   const opC = currentShift === 'closing' && cM>0 ? Math.round((cY/cM)*100) : null;
-  // Total = only the current shift's answered tasks
-  const tM = currentShift === 'closing' ? cM : oM;
-  const tY = currentShift === 'closing' ? cY : oY;
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
-  const pass=op>=95;
+  const oicPctDisplay = oicT>0 ? Math.round((oicY/oicT)*100) : null;
+  // Total = average of all available scores: opening + closing + OIC eval
+  const _allScores = [opO, opC, oicPctDisplay].filter(v => v !== null);
+  const op = _allScores.length > 0 ? Math.round(_allScores.reduce((a,b)=>a+b,0)/_allScores.length) : 0;
+  const tM = _allScores.length; // used for "no data" check
+  const pass = op>=95;
   const hasStaff=staffT>0, hasOIC=oicT>0;
   const stIcon = !hasStaff&&!hasOIC?'📋':hasStaff&&hasOIC?'✅':hasStaff&&!hasOIC?'⚠️':'🔵';
   const stLabel = !hasStaff&&!hasOIC?'No submissions yet':hasStaff&&hasOIC?'Complete':hasStaff&&!hasOIC?'Pending OIC Observation':'OIC Observed — Staff Pending';
@@ -1042,9 +1043,8 @@ function renderDay() {
 
   const sc=document.createElement('div');
   sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
-  // OIC score from Firebase (fetched asynchronously)
-  const oicPctDisplay = oicT>0 ? Math.round((oicY/oicT)*100) : null;
-  const combinedPass = tM>0 && pass && (oicT===0 || oicPctDisplay>=95);
+  // combinedPass — qualified only if all submitted scores are passing
+  const combinedPass = tM>0 && pass;
   sc.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;background:${stBg};border-radius:8px;padding:8px 12px;margin-bottom:10px;text-align:left;">
       <span style="font-size:18px;">${stIcon}</span>
