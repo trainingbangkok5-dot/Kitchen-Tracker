@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611100333">
-<meta name="app-version" content="20260611073235">
+<meta http-equiv="Expires" content="20260611101312">
+<meta name="app-version" content="20260611101312">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611100333';
+  var v = '20260611101312';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4387,7 +4387,6 @@ function toggleEditMode(s) {
     if (row.querySelector('.edit-extra-fields')) return;
     const task = s.taskData && s.taskData[taskKey];
     const existingComment = task ? (task.comment || '') : '';
-    // Collect all existing photos for this task
     const existingPhotos = [];
     if (task) {
       let _epi = 0;
@@ -4401,8 +4400,7 @@ function toggleEditMode(s) {
         if (_epi > 10) break;
       }
     }
-    const existingPhotosHtml = existingPhotos.map(url =>
-      url.startsWith('db:') ? '' :
+    const existingPhotosHtml = existingPhotos.filter(u => !u.startsWith('db:')).map(url =>
       `<img src="${url}" style="max-width:60px;max-height:50px;border-radius:6px;border:2px solid #22C55E;margin-right:4px;">`
     ).join('');
     const extraDiv = document.createElement('div');
@@ -4514,7 +4512,6 @@ function updateLiveScore() {
   }
 }
 
-// ── Edit mode photo helper (OPPO compatible) ─────────────────
 function _editTakePhoto(taskKey, withCapture) {
   const input = document.createElement('input');
   input.type = 'file';
