@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611111409">
-<meta name="app-version" content="20260611101312">
+<meta http-equiv="Expires" content="20260611115401">
+<meta name="app-version" content="20260611115401">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611111409';
+  var v = '20260611115401';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5070,6 +5070,9 @@ function saveVerification() {
         [allStaff, allBOHData, allFOHData].forEach(arr => {
           arr.forEach(r => { if (r.staffName===s.staffName && r.role===s.role && r.week===s.week) { r.verifiedBy=name; r.verifiedAt=now; } });
         });
+        // Also mark as qualified when verified
+        s.verifiedBy = name;
+        s.verifiedAt = now;
         showToast('Verified by ' + name + ' ✓', 'ok');
         // Refresh modal
         openStaffDetail(s);
@@ -5258,8 +5261,10 @@ function loadFOHData() {
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
         if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
+        if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
           const oicTaskIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
@@ -5280,7 +5285,7 @@ function loadFOHData() {
               }
             });
           });
-          if(oicT>0) { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); }
+          if(oicT>0) { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
           const hasStaffData = staffTaskIds.some(tid =>
@@ -5288,6 +5293,12 @@ function loadFOHData() {
           );
           if (hasStaffData) grouped[gKey].staffSubmitted = true;
         }
+      });
+      // Recalculate overall from opening+closing for each grouped record
+      Object.values(grouped).forEach(g => {
+        const scores = [g.openingPct, g.closingPct].filter(v => v != null);
+        if (scores.length > 1) g.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+        g.qualified = parseFloat(g.overallPct||0) >= 95;
       });
       let fohRaw = Object.values(grouped);
       // Role-based visibility filter
