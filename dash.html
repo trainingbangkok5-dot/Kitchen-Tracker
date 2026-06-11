@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611073235">
+<meta http-equiv="Expires" content="20260611100333">
 <meta name="app-version" content="20260611073235">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611073235';
+  var v = '20260611100333';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4387,7 +4387,24 @@ function toggleEditMode(s) {
     if (row.querySelector('.edit-extra-fields')) return;
     const task = s.taskData && s.taskData[taskKey];
     const existingComment = task ? (task.comment || '') : '';
-    const existingPhoto = task ? (task.photoUrl || '') : '';
+    // Collect all existing photos for this task
+    const existingPhotos = [];
+    if (task) {
+      let _epi = 0;
+      while (true) {
+        const _epk = _epi === 0 ? 'photoUrl' : 'photoUrl_' + _epi;
+        const _efk = _epi === 0 ? 'photo' : 'photo_' + _epi;
+        const _epu = task[_epk] || task[_efk];
+        if (!_epu) break;
+        existingPhotos.push(_epu);
+        _epi++;
+        if (_epi > 10) break;
+      }
+    }
+    const existingPhotosHtml = existingPhotos.map(url =>
+      url.startsWith('db:') ? '' :
+      `<img src="${url}" style="max-width:60px;max-height:50px;border-radius:6px;border:2px solid #22C55E;margin-right:4px;">`
+    ).join('');
     const extraDiv = document.createElement('div');
     extraDiv.className = 'edit-extra-fields';
     extraDiv.style.cssText = 'margin-top:8px;padding-top:8px;border-top:0.5px solid #E0DDD4;';
@@ -4398,16 +4415,15 @@ function toggleEditMode(s) {
           style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;resize:vertical;font-family:inherit;">${existingComment}</textarea>
       </div>
       <div>
-        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo ${existingPhoto && !existingPhoto.startsWith('db:') ? '✓ (tap to replace)' : ''}</label>
+        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo ${existingPhotos.length ? '✓ ' + existingPhotos.length + ' photo(s)' : ''}</label>
+        ${existingPhotosHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${existingPhotosHtml}</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:4px;">
-          <label style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;">
+          <button type="button" onclick="_editTakePhoto('${taskKey}', true)" style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
             📸 Take Photo
-            <input type="file" accept="image/*" capture="environment" class="edit-photo-input" data-taskkey="${taskKey}" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
-          </label>
-          <label style="flex:1;padding:7px;background:#EFF6FF;color:#1A3C5E;border-radius:8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;border:1px solid #BFDBFE;">
+          </button>
+          <button type="button" onclick="_editTakePhoto('${taskKey}', false)" style="flex:1;padding:7px;background:#EFF6FF;color:#1A3C5E;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #BFDBFE;">
             🖼️ Gallery
-            <input type="file" accept="image/*" class="edit-photo-input" data-taskkey="${taskKey}" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
-          </label>
+          </button>
         </div>
         <div class="edit-photo-preview" data-taskkey="${taskKey}" style="margin-top:4px;"></div>
       </div>`;
@@ -4498,6 +4514,29 @@ function updateLiveScore() {
   }
 }
 
+// ── Edit mode photo helper (OPPO compatible) ─────────────────
+function _editTakePhoto(taskKey, withCapture) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  if (withCapture) input.setAttribute('capture', 'environment');
+  input.style.cssText = 'position:absolute;top:0;left:0;opacity:0;width:0.1px;height:0.1px;';
+  document.body.appendChild(input);
+  input.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) { document.body.removeChild(input); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
+      if (preview) preview.innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;">`;
+      _editPhotoChanges[taskKey] = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    setTimeout(() => { try { document.body.removeChild(input); } catch(e){} }, 1000);
+  });
+  setTimeout(() => input.click(), 100);
+}
+
 async function saveOverwrite(s) {
   const verifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
   // Check for any comment changes
@@ -4533,6 +4572,22 @@ async function saveOverwrite(s) {
   Object.entries(_editChanges).forEach(([k, yn]) => {
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
   });
+
+  // Preserve all existing photos — never delete staff photos during overwrite
+  if (s.taskData) {
+    Object.entries(s.taskData).forEach(([k, t]) => {
+      let pi = 0;
+      while (true) {
+        const pk = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
+        const fallback = pi === 0 ? 'photo' : 'photo_' + pi;
+        const url = t[pk] || t[fallback];
+        if (!url) break;
+        updates['submissions/' + fbKey + '/taskData/' + k + '/' + pk] = url;
+        pi++;
+        if (pi > 10) break;
+      }
+    });
+  }
 
   // Save comments
   document.querySelectorAll('.edit-comment').forEach(el => {
