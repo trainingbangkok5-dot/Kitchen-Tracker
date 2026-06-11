@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611230000';
+  var v = '20260611240000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611230000">
-<meta name="app-version" content="20260611230000">
+<meta http-equiv="Expires" content="20260611240000">
+<meta name="app-version" content="20260611240000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -495,7 +495,7 @@ function pushToMasterDashboard(record) {
 }
 
 // ── Cross-device Camera & Gallery ────────────────────────────
-function _setupFileInput(id, withCapture) {
+function _setupFileInput(id, withCapture, taskId) {
   // Remove old input and create fresh one — fixes OPPO and other Android browsers
   const old = document.getElementById(id);
   if (!old) return null;
@@ -511,7 +511,8 @@ function _setupFileInput(id, withCapture) {
   input.addEventListener('change', function(e) {
     const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
     if (file) {
-      closePhotoModal();
+      // Set activePhotoTask from closure — don't rely on global state
+      if (taskId) activePhotoTask = taskId;
       handlePhotoFile(file);
       setTimeout(() => { try { input.value = ''; } catch(e2) {} }, 600);
     }
@@ -520,23 +521,19 @@ function _setupFileInput(id, withCapture) {
 }
 
 function triggerCamera() {
-  // Save activePhotoTask BEFORE closing modal — closePhotoModal nulls it
-  const savedTask = activePhotoTask;
+  const savedTask = activePhotoTask; // capture before closePhotoModal nulls it
   closePhotoModal();
-  activePhotoTask = savedTask; // restore so handlePhotoFile can use it
   setTimeout(() => {
-    const input = _setupFileInput('camInput', true);
+    const input = _setupFileInput('camInput', true, savedTask);
     if (input) setTimeout(() => input.click(), 50);
   }, 150);
 }
 
 function triggerGallery() {
-  // Save activePhotoTask BEFORE closing modal — closePhotoModal nulls it
-  const savedTask = activePhotoTask;
+  const savedTask = activePhotoTask; // capture before closePhotoModal nulls it
   closePhotoModal();
-  activePhotoTask = savedTask; // restore so handlePhotoFile can use it
   setTimeout(() => {
-    const input = _setupFileInput('galInput', false);
+    const input = _setupFileInput('galInput', false, savedTask);
     if (input) setTimeout(() => input.click(), 50);
   }, 150);
 }
@@ -1005,7 +1002,7 @@ function renderDay() {
   document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
   document.getElementById('scorePct').textContent = pct + '%';
 
-  // Score calculation — today only
+  // Score calculation — today only, per current shift
   const _td = load()[getTodayKey()] || {};
   let oY=0,oM=0,cY=0,cM=0,oicT=0,oicY=0,staffT=0,staffY=0;
   SECTIONS.forEach((s,si) => {
@@ -1021,15 +1018,12 @@ function renderDay() {
       }
     });
   });
-  // Only show score for the current shift being filled
-  // When closing shift: NEVER show opening score — it belongs to the opener
-  const opO = currentShift === 'opening' && oM>0 ? Math.round((oY/oM)*100) :
-              currentShift !== 'opening' && openingDone && oM>0 ? Math.round((oY/oM)*100) : null;
-  const opC = (currentShift === 'closing' || closingDone) && cM>0 ? Math.round((cY/cM)*100) : null;
-  // When closing shift: Total = closing score only (opening belongs to opener)
-  // When opening shift: Total = opening score only
-  const tM = currentShift === 'closing' ? cM : currentShift === 'opening' ? oM : oM+cM;
-  const tY = currentShift === 'closing' ? cY : currentShift === 'opening' ? oY : oY+cY;
+  // Each shift only shows its OWN score — opening score never shows in closing shift
+  const opO = currentShift === 'opening' && oM>0 ? Math.round((oY/oM)*100) : null;
+  const opC = currentShift === 'closing' && cM>0 ? Math.round((cY/cM)*100) : null;
+  // Total = only the current shift's answered tasks
+  const tM = currentShift === 'closing' ? cM : oM;
+  const tY = currentShift === 'closing' ? cY : oY;
   const op = tM>0 ? Math.round((tY/tM)*100) : 0;
   const pass=op>=95;
   const hasStaff=staffT>0, hasOIC=oicT>0;
