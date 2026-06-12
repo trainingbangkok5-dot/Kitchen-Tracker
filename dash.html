@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612160000">
-<meta name="app-version" content="20260612160000">
+<meta http-equiv="Expires" content="20260612170000">
+<meta name="app-version" content="20260612170000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612160000';
+  var v = '20260612170000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5375,17 +5375,33 @@ function openBOHDetailFull(s) {
     let fullRecord = null;
     snap.forEach(child => {
       const sub = child.val();
-      if (sub.role === s.role && sub.week === s.week && sub.taskData) {
-        // Merge taskData into record
-        if (!fullRecord) fullRecord = Object.assign({}, s);
-        if (!fullRecord.taskData) fullRecord.taskData = {};
-        Object.assign(fullRecord.taskData, sub.taskData);
-        if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
-        if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
-        if (sub.verifiedBy) fullRecord.verifiedBy = sub.verifiedBy;
-        if (sub.verifiedAt) fullRecord.verifiedAt = sub.verifiedAt;
+      const subKey = child.key;
+      if (sub.role !== s.role || sub.week !== s.week) return;
+      if (!sub.taskData) return;
+      if (!fullRecord) {
+        fullRecord = Object.assign({}, s);
+        fullRecord.taskData = {};
+      }
+      Object.assign(fullRecord.taskData, sub.taskData);
+      if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
+      if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
+      if (sub.verifiedBy) fullRecord.verifiedBy = sub.verifiedBy;
+      if (sub.verifiedAt) fullRecord.verifiedAt = sub.verifiedAt;
+      // Use the _opening record's key and scores — never the closing record's
+      if (subKey.endsWith('_opening') || sub.status === 'opening_submitted') {
+        fullRecord._fbKey = subKey;
+        fullRecord.status = sub.status || 'opening_submitted';
+        fullRecord.openingPct = sub.openingPct;
+        fullRecord.closingPct = null; // explicitly null for opening record
+        fullRecord.oicEvalPct = sub.oicEvalPct || fullRecord.oicEvalPct;
       }
     });
+    if (fullRecord) {
+      // Final safety: if _fbKey ends with _opening, force closingPct=null
+      if (fullRecord._fbKey && fullRecord._fbKey.endsWith('_opening')) {
+        fullRecord.closingPct = null;
+      }
+    }
     openStaffDetail(fullRecord || s);
   });
 }
