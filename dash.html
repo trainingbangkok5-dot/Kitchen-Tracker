@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611330000">
-<meta name="app-version" content="20260611330000">
+<meta http-equiv="Expires" content="20260612050000">
+<meta name="app-version" content="20260612050000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611330000';
+  var v = '20260612050000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1396,7 +1396,9 @@ function loadData() {
         // Merge opening+closing — preserve both scores, never discard either
         const m = dedupBOH[key];
         if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
-        if (s.closingPct != null && m.closingPct == null) m.closingPct = s.closingPct;
+        // Never merge closingPct from an opening_submitted record
+        if (s.closingPct != null && m.closingPct == null && s.status !== 'opening_submitted') m.closingPct = s.closingPct;
+        if (m.status === 'opening_submitted') m.closingPct = null;
         if (s.taskData) {
           if (!m.taskData) m.taskData = {};
           Object.assign(m.taskData, s.taskData);
@@ -1438,10 +1440,13 @@ function loadData() {
         else if (rec2.closingPct != null && rec2.openingPct == null) rec2.overallPct = rec2.closingPct;
         dedupMap[key] = rec2;
       } else {
-        // Merge opening+closing — preserve both scores, never discard either
+        // Merge opening+closing — only merge closingPct if the incoming record is NOT opening_submitted
         const m = dedupMap[key];
         if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
-        if (s.closingPct != null && m.closingPct == null) m.closingPct = s.closingPct;
+        // Never overwrite a null closingPct with data from an opening_submitted record
+        if (s.closingPct != null && m.closingPct == null && s.status !== 'opening_submitted') m.closingPct = s.closingPct;
+        // Also if existing record is opening_submitted, don't accept closingPct from merge
+        if (m.status === 'opening_submitted') m.closingPct = null;
         if (s.taskData) {
           if (!m.taskData) m.taskData = {};
           Object.assign(m.taskData, s.taskData);
@@ -5126,6 +5131,10 @@ function loadBOHData() {
         // Only use closingPct if this record is actually a closing submission
         if (sub.closingPct != null && sub.status !== 'opening_submitted') {
           grouped[gKey].closingPct = sub.closingPct;
+        } else if (sub.status === 'opening_submitted' && sub.closingPct != null) {
+          // Stale closingPct on opening record — delete from Firebase immediately
+          if (_db && sub._fbKey) _db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
+          grouped[gKey].closingPct = null;
         }
         // Recalculate overall from opening+closing if both exist
         const _op = grouped[gKey].openingPct;
@@ -5401,6 +5410,10 @@ function loadFOHData() {
         // Only use closingPct if this record is actually a closing submission
         if (sub.closingPct != null && sub.status !== 'opening_submitted') {
           grouped[gKey].closingPct = sub.closingPct;
+        } else if (sub.status === 'opening_submitted' && sub.closingPct != null) {
+          // Stale closingPct on opening record — delete from Firebase immediately
+          if (fohDb && sub._fbKey) fohDb.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
+          grouped[gKey].closingPct = null;
         }
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
@@ -6110,16 +6123,16 @@ function toggleFOHEditMode() {
   if (staff && staff.role === 'service') {
     // Always render OIC Observation section in edit mode — whether already filled or not
     const oicTaskDefs = [
-      {id:'u1', text:'Monthly Sales target achieved'},
-      {id:'s1', text:'Customer interaction'},
-      {id:'s2', text:'Sequence of service'},
-      {id:'s3', text:'Service awareness'},
-      {id:'f1', text:'Complaints'},
-      {id:'f2', text:'Grooming (hair neatly tied and wearing make up)'},
-      {id:'t1', text:'Be a team player with OIC and teammates'},
-      {id:'t2', text:'Helpful attitude'},
-      {id:'t3', text:'Follow instruction'},
-      {id:'t4', text:'Attendance'},
+      {id:'u1', section:'💰 Upselling',                          text:'Monthly Sales target achieved and the staff with highest Sales will also be rewarded'},
+      {id:'s1', section:'⭐ Service Standards',                  text:'Customer interaction'},
+      {id:'s2', section:'⭐ Service Standards',                  text:'Sequence of service'},
+      {id:'s3', section:'⭐ Service Standards',                  text:'Service awareness'},
+      {id:'f1', section:'📝 Customer Feedback & Performance',    text:'Complaints'},
+      {id:'f2', section:'📝 Customer Feedback & Performance',    text:'Grooming (hair neatly tied and wearing make up)'},
+      {id:'t1', section:'🤝 Teamwork & Attitude',                text:'Be a team player with OIC and teammates'},
+      {id:'t2', section:'🤝 Teamwork & Attitude',                text:'Helpful attitude'},
+      {id:'t3', section:'🤝 Teamwork & Attitude',                text:'Follow instruction'},
+      {id:'t4', section:'🤝 Teamwork & Attitude',                text:'Attendance'},
     ];
     // Find existing OIC section container or create one
     let oicEditContainer = area.querySelector('#oicEditSection');
@@ -6134,7 +6147,13 @@ function toggleFOHEditMode() {
       else area.insertBefore(oicEditContainer, area.querySelector('button#fohCancelEditBtn') || area.lastChild);
     }
     let oicHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑‍💼 OIC Observation</div>';
+    let lastSection = '';
     oicTaskDefs.forEach(t => {
+      // Section header
+      if (t.section && t.section !== lastSection) {
+        lastSection = t.section;
+        oicHtml += `<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
+      }
       // Load existing answer if already saved
       const existingYN = (staff.taskData && staff.taskData[t.id]) ? staff.taskData[t.id].yn : '';
       const existingComment = (staff.taskData && staff.taskData[t.id]) ? (staff.taskData[t.id].comment || '') : '';
