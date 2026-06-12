@@ -4498,9 +4498,9 @@ function toggleEditMode(s) {
         if (_epi > 10) break;
       }
     }
-    const existingPhotosHtml = existingPhotos.filter(u => !u.startsWith('db:')).map(url =>
-      `<img src="${url}" style="max-width:60px;max-height:50px;border-radius:6px;border:2px solid #22C55E;margin-right:4px;">`
-    ).join('');
+    // Count real http photos only — don't render them again (already shown in task row)
+    const httpPhotos = existingPhotos.filter(u => u && u.startsWith('http'));
+    const photoCountLabel = httpPhotos.length > 0 ? `✓ ${httpPhotos.length} staff photo(s)` : (existingPhotos.length > 0 ? '📷 Photo taken' : '');
     const extraDiv = document.createElement('div');
     extraDiv.className = 'edit-extra-fields';
     extraDiv.style.cssText = 'margin-top:8px;padding-top:8px;border-top:0.5px solid #E0DDD4;';
@@ -4511,8 +4511,9 @@ function toggleEditMode(s) {
           style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;resize:vertical;font-family:inherit;">${existingComment}</textarea>
       </div>
       <div>
-        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Photo ${existingPhotos.length ? '✓ ' + existingPhotos.length + ' photo(s)' : ''}</label>
-        ${existingPhotosHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">${existingPhotosHtml}</div>` : ''}
+        <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">
+          Add OIC Photo ${photoCountLabel ? '<span style="color:#15803D;font-size:10px;">(' + photoCountLabel + ')</span>' : ''}
+        </label>
         <div style="display:flex;gap:6px;margin-top:4px;">
           <button type="button" onclick="_editTakePhoto('${taskKey}', true)" style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
             📸 Take Photo
@@ -4521,7 +4522,7 @@ function toggleEditMode(s) {
             🖼️ Gallery
           </button>
         </div>
-        <div class="edit-photo-preview" data-taskkey="${taskKey}" style="margin-top:4px;"></div>
+        <div class="edit-photo-preview" data-taskkey="${taskKey}" style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;"></div>
       </div>`;
     row.appendChild(extraDiv);
 
@@ -6107,37 +6108,52 @@ function toggleFOHEditMode() {
 
   // Replace "not yet completed" message with OIC task edit buttons
   if (staff && staff.role === 'service') {
-    const notYet = area.querySelector('div[style*="OIC observation not yet"]') ||
-      Array.from(area.querySelectorAll('div')).find(d => d.textContent.includes('OIC observation not yet completed'));
-    if (notYet) {
-      const oicTasks = [
-        {id:'u1', text:'Monthly Sales target achieved'},
-        {id:'s1', text:'Customer interaction'},
-        {id:'s2', text:'Sequence of service'},
-        {id:'s3', text:'Service awareness'},
-        {id:'f1', text:'Complaints'},
-        {id:'f2', text:'Grooming (hair neatly tied and wearing make up)'},
-        {id:'t1', text:'Be a team player with OIC and teammates'},
-        {id:'t2', text:'Helpful attitude'},
-        {id:'t3', text:'Follow instruction'},
-        {id:'t4', text:'Attendance'},
-      ];
-      let oicHtml = '';
-      oicTasks.forEach((t, i) => {
-        oicHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
-          <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-          <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-            <div style="display:flex;gap:4px;">
-              <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">✓ YES</button>
-              <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">✗ NO</button>
-              <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:#E5E7EB;color:#374151;cursor:pointer;">N/A</button>
-            </div>
-            <textarea data-fohtaskkey="${t.id}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Add comment..."></textarea>
-          </div>
-        </div>`;
-      });
-      notYet.outerHTML = oicHtml;
+    // Always render OIC Observation section in edit mode — whether already filled or not
+    const oicTaskDefs = [
+      {id:'u1', text:'Monthly Sales target achieved'},
+      {id:'s1', text:'Customer interaction'},
+      {id:'s2', text:'Sequence of service'},
+      {id:'s3', text:'Service awareness'},
+      {id:'f1', text:'Complaints'},
+      {id:'f2', text:'Grooming (hair neatly tied and wearing make up)'},
+      {id:'t1', text:'Be a team player with OIC and teammates'},
+      {id:'t2', text:'Helpful attitude'},
+      {id:'t3', text:'Follow instruction'},
+      {id:'t4', text:'Attendance'},
+    ];
+    // Find existing OIC section container or create one
+    let oicEditContainer = area.querySelector('#oicEditSection');
+    if (!oicEditContainer) {
+      oicEditContainer = document.createElement('div');
+      oicEditContainer.id = 'oicEditSection';
+      oicEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      // Replace "not yet completed" div if exists, otherwise append
+      const notYet = area.querySelector('div[style*="OIC observation not yet"]') ||
+        Array.from(area.querySelectorAll('div')).find(d => d.textContent.includes('OIC observation not yet completed'));
+      if (notYet) notYet.replaceWith(oicEditContainer);
+      else area.insertBefore(oicEditContainer, area.querySelector('button#fohCancelEditBtn') || area.lastChild);
     }
+    let oicHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑‍💼 OIC Observation</div>';
+    oicTaskDefs.forEach(t => {
+      // Load existing answer if already saved
+      const existingYN = (staff.taskData && staff.taskData[t.id]) ? staff.taskData[t.id].yn : '';
+      const existingComment = (staff.taskData && staff.taskData[t.id]) ? (staff.taskData[t.id].comment || '') : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      oicHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setFOHTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setFOHTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea data-fohtaskkey="${t.id}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Add comment...">${existingComment}</textarea>
+        </div>
+      </div>`;
+    });
+    oicEditContainer.innerHTML = oicHtml;
   }
 
   // Add cancel button
