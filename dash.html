@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612200000">
-<meta name="app-version" content="20260612200000">
+<meta http-equiv="Expires" content="20260612210000">
+<meta name="app-version" content="20260612210000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612200000';
+  var v = '20260612210000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6478,12 +6478,40 @@ async function saveFOHOverwrite(staff) {
     const btn = document.getElementById('fohEditBtn');
     if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
     showToast('Changes saved ✓', 'ok');
-    // Reload FOH data and reopen detail — wait for Firebase to propagate
-    await new Promise(resolve => {
-      loadFOHData();
-      setTimeout(resolve, 2500);
-    });
+    // Update staff object in memory immediately — don't wait for Firebase reload
+    const staffMem = _fohFiltered[_fohDetailIdx];
+    if (staffMem && snap.exists()) {
+      snap.forEach(child => {
+        const sub = child.val();
+        if (sub.role !== staffMem.role || sub.week !== staffMem.week) return;
+        if (updates['submissions/' + child.key + '/overallPct'] != null) {
+          staffMem.overallPct = updates['submissions/' + child.key + '/overallPct'];
+          staffMem.qualified  = updates['submissions/' + child.key + '/qualified'];
+        }
+        if (updates['submissions/' + child.key + '/openingPct'] != null) staffMem.openingPct = updates['submissions/' + child.key + '/openingPct'];
+        if (updates['submissions/' + child.key + '/closingPct'] != null) staffMem.closingPct = updates['submissions/' + child.key + '/closingPct'];
+        else if (child.key.endsWith('_opening')) staffMem.closingPct = null;
+        if (updates['submissions/' + child.key + '/oicEvalPct'] != null) staffMem.oicEvalPct = updates['submissions/' + child.key + '/oicEvalPct'];
+        // Merge updated taskData
+        if (!staffMem.taskData) staffMem.taskData = {};
+        Object.entries(updates).forEach(([path, val]) => {
+          if (path.includes('/taskData/') && path.includes(child.key)) {
+            const parts = path.split('/taskData/')[1].split('/');
+            if (parts.length === 2) {
+              const [tKey, tField] = parts;
+              if (!staffMem.taskData[tKey]) staffMem.taskData[tKey] = {};
+              staffMem.taskData[tKey][tField] = val;
+            }
+          }
+        });
+      });
+    }
+    _fohEditMode = false;
+    _fohEditChanges = {};
+    // Reopen immediately with updated data
     openFOHDetail(_fohDetailIdx);
+    // Also reload in background for next open
+    setTimeout(() => loadFOHData(), 3000);
   } catch(e) {
     alert('Save failed: ' + e.message);
   }
