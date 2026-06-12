@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612120000">
-<meta name="app-version" content="20260612120000">
+<meta http-equiv="Expires" content="20260612130000">
+<meta name="app-version" content="20260612130000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612120000';
+  var v = '20260612130000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4504,6 +4504,11 @@ let _verifiedByEdit = ''; // verified by field
 
 function toggleEditMode(s) {
   _editMode = true;
+  // Force closingPct=null for opening-only records in edit mode too
+  const _editIsOpeningOnly = s.status === 'opening_submitted'
+    || (s._fbKey && s._fbKey.endsWith('_opening'))
+    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  if (_editIsOpeningOnly) s.closingPct = null;
   _editStaffData = s;
   _editChanges = {};
   _editPhotoChanges = {};
@@ -4632,19 +4637,31 @@ function updateLiveScore() {
     else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
   const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
-  const clPct  = clM > 0 ? Math.round((clY/clM)*100) : null;
+  // For closing: only show if closing tasks actually answered in this record
+  const _lsIsOpeningOnly = s.status === 'opening_submitted'
+    || (s._fbKey && s._fbKey.endsWith('_opening'))
+    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
   const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
   // Total = opening+OIC if opening only, closing+OIC if closing only, all if both
   const _lsScores = [opPct, clPct, ePct].filter(v => v != null);
   const newScore = _lsScores.length > 0 ? Math.round(_lsScores.reduce((a,b)=>a+b,0)/_lsScores.length) : 0;
   const pass = newScore >= 95;
-  // Update score boxes in modal header
+  // Update score boxes — explicitly show "—" for null scores
   document.querySelectorAll('#detailModal [data-scorebox], #detailBody [data-scorebox]').forEach(box => {
     const type = box.getAttribute('data-scorebox');
     const pctEl = box.querySelector('.sb-pct') || box;
     const lblEl = box.querySelector('.sb-lbl');
     let pct = type==='opening' ? opPct : type==='closing' ? clPct : type==='oic' ? ePct : newScore;
-    if (pct === null) return;
+    if (pct === null) {
+      // Explicitly clear — don't leave old value showing
+      if (type === 'closing') {
+        pctEl.textContent = '—';
+        pctEl.style.color = '#94A3B8';
+        if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+      }
+      return;
+    }
     const isPass = pct >= 95;
     pctEl.textContent = pct + '%';
     pctEl.style.color = isPass ? '#15803D' : '#B91C1C';
