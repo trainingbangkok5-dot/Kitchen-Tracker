@@ -705,38 +705,202 @@ function checkOverwritePin(code) {
 }
 
 const SECTIONS = [
-  {"title":"🌅 Opening Responsibilities","oicOnly":false,"tasks":[
-    {"id":"o1","owner":"self","ownerLbl":"Self-report","text":"Service station / table setup / outdoor area set in tidy condition","photo":true,"translations":{}},
-    {"id":"o2","owner":"self","ownerLbl":"Self-report","text":"Menu / promo material cleaned and in good condition","photo":true,"translations":{}},
-    {"id":"o3","owner":"self","ownerLbl":"Self-report","text":"Bar: all ingredients filled, FIFOed, clean and tidy, no 86","photo":true,"translations":{}},
-    {"id":"o4","owner":"verify","ownerLbl":"Verify by OIC","text":"Equipment / furniture clean and in good working condition","photo":true,"translations":{}},
-    {"id":"o5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Decorative items clean and properly aligned, AC set to correct temperature, perfume diffuser functioning properly","photo":true,"translations":{}}
-  ]},
-  {"title":"🌙 Closing Responsibilities","oicOnly":false,"tasks":[
-    {"id":"c1","owner":"verify","ownerLbl":"Verify by OIC","text":"Service Station / Tables / Outdoor Area: Cleaned, reset, and left tidy for the next operation","photo":true,"translations":{}},
-    {"id":"c2","owner":"verify","ownerLbl":"Verify by OIC","text":"Menu / Promo Materials: Cleaned, organized, and stored properly","photo":true,"translations":{}},
-    {"id":"c3","owner":"verify","ownerLbl":"Verify by OIC","text":"Bar: All ingredients covered, labeled, FIFOed, stored properly, and no unnecessary wastage","photo":true,"translations":{}},
-    {"id":"c4","owner":"verify","ownerLbl":"Verify by OIC","text":"Maintenance: Any equipment or furniture issues reported to the OIC or maintenance team","photo":true,"translations":{}},
-    {"id":"c5","owner":"verify","ownerLbl":"Verify by OIC","text":"Ambience: Furniture, decorative items, and guest areas cleaned, organized, and left in good condition","photo":true,"translations":{}}
-  ]},
-  {"title":"💰 Upselling","oicOnly":true,"tasks":[
-    {"id":"u1","owner":"verify","ownerLbl":"OIC Only","text":"Monthly Sales target achieved and the staff with highest Sales will also be rewarded","photo":false,"translations":{}}
-  ]},
-  {"title":"⭐ Service Standards","oicOnly":true,"tasks":[
-    {"id":"s1","owner":"verify","ownerLbl":"OIC Only","text":"Customer interaction","photo":false,"translations":{}},
-    {"id":"s2","owner":"verify","ownerLbl":"OIC Only","text":"Sequence of service","photo":false,"translations":{}},
-    {"id":"s3","owner":"verify","ownerLbl":"OIC Only","text":"Service awareness","photo":false,"translations":{}}
-  ]},
-  {"title":"📝 Customer Feedback & Performance","oicOnly":true,"tasks":[
-    {"id":"f1","owner":"verify","ownerLbl":"OIC Only","text":"Complaints","photo":false,"translations":{}},
-    {"id":"f2","owner":"verify","ownerLbl":"OIC Only","text":"Grooming (hair neatly tied and wearing make up)","photo":false,"translations":{}}
-  ]},
-  {"title":"🤝 Team Player & Professionalism","oicOnly":true,"tasks":[
-    {"id":"t1","owner":"verify","ownerLbl":"OIC Only","text":"Be a team player with OIC and teammates","photo":false,"translations":{}},
-    {"id":"t2","owner":"verify","ownerLbl":"OIC Only","text":"Helpful attitude","photo":false,"translations":{}},
-    {"id":"t3","owner":"verify","ownerLbl":"OIC Only","text":"Follow instruction","photo":false,"translations":{}},
-    {"id":"t4","owner":"verify","ownerLbl":"OIC Only","text":"Attendance","photo":false,"translations":{}}
-  ]}
+  {
+    title: '🌅 Opening Responsibilities',
+    oicOnly: false,
+    tasks: [
+      {
+        id: 'o1',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Service station, dining area, table setup, and outdoor area are neatly set up and maintained in a tidy condition.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o2',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Menus and promotional materials are clean, properly inserted in the menu, presentable, and in good condition.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o3',
+        owner: 'self',
+        ownerLbl: 'Self-report',
+        text: 'Bar: All ingredients are fully stocked, FIFO is followed, the area is clean and tidy, and there are no 86 items.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o4',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Equipment and furniture are clean and in good working condition. Any issues or malfunctioning items are reported to the OIC.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'o5',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Ambience: Decorative items are clean and properly aligned, the AC is set to the correct temperature, and the perfume diffuser is functioning properly.',
+        photo: true,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '🌙 Closing Responsibilities',
+    oicOnly: false,
+    tasks: [
+      {
+        id: 'c1',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Service Station / Tables / Outdoor Area: Cleaned, fully reset, and left neat and ready for the next operation.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c2',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Menu / Promo Materials: Cleaned, organized, and stored properly for the next operation.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c3',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Bar: All ingredients are covered, labeled, FIFOed, stored properly, and no unnecessary wastage is observed.',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c4',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Maintenance: All equipment is switched off, furniture has been checked, and any issues have been reported to the OIC',
+        photo: true,
+        translations: {}
+      },
+      {
+        id: 'c5',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Ambience: Furniture, decorative items, and guest areas are cleaned, organized, and left in good condition for the next operation.',
+        photo: true,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '💰 Upselling',
+    oicOnly: true,
+    tasks: [
+      {
+        id: 'u1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '⭐ Service Standards',
+    oicOnly: true,
+    tasks: [
+      {
+        id: 's1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 's2',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 's3',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '📝 Customer Feedback & Performance',
+    oicOnly: true,
+    tasks: [
+      {
+        id: 'f1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 'f2',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  },
+  {
+    title: '🤝 Team Player & Professionalism',
+    oicOnly: true,
+    tasks: [
+      {
+        id: 't1',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 't2',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 't3',
+        owner: 'monitor',
+        ownerLbl: 'Monitor',
+        text: 'Instruction Following: Follows instructions correctly and executes tasks as directed.',
+        photo: false,
+        translations: {}
+      },
+      {
+        id: 't4',
+        owner: 'verify',
+        ownerLbl: 'Verify by KIC/Manager',
+        text: 'Attendance: Maintains good attendance and reports to work on time as scheduled.',
+        photo: false,
+        translations: {}
+      }
+    ]
+  }
 ];
 let currentDay = 1;
 let activePhotoTask = null;
