@@ -301,6 +301,7 @@ function pushToFirebase(record) {
     const shiftSuffix = record.shift ? '_' + record.shift : (record.status === 'opening_submitted' ? '_opening' : '_closing');
     const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.role
+              + '_' + (record.outlet||'').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
               + shiftSuffix;
     // Strip raw base64 photos from taskData before pushing — too large for Firebase
@@ -1092,13 +1093,10 @@ function renderDay() {
       msg.className = 'synced-msg';
       msg.textContent = '✓ Submitted and synced to dashboard';
       container.appendChild(msg);
-      // KIC overwrite panel
+      // Note: Overwrite is done by OIC/Manager from the Master Dashboard only
       const owp = document.createElement('div');
-      owp.className = 'overwrite-panel';
-      owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN (OIC / Area Manager / Admin)</div>
-        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter OIC/Manager PIN to unlock and edit Day ${currentDay}</div>
-        <input class="overwrite-input" id="owCode" type="password" placeholder="Enter OIC/Manager PIN...">
-        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      owp.style.cssText = 'margin-top:8px;padding:10px 14px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;text-align:center;font-size:12px;color:#92400E;';
+      owp.innerHTML = '🔒 To make changes, ask your OIC or Manager to edit from the <strong>Master Dashboard</strong>.';
       container.appendChild(owp);
     } else {
       const wasOvr = !!data[dayKey]?._overwritten;

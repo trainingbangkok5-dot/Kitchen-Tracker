@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612230000">
-<meta name="app-version" content="20260612230000">
+<meta http-equiv="Expires" content="20260612250000">
+<meta name="app-version" content="20260612250000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612230000';
+  var v = '20260612250000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5394,10 +5394,11 @@ function openBOHDetailFull(s) {
   if (!db) { openStaffDetail(s); return; }
 
   // Build the Firebase key directly — same format as service.html pushToFirebase
-  const nameKey = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_');
-  const weekKey = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
-  const openingKey = nameKey + '_' + s.role + '_' + weekKey + '_opening';
-  const closingKey = nameKey + '_' + s.role + '_' + weekKey + '_closing';
+  const nameKey   = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_');
+  const outletKey = (s.outlet||'').replace(/[^a-zA-Z0-9]/g,'_');
+  const weekKey   = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+  const openingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_opening';
+  const closingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_closing';
 
   Promise.all([
     db.ref('submissions/' + openingKey).once('value'),
@@ -6167,20 +6168,37 @@ function handleFOHEditPhoto(input) {
   reader.onload = e => {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
     _fohEditChanges[taskKey].photoUrl = e.target.result;
-    // Show preview
-    // Show preview in the task row — append new img to foh-photo-display div
+    // Show preview in OIC-specific area — NOT in staff photo area
     const card = input.closest('[data-fohtaskkey]');
     if (card) {
-      const photoDiv = card.querySelector('.foh-photo-display') || card;
-      const img2 = document.createElement('img');
-      img2.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin:4px 4px 0 0;display:inline-block;';
-      img2.src = e.target.result;
-      photoDiv.appendChild(img2);
-      // Update src when Cloudinary finishes
-      _fohEditChanges[taskKey] = {yn: _fohEditChanges[taskKey]?.yn, photoUrl: e.target.result};
+      // Find or create OIC photo preview div — separate from .foh-photo-display
+      let oicPhotoDiv = card.querySelector('.oic-photo-preview');
+      if (!oicPhotoDiv) {
+        oicPhotoDiv = document.createElement('div');
+        oicPhotoDiv.className = 'oic-photo-preview';
+        oicPhotoDiv.style.cssText = 'margin-top:6px;padding:6px;background:#FFF1F0;border-radius:8px;border:1px solid #FECACA;';
+        // Add label
+        const lbl = document.createElement('div');
+        lbl.style.cssText = 'font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:4px;';
+        lbl.textContent = '📷 OIC Photo:';
+        oicPhotoDiv.appendChild(lbl);
+        // Insert after the staff photo display
+        const staffPhotoDiv = card.querySelector('.foh-photo-display');
+        if (staffPhotoDiv && staffPhotoDiv.parentNode) {
+          staffPhotoDiv.parentNode.insertBefore(oicPhotoDiv, staffPhotoDiv.nextSibling);
+        } else {
+          card.appendChild(oicPhotoDiv);
+        }
+      }
+      const img = document.createElement('img');
+      img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;margin-right:4px;';
+      img.src = e.target.result;
+      oicPhotoDiv.appendChild(img);
+      // Scroll into view
+      oicPhotoDiv.scrollIntoView({behavior:'smooth', block:'nearest'});
     }
-    showToast('Photo added ✓', 'ok');
-    // Upload to Cloudinary using dataURLtoBlob (works on iOS/Android)
+    showToast('OIC photo added ✓', 'ok');
+    // Upload to Cloudinary
     try {
       const blob = dataURLtoBlob(e.target.result);
       if (blob) {
@@ -6189,7 +6207,17 @@ function handleFOHEditPhoto(input) {
         fd.append('upload_preset', 'culex_uploads');
         fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
           .then(r => r.json())
-          .then(j => { if (j.secure_url) _fohEditChanges[taskKey].photoUrl = j.secure_url; })
+          .then(j => {
+            if (j.secure_url) {
+              _fohEditChanges[taskKey].photoUrl = j.secure_url;
+              // Update img src to Cloudinary URL
+              const card2 = document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
+              if (card2) {
+                const imgs = card2.querySelectorAll('.oic-photo-preview img');
+                if (imgs.length > 0) imgs[imgs.length-1].src = j.secure_url;
+              }
+            }
+          })
           .catch(() => {});
       }
     } catch(e2) {}
