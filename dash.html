@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611320000">
-<meta name="app-version" content="20260611320000">
+<meta http-equiv="Expires" content="20260611330000">
+<meta name="app-version" content="20260611330000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260611320000';
+  var v = '20260611330000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4622,17 +4622,12 @@ function _editTakePhoto(taskKey, withCapture) {
     if (!file) { document.body.removeChild(input); return; }
     const reader = new FileReader();
     reader.onload = e => {
-      // Show preview immediately in the task row
-      let preview = document.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
-      if (!preview) {
-        preview = document.createElement('img');
-        preview.className = 'edit-photo-preview';
-        preview.setAttribute('data-taskkey', taskKey);
-        preview.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin-top:6px;display:block;';
-        const row = document.querySelector('[data-taskkey="'+taskKey+'"]');
-        if (row) row.appendChild(preview);
-      }
-      preview.src = e.target.result;
+      // Show preview in the task row — the preview container is a div, put an img inside it
+      const previewContainer = document.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
+      const img = document.createElement('img');
+      img.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin:4px 4px 0 0;display:inline-block;';
+      img.src = e.target.result;
+      if (previewContainer) previewContainer.appendChild(img);
       _editPhotoChanges[taskKey] = e.target.result;
       // Upload to Cloudinary immediately
       try {
@@ -4643,7 +4638,7 @@ function _editTakePhoto(taskKey, withCapture) {
           fd.append('upload_preset', 'culex_uploads');
           fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
             .then(r => r.json())
-            .then(j => { if (j.secure_url) { _editPhotoChanges[taskKey] = j.secure_url; if (preview) preview.src = j.secure_url; } })
+            .then(j => { if (j.secure_url) { _editPhotoChanges[taskKey] = j.secure_url; img.src = j.secure_url; } })
             .catch(() => {});
         }
       } catch(e2) {}
@@ -5972,20 +5967,16 @@ function handleFOHEditPhoto(input) {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
     _fohEditChanges[taskKey].photoUrl = e.target.result;
     // Show preview
-    // Show preview in the task row
+    // Show preview in the task row — append new img to foh-photo-display div
     const card = input.closest('[data-fohtaskkey]');
     if (card) {
-      let preview = card.querySelector('img.foh-edit-preview');
-      if (!preview) {
-        preview = document.createElement('img');
-        preview.className = 'foh-edit-preview';
-        preview.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin-top:4px;display:block;';
-        // Insert after the photo-display div
-        const photoDiv = card.querySelector('.foh-photo-display');
-        if (photoDiv) photoDiv.parentNode.insertBefore(preview, photoDiv.nextSibling);
-        else card.appendChild(preview);
-      }
-      preview.src = e.target.result;
+      const photoDiv = card.querySelector('.foh-photo-display') || card;
+      const img2 = document.createElement('img');
+      img2.style.cssText = 'max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;margin:4px 4px 0 0;display:inline-block;';
+      img2.src = e.target.result;
+      photoDiv.appendChild(img2);
+      // Update src when Cloudinary finishes
+      _fohEditChanges[taskKey] = {yn: _fohEditChanges[taskKey]?.yn, photoUrl: e.target.result};
     }
     showToast('Photo added ✓', 'ok');
     // Upload to Cloudinary using dataURLtoBlob (works on iOS/Android)

@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260611320000';
+  var v = '20260611330000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260611320000">
-<meta name="app-version" content="20260611320000">
+<meta http-equiv="Expires" content="20260611330000">
+<meta name="app-version" content="20260611330000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -229,7 +229,9 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
             const existing = sub.taskData[k] || {};
             const allUrls = [];
             ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach((pk, idx) => {
-              const url = idx === (slotIdx||0) ? dbRef : (existing[pk] || '');
+              // For the current slot, use the new dbRef; for others use existing value
+              const slotKey2 = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
+              const url = slotKey2 === photoKey ? dbRef : (existing[pk] || '');
               if (url && url.startsWith('http')) allUrls.push(url);
             });
             if (allUrls.length > 0) {
