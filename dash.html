@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612300000">
-<meta name="app-version" content="20260612300000">
+<meta http-equiv="Expires" content="20260612310000">
+<meta name="app-version" content="20260612310000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612300000';
+  var v = '20260612310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6161,6 +6161,9 @@ function setFOHTaskComment(el) {
 }
 
 function triggerFOHPhoto(taskKey, withCapture) {
+  // Find the card BEFORE creating input — while we're still in the click handler context
+  const card = document.querySelector('#fohChecklistArea [data-fohtaskkey="'+taskKey+'"]')
+    || document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
@@ -6169,22 +6172,23 @@ function triggerFOHPhoto(taskKey, withCapture) {
   document.body.appendChild(input);
   input.setAttribute('data-fohtaskkey', taskKey);
   input.addEventListener('change', function() {
-    handleFOHEditPhoto(this);
+    handleFOHEditPhoto(this, card); // pass card directly
     setTimeout(() => { try { document.body.removeChild(input); } catch(e){} }, 1000);
   });
   setTimeout(() => input.click(), 100);
 }
 
-function handleFOHEditPhoto(input) {
+function handleFOHEditPhoto(input, cardEl) {
   const taskKey = input.getAttribute('data-fohtaskkey');
   if (!taskKey || !input.files[0]) return;
   const file = input.files[0];
   const reader = new FileReader();
   reader.onload = e => {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
-    _fohEditChanges[taskKey].oicPhotoUrl = e.target.result; // OIC photo stored separately
-    // Find card — input may be outside DOM (created dynamically), so fall back to taskKey search
-    const card = input.closest('[data-fohtaskkey]')
+    _fohEditChanges[taskKey].oicPhotoUrl = e.target.result;
+    // Use passed card element, or fall back to DOM search
+    const card = cardEl
+      || input.closest('[data-fohtaskkey]')
       || document.querySelector('#fohChecklistArea [data-fohtaskkey="'+taskKey+'"]')
       || document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
     if (card) {
