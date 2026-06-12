@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612290000">
-<meta name="app-version" content="20260612290000">
+<meta http-equiv="Expires" content="20260612300000">
+<meta name="app-version" content="20260612300000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612290000';
+  var v = '20260612300000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6183,8 +6183,10 @@ function handleFOHEditPhoto(input) {
   reader.onload = e => {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
     _fohEditChanges[taskKey].oicPhotoUrl = e.target.result; // OIC photo stored separately
-    // Show preview in OIC-specific area — NOT in staff photo area
-    const card = input.closest('[data-fohtaskkey]');
+    // Find card — input may be outside DOM (created dynamically), so fall back to taskKey search
+    const card = input.closest('[data-fohtaskkey]')
+      || document.querySelector('#fohChecklistArea [data-fohtaskkey="'+taskKey+'"]')
+      || document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
     if (card) {
       // Find or create OIC photo preview div — separate from .foh-photo-display
       let oicPhotoDiv = card.querySelector('.oic-photo-preview');
