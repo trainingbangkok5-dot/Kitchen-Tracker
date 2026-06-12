@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612250000">
-<meta name="app-version" content="20260612250000">
+<meta http-equiv="Expires" content="20260612280000">
+<meta name="app-version" content="20260612280000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612250000';
+  var v = '20260612280000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6008,12 +6008,12 @@ function openFOHDetail(idx) {
               <textarea data-fohtaskkey="${taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
               <div style="font-size:9px;font-weight:700;color:#94A3B8;text-transform:uppercase;">Photo ${t.photoUrl && t.photoUrl.startsWith('http') ? '✓ (tap to replace)' : ''}</div>
               <div style="display:flex;gap:4px;">
-                <label style="flex:1;padding:5px;background:#1A3C5E;color:#fff;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;">
-                  📸 Take Photo<input type="file" accept="image/*" capture="environment" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
-                </label>
-                <label style="flex:1;padding:5px;background:#EFF6FF;color:#1A3C5E;border-radius:6px;font-size:10px;font-weight:700;text-align:center;cursor:pointer;border:1px solid #BFDBFE;">
-                  🖼️ Gallery<input type="file" accept="image/*" data-fohtaskkey="${taskKey}" onchange="handleFOHEditPhoto(this)" style="position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;">
-                </label>
+                <button type="button" onclick="triggerFOHPhoto('${taskKey}', true)" style="flex:1;padding:5px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;">
+                  📸 Take Photo
+                </button>
+                <button type="button" onclick="triggerFOHPhoto('${taskKey}', false)" style="flex:1;padding:5px;background:#EFF6FF;color:#1A3C5E;border:1px solid #BFDBFE;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;">
+                  🖼️ Gallery
+                </button>
               </div>
             </div>
           </div>`;
@@ -6055,7 +6055,7 @@ function openFOHDetail(idx) {
         oicBySec[t.section].push({...t, yn, comment, taskKey});
       });
 
-      html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Observation</div>';
+      html += '<div data-oic-view-section="1" style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Observation</div>';
       // Only show if at least one OIC task has been answered
       const hasAnyOIC = oicEvalTasks.some(t => {
         const existing = subs.reduce((found, sub) => {
@@ -6158,6 +6158,21 @@ function setFOHTaskComment(el) {
   if (!taskKey) return;
   if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
   _fohEditChanges[taskKey].comment = el.value;
+}
+
+function triggerFOHPhoto(taskKey, withCapture) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  if (withCapture) input.setAttribute('capture', 'environment');
+  input.style.cssText = 'position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;';
+  document.body.appendChild(input);
+  input.setAttribute('data-fohtaskkey', taskKey);
+  input.addEventListener('change', function() {
+    handleFOHEditPhoto(this);
+    setTimeout(() => { try { document.body.removeChild(input); } catch(e){} }, 1000);
+  });
+  setTimeout(() => input.click(), 100);
 }
 
 function handleFOHEditPhoto(input) {
@@ -6376,12 +6391,22 @@ function toggleFOHEditMode() {
       {id:'t4', section:'🤝 Teamwork & Attitude',                text:'Attendance'},
     ];
     // Find existing OIC section container or create one
+    // Hide the existing OIC view section to avoid duplicate
+    const existingOicView = area.querySelector('[data-oic-view-section]');
+    if (existingOicView) existingOicView.style.display = 'none';
+    // Also hide the OIC header (dark red bar before OIC tasks)
+    area.querySelectorAll('div').forEach(d => {
+      if (d.textContent.trim() === '🧑‍💼 OIC Observation' && d.style.background === 'rgb(123, 45, 66)') {
+        d.style.display = 'none';
+      }
+    });
+
     let oicEditContainer = area.querySelector('#oicEditSection');
     if (!oicEditContainer) {
       oicEditContainer = document.createElement('div');
       oicEditContainer.id = 'oicEditSection';
       oicEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      // Replace "not yet completed" div if exists, otherwise append
+      // Find and hide existing OIC section, replace with edit container
       const notYet = area.querySelector('div[style*="OIC observation not yet"]') ||
         Array.from(area.querySelectorAll('div')).find(d => d.textContent.includes('OIC observation not yet completed'));
       if (notYet) notYet.replaceWith(oicEditContainer);
@@ -6427,6 +6452,8 @@ function toggleFOHEditMode() {
       _fohEditMode = false; _fohEditChanges = {};
       const b = document.getElementById('fohEditBtn');
       if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
+      const editSec = document.querySelector('#oicEditSection');
+      if (editSec) editSec.remove();
       openFOHDetail(_fohDetailIdx);
     };
     area.appendChild(cancelBtn);
