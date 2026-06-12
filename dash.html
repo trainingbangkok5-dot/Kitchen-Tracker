@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612100000">
-<meta name="app-version" content="20260612100000">
+<meta http-equiv="Expires" content="20260612110000">
+<meta name="app-version" content="20260612110000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612100000';
+  var v = '20260612110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2295,13 +2295,17 @@ function openStaffDetail(s) {
   const sc   = parseFloat(s.overallPct)||0;
   const pass = sc >= 95;
   const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
-  // Force closingPct=null for opening_submitted records — prevents stale Firebase data showing
-  const opC  = (s.status === 'opening_submitted') ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
+  // Force closingPct=null for opening-only records
+  // A record is opening-only if: status=opening_submitted OR key ends with _opening OR no status but has openingPct
+  const _isOpeningOnly = s.status === 'opening_submitted' 
+    || (s._fbKey && s._fbKey.endsWith('_opening'))
+    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   // Clean stale closingPct from Firebase permanently
-  if (s.status === 'opening_submitted' && s.closingPct != null && s._fbKey) {
+  if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
     const _cleanDb = s._isFOH ? fohDb : _db;
     if (_cleanDb) _cleanDb.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
-    s.closingPct = null; // update local copy too
+    s.closingPct = null;
   }
 
   function fmtDT(iso) {
@@ -3731,13 +3735,17 @@ async function exportDetailPDF() {
   const sc   = parseFloat(s.overallPct)||0;
   const pass = sc >= 95;
   const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
-  // Force closingPct=null for opening_submitted records — prevents stale Firebase data showing
-  const opC  = (s.status === 'opening_submitted') ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
+  // Force closingPct=null for opening-only records
+  // A record is opening-only if: status=opening_submitted OR key ends with _opening OR no status but has openingPct
+  const _isOpeningOnly = s.status === 'opening_submitted' 
+    || (s._fbKey && s._fbKey.endsWith('_opening'))
+    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   // Clean stale closingPct from Firebase permanently
-  if (s.status === 'opening_submitted' && s.closingPct != null && s._fbKey) {
+  if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
     const _cleanDb = s._isFOH ? fohDb : _db;
     if (_cleanDb) _cleanDb.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
-    s.closingPct = null; // update local copy too
+    s.closingPct = null;
   }
 
   const doc  = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
@@ -5652,10 +5660,13 @@ function openFOHDetail(idx) {
 
   // Calculate opening/closing/oic scores from days data
   const oPctFoh = staff.openingPct != null ? staff.openingPct : null;
-  // Force closingPct=null for opening_submitted records
-  const cPctFoh = (staff.status === 'opening_submitted') ? null : (staff.closingPct != null ? staff.closingPct : null);
+  // Force closingPct=null for opening-only records
+  const _isFohOpeningOnly = staff.status === 'opening_submitted'
+    || (staff._fbKey && staff._fbKey.endsWith('_opening'))
+    || (!staff.status && staff.openingPct != null && staff.shift !== 'closing');
+  const cPctFoh = _isFohOpeningOnly ? null : (staff.closingPct != null ? staff.closingPct : null);
   // Clean stale closingPct from Firebase permanently
-  if (staff.status === 'opening_submitted' && staff.closingPct != null && staff._fbKey) {
+  if (_isFohOpeningOnly && staff.closingPct != null && staff._fbKey) {
     const _cleanDb2 = staff._isFOH ? fohDb : _db;
     if (_cleanDb2) _cleanDb2.ref('submissions/' + staff._fbKey + '/closingPct').remove().catch(()=>{});
     staff.closingPct = null;

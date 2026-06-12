@@ -1422,6 +1422,7 @@ async function submitDay() {
     openingPct:   null,
     closingPct:   opC,
     qualified:    false,
+    status:       'closing_submitted',
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     photos: (function() {
