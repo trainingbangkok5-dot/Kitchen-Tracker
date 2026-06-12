@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612080000">
-<meta name="app-version" content="20260612080000">
+<meta http-equiv="Expires" content="20260612090000">
+<meta name="app-version" content="20260612090000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612080000';
+  var v = '20260612090000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4596,25 +4596,31 @@ function updateLiveScore() {
   Object.entries(_editChanges).forEach(([k, yn]) => {
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
   });
-  let yes = 0, total = 0, opY = 0, opM = 0, clY = 0, clM = 0;
-  Object.values(updatedTaskData).forEach(t => {
-    if (t.yn && t.yn !== 'na') {
-      total++; if (t.yn === 'yes') yes++;
-      const sec = (t.section||'').toLowerCase();
-      if (sec.includes('open')) { opM++; if (t.yn==='yes') opY++; }
-      else { clM++; if (t.yn==='yes') clY++; }
-    }
+  // Use task IDs to split — never section name (unreliable)
+  const _lsOicIds   = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+  const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
+  const _lsCloseIds = ['c1','c2','c3','c4','c5'];
+  let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
+  Object.entries(updatedTaskData).forEach(([k, t]) => {
+    if (!t.yn || t.yn === 'na') return;
+    const tid = k.replace(/^d[0-9]+_/, '');
+    if (_lsOicIds.includes(tid))        { eM++;  if (t.yn==='yes') eY++;  }
+    else if (_lsOpenIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
+    else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
-  const newScore = total > 0 ? Math.round((yes/total)*100) : 0;
-  const opPct = opM > 0 ? Math.round((opY/opM)*100) : null;
-  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
+  const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
+  const clPct  = clM > 0 ? Math.round((clY/clM)*100) : null;
+  const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
+  // Total = opening+OIC if opening only, closing+OIC if closing only, all if both
+  const _lsScores = [opPct, clPct, ePct].filter(v => v != null);
+  const newScore = _lsScores.length > 0 ? Math.round(_lsScores.reduce((a,b)=>a+b,0)/_lsScores.length) : 0;
   const pass = newScore >= 95;
   // Update score boxes in modal header
   document.querySelectorAll('#detailModal [data-scorebox], #detailBody [data-scorebox]').forEach(box => {
     const type = box.getAttribute('data-scorebox');
     const pctEl = box.querySelector('.sb-pct') || box;
     const lblEl = box.querySelector('.sb-lbl');
-    let pct = type==='opening' ? opPct : type==='closing' ? clPct : newScore;
+    let pct = type==='opening' ? opPct : type==='closing' ? clPct : type==='oic' ? ePct : newScore;
     if (pct === null) return;
     const isPass = pct >= 95;
     pctEl.textContent = pct + '%';
