@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260608163826';
+  var v = '20260612360000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260606180000">
-<meta name="app-version" content="20260606180000">
+<meta http-equiv="Expires" content="20260612360000">
+<meta name="app-version" content="20260612360000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#16A34A">
@@ -160,6 +160,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div id="shiftBar" style="display:flex;gap:7px;margin-top:8px;">
     <button id="btnOpenShift" onclick="selectShift('opening')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌅 Opening Shift</button>
     <button id="btnCloseShift" onclick="selectShift('closing')" style="flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🌙 Closing Shift</button>
+    <button onclick="clearTodayData()" style="padding:8px 10px;border-radius:8px;border:2px solid rgba(255,100,100,0.5);background:rgba(255,50,50,0.15);color:#ffaaaa;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🗑 Clear</button>
   </div>
 <script>function selectShift(s){window._pendingShift=s;if(window._selectShiftReady)window._selectShiftReady(s);}</script>
 </div>
@@ -175,8 +176,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="modal-box">
     <div class="modal-title">📷 Photo Proof</div>
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
-    <label class="mbtn mbtn-cam" for="camInput" onclick="prepareCamera()">📸 Take Photo</label>
-  <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼️ Choose from Gallery</label>
+    <button class="mbtn mbtn-cam" onclick="triggerCamera()">📸 Take Photo</button>
+    <button class="mbtn mbtn-gal" onclick="triggerGallery()">🖼️ Choose from Gallery</button>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
@@ -198,7 +199,7 @@ const FIREBASE_CONFIG = {
 // ══════════════════════════════════════════════════════════════
 
 // Update photo ref in existing Firebase submission after async upload completes
-async function updatePhotoInSubmission(staffName, taskId, dbRef) {
+async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
   if (!_db || !staffName) return;
   try {
     const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
@@ -209,7 +210,8 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef) {
       if (sub.role === ROLE && sub.week === getWeekStart() && sub.taskData) {
         Object.keys(sub.taskData).forEach(k => {
           if (k.endsWith('_' + taskId)) {
-            updates['submissions/' + child.key + '/taskData/' + k + '/photoUrl'] = dbRef;
+            const photoKey2 = (slotIdx === undefined || slotIdx === 0) ? 'photoUrl' : 'photoUrl_' + slotIdx;
+            updates['submissions/' + child.key + '/taskData/' + k + '/' + photoKey2] = dbRef;
           }
         });
       }
@@ -234,10 +236,12 @@ initFirebase();
 function pushToFirebase(record) {
   if (!_db) { setTimeout(()=>pushToFirebase(record), 500); return; }
   try {
+    const shiftSuffix = record.status === 'opening_submitted' ? '_opening' : '_closing';
     const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.role
+              + '_' + (record.outlet||'').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
-              + (record.day ? '_d' + record.day : '');
+              + shiftSuffix;
     const cleanRecord = { ...record };
     if (cleanRecord.taskData) {
       const cleanTasks = {};
@@ -268,17 +272,30 @@ function pushToFirebase(record) {
 const CLOUDINARY_CLOUD = 'db94rgiil';
 const CLOUDINARY_PRESET = 'culex_uploads';
 
+// Convert data: URL to Blob — works on all mobile browsers including iOS/Android
+function dataURLtoBlob(dataUrl) {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  } catch(e) { return null; }
+}
+
 async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   try {
     if (!dataUrl) return null;
     const compressed = await compressToSize(dataUrl, 60);
-    // Try Cloudinary first
+    // Try Cloudinary first using dataURLtoBlob (works on iOS/Android)
     try {
-      const res = await fetch(compressed);
-      const blob = await res.blob();
+      const blob = dataURLtoBlob(compressed);
+      if (!blob) throw new Error('blob conversion failed');
       const folder = 'culex/' + ROLE + '/' + (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_');
       const fd = new FormData();
-      fd.append('file', blob);
+      fd.append('file', blob, 'photo.jpg');
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
@@ -292,18 +309,12 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
     } catch(cloudErr) {
       console.warn('Cloudinary unavailable, saving locally:', cloudErr);
     }
-    // Fallback — save base64 locally, queue for retry
+    // Fallback — save base64 locally
     showToast('Cloud unavailable — photo saved locally 📱', 'warn');
     const pendingKey = 'pending_photos_' + ROLE;
     const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
-    const photoEntry = {
-      dataUrl: compressed,
-      taskId, staffName, day,
-      savedAt: new Date().toISOString()
-    };
-    pending.push(photoEntry);
+    pending.push({ dataUrl: compressed, taskId, staffName, day, savedAt: new Date().toISOString() });
     localStorage.setItem(pendingKey, JSON.stringify(pending));
-    // Return compressed base64 as fallback so photo shows immediately
     return compressed;
   } catch(e) {
     console.warn('Photo save failed completely:', e);
@@ -425,21 +436,38 @@ function pushToMasterDashboard(record) {
 
 // ── Cross-device Camera & Gallery ────────────────────────────
 function triggerCamera() {
-  const input = document.getElementById('camInput');
-  if (!input) return;
-  input.setAttribute('capture', 'environment');
-  input.setAttribute('accept', 'image/*');
-  input.value = '';
-  input.click();
+  const savedTask = activePhotoTask;
+  closePhotoModal();
+  setTimeout(() => {
+    const input = _setupFileInput('camInput', true, savedTask);
+    if (input) setTimeout(() => input.click(), 50);
+  }, 150);
 }
-
 function triggerGallery() {
-  const input = document.getElementById('galInput');
-  if (!input) return;
-  input.removeAttribute('capture');
-  input.setAttribute('accept', 'image/*');
-  input.value = '';
-  input.click();
+  const savedTask = activePhotoTask;
+  closePhotoModal();
+  setTimeout(() => {
+    const input = _setupFileInput('galInput', false, savedTask);
+    if (input) setTimeout(() => input.click(), 50);
+  }, 150);
+}
+function _setupFileInput(id, withCapture, taskId) {
+  const old = document.getElementById(id);
+  if (!old) return null;
+  const input = document.createElement('input');
+  input.type = 'file'; input.id = id; input.accept = 'image/*';
+  input.style.cssText = 'position:absolute;top:0;left:0;opacity:0;width:0.1px;height:0.1px;overflow:hidden;pointer-events:none;';
+  if (withCapture) input.setAttribute('capture', 'environment');
+  old.parentNode.replaceChild(input, old);
+  input.addEventListener('change', function(e) {
+    const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
+    if (file) {
+      if (taskId) activePhotoTask = taskId;
+      handlePhotoFile(file);
+      setTimeout(() => { try { input.value = ''; } catch(e2) {} }, 600);
+    }
+  });
+  return input;
 }
 
 function iosPhotoFix(inputEl, onDataUrl) {
@@ -590,7 +618,16 @@ let activePhotoTask = null;
 function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
 function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
 function getTodayKey() {
-  return 'dt' + getDubaiDateStr(); // Dubai date key
+  const hour = getDubaiHour();
+  if (currentShift === 'closing' && hour < 2) {
+    const d = getDubaiDate();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return 'dt' + y + '-' + m + '-' + dd;
+  }
+  return 'dt' + getDubaiDateStr();
 }
 
 // ── Purge stale data older than today ────────────────────────
@@ -710,6 +747,16 @@ function selectShift(shift) {
   currentShift = shift;
   window._selectShiftReady = null;
   window._pendingShift = null;
+  const _shiftHour = getDubaiHour();
+  let _shiftDate = getDubaiDateStr();
+  if (shift === 'closing' && _shiftHour < 2) {
+    const d2 = getDubaiDate();
+    d2.setDate(d2.getDate() - 1);
+    _shiftDate = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0');
+  }
+  const _wf = document.getElementById('fWeek');
+  if (_wf) _wf.textContent = _shiftDate;
+  localStorage.setItem('kic_info_' + ROLE + '_fWeek', _shiftDate);
   const btnO = document.getElementById('btnOpenShift');
   const btnC = document.getElementById('btnCloseShift');
   if (btnO) btnO.style.cssText = shift==='opening'
@@ -883,10 +930,8 @@ function renderDay() {
         // Overwrite panel for opening
         const owpO = document.createElement('div');
         owpO.className = 'overwrite-panel';
-        owpO.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
-          <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">KIC / Area Chef / Admin PIN to unlock and edit</div>
-          <input class="overwrite-input" id="owCodeO" type="password" placeholder="Enter PIN...">
-          <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Opening</button>`;
+        owpO.style.cssText = 'margin-top:8px;';
+        owpO.innerHTML = '<div style="padding:10px 14px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;text-align:center;font-size:12px;color:#92400E;">🔒 To make changes, ask your OIC or Manager to edit from the <strong>Master Dashboard</strong>.</div>';
         container.appendChild(owpO);
       }
     }
@@ -954,10 +999,7 @@ function renderDay() {
       // KIC overwrite panel
       const owp = document.createElement('div');
       owp.className = 'overwrite-panel';
-      owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN (KIC / Area Chef / Admin)</div>
-        <div style="font-size:11px;color:#B91C1C;margin-bottom:8px;">Enter KIC PIN to unlock and edit Day ${currentDay}</div>
-        <input class="overwrite-input" id="owCode" type="password" placeholder="Enter KIC PIN...">
-        <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
+      owp.innerHTML = '<div style="padding:10px 14px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;text-align:center;font-size:12px;color:#92400E;">🔒 To make changes, ask your OIC or Manager to edit from the <strong>Master Dashboard</strong>.</div>';
       container.appendChild(owp);
     } else {
       const wasOvr = !!data[dayKey]?._overwritten;
@@ -1008,13 +1050,11 @@ function tapYN(tid, val, el) {
     });
   });
   const p   = t>0  ? Math.round((y/t)*100)   : 0;
-  const opO = oM>0 ? Math.round((oY/oM)*100) : null;
-  const opC = cM>0 ? Math.round((cY/cM)*100) : null;
-  // Total = all YES / all answered tasks
-  const tM  = oM+cM, tY = oY+cY;
-  const op  = currentShift==='opening' && oM>0 ? Math.round((oY/oM)*100) :
-              currentShift==='closing' && cM>0 ? Math.round((cY/cM)*100) :
-              tM>0 ? Math.round((tY/tM)*100) : 0;
+  const opO = currentShift === 'opening' && oM>0 ? Math.round((oY/oM)*100) : null;
+  const opC = currentShift === 'closing' && cM>0 ? Math.round((cY/cM)*100) : null;
+  const _liveScores = [opO, opC].filter(v => v !== null);
+  const tM = _liveScores.length;
+  const op = _liveScores.length > 0 ? Math.round(_liveScores.reduce((a,b)=>a+b,0)/_liveScores.length) : 0;
   const pass = op >= 95;
   // Score bar
   document.getElementById('scoreFill').style.width = p + '%';
@@ -1054,6 +1094,26 @@ function fmtTimeOnly(iso) {
 }
 
 // ── Submit day ────────────────────────────────────────────────
+// Wait for Cloudinary uploads before submitting
+async function waitForPhotoUploads(tasks, maxWaitMs) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const _td = load()[getTodayKey()] || {};
+    const allDone = tasks.every(t => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('data:');
+      });
+      if (!hasLocal) return true;
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('http');
+      });
+    });
+    if (allDone) { showToast('Photos ready ✓', 'ok'); return; }
+    await new Promise(r => setTimeout(r, 300));
+  }
+  showToast('Submitting with available photos...', 'warn');
+}
+
 function submitOpening() {
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
@@ -1078,18 +1138,34 @@ function submitOpening() {
   // Push opening to Firebase with taskData
   let oY2=0,oM2=0;
   const openingTaskData = {};
+  const _tdOpen = load()[getTodayKey()] || {};
   SECTIONS[0].tasks.forEach(t=>{
-    const yn   = getVal(currentDay, t.id, 'yn');
-    const pUrl = getVal(currentDay, t.id, 'photoUrl');
-    const photo= getVal(currentDay, t.id, 'photo');
+    const yn   = _tdOpen[t.id]?.yn;
+    const pUrl = _tdOpen[t.id]?.photoUrl;
+    const photo= _tdOpen[t.id]?.photo;
+    const comment2 = _tdOpen[t.id]?.comment || '';
     if(yn&&yn!=='na'){oM2++;if(yn==='yes')oY2++;}
-    if(yn) openingTaskData['d'+currentDay+'_'+t.id]={
+    const _allPhotosOpen = [];
+    ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
+      const p = _tdOpen[t.id]?.[pk];
+      if (p && p.startsWith('http') && !_allPhotosOpen.includes(p)) _allPhotosOpen.push(p);
+    });
+    const _hasLocalOpen = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+      const p = _tdOpen[t.id]?.[pk]; return p && p.startsWith('data:');
+    });
+    if(yn) openingTaskData[`d1_${t.id}`]={
       day:currentDay, section:SECTIONS[0].title, task:t.text, owner:t.ownerLbl,
-      yn:yn||'', photoUrl:pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : '')
+      yn:yn||'', comment:comment2,
+      photoUrl: _allPhotosOpen[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : ''),
+      photoUrls: _allPhotosOpen, hasPhoto: _allPhotosOpen.length > 0 || _hasLocalOpen || !!(pUrl||photo),
     };
   });
   const startedAt = (load()[`d${currentDay}`] || {})._start || new Date().toISOString();
   const opO2=oM2>0?Math.round((oY2/oM2)*100):0;
+  try {
+    const _openKey2 = name.replace(/[^a-zA-Z0-9]/g,'_') + '_' + ROLE + '_' + (getOutlet()||'').replace(/[^a-zA-Z0-9]/g,'_') + '_' + (getWeekStart()||'').replace(/[^a-zA-Z0-9]/g,'_') + '_opening';
+    if (_db) _db.ref('submissions/' + _openKey2 + '/closingPct').remove().catch(()=>{});
+  } catch(e) {}
   pushToFirebase({
     staffName:   name, role:ROLE, roleLabel:ROLE_LABEL,
     outlet:      getOutlet(), week:getWeekStart(),
@@ -1124,21 +1200,19 @@ function submitDay() {
   d[todayKey2]._done       = new Date().toISOString();
   save(d);
 
-  // Calc overall — split by opening and closing
-  let tY=0,tM=0,oY=0,oM=0,cY=0,cM=0;
-  for(let dd=1;dd<=6;dd++){
-    SECTIONS.forEach((s,si)=>s.tasks.forEach(t=>{
-      const v=getVal(dd,t.id,'yn');
-      if(v&&v!=='na'){
-        tM++;if(v==='yes')tY++;
-        if(si===0){oM++;if(v==='yes')oY++;}
-        else{cM++;if(v==='yes')cY++;}
-      }
-    }));
-  }
-  const op=tM>0?Math.round((tY/tM)*100):0;
-  const opO=oM>0?Math.round((oY/oM)*100):null;
-  const opC=cM>0?Math.round((cY/cM)*100):null;
+  // Calc closing score only — today only, closing tasks only
+  let cY=0,cM=0;
+  const _tdSubmit = load()[getTodayKey()] || {};
+  SECTIONS.forEach((s,si) => {
+    if (si !== 1) return;
+    s.tasks.forEach(t => {
+      const v = _tdSubmit[t.id]?.yn;
+      if (v && v !== 'na') { cM++; if(v==='yes') cY++; }
+    });
+  });
+  const opC = cM > 0 ? Math.round((cY/cM)*100) : null;
+  const op = opC !== null ? opC : 0;
+  const opO = null;
 
   // Push to master dashboard
   const _fbRecord = {
@@ -1149,57 +1223,40 @@ function submitDay() {
     week:       getWeekStart(),
     verifiedBy: getVerified(),
     overallPct:   op,
-    openingPct:   opO,
+    openingPct:   null,
     closingPct:   opC,
-    qualified:    op>=95,
+    qualified:    false,
+    status:       'closing_submitted',
     taskData: (function() {
       const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn   = getVal(dd, t.id, 'yn');
-          const pUrl = getVal(dd, t.id, 'photoUrl');
-          const photo= getVal(dd, t.id, 'photo');
-          if (yn) tasks['d'+dd+'_'+t.id] = {
-            day:dd, section:s.title, task:t.text, owner:t.ownerLbl,
-            yn:yn||'', photoUrl:pUrl || (photo ? getPhotoDbRef(name, currentDay, t.id) : '')
-          };
-        }));
-      }
+      const _tdData = load()[getTodayKey()] || {};
+      SECTIONS.forEach((s, si) => {
+        if (si !== 1) return;
+        s.tasks.forEach(t => {
+          const yn   = _tdData[t.id]?.yn;
+          const pUrl = _tdData[t.id]?.photoUrl;
+          const _allPhotos = [];
+          ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
+            const p = _tdData[t.id]?.[pk];
+            if (p && p.startsWith('http') && !_allPhotos.includes(p)) _allPhotos.push(p);
+          });
+          const _hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+            const p = _tdData[t.id]?.[pk]; return p && p.startsWith('data:');
+          });
+          if (yn || _allPhotos.length > 0 || _hasLocal) {
+            tasks[`d1_${t.id}`] = {
+              day: 1, section: s.title, task: t.text, owner: t.ownerLbl,
+              yn: yn||'', comment: _tdData[t.id]?.comment||'',
+              photoUrl: _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : ''),
+              photoUrls: _allPhotos, hasPhoto: _allPhotos.length > 0 || _hasLocal,
+            };
+          }
+        });
+      });
       return tasks;
     })(),
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
-    photos: (function() {
-      const photos = {};
-      SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const url = getVal(currentDay, t.id, 'photoUrl');
-        if (url) photos[t.id + '_day' + currentDay] = url;
-      }));
-      return photos;
-    })(),
-    // Store full task responses for dashboard detail view
-    taskData: (function() {
-      const tasks = {};
-      for (let dd=1; dd<=6; dd++) {
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
-          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
-          if (yn || photo || pUrl) {
-            tasks[`d${dd}_${t.id}`] = {
-              day: dd,
-              section: s.title,
-              task: t.text,
-              owner: t.ownerLbl,
-              yn: yn||'',
-              comment: getVal(dd, t.id, 'comment')||'',
-              photoUrl: pUrl || (photo ? getPhotoDbRef(name || getStaffName(), dd, t.id) : ''), // prefer firebase url, fall back to db ref
-            };
-          }
-        }));
-      }
-      return tasks;
-    })(),
     submittedAt:new Date().toISOString(),
     lastUpdated:new Date().toISOString(),
   };
@@ -1277,9 +1334,10 @@ function handlePhotoFile(file) {
     if (staffName && _db) {
       const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
       if (dbRef) {
-        setVal(currentDay, taskId, 'photoUrl', dbRef);
+        const cloudSlotKey = slotIdx === 0 ? 'photoUrl' : 'photoUrl_' + slotIdx;
+        setVal(currentDay, taskId, cloudSlotKey, dbRef);
         showToast('Photo synced ✓', 'ok');
-        updatePhotoInSubmission(staffName, taskId, dbRef);
+        updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx);
       }
     }
   });
@@ -1302,8 +1360,14 @@ function removePhoto(taskId, idx) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Set Dubai date immediately — locked, auto-set, cannot be changed
-  const dubaiToday = getDubaiDateStr();
+  // Always recalculate today's date — shift-aware
+  const _initHour = getDubaiHour();
+  let dubaiToday = getDubaiDateStr();
+  if (_initHour < 2) {
+    const d = getDubaiDate();
+    d.setDate(d.getDate() - 1);
+    dubaiToday = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
   const weekField = document.getElementById('fWeek');
   if (weekField) weekField.textContent = dubaiToday;
   localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
@@ -1326,19 +1390,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Photo input listeners — works on iOS, Android, Samsung, Huawei
-  ['camInput','galInput'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('change', function(e) {
-      const file = e.target.files && e.target.files[0];
-      if (file) {
-        handlePhotoFile(file);
-        setTimeout(() => { this.value = ''; }, 500);
-      }
-    });
-    el.addEventListener('cancel', function() { this.value = ''; });
-  });
+  // Photo inputs handled by _setupFileInput (called from triggerCamera/triggerGallery)
 
   // Handle any shift tap that happened before script loaded
   window._selectShiftReady = selectShift;
