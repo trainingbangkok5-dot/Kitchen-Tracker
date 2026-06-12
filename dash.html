@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612210000">
-<meta name="app-version" content="20260612210000">
+<meta http-equiv="Expires" content="20260612220000">
+<meta name="app-version" content="20260612220000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612210000';
+  var v = '20260612220000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6228,6 +6228,7 @@ function setFOHTaskYN(btn, val) {
     else merged[k] = {yn};
   });
   // Use task IDs to split scores correctly
+  const oicIds   = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
   const openIds  = ['o1','o2','o3','o4','o5'];
   const closeIds = ['c1','c2','c3','c4','c5'];
   let oicY=0, oicT=0, opY=0, opT=0, clY=0, clT=0;
