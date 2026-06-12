@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612170000">
-<meta name="app-version" content="20260612170000">
+<meta http-equiv="Expires" content="20260612180000">
+<meta name="app-version" content="20260612180000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612170000';
+  var v = '20260612180000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5481,6 +5481,7 @@ function loadFOHData() {
       const grouped = {};
       snap.forEach(child => {
         const sub = child.val();
+        sub._fbKey = child.key; // CRITICAL: set _fbKey so opening/closing detection works
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : 'unknown';
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
