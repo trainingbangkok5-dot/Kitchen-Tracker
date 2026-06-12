@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612050000">
-<meta name="app-version" content="20260612050000">
+<meta http-equiv="Expires" content="20260612070000">
+<meta name="app-version" content="20260612070000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612050000';
+  var v = '20260612070000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4749,21 +4749,27 @@ async function saveOverwrite(s) {
     else if (_closeIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
 
-  // overallPct = staff tasks only (opening + closing), NOT OIC eval
-  const staffT = opM + clM, staffY = opY + clY;
-  const newScore     = staffT > 0 ? Math.round((staffY/staffT)*100) : parseFloat(s.overallPct||0);
-  const newQualified = newScore >= 95;
+  // Calculate each score separately
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
-  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null; // never fallback to old closingPct
-  const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : null;
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
+  const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
+  // Total = average of all available scores: opening + closing + OIC eval
+  const _allPcts = [opPct, clPct, ePct].filter(v => v != null);
+  const newScore = _allPcts.length > 0 ? Math.round(_allPcts.reduce((a,b)=>a+b,0)/_allPcts.length) : parseFloat(s.overallPct||0);
+  const newQualified = newScore >= 95;
 
   updates['submissions/' + fbKey + '/overallPct']    = newScore;
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
   updates['submissions/' + fbKey + '/overwrittenBy'] = currentRole;
   updates['submissions/' + fbKey + '/overwrittenAt'] = new Date().toISOString();
   if (opPct !== null) updates['submissions/' + fbKey + '/openingPct'] = opPct;
-  if (clPct !== null) updates['submissions/' + fbKey + '/closingPct'] = clPct;
-  if (ePct  !== null) updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
+  if (clPct !== null) {
+    updates['submissions/' + fbKey + '/closingPct'] = clPct;
+  } else if (s.status === 'opening_submitted') {
+    // Explicitly remove stale closingPct from opening-only record
+    await db.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
+  }
+  if (ePct !== null) updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
 
   try {
     await db.ref().update(updates);
@@ -4777,10 +4783,18 @@ async function saveOverwrite(s) {
     if (clPct !== null) s.closingPct = clPct;
     // Reset edit state
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
-    // Show success popup
-    alert('Changes saved! New score: ' + newScore + '% - ' + (newQualified ? 'QUALIFIED' : 'NOT QUALIFIED'));
-    // Reopen in view mode
-    openStaffDetail(s);
+    showToast('✓ Changes saved! Score: ' + newScore + '%', 'ok');
+    // Reload full record from Firebase so photos show correctly
+    const freshSnap = await db.ref('submissions/' + fbKey).once('value');
+    if (freshSnap.exists()) {
+      const fresh = {...freshSnap.val(), _fbKey: fbKey};
+      // Update in allStaff array
+      const idx = allStaff.findIndex(st => st._fbKey === fbKey);
+      if (idx >= 0) allStaff[idx] = fresh;
+      openStaffDetail(fresh);
+    } else {
+      openStaffDetail(s);
+    }
   } catch(e) {
     alert('Save failed: ' + e.message + '. Please try again.');
     console.error('saveOverwrite error:', e);
@@ -6260,25 +6274,24 @@ async function saveFOHOverwrite(staff) {
         else if (isOpen)  { oT++; if(t.yn==='yes') oY++; }
         else if (isClose) { cT++; if(t.yn==='yes') cY++; }
       });
-      // overallPct = only staff tasks (opening + closing), NOT OIC eval
-      const staffT = oT + cT, staffY = oY + cY;
-      const newPct = staffT > 0 ? Math.round((staffY/staffT)*100) : parseFloat(sub.overallPct||0);
+      // Calculate each score separately
+      const fohOpPct2 = oT > 0 ? Math.round((oY/oT)*100) : (sub.openingPct != null ? parseFloat(sub.openingPct) : null);
+      const fohClPct2 = cT > 0 ? Math.round((cY/cT)*100) : null;
+      const fohEPct2  = eT > 0 ? Math.round((eY/eT)*100) : (sub.oicEvalPct != null ? parseFloat(sub.oicEvalPct) : null);
+      // Total = average of all available scores: opening + closing + OIC eval
+      const _fohPcts2 = [fohOpPct2, fohClPct2, fohEPct2].filter(v => v != null);
+      const newPct = _fohPcts2.length > 0 ? Math.round(_fohPcts2.reduce((a,b)=>a+b,0)/_fohPcts2.length) : parseFloat(sub.overallPct||0);
       updates['submissions/' + child.key + '/overallPct'] = newPct;
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
-      // Update opening score if opening tasks answered
-      if (oT > 0) updates['submissions/' + child.key + '/openingPct'] = Math.round((oY/oT)*100);
-      // Update closing score ONLY if closing tasks answered — otherwise explicitly null it
-      // This prevents old closingPct values from persisting in opening-only records
-      if (cT > 0) {
-        updates['submissions/' + child.key + '/closingPct'] = Math.round((cY/cT)*100);
-      } else if (sub.status === 'opening_submitted' || (sub.openingPct != null && sub.closingPct != null)) {
-        // Opening-only record — clear any stale closingPct
+      if (fohOpPct2 !== null) updates['submissions/' + child.key + '/openingPct'] = fohOpPct2;
+      if (fohClPct2 !== null) {
+        updates['submissions/' + child.key + '/closingPct'] = fohClPct2;
+      } else if (sub.status === 'opening_submitted') {
         updates['submissions/' + child.key + '/closingPct'] = null;
       }
-      // OIC eval stored separately — never bleeds into opening/closing
-      if (eT > 0) updates['submissions/' + child.key + '/oicEvalPct'] = Math.round((eY/eT)*100);
+      if (fohEPct2 !== null) updates['submissions/' + child.key + '/oicEvalPct'] = fohEPct2;
     }
   });
 
