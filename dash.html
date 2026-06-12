@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612070000">
-<meta name="app-version" content="20260612070000">
+<meta http-equiv="Expires" content="20260612080000">
+<meta name="app-version" content="20260612080000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612070000';
+  var v = '20260612080000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1412,6 +1412,13 @@ function loadData() {
         if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
       }
     });
+    // One-time cleanup: delete stale closingPct from opening_submitted records
+    Object.values(dedupBOH).forEach(rec => {
+      if (rec.status === 'opening_submitted' && rec._fbKey) {
+        const db_ = rec._isFOH ? fohDb : _db;
+        if (db_) db_.ref('submissions/' + rec._fbKey + '/closingPct').remove().catch(()=>{});
+      }
+    });
     allStaff = Object.values(dedupBOH);
     setLoadingIndicator('');
     db.ref('audits').on('value', aSnap => {
@@ -2376,8 +2383,17 @@ function openStaffDetail(s) {
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
     const isService = ['service','oic'].includes(s.role);
-    // Total = average of all available scores: opening + closing + OIC eval
-    const _scoreComponents = [opO, opC, oicEvalPct].filter(v => v !== null);
+    // Total score logic:
+    // Opening only: (Opening + OIC Eval) / available
+    // Closing only: (Closing + OIC Eval) / available  
+    // Both shifts: (Opening + Closing + OIC Eval) / available
+    const hasOpening = opO !== null;
+    const hasClosing = opC !== null;
+    const hasOIC = oicEvalPct !== null;
+    let _scoreComponents = [];
+    if (hasOpening) _scoreComponents.push(opO);
+    if (hasClosing) _scoreComponents.push(opC);
+    if (hasOIC) _scoreComponents.push(oicEvalPct);
     const totalScore = _scoreComponents.length > 0 ? Math.round(_scoreComponents.reduce((a,b)=>a+b,0)/_scoreComponents.length) : sc;
     const pass = totalScore >= 95;
     // Build all 4 score boxes as separate rows for mobile compatibility
