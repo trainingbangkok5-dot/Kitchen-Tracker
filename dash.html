@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612130000">
-<meta name="app-version" content="20260612130000">
+<meta http-equiv="Expires" content="20260612140000">
+<meta name="app-version" content="20260612140000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612130000';
+  var v = '20260612140000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4513,6 +4513,15 @@ function toggleEditMode(s) {
   _editChanges = {};
   _editPhotoChanges = {};
   _verifiedByEdit = s.verifiedBy || '';
+  // Immediately clear closing box if opening-only record
+  if (_editIsOpeningOnly) {
+    document.querySelectorAll('#detailModal [data-scorebox="closing"], #detailBody [data-scorebox="closing"]').forEach(box => {
+      const pctEl = box.querySelector('.sb-pct');
+      const lblEl = box.querySelector('.sb-lbl');
+      if (pctEl) { pctEl.textContent = '—'; pctEl.style.color = '#94A3B8'; }
+      if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+    });
+  }
   const btn = document.querySelector('.edit-report-btn');
   const body = document.getElementById('modalBody');
   if (!btn || !body) return;
