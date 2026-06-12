@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612310000">
-<meta name="app-version" content="20260612310000">
+<meta http-equiv="Expires" content="20260612380000">
+<meta name="app-version" content="20260612380000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612310000';
+  var v = '20260612380000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2092,7 +2092,7 @@ function openMonthlyDetail(staffName, allSubs) {
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
               <div style="font-size:12px;font-weight:500;">${t.task||t.text||'—'}</div>
-              ${buildPhotoHtml(t)}
+              ${buildPhotoHtml(t, staff ? staff.role : (s ? s.role : ""))}
             </div>
             <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
           </div>`;
@@ -2212,7 +2212,7 @@ function openWeeklyDetail(staffName, week) {
           <div style="flex:1;">
             <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
             <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
-            ${buildPhotoHtml(t)}
+            ${buildPhotoHtml(t, staff ? staff.role : (s ? s.role : ""))}
           </div>
           <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
         </div>`;
@@ -2255,7 +2255,7 @@ function dataURLtoBlob(dataUrl) {
   } catch(e) { return null; }
 }
 
-function buildPhotoHtml(t) {
+function buildPhotoHtml(t, role) {
   const seen = new Set();
   const imgs = [];
   // 1) Read photoUrls array (new format)
@@ -2284,10 +2284,12 @@ function buildPhotoHtml(t) {
         : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
     ).join('');
   }
-  // OIC photo — shown separately with label
+  // Verifier photo — label depends on role
   if (t.oicPhotoUrl) {
     const oicUrl = t.oicPhotoUrl;
-    html += '<div style="margin-top:4px;"><span style="font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;">OIC Photo:</span> ';
+    const kicRoles = ['linecook','steward','lc','st'];
+    const verifierLabel = (role && kicRoles.includes(role)) ? 'KIC Photo:' : 'OIC Photo:';
+    html += '<div style="margin-top:4px;"><span style="font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;">' + verifierLabel + '</span> ';
     html += oicUrl.startsWith('db:')
       ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
       : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`;
@@ -2520,7 +2522,7 @@ function openStaffDetail(s) {
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
               <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
               ${t.comment?`<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>`:''}
-              ${buildPhotoHtml(t)}
+              ${buildPhotoHtml(t, staff ? staff.role : (s ? s.role : ""))}
             </div>
             <div class="task-yn-display">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
@@ -4581,7 +4583,7 @@ function toggleEditMode(s) {
       </div>
       <div>
         <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:4px;text-transform:uppercase;">
-          OIC Photo ${photoCountLabel ? '<span style="color:#15803D;font-weight:400;">(Staff: ' + photoCountLabel + ')</span>' : ''}
+          ${['linecook','steward','lc','st'].includes(s.role||'') ? 'KIC Photo' : 'OIC Photo'} ${photoCountLabel ? '<span style="color:#15803D;font-weight:400;">(Staff: ' + photoCountLabel + ')</span>' : ''}
         </label>
         <div class="edit-photo-preview" data-taskkey="${taskKey}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;min-height:4px;"></div>
         <div style="display:flex;gap:6px;">
@@ -4721,7 +4723,7 @@ function _editTakePhoto(taskKey, withCapture) {
         if (previewContainer.children.length === 0) {
           const lbl = document.createElement('div');
           lbl.style.cssText = 'font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;width:100%;margin-bottom:3px;';
-          lbl.textContent = '📷 OIC Photo:';
+          lbl.textContent = '📷 ' + (['linecook','steward','lc','st'].includes(_editStaffData?.role||'') ? 'KIC' : 'OIC') + ' Photo:';
           previewContainer.appendChild(lbl);
         }
         const img = document.createElement('img');
@@ -5993,7 +5995,7 @@ function openFOHDetail(idx) {
               ${t.owner ? `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;${ownerStyle};white-space:nowrap;">${t.owner}</span>` : ''}
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.task || t.text || '—'}</div>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
-              <div class="foh-photo-display">${buildPhotoHtml(t)}</div>
+              <div class="foh-photo-display">${buildPhotoHtml(t, staff ? staff.role : (s ? s.role : ""))}</div>
             </div>
             <div class="foh-yn-display" style="flex-shrink:0;">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
@@ -6201,7 +6203,7 @@ function handleFOHEditPhoto(input, cardEl) {
         // Add label
         const lbl = document.createElement('div');
         lbl.style.cssText = 'font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:4px;';
-        lbl.textContent = '📷 OIC Photo:';
+        lbl.textContent = '📷 ' + (['linecook','steward','lc','st'].includes((staff&&staff.role)||'') ? 'KIC' : 'OIC') + ' Photo:';
         oicPhotoDiv.appendChild(lbl);
         // Insert after the staff photo display
         const staffPhotoDiv = card.querySelector('.foh-photo-display');
