@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612180000">
-<meta name="app-version" content="20260612180000">
+<meta http-equiv="Expires" content="20260612200000">
+<meta name="app-version" content="20260612200000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612180000';
+  var v = '20260612200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5368,42 +5368,69 @@ function overwiteFromBOH(s) {
 
 function openBOHDetailFull(s) {
   if (!s) return;
-  // Try to fetch full submission with taskData from Firebase
   if (!db) { openStaffDetail(s); return; }
-  db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
-    if (!snap.exists()) { openStaffDetail(s); return; }
-    let fullRecord = null;
-    snap.forEach(child => {
-      const sub = child.val();
-      const subKey = child.key;
-      if (sub.role !== s.role || sub.week !== s.week) return;
-      if (!sub.taskData) return;
-      if (!fullRecord) {
-        fullRecord = Object.assign({}, s);
-        fullRecord.taskData = {};
-      }
-      Object.assign(fullRecord.taskData, sub.taskData);
-      if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
-      if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
-      if (sub.verifiedBy) fullRecord.verifiedBy = sub.verifiedBy;
-      if (sub.verifiedAt) fullRecord.verifiedAt = sub.verifiedAt;
-      // Use the _opening record's key and scores — never the closing record's
-      if (subKey.endsWith('_opening') || sub.status === 'opening_submitted') {
-        fullRecord._fbKey = subKey;
-        fullRecord.status = sub.status || 'opening_submitted';
-        fullRecord.openingPct = sub.openingPct;
-        fullRecord.closingPct = null; // explicitly null for opening record
-        fullRecord.oicEvalPct = sub.oicEvalPct || fullRecord.oicEvalPct;
-      }
-    });
-    if (fullRecord) {
-      // Final safety: if _fbKey ends with _opening, force closingPct=null
-      if (fullRecord._fbKey && fullRecord._fbKey.endsWith('_opening')) {
-        fullRecord.closingPct = null;
-      }
+
+  // Build the Firebase key directly — same format as service.html pushToFirebase
+  const nameKey = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_');
+  const weekKey = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
+  const openingKey = nameKey + '_' + s.role + '_' + weekKey + '_opening';
+  const closingKey = nameKey + '_' + s.role + '_' + weekKey + '_closing';
+
+  Promise.all([
+    db.ref('submissions/' + openingKey).once('value'),
+    db.ref('submissions/' + closingKey).once('value')
+  ]).then(([openSnap, closeSnap]) => {
+    const openRec = openSnap.exists() ? {...openSnap.val(), _fbKey: openingKey} : null;
+    const closeRec = closeSnap.exists() ? {...closeSnap.val(), _fbKey: closingKey} : null;
+
+    // Build fullRecord — start from grouped s for metadata
+    const fullRecord = Object.assign({}, s);
+    fullRecord.taskData = {};
+
+    if (openRec) {
+      // Opening record data
+      fullRecord._fbKey = openingKey;
+      fullRecord.status = 'opening_submitted';
+      fullRecord.openingPct = openRec.openingPct != null ? parseFloat(openRec.openingPct) : null;
+      fullRecord.closingPct = null; // NEVER copy closingPct from opening record
+      fullRecord.oicEvalPct = openRec.oicEvalPct != null ? parseFloat(openRec.oicEvalPct) : null;
+      fullRecord.startedAt = openRec.startedAt || fullRecord.startedAt;
+      fullRecord.submittedAt = openRec.submittedAt || fullRecord.submittedAt;
+      fullRecord.verifiedBy = openRec.verifiedBy || fullRecord.verifiedBy;
+      if (openRec.taskData) Object.assign(fullRecord.taskData, openRec.taskData);
     }
-    openStaffDetail(fullRecord || s);
-  });
+
+    if (closeRec) {
+      // Closing record — merge taskData and closing score only
+      fullRecord.closingPct = closeRec.closingPct != null ? parseFloat(closeRec.closingPct) : null;
+      fullRecord.closingStaff = closeRec.staffName;
+      if (closeRec.taskData) Object.assign(fullRecord.taskData, closeRec.taskData);
+      // Update oicEvalPct if closing record has it
+      if (closeRec.oicEvalPct != null) fullRecord.oicEvalPct = parseFloat(closeRec.oicEvalPct);
+    }
+
+    // If neither key found, fall back to query by staffName
+    if (!openRec && !closeRec) {
+      db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+        if (!snap.exists()) { openStaffDetail(s); return; }
+        snap.forEach(child => {
+          const sub = child.val();
+          if (sub.role !== s.role || sub.week !== s.week || !sub.taskData) return;
+          if (child.key.endsWith('_opening') || sub.status === 'opening_submitted') {
+            fullRecord._fbKey = child.key;
+            fullRecord.openingPct = sub.openingPct;
+            fullRecord.closingPct = null;
+            fullRecord.oicEvalPct = sub.oicEvalPct;
+          }
+          Object.assign(fullRecord.taskData, sub.taskData);
+        });
+        openStaffDetail(fullRecord);
+      });
+      return;
+    }
+
+    openStaffDetail(fullRecord);
+  }).catch(() => openStaffDetail(s));
 }
 
 function renderBOHStaff() {
@@ -6200,27 +6227,37 @@ function setFOHTaskYN(btn, val) {
     if (merged[k]) merged[k] = {...merged[k], yn};
     else merged[k] = {yn};
   });
-  let yes=0, total=0;
-  const oicIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
-  let oicY=0, oicT=0, staffY=0, staffT=0;
+  // Use task IDs to split scores correctly
+  const openIds  = ['o1','o2','o3','o4','o5'];
+  const closeIds = ['c1','c2','c3','c4','c5'];
+  let oicY=0, oicT=0, opY=0, opT=0, clY=0, clT=0;
   Object.entries(merged).forEach(([k, t]) => {
-    if (t && t.yn && t.yn !== 'na') {
-      const isOic = oicIds.some(id => k===id || k.endsWith('_'+id) || k.startsWith(id+'_'));
-      if (isOic) { oicT++; if(t.yn==='yes') oicY++; }
-      else { staffT++; if(t.yn==='yes') staffY++; }
-      total++; if(t.yn==='yes') yes++;
-    }
+    if (!t || !t.yn || t.yn === 'na') return;
+    const tid = k.replace(/^d[0-9]+_/, '');
+    if (oicIds.some(id => tid === id)) { oicT++; if(t.yn==='yes') oicY++; }
+    else if (openIds.includes(tid))   { opT++;  if(t.yn==='yes') opY++;  }
+    else if (closeIds.includes(tid))  { clT++;  if(t.yn==='yes') clY++;  }
   });
-  const newScore = staffT>0 ? Math.round((staffY/staffT)*100) : 0;
-  const oicScore = oicT>0 ? Math.round((oicY/oicT)*100) : null;
-  const pass = newScore >= 95;
-  // Update all score boxes
+  const opScore  = opT  > 0 ? Math.round((opY/opT)*100)   : (staff && staff.openingPct != null ? parseFloat(staff.openingPct) : null);
+  const clScore  = clT  > 0 ? Math.round((clY/clT)*100)   : null; // never fallback for closing
+  const oicScore = oicT > 0 ? Math.round((oicY/oicT)*100) : (staff && staff.oicEvalPct != null ? parseFloat(staff.oicEvalPct) : null);
+  // Total = avg of available scores
+  const _scores = [opScore, clScore, oicScore].filter(v => v != null);
+  const totalScore = _scores.length > 0 ? Math.round(_scores.reduce((a,b)=>a+b,0)/_scores.length) : 0;
+  const pass = totalScore >= 95;
+  // Update score boxes — closing shows "—" if null
   document.querySelectorAll('#fohDetailModal [data-scorebox]').forEach(box => {
     const type = box.getAttribute('data-scorebox');
     const pctEl = box.querySelector('.sb-pct') || box;
     const lblEl = box.querySelector('.sb-lbl');
-    let pct = type === 'oic' ? oicScore : newScore;
-    if (pct === null) return;
+    let pct = type==='opening' ? opScore : type==='closing' ? clScore : type==='oic' ? oicScore : totalScore;
+    if (pct === null) {
+      if (type === 'closing') {
+        pctEl.textContent = '—'; pctEl.style.color = '#94A3B8';
+        if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+      }
+      return;
+    }
     const isPass = pct >= 95;
     pctEl.textContent = pct + '%';
     pctEl.style.color = isPass ? '#0F766E' : '#B91C1C';
@@ -6235,6 +6272,21 @@ let _fohEditChanges = {}; // taskKey -> new yn value
 function toggleFOHEditMode() {
   const staff = _fohFiltered[_fohDetailIdx];
   if (!staff) return;
+
+  // Force closingPct=null for opening-only records
+  const _fohIsOpenOnly = staff.status === 'opening_submitted'
+    || (staff._fbKey && staff._fbKey.endsWith('_opening'))
+    || (!staff.status && staff.openingPct != null && staff.shift !== 'closing');
+  if (_fohIsOpenOnly) {
+    staff.closingPct = null;
+    // Immediately clear closing box in the score display
+    document.querySelectorAll('[data-scorebox="closing"]').forEach(box => {
+      const pctEl = box.querySelector('.sb-pct');
+      const lblEl = box.querySelector('.sb-lbl');
+      if (pctEl) { pctEl.textContent = '—'; pctEl.style.color = '#94A3B8'; }
+      if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+    });
+  }
 
   if (_fohEditMode) {
     // Already in edit mode — save
