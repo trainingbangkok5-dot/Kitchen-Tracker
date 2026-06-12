@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612280000">
-<meta name="app-version" content="20260612280000">
+<meta http-equiv="Expires" content="20260612290000">
+<meta name="app-version" content="20260612290000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612280000';
+  var v = '20260612290000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6182,7 +6182,7 @@ function handleFOHEditPhoto(input) {
   const reader = new FileReader();
   reader.onload = e => {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
-    _fohEditChanges[taskKey].photoUrl = e.target.result;
+    _fohEditChanges[taskKey].oicPhotoUrl = e.target.result; // OIC photo stored separately
     // Show preview in OIC-specific area — NOT in staff photo area
     const card = input.closest('[data-fohtaskkey]');
     if (card) {
@@ -6224,7 +6224,7 @@ function handleFOHEditPhoto(input) {
           .then(r => r.json())
           .then(j => {
             if (j.secure_url) {
-              _fohEditChanges[taskKey].photoUrl = j.secure_url;
+              _fohEditChanges[taskKey].oicPhotoUrl = j.secure_url; // OIC Cloudinary URL
               // Update img src to Cloudinary URL
               const card2 = document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
               if (card2) {
@@ -6487,7 +6487,7 @@ async function saveFOHOverwrite(staff) {
         const yn = typeof changes === 'string' ? changes : changes.yn;
         if (yn) updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
-        if (changes && changes.photoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/photoUrl'] = changes.photoUrl;
+        if (changes && changes.oicPhotoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/oicPhotoUrl'] = changes.oicPhotoUrl;
         // Also store task metadata for new OIC tasks
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = 'OIC Observation';
