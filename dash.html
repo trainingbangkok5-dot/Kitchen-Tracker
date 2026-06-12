@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612140000">
-<meta name="app-version" content="20260612140000">
+<meta http-equiv="Expires" content="20260612160000">
+<meta name="app-version" content="20260612160000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612140000';
+  var v = '20260612160000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2258,11 +2258,11 @@ function dataURLtoBlob(dataUrl) {
 function buildPhotoHtml(t) {
   const seen = new Set();
   const imgs = [];
-  // 1) Read photoUrls array (new format from service.html fix)
+  // 1) Read photoUrls array (new format)
   if (Array.isArray(t.photoUrls)) {
     t.photoUrls.forEach(url => { if (url && !seen.has(url)) { seen.add(url); imgs.push(url); } });
   }
-  // 2) Read photoUrl, photoUrl_1, photoUrl_2... (sequential keys)
+  // 2) Read photoUrl, photoUrl_1... (sequential keys)
   let pi = 0;
   while (true) {
     const key = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
@@ -2273,16 +2273,27 @@ function buildPhotoHtml(t) {
     pi++;
     if (pi > 10) break;
   }
-  // 3) If no URLs but hasPhoto flag set — show placeholder
+  // Staff photos HTML
+  let html = '';
   if (!imgs.length) {
-    if (t.hasPhoto) return '<span style="font-size:11px;color:#0F766E;background:#DCFCE7;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;">📷 Photo taken</span>';
-    return '';
+    if (t.hasPhoto) html += '<span style="font-size:11px;color:#0F766E;background:#DCFCE7;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;">📷 Photo taken</span>';
+  } else {
+    html += imgs.map(url =>
+      url.startsWith('db:')
+        ? `<img data-dbref="${url.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;display:none;">`
+        : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
+    ).join('');
   }
-  return imgs.map(url =>
-    url.startsWith('db:')
-      ? `<img data-dbref="${url.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;display:none;">`
-      : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
-  ).join('');
+  // OIC photo — shown separately with label
+  if (t.oicPhotoUrl) {
+    const oicUrl = t.oicPhotoUrl;
+    html += '<div style="margin-top:4px;"><span style="font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;">OIC Photo:</span> ';
+    html += oicUrl.startsWith('db:')
+      ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
+      : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`;
+    html += '</div>';
+  }
+  return html;
 }
 function openStaffDetail(s) {
   // Always open in view mode
@@ -4793,11 +4804,16 @@ async function saveOverwrite(s) {
     if (k) updates['submissions/' + fbKey + '/taskData/' + k + '/comment'] = val;
   });
 
-  // Save photos — upload base64 to Firebase storage path
-  const photoPromises = Object.entries(_editPhotoChanges).map(([k, base64]) => {
-    const photoRef = 'photos/' + s.staffName.replace(/\s+/g,'_') + '_' + k + '_' + Date.now();
-    return db.ref(photoRef).set(base64).then(() => {
-      updates['submissions/' + fbKey + '/taskData/' + k + '/photoUrl'] = 'db:' + photoRef;
+  // Save OIC photos separately — never overwrite staff photos
+  const photoPromises = Object.entries(_editPhotoChanges).map(([k, urlOrBase64]) => {
+    if (urlOrBase64 && urlOrBase64.startsWith('http')) {
+      // Already a Cloudinary URL
+      updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = urlOrBase64;
+      return Promise.resolve();
+    }
+    const photoRef = 'photos/oic_' + (s.staffName||'').replace(/\s+/g,'_') + '_' + k + '_' + Date.now();
+    return db.ref(photoRef).set(urlOrBase64).then(() => {
+      updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = 'db:' + photoRef;
     });
   });
   await Promise.all(photoPromises);
@@ -5216,11 +5232,14 @@ function loadBOHData() {
           if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         }
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
-        // Only use closingPct if this record is actually a closing submission
-        if (sub.closingPct != null && sub.status !== 'opening_submitted') {
+        // Determine if this is an opening-only record using ALL available signals
+        const _subIsOpenOnly = sub.status === 'opening_submitted'
+          || (sub._fbKey && sub._fbKey.endsWith('_opening'))
+          || (!sub.status && sub.openingPct != null && sub.shift !== 'closing' && sub.closingPct == null);
+        if (sub.closingPct != null && !_subIsOpenOnly) {
           grouped[gKey].closingPct = sub.closingPct;
-        } else if (sub.status === 'opening_submitted' && sub.closingPct != null) {
-          // Stale closingPct on opening record — delete from Firebase immediately
+        } else if (_subIsOpenOnly && sub.closingPct != null) {
+          // Stale closingPct — delete from Firebase immediately
           if (_db && sub._fbKey) _db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
           grouped[gKey].closingPct = null;
         }
@@ -5495,11 +5514,14 @@ function loadFOHData() {
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
-        // Only use closingPct if this record is actually a closing submission
-        if (sub.closingPct != null && sub.status !== 'opening_submitted') {
+        // Determine if this is an opening-only record
+        const _fohSubIsOpenOnly = sub.status === 'opening_submitted'
+          || (sub._fbKey && sub._fbKey.endsWith('_opening'))
+          || (!sub.status && sub.openingPct != null && sub.shift !== 'closing' && sub.closingPct == null);
+        if (sub.closingPct != null && !_fohSubIsOpenOnly) {
           grouped[gKey].closingPct = sub.closingPct;
-        } else if (sub.status === 'opening_submitted' && sub.closingPct != null) {
-          // Stale closingPct on opening record — delete from Firebase immediately
+        } else if (_fohSubIsOpenOnly && sub.closingPct != null) {
+          // Stale closingPct — delete from Firebase immediately
           if (fohDb && sub._fbKey) fohDb.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
           grouped[gKey].closingPct = null;
         }
