@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613490000">
+<meta name="app-version" content="20260613500000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613490000';
+  var v = '20260613500000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5634,9 +5634,14 @@ function renderBOHStaff() {
           : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
       }</td>
       <td style="padding:6px 8px;text-align:center;">
-        <button onclick="openBOHDetailFull(allBOHData[${bohIdx}])" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
-        ${canOW ? `<button onclick="overwiteFromBOH(allBOHData[${bohIdx}])" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
+        <button class="boh-view-btn" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
+        ${canOW ? `<button class="boh-edit-btn" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
       </td>`;
+    tbody.appendChild(tr);
+    // Attach click handlers with direct reference to staff object — avoids template literal issues
+    tr.querySelector('.boh-view-btn').addEventListener('click', () => openBOHDetailFull(staff));
+    const editBtn = tr.querySelector('.boh-edit-btn');
+    if (editBtn) editBtn.addEventListener('click', () => overwiteFromBOH(staff));
     tbody.appendChild(tr);
   });
 }
