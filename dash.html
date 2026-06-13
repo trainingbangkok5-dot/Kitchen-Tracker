@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613100000">
-<meta name="app-version" content="20260613100000">
+<meta http-equiv="Expires" content="20260613110000">
+<meta name="app-version" content="20260613110000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613100000';
+  var v = '20260613110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1483,8 +1483,10 @@ function loadData() {
   db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       const allAuditTypes = rawA;
-      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? allAuditTypes :
-                  allAuditTypes.filter(a => a.outlet === currentOutlet);
+      // Management sees all audits, others see their outlet's audits
+      const isManagement = MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole);
+      allAudits = isManagement ? allAuditTypes :
+                  allAuditTypes.filter(a => !a.outlet || a.outlet === currentOutlet || currentOutlet === '');
       if (document.getElementById('page-audits')?.classList.contains('active')) renderAudits();
     });
 
@@ -7121,8 +7123,8 @@ function loadMaintenanceLogs() {
     return;
   }
   document.getElementById('maintStatus').textContent = '⏳ Loading...';
-  // Load last 200 records ordered by date — enough for any active period
-  maintenanceDb.ref('maintenanceLogs').orderByChild('loggedAt').limitToLast(200).once('value', snap => {
+  // Load last 200 records — no index required
+  maintenanceDb.ref('maintenanceLogs').limitToLast(200).once('value', snap => {
     allMaintenanceLogs = [];
     if (snap.exists()) {
       snap.forEach(child => {
