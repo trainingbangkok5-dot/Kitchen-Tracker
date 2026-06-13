@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613670000">
+<meta name="app-version" content="20260613680000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613670000';
+  var v = '20260613680000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6145,7 +6145,7 @@ function openFOHDetail(idx) {
               ${t.owner ? `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;${ownerStyle};white-space:nowrap;">${t.owner}</span>` : ''}
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.task || t.text || '—'}</div>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>` : ''}
-              <div class="foh-photo-display">${buildPhotoHtml(t, s ? s.role : (staff ? staff.role : ""))}</div>
+              <div class="foh-photo-display">${buildPhotoHtml(t, staff ? staff.role : '')}</div>
             </div>
             <div class="foh-yn-display" style="flex-shrink:0;">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
