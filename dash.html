@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613340000">
-<meta name="app-version" content="20260613340000">
+<meta http-equiv="Expires" content="20260613380000">
+<meta name="app-version" content="20260613380000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613340000';
+  var v = '20260613380000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2307,22 +2307,15 @@ function buildPhotoHtml(t, role) {
         : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
     ).join('');
   }
-  // Verifier photo — label depends on role, supports multiple via oicPhotoUrls array
-  const oicUrls = [];
-  if (Array.isArray(t.oicPhotoUrls) && t.oicPhotoUrls.length) {
-    oicUrls.push(...t.oicPhotoUrls);
-  } else if (t.oicPhotoUrl) {
-    oicUrls.push(t.oicPhotoUrl); // legacy single field
-  }
-  if (oicUrls.length) {
+  // Verifier photo — label depends on role
+  if (t.oicPhotoUrl) {
+    const oicUrl = t.oicPhotoUrl;
     const kicRoles = ['linecook','steward','lc','st'];
     const verifierLabel = (role && kicRoles.includes(role)) ? 'KIC Photo:' : 'OIC Photo:';
     html += '<div style="margin-top:4px;"><span style="font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;">' + verifierLabel + '</span> ';
-    html += oicUrls.map(oicUrl =>
-      oicUrl.startsWith('db:')
-        ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
-        : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`
-    ).join('');
+    html += oicUrl.startsWith('db:')
+      ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
+      : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`;
     html += '</div>';
   }
   return html;
@@ -4627,38 +4620,7 @@ function toggleEditMode(s) {
       </div>`;
     row.appendChild(extraDiv);
 
-    // Pre-load existing oicPhotoUrls into preview
-    if (task) {
-      const existingOicUrls = [];
-      if (Array.isArray(task.oicPhotoUrls) && task.oicPhotoUrls.length) existingOicUrls.push(...task.oicPhotoUrls);
-      else if (task.oicPhotoUrl) existingOicUrls.push(task.oicPhotoUrl);
-      if (existingOicUrls.length) {
-        const preview = row.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
-        if (preview) {
-          const lbl = document.createElement('div');
-          lbl.style.cssText = 'width:100%;font-size:9px;color:#7B2D42;font-weight:700;text-transform:uppercase;margin-bottom:2px;';
-          lbl.textContent = 'Saved photo' + (existingOicUrls.length > 1 ? 's' : '') + ' (new photo will be added):';
-          preview.appendChild(lbl);
-          existingOicUrls.forEach(oicUrl => {
-            const img = document.createElement('img');
-            img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;';
-            if (oicUrl.startsWith('db:')) {
-              img.src = ''; img.style.display = 'none';
-              if (db) db.ref('photos/' + oicUrl.slice(3)).once('value').then(snap => {
-                if (snap.val()) { img.src = snap.val(); img.style.display = 'inline-block'; }
-              }).catch(()=>{});
-            } else {
-              img.src = oicUrl;
-              img.onerror = function() { this.style.display = 'none'; };
-            }
-            preview.appendChild(img);
-          });
-          preview.style.display = 'flex';
-          preview.style.flexWrap = 'wrap';
-          preview.style.gap = '4px';
-        }
-      }
-    }
+    // Photo preview handler — attach to all photo inputs
     extraDiv.querySelectorAll('.edit-photo-input').forEach(fileInput => {
     fileInput.addEventListener('change', function() {
       const file = this.files[0];
@@ -4798,9 +4760,7 @@ function _editTakePhoto(taskKey, withCapture) {
         previewContainer.scrollIntoView({behavior:'smooth', block:'nearest'});
       }
 
-      _editPhotoChanges[taskKey] = _editPhotoChanges[taskKey] || [];
-      _editPhotoChanges[taskKey].push(e.target.result);
-      const _newPhotoIdx = _editPhotoChanges[taskKey].length - 1;
+      _editPhotoChanges[taskKey] = e.target.result;
       // Upload to Cloudinary immediately
       try {
         const blob = dataURLtoBlob(e.target.result);
@@ -4812,7 +4772,7 @@ function _editTakePhoto(taskKey, withCapture) {
             .then(r => r.json())
             .then(j => {
               if (j.secure_url) {
-                _editPhotoChanges[taskKey][_newPhotoIdx] = j.secure_url;
+                _editPhotoChanges[taskKey] = j.secure_url;
                 // Update the last img src to Cloudinary URL
                 const imgs = previewContainer ? previewContainer.querySelectorAll('img') : [];
                 if (imgs.length > 0) imgs[imgs.length-1].src = j.secure_url;
@@ -4892,28 +4852,17 @@ async function saveOverwrite(s) {
     if (k) updates['submissions/' + fbKey + '/taskData/' + k + '/comment'] = val;
   });
 
-  // Save OIC photos — append new ones to existing oicPhotoUrls array, never overwrite
-  const photoPromises = Object.entries(_editPhotoChanges).map(async ([k, newPhotos]) => {
-    if (!Array.isArray(newPhotos) || !newPhotos.length) return;
-    // Start from existing oicPhotoUrls on the task
-    const existingUrls = [];
-    if (s.taskData && s.taskData[k]) {
-      const t = s.taskData[k];
-      if (Array.isArray(t.oicPhotoUrls)) existingUrls.push(...t.oicPhotoUrls);
-      else if (t.oicPhotoUrl) existingUrls.push(t.oicPhotoUrl); // migrate single -> array
+  // Save OIC photos separately — never overwrite staff photos
+  const photoPromises = Object.entries(_editPhotoChanges).map(([k, urlOrBase64]) => {
+    if (urlOrBase64 && urlOrBase64.startsWith('http')) {
+      // Already a Cloudinary URL
+      updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = urlOrBase64;
+      return Promise.resolve();
     }
-    // Upload any base64 photos that haven't been Cloudinaried yet
-    const uploadedUrls = await Promise.all(newPhotos.map(async (urlOrBase64) => {
-      if (urlOrBase64 && urlOrBase64.startsWith('http')) return urlOrBase64;
-      // Upload base64 to Firebase db
-      const photoRef = 'photos/oic_' + (s.staffName||'').replace(/\s+/g,'_') + '_' + k + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-      await db.ref(photoRef).set(urlOrBase64);
-      return 'db:' + photoRef;
-    }));
-    const allUrls = [...existingUrls, ...uploadedUrls];
-    updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrls'] = allUrls;
-    // Keep legacy oicPhotoUrl as the first one for backwards compatibility
-    updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = allUrls[0] || '';
+    const photoRef = 'photos/oic_' + (s.staffName||'').replace(/\s+/g,'_') + '_' + k + '_' + Date.now();
+    return db.ref(photoRef).set(urlOrBase64).then(() => {
+      updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = 'db:' + photoRef;
+    });
   });
   await Promise.all(photoPromises);
 
@@ -6317,6 +6266,16 @@ function handleFOHEditPhoto(input, cardEl) {
       img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;margin-right:4px;';
       img.src = e.target.result;
       oicPhotoDiv.appendChild(img);
+      // Also show immediately in the foh-photo-display so it's visible right away
+      const photoDisplay = card.querySelector('.foh-photo-display');
+      if (photoDisplay) {
+        const immediateImg = document.createElement('img');
+        immediateImg.className = 'oic-immediate-preview';
+        immediateImg.src = e.target.result;
+        immediateImg.style.cssText = 'max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #7B2D42;';
+        immediateImg.onerror = function() { this.style.display='none'; };
+        photoDisplay.appendChild(immediateImg);
+      }
       // Scroll into view
       oicPhotoDiv.scrollIntoView({behavior:'smooth', block:'nearest'});
     }
@@ -6333,11 +6292,13 @@ function handleFOHEditPhoto(input, cardEl) {
           .then(j => {
             if (j.secure_url) {
               _fohEditChanges[taskKey].oicPhotoUrl = j.secure_url; // OIC Cloudinary URL
-              // Update img src to Cloudinary URL
+              // Update img src to Cloudinary URL in both preview divs
               const card2 = document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
               if (card2) {
                 const imgs = card2.querySelectorAll('.oic-photo-preview img');
                 if (imgs.length > 0) imgs[imgs.length-1].src = j.secure_url;
+                const immediateImgs = card2.querySelectorAll('.foh-photo-display .oic-immediate-preview');
+                if (immediateImgs.length > 0) immediateImgs[immediateImgs.length-1].src = j.secure_url;
               }
             }
           })
