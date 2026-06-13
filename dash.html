@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613260000">
-<meta name="app-version" content="20260613260000">
+<meta http-equiv="Expires" content="20260613270000">
+<meta name="app-version" content="20260613270000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613260000';
+  var v = '20260613270000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1372,7 +1372,7 @@ function loadData() {
   setSyncStatus('syncing','Connecting...');
   setLoadingIndicator('⏳ Loading...');
   // Auto-archive submissions older than 60 days on every load
-  autoArchiveOldSubmissions();
+  // autoArchiveOldSubmissions(); // Disabled — run manually via Archive tab only
   // Load all submissions — no week filter (week formats differ between files)
   const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(2000);
   bohQuery.once('value', snap => {
