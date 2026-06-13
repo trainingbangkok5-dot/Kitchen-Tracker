@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613120000">
-<meta name="app-version" content="20260613120000">
+<meta http-equiv="Expires" content="20260613140000">
+<meta name="app-version" content="20260613140000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613120000';
+  var v = '20260613140000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1050,7 +1050,7 @@ function initFirebase() {
     console.error('Firebase init error:', e);
   }
   try {
-    const maintApp = firebase.initializeApp(MAINTENANCE_CONFIG, 'maintenance');
+    const maintApp = firebase.apps.find(a=>a.name==='maintenance') || firebase.initializeApp(MAINTENANCE_CONFIG, 'maintenance');
     maintenanceDb = maintApp.database();
   } catch(e) {
     console.error('Maintenance Firebase init error:', e);
@@ -1477,22 +1477,19 @@ function loadData() {
     });
     allStaff = Object.values(dedupBOH);
     setLoadingIndicator('');
-  });
 
-  // Load audits independently — not nested in submissions callback
-  db.ref('audits').on('value', aSnap => {
+    // Load audits here — role and outlet are guaranteed to be set
+    db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
-      const allAuditTypes = rawA;
-      // Management sees all audits, others see their outlet's audits
       const isManagement = MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole);
-      allAudits = isManagement ? allAuditTypes :
-                  allAuditTypes.filter(a => !a.outlet || a.outlet === currentOutlet || currentOutlet === '');
+      allAudits = isManagement ? rawA :
+                  rawA.filter(a => !a.outlet || a.outlet === currentOutlet || currentOutlet === '');
+      console.log('Audits loaded:', rawA.length, '→ filtered:', allAudits.length, 'role:', currentRole);
       if (document.getElementById('page-audits')?.classList.contains('active')) renderAudits();
     }, err => {
       console.error('Audit load error:', err);
-      const body = document.getElementById('auditBody');
-      if (body) body.innerHTML = '<div style="padding:20px;color:#B91C1C;text-align:center;">❌ Error loading audits: ' + err.message + '</div>';
     });
+  });
 
   // Load FOH submissions independently
   if (fohDb) {
@@ -3268,7 +3265,7 @@ function renderAudits() {
   }
 
   if (!filtered.length) {
-    body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits submitted yet<br><small>Open an audit form, fill it, and tap Submit to Dashboard</small></div>';
+    body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits found<br><small>allAudits count: ' + allAudits.length + ' | role: ' + currentRole + ' | outlet: ' + currentOutlet + '</small></div>';
     return;
   }
   body.innerHTML = '';
