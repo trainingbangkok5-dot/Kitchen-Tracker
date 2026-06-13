@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613480000">
+<meta name="app-version" content="20260613490000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613480000';
+  var v = '20260613490000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5609,12 +5609,14 @@ function renderBOHStaff() {
     const dB = b.submittedAt || b.lastUpdated || b.week || '0';
     return new Date(dB) - new Date(dA);
   });
-  filtered.forEach(staff => {
+  filtered.forEach((staff, idx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
     const op = staff.overallPct;
     const canOW = ['areachef','areamanager','training','operations','director','ceo'].includes(currentRole);
     const rowKey = (staff.staffName||'') + '_' + (staff.role||'') + '_' + (staff.week||'');
+    // Store reference index for click handlers
+    const bohIdx = allBOHData.findIndex(s=>s.staffName===staff.staffName&&s.week===staff.week&&s.role===staff.role);
     tr.innerHTML = `
       <td class="boh-chk-cell" style="padding:8px 12px;text-align:center;display:none;">
         <input type="checkbox" class="boh-row-chk" data-key="${rowKey}" onchange="updateBOHSelectCount()" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;">
@@ -5632,8 +5634,8 @@ function renderBOHStaff() {
           : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
       }</td>
       <td style="padding:6px 8px;text-align:center;">
-        <button onclick="openBOHDetailFull(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
-        ${canOW ? `<button onclick="overwiteFromBOH(allBOHData.find(s=>s.staffName===\`${staff.staffName}\`&&s.week===\`${staff.week}\`))" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
+        <button onclick="openBOHDetailFull(allBOHData[${bohIdx}])" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
+        ${canOW ? `<button onclick="overwiteFromBOH(allBOHData[${bohIdx}])" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
       </td>`;
     tbody.appendChild(tr);
   });
