@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260613020000';
+  var v = '20260613040000';
   var stored = localStorage.getItem('app_version_delco');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -282,8 +282,8 @@ function triggerCamera() {
   closePhotoModal();
   setTimeout(() => {
     activePhotoTask = savedTask;
-    const el = document.getElementById('camInput');
-    if (el) { el.setAttribute('capture','environment'); el.value=''; el.click(); }
+    const input = _setupFileInput('camInput', true);
+    if (input) setTimeout(() => input.click(), 50);
   }, 150);
 }
 function triggerGallery() {
@@ -291,9 +291,26 @@ function triggerGallery() {
   closePhotoModal();
   setTimeout(() => {
     activePhotoTask = savedTask;
-    const el = document.getElementById('galInput');
-    if (el) { el.removeAttribute('capture'); el.value=''; el.click(); }
+    const input = _setupFileInput('galInput', false);
+    if (input) setTimeout(() => input.click(), 50);
   }, 150);
+}
+function _setupFileInput(id, withCapture) {
+  const old = document.getElementById(id);
+  if (!old) return null;
+  const input = document.createElement('input');
+  input.type = 'file'; input.id = id; input.accept = 'image/*';
+  input.style.cssText = 'position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;';
+  if (withCapture) input.setAttribute('capture', 'environment');
+  old.parentNode.replaceChild(input, old);
+  input.addEventListener('change', function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      handlePhotoFile(file);
+      setTimeout(() => { try { input.value = ''; } catch(e2) {} }, 600);
+    }
+  });
+  return input;
 }
 function prepareCamera() {
   const i=document.getElementById('camInput');
