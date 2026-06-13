@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260612360000';
+  var v = '20260613020000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -490,12 +490,23 @@ function renderDay() {
           ${task.photo?`<button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}')">${photo?'📷 ✓':'📷'}</button>`:''}
         </div>
         <textarea class="comment-box" rows="2" placeholder="Add comment (required for NO)..." onchange="setComment('${task.id}',this.value)">${comment}</textarea>
-        ${photo&&photo.startsWith('http')?`
-          <div style="margin-top:6px;display:inline-block;text-align:center;">
-            <img src="${photo}" style="display:block;max-width:100px;max-height:80px;border-radius:8px;border:2px solid #22C55E;object-fit:cover;" onerror="this.parentNode.style.display='none'">
-            <button onclick="removePhoto('${task.id}',0)" style="display:block;width:100%;margin-top:2px;padding:2px 6px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">&#x1F5D1; Delete</button>
-          </div>`:''}
-      `;
+        ${(()=>{
+          // Collect all photo slots — show both http and base64
+          const photos=[];
+          ['photo','photo_1','photo_2','photo_3','photo_4'].forEach((pk,idx)=>{
+            const httpKey=idx===0?'photoUrl':'photoUrl_'+idx;
+            const url=getVal(currentDay,task.id,httpKey)||getVal(currentDay,task.id,pk);
+            if(url&&!photos.includes(url)) photos.push(url);
+          });
+          if(!photos.length) return '';
+          return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">' +
+            photos.map((url,i)=>`
+              <div style="display:inline-block;text-align:center;">
+                <img src="${url}" style="display:block;width:80px;height:70px;border-radius:8px;border:2px solid #22C55E;object-fit:cover;" onerror="this.parentNode.style.display='none'">
+                <button onclick="removePhoto('${task.id}',${i})" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>
+              </div>`).join('') +
+          '</div>';
+        })()}      `;
       container.appendChild(card);
     });
   });
@@ -620,6 +631,26 @@ function tapYN(tid, val, el) {
 }
 
 function setComment(tid,val){ setVal(currentDay,tid,'comment',val); }
+
+// Wait for Cloudinary uploads before submitting
+async function waitForPhotoUploads(tasks, maxWaitMs) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const _td = load()[getTodayKey()] || {};
+    const allDone = tasks.every(t => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('data:');
+      });
+      if (!hasLocal) return true;
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('http');
+      });
+    });
+    if (allDone) { showToast('Photos ready ✓', 'ok'); return; }
+    await new Promise(r => setTimeout(r, 300));
+  }
+  showToast('Submitting with available photos...', 'warn');
+}
 
 function submitDay() {
   const name=getStaffName(), outlet=getOutlet();
