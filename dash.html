@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613290000">
-<meta name="app-version" content="20260613290000">
+<meta http-equiv="Expires" content="20260613300000">
+<meta name="app-version" content="20260613300000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613290000';
+  var v = '20260613300000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -290,6 +290,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
     <div class="tab" id="tabBOH" onclick="showTab(this,'boh')" style="display:none;">🍳 BOH</div>
     <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
+    <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
     <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
@@ -635,6 +636,68 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div id="archiveStatus" style="font-size:12px;color:#94A3B8;margin-bottom:10px;"></div>
     <div id="archiveList"></div>
+  </div>
+
+
+  <!-- VERIFIED TAB PAGE -->
+  <div class="page" id="page-verified" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">✅ Verification Status</h2>
+        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">BOH + FOH records — verification overview</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="verifiedRoleFilter" onchange="renderVerifiedTab()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Roles</option>
+          <option value="linecook">Line Cook</option>
+          <option value="steward">Steward</option>
+          <option value="kic">KIC</option>
+          <option value="service">Service</option>
+          <option value="bartender">Bartender</option>
+          <option value="delco">Del.Co</option>
+          <option value="oic">OIC</option>
+        </select>
+        <select id="verifiedStatusFilter" onchange="renderVerifiedTab()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Status</option>
+          <option value="verified">Verified</option>
+          <option value="pending">Pending</option>
+        </select>
+        <select id="verifiedOutletFilter" onchange="renderVerifiedTab()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Outlets</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#1A3C5E" id="verifiedTotal">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Total Records</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#15803D" id="verifiedCount">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Verified</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#D97706" id="verifiedPending">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Pending</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:580px;font-size:12px;">
+        <thead>
+          <tr style="background:#F8F7F2;">
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Staff</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Role</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Outlet</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Week</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Score</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Verification</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Type</th>
+          </tr>
+        </thead>
+        <tbody id="verifiedTableBody"></tbody>
+      </table>
+      <div id="verifiedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No records found</div>
+    </div>
   </div>
 
   <div class="page" id="page-registry">
@@ -1269,6 +1332,7 @@ function doLogin() {
   document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabVerified').style.display = ['areachef','areamanager','training','operations','director','ceo','oic'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
   // BOH tab — visible to KIC and full access roles
@@ -1545,6 +1609,7 @@ function showTab(el,id) {
   if (id === 'foh') { loadFOHData(); }
   if (id === 'boh') { loadBOHData(); }
   if (id === 'kpi') { renderKPIPage(); }
+  if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
     db.ref('audits').once('value', snap => {
@@ -5304,6 +5369,13 @@ function loadBOHData() {
         }
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        // Keep latest timestamps for sort-latest-on-top
+        if (sub.submittedAt) {
+          if (!grouped[gKey].submittedAt || sub.submittedAt > grouped[gKey].submittedAt) grouped[gKey].submittedAt = sub.submittedAt;
+        }
+        if (sub.lastUpdated) {
+          if (!grouped[gKey].lastUpdated || sub.lastUpdated > grouped[gKey].lastUpdated) grouped[gKey].lastUpdated = sub.lastUpdated;
+        }
       });
       allBOHData = Object.values(grouped);
       allBOHData.sort((a,b) => {
@@ -5462,27 +5534,66 @@ function openBOHDetailFull(s) {
       if (closeRec.oicEvalPct != null) fullRecord.oicEvalPct = parseFloat(closeRec.oicEvalPct);
     }
 
-    // If neither key found, fall back to query by staffName
+    // If neither key found, try lc.html/st.html key format: Name_role_week_d1..d6
+    // (no outlet in key, day-based: d1, d2, d3, d4, d5, d6)
     if (!openRec && !closeRec) {
-      db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
-        if (!snap.exists()) { openStaffDetail(s); return; }
-        snap.forEach(child => {
-          const sub = child.val();
-          if (sub.role !== s.role) return;
-          // Flexible week match — compare week string OR submittedAt date
-          const subWeek = sub.week || (sub.submittedAt ? sub.submittedAt.substring(0,10) : '');
-          const staffWeek = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
-          if (subWeek !== staffWeek) return;
-          fullRecord._fbKey = child.key;
-          if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
-          if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
-          if (sub.openingPct != null) fullRecord.openingPct = sub.openingPct;
-          if (sub.closingPct != null) fullRecord.closingPct = sub.closingPct;
-          if (sub.oicEvalPct != null) fullRecord.oicEvalPct = sub.oicEvalPct;
-          if (sub.verifiedBy) { fullRecord.verifiedBy = sub.verifiedBy; fullRecord.verifiedAt = sub.verifiedAt; }
-          if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
+      const lcStKeys = [1,2,3,4,5,6].map(d => nameKey + '_' + s.role + '_' + weekKey + '_d' + d);
+      Promise.all(lcStKeys.map(k => db.ref('submissions/' + k).once('value'))).then(snaps => {
+        const found = snaps.filter(sn => sn.exists());
+        if (found.length) {
+          found.forEach(sn => {
+            const sub = sn.val();
+            if (!fullRecord._fbKey) fullRecord._fbKey = sn.key;
+            if (sub.startedAt && !fullRecord.startedAt) fullRecord.startedAt = sub.startedAt;
+            if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
+            if (sub.openingPct != null) fullRecord.openingPct = sub.openingPct;
+            if (sub.closingPct != null) fullRecord.closingPct = sub.closingPct;
+            if (sub.oicEvalPct != null) fullRecord.oicEvalPct = sub.oicEvalPct;
+            if (sub.verifiedBy) { fullRecord.verifiedBy = sub.verifiedBy; fullRecord.verifiedAt = sub.verifiedAt; }
+            if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
+          });
+          // Recalculate overallPct if we have scores
+          const scores = [fullRecord.openingPct, fullRecord.closingPct].filter(v => v != null);
+          if (scores.length) fullRecord.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+          openStaffDetail(fullRecord);
+          return;
+        }
+        // Final fallback: query by staffName
+        db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+          if (!snap.exists()) { openStaffDetail(s); return; }
+          snap.forEach(child => {
+            const sub = child.val();
+            if (sub.role !== s.role) return;
+            const subWeek = sub.week || (sub.submittedAt ? sub.submittedAt.substring(0,10) : '');
+            const staffWeek = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
+            if (subWeek !== staffWeek) return;
+            fullRecord._fbKey = child.key;
+            if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
+            if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
+            if (sub.openingPct != null) fullRecord.openingPct = sub.openingPct;
+            if (sub.closingPct != null) fullRecord.closingPct = sub.closingPct;
+            if (sub.oicEvalPct != null) fullRecord.oicEvalPct = sub.oicEvalPct;
+            if (sub.verifiedBy) { fullRecord.verifiedBy = sub.verifiedBy; fullRecord.verifiedAt = sub.verifiedAt; }
+            if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
+          });
+          openStaffDetail(fullRecord);
         });
-        openStaffDetail(fullRecord);
+      }).catch(() => {
+        db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+          if (!snap.exists()) { openStaffDetail(s); return; }
+          snap.forEach(child => {
+            const sub = child.val();
+            if (sub.role !== s.role) return;
+            fullRecord._fbKey = child.key;
+            if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
+            if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
+            if (sub.openingPct != null) fullRecord.openingPct = sub.openingPct;
+            if (sub.closingPct != null) fullRecord.closingPct = sub.closingPct;
+            if (sub.verifiedBy) { fullRecord.verifiedBy = sub.verifiedBy; fullRecord.verifiedAt = sub.verifiedAt; }
+            if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
+          });
+          openStaffDetail(fullRecord);
+        });
       });
       return;
     }
@@ -7459,6 +7570,81 @@ function updateFOHSelectCount() {
   const el = document.getElementById('fohSelectCount');
   if (el) el.textContent = count + ' selected';
 }
+// ── Verified Tab ──────────────────────────────────────────────
+function renderVerifiedTab() {
+  const roleF   = document.getElementById('verifiedRoleFilter')?.value || '';
+  const statusF = document.getElementById('verifiedStatusFilter')?.value || '';
+  const outletF = document.getElementById('verifiedOutletFilter')?.value || '';
+
+  // Combine BOH + FOH records
+  const bohRecs = (allBOHData || []).map(r => ({...r, _type:'BOH'}));
+  const fohRecs = (allFOHData || []).map(r => ({...r, _type:'FOH'}));
+  let all = [...bohRecs, ...fohRecs];
+
+  // Populate outlet filter if empty
+  const outletSel = document.getElementById('verifiedOutletFilter');
+  if (outletSel && outletSel.options.length <= 1) {
+    const outlets = [...new Set(all.map(r => r.outlet).filter(Boolean))].sort();
+    outletSel.innerHTML = '<option value="">All Outlets</option>' + outlets.map(o => `<option value="${o}">${o}</option>`).join('');
+  }
+
+  // Apply filters
+  all = all.filter(r => {
+    if (roleF && r.role !== roleF) return false;
+    if (outletF && r.outlet !== outletF) return false;
+    if (statusF === 'verified' && !r.verifiedBy) return false;
+    if (statusF === 'pending' && r.verifiedBy) return false;
+    // Only show records that have a score (submitted)
+    if (!r.overallPct && !r.openingPct) return false;
+    return true;
+  });
+
+  // Sort latest first
+  all.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||b.week||0) - new Date(a.submittedAt||a.lastUpdated||a.week||0));
+
+  const totalVerified = all.filter(r => r.verifiedBy).length;
+  const totalPending  = all.filter(r => !r.verifiedBy).length;
+  document.getElementById('verifiedTotal').textContent   = all.length;
+  document.getElementById('verifiedCount').textContent   = totalVerified;
+  document.getElementById('verifiedPending').textContent = totalPending;
+
+  const tbody  = document.getElementById('verifiedTableBody');
+  const empty  = document.getElementById('verifiedEmpty');
+  tbody.innerHTML = '';
+  empty.style.display = all.length ? 'none' : 'block';
+
+  const roleLabels = {linecook:'🍳 Line Cook', steward:'🧹 Steward', kic:'👨‍🍳 KIC',
+    service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
+  const scoreColor = p => p >= 95 ? '#0F766E' : p >= 70 ? '#D97706' : '#B91C1C';
+  const scoreBg    = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
+
+  all.forEach(r => {
+    const sc = parseFloat(r.overallPct || r.openingPct || 0);
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    tr.innerHTML = `
+      <td style="padding:8px 12px;font-weight:600;color:#1A3C5E;">${r.staffName||'—'}</td>
+      <td style="padding:8px 12px;font-size:11px;">${roleLabels[r.role]||r.role}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B;">${r.outlet||'—'}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B;">${r.week||'—'}</td>
+      <td style="padding:8px 12px;text-align:center;">
+        <span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(sc)};color:${scoreColor(sc)}">${sc > 0 ? sc + '%' : '—'}</span>
+      </td>
+      <td style="padding:6px 8px;text-align:center;">
+        ${r.verifiedBy
+          ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;">✅ ${r.verifiedBy}</span>`
+          : sc > 0
+            ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;">⏳ Pending</span>`
+            : `<span style="background:#F1F5F9;color:#94A3B8;padding:3px 10px;border-radius:10px;font-size:10px;">—</span>`
+        }
+      </td>
+      <td style="padding:8px 12px;text-align:center;">
+        <span style="background:${r._type==='BOH'?'#EFF6FF':'#FFF1F0'};color:${r._type==='BOH'?'#1D4ED8':'#7B2D42'};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;">${r._type}</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 async function deleteSelectedFOH() {
   const checked = Array.from(document.querySelectorAll('.foh-row-chk:checked'));
   if (!checked.length) { showToast('No records selected', 'warn'); return; }
