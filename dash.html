@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613070000">
-<meta name="app-version" content="20260613070000">
+<meta http-equiv="Expires" content="20260613080000">
+<meta name="app-version" content="20260613080000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613070000';
+  var v = '20260613080000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5283,7 +5283,11 @@ function loadBOHData() {
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
       });
       allBOHData = Object.values(grouped);
-      allBOHData.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
+      allBOHData.sort((a,b) => {
+        const dA = a.submittedAt || a.lastUpdated || a.week || '0';
+        const dB = b.submittedAt || b.lastUpdated || b.week || '0';
+        return new Date(dB) - new Date(dA);
+      });
     }
     document.getElementById('bohStatus').textContent = '✅ ' + allBOHData.length + ' records';
     renderBOHStaff();
@@ -5493,7 +5497,12 @@ function renderBOHStaff() {
   const roleLabels = {linecook:'🍳 Line Cook', steward:'🧹 Steward', kic:'👨‍🍳 KIC'};
   const scoreColor = p => p>=95?'#15803D':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
-  filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
+  // Sort latest first — use submittedAt, then lastUpdated, then week date
+  filtered.sort((a,b) => {
+    const dA = a.submittedAt || a.lastUpdated || a.week || '0';
+    const dB = b.submittedAt || b.lastUpdated || b.week || '0';
+    return new Date(dB) - new Date(dA);
+  });
   filtered.forEach(staff => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
