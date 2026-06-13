@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260612320000';
+  var v = '20260613100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Only clear app cache keys, preserve staff name and settings
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612320000">
-<meta name="app-version" content="20260612320000">
+<meta http-equiv="Expires" content="20260613100000">
+<meta name="app-version" content="20260613100000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -145,7 +145,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <h1>6-Day Incentive Checklist</h1>
   <div class="header-sub">Complete tasks • Take photos • Submit each day</div>
   <div class="info-grid">
-    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
+    <div class="info-field" style="position:relative;">
+      <label>Staff Name</label>
+      <input id="fName" type="text" placeholder="Type your name..." autocomplete="off" autocorrect="off" autocapitalize="words" oninput="onNameInput(this.value)" style="width:100%;">
+      <input id="fEmpNo" type="hidden" value="">
+      <div id="nameDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+    </div>
     <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;cursor:pointer;">
 <option value="" style="color:#000">Select outlet...</option>
 <optgroup label="Little Bangkok" style="color:#000">
@@ -249,11 +254,11 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
 
 // Init Firebase — wait for SDK to be ready
 let _db = null;
-let _registryNames = null; // cached registry names for validation
+let _registryNames = null;   // cached for validation
+let _registryData  = null;   // full registry objects {name, empNo, role, outlet}
 
-async function loadRegistryNames() {
-  if (_registryNames !== null) return _registryNames;
-  // Wait up to 5 seconds for Firebase to initialize
+async function loadRegistryData() {
+  if (_registryData !== null) return _registryData;
   let waited = 0;
   while (!_db && waited < 5000) {
     await new Promise(r => setTimeout(r, 200));
@@ -263,21 +268,85 @@ async function loadRegistryNames() {
   try {
     const snap = await _db.ref('registry').once('value');
     const data = snap.val() || {};
-    // Include all registry entries regardless of status
-    _registryNames = Object.values(data)
-      .filter(r => r.name && r.name.trim())
-      .map(r => (r.name||'').toLowerCase().trim().replace(/\s+/g,' '));
-    return _registryNames;
+    _registryData = Object.values(data)
+      .filter(r => r.name && r.name.trim() && r.status !== 'inactive')
+      .map(r => ({
+        name:   (r.name||'').trim(),
+        empNo:  (r.empNo||r.employeeNo||r.employee_no||'').trim(),
+        role:   (r.role||'').trim(),
+        outlet: (r.outlet||'').trim(),
+      }));
+    _registryNames = _registryData.map(r => r.name.toLowerCase().replace(/\s+/g,' '));
+    return _registryData;
   } catch(e) { return null; }
+}
+
+async function loadRegistryNames() {
+  await loadRegistryData();
+  return _registryNames;
 }
 
 async function validateStaffName(name) {
   const names = await loadRegistryNames();
-  if (!names) return true; // if registry fails to load, allow submit
+  if (!names) return true;
   const norm = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
-  if (!names.includes(norm)) return false;
-  return true;
+  return names.includes(norm);
 }
+
+// ── Name autocomplete ─────────────────────────────────────────
+function onNameInput(val) {
+  const dropdown = document.getElementById('nameDropdown');
+  const empNoField = document.getElementById('fEmpNo');
+  if (!dropdown) return;
+  if (!val || val.length < 2) {
+    dropdown.style.display = 'none';
+    if (empNoField) empNoField.value = '';
+    return;
+  }
+  const norm = val.toLowerCase().trim();
+  const matches = (_registryData||[]).filter(r =>
+    r.name.toLowerCase().includes(norm) &&
+    (r.role === ROLE || r.role === '' || !r.role)
+  );
+  if (!matches.length) {
+    dropdown.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#94A3B8;">No match found — contact your manager</div>';
+    dropdown.style.display = 'block';
+    if (empNoField) empNoField.value = '';
+    return;
+  }
+  dropdown.innerHTML = matches.map(r => `
+    <div onclick="selectStaffName('${r.name.replace(/'/g,"\'")}','${r.empNo}','${r.outlet}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:0.5px solid #F1F5F9;font-size:13px;"
+      onmouseover="this.style.background='#F0F9FF'" onmouseout="this.style.background='#fff'">
+      <div style="font-weight:600;color:#1A3C5E;">${r.name}</div>
+      <div style="font-size:11px;color:#64748B;">${r.empNo ? 'EMP# ' + r.empNo + ' · ' : ''}${r.outlet||''}</div>
+    </div>`).join('');
+  dropdown.style.display = 'block';
+}
+
+function selectStaffName(name, empNo, outlet) {
+  const nameField = document.getElementById('fName');
+  const empNoField = document.getElementById('fEmpNo');
+  const outletField = document.getElementById('fOutlet');
+  const dropdown = document.getElementById('nameDropdown');
+  if (nameField) nameField.value = name;
+  if (empNoField) empNoField.value = empNo || '';
+  if (outletField && outlet) outletField.value = outlet;
+  if (dropdown) dropdown.style.display = 'none';
+  // Save to localStorage
+  localStorage.setItem('kic_info_' + ROLE + '_fName', name);
+  localStorage.setItem('kic_info_' + ROLE + '_fEmpNo', empNo || '');
+  showToast('✓ ' + name + (empNo ? ' (EMP# ' + empNo + ')' : ''), 'ok');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const dd = document.getElementById('nameDropdown');
+  const fn = document.getElementById('fName');
+  if (dd && fn && !fn.contains(e.target) && !dd.contains(e.target)) {
+    dd.style.display = 'none';
+  }
+});
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') {
@@ -293,6 +362,8 @@ function initFirebase() {
   }
 }
 initFirebase();
+// Pre-load registry for autocomplete
+setTimeout(() => loadRegistryData(), 1500);
 
 function pushToFirebase(record) {
   if (!_db) { console.warn('Firebase not ready'); setTimeout(()=>pushToFirebase(record), 500); return; }
@@ -646,6 +717,9 @@ function checkAutoReset() {
   localStorage.setItem('kic_info_' + ROLE + '_fWeek', dubaiToday);
   // Set SK per staff name on load
   const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  const savedEmpNo = localStorage.getItem('kic_info_' + ROLE + '_fEmpNo') || '';
+  const empNoField = document.getElementById('fEmpNo');
+  if (empNoField && savedEmpNo) empNoField.value = savedEmpNo;
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
 
   buildDayRail();
@@ -1519,6 +1593,7 @@ async function submitOpening() {
 
   pushToFirebase({
     staffName:   name,
+    empNo:       document.getElementById('fEmpNo')?.value || localStorage.getItem('kic_info_' + ROLE + '_fEmpNo') || '',
     role:        ROLE,
     roleLabel:   ROLE_LABEL,
     outlet:      getOutlet(),
@@ -1574,6 +1649,7 @@ async function submitDay() {
   // Push to master dashboard
   const _fbRecord = {
     staffName:    closerName,
+    empNo:        document.getElementById('fEmpNo')?.value || localStorage.getItem('kic_info_' + ROLE + '_fEmpNo') || '',
     closingStaff: closerName,
     role:         ROLE,
     roleLabel:    ROLE_LABEL,
@@ -1755,6 +1831,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Set initial SK based on saved name — MUST happen before renderDay
   const savedName = localStorage.getItem('kic_info_' + ROLE + '_fName') || '';
+  const savedEmpNo = localStorage.getItem('kic_info_' + ROLE + '_fEmpNo') || '';
+  const empNoField = document.getElementById('fEmpNo');
+  if (empNoField && savedEmpNo) empNoField.value = savedEmpNo;
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
 
   // Restore saved field values
