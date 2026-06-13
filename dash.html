@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613150000">
-<meta name="app-version" content="20260613150000">
+<meta http-equiv="Expires" content="20260613090000">
+<meta name="app-version" content="20260613090000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613150000';
+  var v = '20260613090000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1477,70 +1477,63 @@ function loadData() {
     });
     allStaff = Object.values(dedupBOH);
     setLoadingIndicator('');
-    db.ref('audits').on('value', aSnap => {
+  });
+
+  // Load audits independently — not nested in submissions callback
+  db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
-      // Only BOH audits — FOH not included in KPI system
-      const allAuditTypes = rawA; // include both BOH and FOH
+      const allAuditTypes = rawA;
       allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? allAuditTypes :
                   allAuditTypes.filter(a => a.outlet === currentOutlet);
-      // Also load FOH submissions into allStaff
-      if (fohDb) {
-        fohDb.ref('submissions').once('value', fohSnap => {
-          const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
-          // Deduplicate — keep latest submission per staffName+role+week
-    const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
-    const dedupMap = {};
-    combined.forEach(s => {
-      if (!s.staffName) return;
-      const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
-      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
-      if (!dedupMap[key]) {
-        const rec2 = {...s};
-        // Opening-only record — clear any stale closingPct
-        if (rec2.status === 'opening_submitted') rec2.closingPct = null;
-        // Set overallPct = whichever shift score exists
-        if (rec2.openingPct != null && rec2.closingPct == null) rec2.overallPct = rec2.openingPct;
-        else if (rec2.closingPct != null && rec2.openingPct == null) rec2.overallPct = rec2.closingPct;
-        dedupMap[key] = rec2;
-      } else {
-        // Merge opening+closing — only merge closingPct if the incoming record is NOT opening_submitted
-        const m = dedupMap[key];
-        if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
-        // Never overwrite a null closingPct with data from an opening_submitted record
-        if (s.closingPct != null && m.closingPct == null && s.status !== 'opening_submitted') m.closingPct = s.closingPct;
-        // Also if existing record is opening_submitted, don't accept closingPct from merge
-        if (m.status === 'opening_submitted') m.closingPct = null;
-        if (s.taskData) {
-          if (!m.taskData) m.taskData = {};
-          Object.assign(m.taskData, s.taskData);
-        }
-        // Recalculate overallPct from both shifts
-        const scores = [m.openingPct, m.closingPct].filter(v => v != null);
-        if (scores.length > 0) m.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
-        // Keep latest submittedAt
-        if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
-        if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
-        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
-      }
+      if (document.getElementById('page-audits')?.classList.contains('active')) renderAudits();
     });
-    allStaff = Object.values(dedupMap);
-          populateFilters();
-          renderAll();
-        }).catch(() => {});
-      }
+
+  // Load FOH submissions independently
+  if (fohDb) {
+    fohDb.ref('submissions').once('value', fohSnap => {
+      const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
+      const bohRaw = allStaff; // already loaded
+      const combined = [...bohRaw, ...fohRaw.filter(s => s.staffName && s.role)];
+      const dedupMap = {};
+      combined.forEach(s => {
+        if (!s.staffName) return;
+        const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
+        const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
+        if (!dedupMap[key]) {
+          const rec2 = {...s};
+          if (rec2.status === 'opening_submitted') rec2.closingPct = null;
+          if (rec2.openingPct != null && rec2.closingPct == null) rec2.overallPct = rec2.openingPct;
+          else if (rec2.closingPct != null && rec2.openingPct == null) rec2.overallPct = rec2.closingPct;
+          dedupMap[key] = rec2;
+        } else {
+          const m = dedupMap[key];
+          if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
+          if (s.closingPct != null && m.closingPct == null && s.status !== 'opening_submitted') m.closingPct = s.closingPct;
+          if (m.status === 'opening_submitted') m.closingPct = null;
+          if (s.taskData) { if (!m.taskData) m.taskData = {}; Object.assign(m.taskData, s.taskData); }
+          const scores = [m.openingPct, m.closingPct].filter(v => v != null);
+          if (scores.length > 0) m.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+          if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
+          if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
+          if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
+        }
+      });
+      allStaff = Object.values(dedupMap);
       populateFilters();
       renderAll();
-      // Refresh verified tab if open
-      if (document.getElementById('page-verified')?.classList.contains('active')) renderVerifiedTab();
       setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
-      // Save session
       sessionStorage.setItem('dash_role', currentRole);
       sessionStorage.setItem('dash_name', currentStaffName||'');
       sessionStorage.setItem('dash_outlet', currentOutlet||'');
+      if (document.getElementById('page-verified')?.classList.contains('active')) renderVerifiedTab();
+    }).catch(() => {
+      populateFilters(); renderAll();
+      setSyncStatus('ok', 'Synced · ' + allStaff.length + ' submissions');
     });
-  }, err => {
-    setSyncStatus('error','Error: ' + err.message);
-  });
+  } else {
+    populateFilters(); renderAll();
+    setSyncStatus('ok', 'Synced · ' + allStaff.length + ' submissions');
+  }
 }
 
 function populateFilters() {
@@ -4476,6 +4469,7 @@ function openAddStaffModal() {
   document.getElementById('editStaffKey').value = '';
   document.getElementById('staffIdInput').value = getNextStaffId();
   document.getElementById('staffNameInput').value = '';
+  if (document.getElementById('staffEmpNoInput')) document.getElementById('staffEmpNoInput').value = '';
   document.getElementById('staffRoleInput').value = 'linecook';
   document.getElementById('staffOutletInput').value = '';
   document.getElementById('staffIdInput').readOnly = false;
@@ -4502,6 +4496,7 @@ function editStaff(key) {
   document.getElementById('editStaffKey').value = key;
   document.getElementById('staffIdInput').value = s.id||'';
   document.getElementById('staffNameInput').value = s.name||'';
+  if (document.getElementById('staffEmpNoInput')) document.getElementById('staffEmpNoInput').value = s.empNo||'';
   document.getElementById('staffRoleInput').value = s.role||'linecook';
   document.getElementById('staffOutletInput').value = s.outlet||'';
   document.getElementById('staffIdInput').readOnly = true;
