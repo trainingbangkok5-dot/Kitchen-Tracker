@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613580000">
+<meta name="app-version" content="20260613590000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613580000';
+  var v = '20260613590000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -7029,8 +7029,9 @@ function renderMaintenanceLogs() {
     // Priority pill
     const priColors = {Urgent:'#FEE2E2;color:#B91C1C',High:'#FEF3C7;color:#D97706',Medium:'#E0F2FE;color:#0891B2',Low:'#DCFCE7;color:#15803D',Preventive:'#EDE9FE;color:#7C3AED'};
     const priStyle = priColors[log.priority] || '#F1F5F9;color:#64748B';
-    const stsColors = {Yes:'#DCFCE7;color:#15803D',No:'#FEE2E2;color:#B91C1C',Pending:'#FEF3C7;color:#D97706'};
+    const stsColors = {Yes:'#DCFCE7;color:#15803D', Completed:'#DCFCE7;color:#15803D', No:'#FEF3C7;color:#D97706', Pending:'#FEF3C7;color:#D97706'};
     const stsStyle = stsColors[log.status] || '#FEF3C7;color:#D97706';
+    const stsLabel = (log.status==='Yes'||log.status==='Completed') ? '✅ Completed' : '⏳ Pending';
 
     const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
     const canSetPriority = ['director','maintsupervisor','operations','ceo','admin','training'].includes(currentRole);
@@ -7061,33 +7062,37 @@ function renderMaintenanceLogs() {
       </td>
       <td style="padding:8px 10px">
         ${canAssign
-          ? `<select id="masgn_${log._key}" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
+          ? `<select id="masgn_${log._key}" onchange="maintHandleAssignedChange('${log._key}')" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
               <option value="Unassigned" ${(!log.assignedTo||log.assignedTo==='Unassigned')?'selected':''}>Unassigned</option>
               <option value="Baldev" ${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
               <option value="Angelo" ${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
               <option value="Asad" ${log.assignedTo==='Asad'?'selected':''}>Asad</option>
               <option value="Shridhar" ${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
               <option value="Awais" ${log.assignedTo==='Awais'?'selected':''}>Awais</option>
-              ${!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? `<option value="${log.assignedTo}" selected>${log.assignedTo}</option>` : ''}
-            </select>`
+              <option value="Mr. Eddie" ${log.assignedTo==='Mr. Eddie'?'selected':''}>Mr. Eddie</option>
+              <option value="__other__">Other (type name)</option>
+            </select>
+            <input id="masgn_other_${log._key}" type="text" placeholder="Type name..." style="display:none;margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">`
           : `<span style="font-size:12px;color:#475569;">${log.assignedTo||'Unassigned'}</span>`
         }
       </td>
-      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsStyle}">${log.status||'—'}</span></td>
+      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsStyle}">${stsLabel}</span></td>
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days !== null ? days+'d' : '—'}</span></td>
       <td style="padding:8px 10px">
-        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          ${log.beforePhoto ? `<img src="${log.beforePhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #D97706;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.beforePhoto}'" title="Before">` : ''}
-          ${log.afterPhoto ? `<img src="${log.afterPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #15803D;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.afterPhoto}'" title="After">` : ''}
-          ${!log.beforePhoto && !log.afterPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-start;">
+          ${log.beforePhoto ? `<div style="text-align:center"><img src="${log.beforePhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #D97706;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.beforePhoto}'" title="Before"><div style="font-size:8px;color:#D97706;">Before</div></div>` : ''}
+          ${log.afterPhoto ? `<div style="text-align:center"><img src="${log.afterPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #15803D;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.afterPhoto}'" title="After"><div style="font-size:8px;color:#15803D;">After</div></div>` : ''}
+          ${log.oicPhoto ? `<div style="text-align:center"><img src="${log.oicPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #7B2D42;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.oicPhoto}'" title="OIC/KIC Photo"><div style="font-size:8px;color:#7B2D42;">OIC/KIC</div></div>` : ''}
+          ${!log.beforePhoto && !log.afterPhoto && !log.oicPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
         </div>
       </td>
       <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
       <td style="padding:8px 10px;font-size:11px;">
         ${log.verifiedBy
           ? `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''}</div>`
-          : (['kic','oic'].includes(currentRole) && log.status==='Yes')
-            ? '<button data-mverify="' + log._key + '" style="font-size:11px;padding:4px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Verify</button>'
+          : (log.status==='Yes' || log.status==='Completed')
+            ? `<input id="mverify_${log._key}" type="text" placeholder="Your name..." style="width:90px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;margin-bottom:3px;display:block;">
+               <button data-mverify="${log._key}" style="font-size:10px;padding:3px 8px;background:#15803D;color:#fff;border:none;border-radius:5px;cursor:pointer;">✅ Verify</button>`
             : '<span style="color:#94A3B8;font-size:11px">—</span>'
         }
       </td>
@@ -7151,13 +7156,28 @@ function renderMaintenanceLogs() {
 // ── Maintenance Actions (dash) ───────────────────────────────
 function maintVerify(key) {
   if (!maintenanceDb) return;
+  const nameInput = document.getElementById('mverify_' + key);
+  const verifierName = (nameInput ? nameInput.value.trim() : '') || currentStaffName || currentRole;
+  if (!verifierName) { showToast('Please enter your name to verify', 'warn'); return; }
   if (!confirm('Verify this maintenance issue as completed?')) return;
   maintenanceDb.ref('maintenanceLogs/' + key).update({
-    verifiedBy: currentStaffName || currentRole,
+    verifiedBy: verifierName,
     verifiedByRole: currentRole,
     verifiedAt: new Date().toISOString()
-  }).then(() => { showToast('✅ Verified', 'ok'); loadMaintenanceLogs(); })
+  }).then(() => { showToast('✅ Verified by ' + verifierName, 'ok'); loadMaintenanceLogs(); })
     .catch(e => showToast('Verify failed: ' + e.message, 'error'));
+}
+
+function maintHandleAssignedChange(key) {
+  const sel = document.getElementById('masgn_' + key);
+  const otherInput = document.getElementById('masgn_other_' + key);
+  if (!sel || !otherInput) return;
+  if (sel.value === '__other__') {
+    otherInput.style.display = 'block';
+    otherInput.focus();
+  } else {
+    otherInput.style.display = 'none';
+  }
 }
 
 function maintUploadPhoto(key) {
@@ -7176,7 +7196,13 @@ function maintUploadPhoto(key) {
       const data = await res.json();
       if (!data.secure_url) throw new Error('Upload failed');
       const log = allMaintenanceLogs.find(l=>l._key===key);
-      const field = (log && log.afterPhoto) ? 'afterPhoto' : (log && log.beforePhoto) ? 'afterPhoto' : 'beforePhoto';
+      // OIC/KIC photo saved separately as oicPhoto
+      let field;
+      if (['oic','kic'].includes(currentRole)) {
+        field = 'oicPhoto';
+      } else {
+        field = (log && log.afterPhoto) ? 'afterPhoto' : (log && log.beforePhoto) ? 'afterPhoto' : 'beforePhoto';
+      }
       await maintenanceDb.ref('maintenanceLogs/' + key).update({[field]: data.secure_url});
       showToast('📷 Photo saved ✓', 'ok');
       loadMaintenanceLogs();
@@ -7193,7 +7219,16 @@ function maintSaveRow(key) {
   const pri = document.getElementById('mpri_' + key);
   if (pri) updates.priority = pri.value;
   const asgn = document.getElementById('masgn_' + key);
-  if (asgn) updates.assignedTo = asgn.value;
+  if (asgn) {
+    if (asgn.value === '__other__') {
+      const otherInput = document.getElementById('masgn_other_' + key);
+      const otherVal = otherInput ? otherInput.value.trim() : '';
+      if (!otherVal) { showToast('Please type a name for assigned person', 'warn'); return; }
+      updates.assignedTo = otherVal;
+    } else {
+      updates.assignedTo = asgn.value;
+    }
+  }
   if (!Object.keys(updates).length) { showToast('Nothing to save', 'warn'); return; }
   maintenanceDb.ref('maintenanceLogs/' + key).update(updates)
     .then(() => {
