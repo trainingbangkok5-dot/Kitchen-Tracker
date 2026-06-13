@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613200000">
-<meta name="app-version" content="20260613200000">
+<meta http-equiv="Expires" content="20260613210000">
+<meta name="app-version" content="20260613210000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613200000';
+  var v = '20260613210000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1583,10 +1583,10 @@ function showTab(el,id) {
   if (id === 'boh') { loadBOHData(); }
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'kpi') { renderKPIPage(); }
-  if (id === 'audits') { renderAudits(); }
+  if (id === 'audits') { loadAndRenderAudits(); }
 }
 
-function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
+function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); loadRegistry(); }
 
 // ── KPI ───────────────────────────────────────────────────────
 function renderKPI() {
