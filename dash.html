@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613430000">
+<meta name="app-version" content="20260613440000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613430000';
+  var v = '20260613440000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5497,22 +5497,39 @@ function openBOHDetailFull(s) {
     if (!openRec && !closeRec) {
       db.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
         if (!snap.exists()) { openStaffDetail(s); return; }
+        const matches = [];
         snap.forEach(child => {
           const sub = child.val();
           if (sub.role !== s.role) return;
-          // Flexible week match — compare week string OR submittedAt date
-          const subWeek = sub.week || (sub.submittedAt ? sub.submittedAt.substring(0,10) : '');
-          const staffWeek = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
-          if (subWeek !== staffWeek) return;
-          fullRecord._fbKey = child.key;
-          if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
-          if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
-          if (sub.openingPct != null) fullRecord.openingPct = sub.openingPct;
-          if (sub.closingPct != null) fullRecord.closingPct = sub.closingPct;
-          if (sub.oicEvalPct != null) fullRecord.oicEvalPct = sub.oicEvalPct;
-          if (sub.verifiedBy) { fullRecord.verifiedBy = sub.verifiedBy; fullRecord.verifiedAt = sub.verifiedAt; }
-          if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
+          matches.push({key: child.key, sub});
         });
+        if (!matches.length) { openStaffDetail(s); return; }
+        // Sort by submittedAt/lastUpdated descending — use most recent
+        matches.sort((a,b) => {
+          const da = a.sub.submittedAt || a.sub.lastUpdated || '';
+          const db2 = b.sub.submittedAt || b.sub.lastUpdated || '';
+          return da > db2 ? -1 : 1;
+        });
+        // Try to match by week first, fall back to most recent
+        const staffWeek = s.week || '';
+        let best = matches.find(m => {
+          const subWeek = m.sub.week || '';
+          return subWeek === staffWeek || subWeek.startsWith(staffWeek.substring(0,7));
+        }) || matches[0];
+        // Also get closing record if available
+        const closeMatch = matches.find(m => m.key.endsWith('_closing') && m.key !== best.key);
+        fullRecord._fbKey = best.key;
+        if (best.sub.startedAt) fullRecord.startedAt = best.sub.startedAt;
+        if (best.sub.submittedAt) fullRecord.submittedAt = best.sub.submittedAt;
+        if (best.sub.openingPct != null) fullRecord.openingPct = best.sub.openingPct;
+        if (best.sub.closingPct != null) fullRecord.closingPct = best.sub.closingPct;
+        if (best.sub.oicEvalPct != null) fullRecord.oicEvalPct = best.sub.oicEvalPct;
+        if (best.sub.verifiedBy) { fullRecord.verifiedBy = best.sub.verifiedBy; fullRecord.verifiedAt = best.sub.verifiedAt; }
+        if (best.sub.taskData) Object.assign(fullRecord.taskData, best.sub.taskData);
+        if (closeMatch) {
+          if (closeMatch.sub.closingPct != null) fullRecord.closingPct = closeMatch.sub.closingPct;
+          if (closeMatch.sub.taskData) Object.assign(fullRecord.taskData, closeMatch.sub.taskData);
+        }
         openStaffDetail(fullRecord);
       });
       return;
