@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613420000">
+<meta name="app-version" content="20260613430000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613410000';
+  var v = '20260613430000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6118,6 +6118,8 @@ function openFOHDetail(idx) {
         {id:'t3', section:'🤝 Team Player & Professionalism', text:'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.'},
         {id:'t4', section:'🤝 Team Player & Professionalism', text:'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.'},
       ];
+      // Build lookup map — use global _oicTextMap
+      const oicTextMap = _oicTextMap;
       // Group by section
       const oicBySec = {};
       oicEvalTasks.forEach(t => {
@@ -6162,7 +6164,7 @@ function openFOHDetail(idx) {
           const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
           const isLast = ti === tasks.length-1;
           html += `<div style="padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
-            <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+            <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${oicTextMap[t.id] || t.text}</div>
             <div class="foh-yn-display">
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:4px;font-style:italic;">💬 ${t.comment}</div>` : ''}
@@ -6261,6 +6263,18 @@ function triggerFOHPhoto(taskKey, withCapture) {
 }
 
 let _fohPhotoUploading = false;
+const _oicTextMap = {
+  u1: 'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.',
+  s1: 'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.',
+  s2: 'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.',
+  s3: 'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.',
+  f1: 'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.',
+  f2: 'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.',
+  t1: 'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.',
+  t2: 'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.',
+  t3: 'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.',
+  t4: 'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.',
+};
 
 function handleFOHEditPhoto(input, cardEl) {
   const taskKey = input.getAttribute('data-fohtaskkey');
@@ -6529,7 +6543,7 @@ function toggleFOHEditMode() {
       const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
       const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
       oicHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${_oicTextMap[t.id] || t.text}</div>
         <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;gap:4px;">
             <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
