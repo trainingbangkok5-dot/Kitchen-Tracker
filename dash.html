@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613400000">
-<meta name="app-version" content="20260613400000">
+<meta http-equiv="Expires" content="20260613410000">
+<meta name="app-version" content="20260613410000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613400000';
+  var v = '20260613410000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6107,16 +6107,16 @@ function openFOHDetail(idx) {
     // Add OIC observation section for service role
     if (staff.role === 'service') {
       const oicEvalTasks = [
-        {id:'u1', section:'💰 Upselling', text:'Monthly Sales target achieved and the staff with highest Sales will also be rewarded'},
-        {id:'s1', section:'⭐ Service Standards', text:'Customer interaction'},
-        {id:'s2', section:'⭐ Service Standards', text:'Sequence of service'},
-        {id:'s3', section:'⭐ Service Standards', text:'Service awareness'},
-        {id:'f1', section:'📝 Customer Feedback & Performance', text:'Complaints'},
-        {id:'f2', section:'📝 Customer Feedback & Performance', text:'Grooming (hair neatly tied and wearing make up)'},
-        {id:'t1', section:'🤝 Team Player & Professionalism', text:'Be a team player with OIC and teammates'},
-        {id:'t2', section:'🤝 Team Player & Professionalism', text:'Helpful attitude'},
-        {id:'t3', section:'🤝 Team Player & Professionalism', text:'Follow instruction'},
-        {id:'t4', section:'🤝 Team Player & Professionalism', text:'Attendance'},
+        {id:'u1', section:'💰 Upselling', text:'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.'},
+        {id:'s1', section:'⭐ Service Standards', text:'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.'},
+        {id:'s2', section:'⭐ Service Standards', text:'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.'},
+        {id:'s3', section:'⭐ Service Standards', text:'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.'},
+        {id:'f1', section:'📝 Customer Feedback & Performance', text:'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.'},
+        {id:'f2', section:'📝 Customer Feedback & Performance', text:'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.'},
+        {id:'t1', section:'🤝 Team Player & Professionalism', text:'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.'},
+        {id:'t2', section:'🤝 Team Player & Professionalism', text:'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.'},
+        {id:'t3', section:'🤝 Team Player & Professionalism', text:'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.'},
+        {id:'t4', section:'🤝 Team Player & Professionalism', text:'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.'},
       ];
       // Group by section
       const oicBySec = {};
@@ -6190,7 +6190,7 @@ function openFOHDetail(idx) {
       if (!ref || !fohDb) return;
       fohDb.ref('photos/' + ref).once('value').then(snap => {
         const dataUrl = snap.val();
-        if (dataUrl && dataUrl.startsWith('data:')) { img.src = dataUrl; img.style.display = ''; }
+        if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
         else { img.remove(); }
       }).catch(()=>{ img.remove(); });
     });
@@ -6295,16 +6295,6 @@ function handleFOHEditPhoto(input, cardEl) {
       img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;margin-right:4px;';
       img.src = e.target.result;
       oicPhotoDiv.appendChild(img);
-      // Also show immediately in foh-photo-display
-      const photoDisplay = card.querySelector('.foh-photo-display');
-      if (photoDisplay) {
-        const immediateImg = document.createElement('img');
-        immediateImg.className = 'oic-immediate-preview';
-        immediateImg.src = e.target.result;
-        immediateImg.style.cssText = 'max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #7B2D42;';
-        immediateImg.onerror = function() { this.style.display='none'; };
-        photoDisplay.appendChild(immediateImg);
-      }
       oicPhotoDiv.scrollIntoView({behavior:'smooth', block:'nearest'});
     }
     // Block save until Cloudinary finishes
@@ -6327,8 +6317,6 @@ function handleFOHEditPhoto(input, cardEl) {
               if (card2) {
                 const oicImgs = card2.querySelectorAll('.oic-photo-preview img');
                 if (oicImgs.length > 0) oicImgs[oicImgs.length-1].src = j.secure_url;
-                const immediateImgs = card2.querySelectorAll('.foh-photo-display .oic-immediate-preview');
-                if (immediateImgs.length > 0) immediateImgs[immediateImgs.length-1].src = j.secure_url;
               }
               showToast('📷 Photo ready ✓', 'ok');
             }
