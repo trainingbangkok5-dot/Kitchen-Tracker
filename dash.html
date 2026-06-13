@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613520000">
+<meta name="app-version" content="20260613580000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613520000';
+  var v = '20260613580000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -7033,7 +7033,7 @@ function renderMaintenanceLogs() {
     const stsStyle = stsColors[log.status] || '#FEF3C7;color:#D97706';
 
     const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
-    const canSetPriority = ['director','maintsupervisor','operations','ceo'].includes(currentRole);
+    const canSetPriority = ['director','maintsupervisor','operations','ceo','admin','training'].includes(currentRole);
     const canAssign = ['director','maintsupervisor','operations','ceo'].includes(currentRole);
 
     const tr = document.createElement('tr');
@@ -7045,7 +7045,7 @@ function renderMaintenanceLogs() {
       <td style="padding:8px 10px;white-space:nowrap;font-size:12px">${log.outlet||'—'}</td>
       <td style="padding:8px 10px;max-width:200px;font-size:12px">
         ${log.description||'—'}
-        ${canManage ? `<br><input id="mrem_${log._key}" type="text" value="${(log.remarks||'').replace(/"/g,'&quot;')}" placeholder="Add remarks..." style="margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">` : (log.remarks ? '<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>' : '')}
+        ${canManage ? `<br><input id="mrem_${log._key}" type="text" value="${(log.remarks||'').replace(/['"]/g,'')}" placeholder="Add remarks..." style="margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">` : (log.remarks ? '<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>' : '')}
       </td>
       <td style="padding:8px 10px">
         ${canSetPriority
@@ -7076,15 +7076,26 @@ function renderMaintenanceLogs() {
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsStyle}">${log.status||'—'}</span></td>
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days !== null ? days+'d' : '—'}</span></td>
       <td style="padding:8px 10px">
-        <div style="display:flex;gap:4px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
           ${log.beforePhoto ? `<img src="${log.beforePhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #D97706;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.beforePhoto}'" title="Before">` : ''}
           ${log.afterPhoto ? `<img src="${log.afterPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #15803D;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.afterPhoto}'" title="After">` : ''}
           ${!log.beforePhoto && !log.afterPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
         </div>
       </td>
       <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
-      <td style="padding:8px 10px;font-size:11px;color:#15803D">${log.verifiedBy ? log.verifiedBy + '<br><span style=\"font-size:10px;color:#94A3B8\">' + (log.verifiedByRole||'') + '</span>' : '—'}</td>
+      <td style="padding:8px 10px;font-size:11px;">
+        ${log.verifiedBy
+          ? `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''}</div>`
+          : (['kic','oic'].includes(currentRole) && log.status==='Yes')
+            ? '<button data-mverify="' + log._key + '" style="font-size:11px;padding:4px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Verify</button>'
+            : '<span style="color:#94A3B8;font-size:11px">—</span>'
+        }
+      </td>
     `;
+    // Attach verify button handler
+    const verifyBtn = tr.querySelector('[data-mverify]');
+    if (verifyBtn) verifyBtn.addEventListener('click', () => maintVerify(verifyBtn.getAttribute('data-mverify')));
+
     // Action cell
     const actionTd = document.createElement('td');
     actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
@@ -7099,6 +7110,15 @@ function renderMaintenanceLogs() {
       saveBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;cursor:pointer;';
       saveBtn.onclick = () => maintSaveRow(log._key);
       actionDiv.appendChild(saveBtn);
+    }
+    // Photo upload button
+    if (canManage) {
+      const photoBtn = document.createElement('button');
+      photoBtn.textContent = '📷';
+      photoBtn.title = 'Upload photo';
+      photoBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#FEF3C7;color:#D97706;border:none;border-radius:6px;cursor:pointer;';
+      photoBtn.onclick = () => maintUploadPhoto(log._key);
+      actionDiv.appendChild(photoBtn);
     }
     if (log.status !== 'Yes') {
       const doneBtn = document.createElement('button');
@@ -7129,6 +7149,42 @@ function renderMaintenanceLogs() {
 }
 
 // ── Maintenance Actions (dash) ───────────────────────────────
+function maintVerify(key) {
+  if (!maintenanceDb) return;
+  if (!confirm('Verify this maintenance issue as completed?')) return;
+  maintenanceDb.ref('maintenanceLogs/' + key).update({
+    verifiedBy: currentStaffName || currentRole,
+    verifiedByRole: currentRole,
+    verifiedAt: new Date().toISOString()
+  }).then(() => { showToast('✅ Verified', 'ok'); loadMaintenanceLogs(); })
+    .catch(e => showToast('Verify failed: ' + e.message, 'error'));
+}
+
+function maintUploadPhoto(key) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.onchange = async () => {
+    if (!input.files[0]) return;
+    showToast('⏳ Uploading photo...', 'ok');
+    try {
+      const fd = new FormData();
+      fd.append('file', input.files[0]);
+      fd.append('upload_preset', 'culex_uploads');
+      const res = await fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd});
+      const data = await res.json();
+      if (!data.secure_url) throw new Error('Upload failed');
+      const log = allMaintenanceLogs.find(l=>l._key===key);
+      const field = (log && log.afterPhoto) ? 'afterPhoto' : (log && log.beforePhoto) ? 'afterPhoto' : 'beforePhoto';
+      await maintenanceDb.ref('maintenanceLogs/' + key).update({[field]: data.secure_url});
+      showToast('📷 Photo saved ✓', 'ok');
+      loadMaintenanceLogs();
+    } catch(e) { showToast('Upload failed: ' + e.message, 'error'); }
+  };
+  input.click();
+}
+
 function maintSaveRow(key) {
   if (!maintenanceDb) { showToast('Firebase not connected', 'error'); return; }
   const updates = {};
