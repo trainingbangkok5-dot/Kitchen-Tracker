@@ -449,11 +449,30 @@ function renderDay() {
   if (!currentShift) {
     document.getElementById('shiftScreen').style.display='block';
     const hour=getDubaiHour();
-    const closingOpen = hour>=15||hour<2;
-    const closingBtn=document.getElementById('closingBtn');
-    if(closingBtn) closingBtn.disabled=!closingOpen;
-    const note=document.getElementById('shiftNote');
-    if(note) note.textContent = closingOpen ? '' : `Closing opens at 3:00 PM until 2:00 AM`;
+    const openingOpen = hour >= 7 && hour < 15;
+    const closingOpen = hour >= 15 || hour < 2;
+    const openingBtn = document.getElementById('openingBtn');
+    if (openingBtn) {
+      openingBtn.disabled = !openingOpen;
+      openingBtn.title = openingOpen ? '' : 'Opening shift is only available 7:00 AM – 3:00 PM';
+    }
+    const closingBtn = document.getElementById('closingBtn');
+    if (closingBtn) {
+      closingBtn.disabled = !closingOpen;
+      closingBtn.title = closingOpen ? '' : 'Closing shift is only available 3:00 PM – 2:00 AM';
+    }
+    const note = document.getElementById('shiftNote');
+    if (note) {
+      if (!openingOpen && !closingOpen) {
+        note.textContent = 'No shifts available right now. Opening: 7:00 AM – 3:00 PM | Closing: 3:00 PM – 2:00 AM';
+      } else if (!openingOpen) {
+        note.textContent = 'Opening shift is closed. Available 7:00 AM – 3:00 PM';
+      } else if (!closingOpen) {
+        note.textContent = 'Closing shift opens at 3:00 PM';
+      } else {
+        note.textContent = '';
+      }
+    }
     document.getElementById('scoreFill').style.width='0%';
     document.getElementById('scorePct').textContent='0%';
     return;
