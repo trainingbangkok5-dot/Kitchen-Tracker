@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613710000">
+<meta name="app-version" content="20260613720000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613710000';
+  var v = '20260613720000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5024,7 +5024,22 @@ async function dashLoadPreventive() {
   try {
     const snap = await maintenanceDb.ref('preventiveSchedule/' + month).once('value');
     if (snap.exists()) {
-      _dashPrevSchedule = Object.values(snap.val()).sort((a,b)=>a.date.localeCompare(b.date));
+      const raw = Object.values(snap.val()).sort((a,b)=>a.date.localeCompare(b.date));
+      // Deduplicate — keep the most complete row per date (prefer rows with data)
+      const seen = {};
+      raw.forEach(row => {
+        const d = row.date;
+        if (!seen[d]) {
+          seen[d] = row;
+        } else {
+          // Keep whichever has more data filled in
+          const existing = seen[d];
+          if ((row.outlet||row.equipment||row.staff) && !(existing.outlet||existing.equipment||existing.staff)) {
+            seen[d] = row;
+          }
+        }
+      });
+      _dashPrevSchedule = Object.values(seen).sort((a,b)=>a.date.localeCompare(b.date));
     } else if (month === '2026-06') {
       _dashPrevSchedule = DASH_JUNE_2026.map(r => ({...r, status:'Pending', remarks:''}));
     } else {
