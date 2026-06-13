@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613090000">
-<meta name="app-version" content="20260613090000">
+<meta http-equiv="Expires" content="20260613100000">
+<meta name="app-version" content="20260613100000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613090000';
+  var v = '20260613100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1429,8 +1429,8 @@ function loadData() {
   setLoadingIndicator('⏳ Loading...');
   // Auto-archive submissions older than 60 days on every load
   autoArchiveOldSubmissions();
-  // Load all submissions — no week filter (week formats differ between files)
-  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(2000);
+  // Load all submissions
+  const bohQuery = db.ref('submissions').limitToLast(2000);
   bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     // Deduplicate BOH — keep latest per staffName+role+week
