@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613310000">
-<meta name="app-version" content="20260613310000">
+<meta http-equiv="Expires" content="20260613320000">
+<meta name="app-version" content="20260613320000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613310000';
+  var v = '20260613320000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3266,7 +3266,7 @@ function openAuditDetail(a) {
   // Add PDF + Delete buttons to modal header
   const modalHeader = document.querySelector('#detailModal .modal-header');
   if (modalHeader) {
-    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn').forEach(b=>b.remove());
+    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn,.pdf-daily-btn,.pdf-monthly-btn,.edit-report-btn').forEach(b=>b.remove());
     const pdfBtn = document.createElement('button');
     pdfBtn.className = 'modal-close pdf-audit-btn';
     pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;font-size:12px;padding:5px 12px;';
@@ -3490,16 +3490,15 @@ function generateAuditPDF(a) {
 
   function checkPage(needed) { if (y+needed > 278) { doc.addPage(); y=14; } }
 
-  // ── PAGE 1: SUMMARY ──────────────────────────────────────────
-  // Header bar
+  // Header
   doc.setFillColor(26,60,94); doc.rect(0,0,210,32,'F');
   doc.setTextColor(255,255,255);
-  doc.setFontSize(15); doc.setFont('helvetica','bold');
-  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Audit Report', margin, 13);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Internal Monthly Audit Report', margin, 13);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
   doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
-  y = 38;
+  y = 40;
 
   // Info bar
   doc.setFillColor(245,243,238); doc.rect(margin,y,colW,18,'F');
@@ -3509,167 +3508,9 @@ function generateAuditPDF(a) {
     doc.setFont('helvetica','bold'); doc.text(lbl+':', x, y+7);
     doc.setFont('helvetica','normal'); doc.text(val, x, y+14);
   });
-  y += 22;
-
-  // Score cards row
-  const passCol = pass?[21,128,61]:[185,28,28];
-  // Big score
-  doc.setFillColor(...passCol); doc.rect(margin,y,52,30,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(26); doc.setFont('helvetica','bold');
-  doc.text(a.score+'%', margin+26, y+15, {align:'center'});
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+26, y+24, {align:'center'});
-  // Points
-  doc.setFillColor(240,246,255); doc.rect(margin+56,y,48,30,'F');
-  doc.setTextColor(26,60,94); doc.setFontSize(17); doc.setFont('helvetica','bold');
-  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+80, y+14, {align:'center'});
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text('Points Scored', margin+80, y+21, {align:'center'});
-  // Date submitted
-  doc.setFillColor(248,250,252); doc.rect(margin+108,y,44,30,'F');
-  doc.setTextColor(26,60,94); doc.setFontSize(10); doc.setFont('helvetica','bold');
-  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—', margin+130, y+13, {align:'center'});
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—', margin+130, y+20, {align:'center'});
-  // Quick stats
-  const secs = a.sectionBreakdown||[];
-  const allItems = secs.flatMap(s=>s.items||[]);
-  const totalItems = allItems.length;
-  const passedItems = allItems.filter(it=>it.status==='pass').length;
-  const failedItems = allItems.filter(it=>it.status==='fail').length;
-  const naItems = allItems.filter(it=>it.status==='na').length;
-  const caCount = (a.correctiveActions||[]).length;
-  const statsData = [['Total Items',totalItems],['Passed',passedItems],['Failed',failedItems],['N/A',naItems],['Actions',caCount]];
-  statsData.forEach(([lbl,val],i)=>{
-    const x = margin+156+(i*0); // use separate block
-    // 5 mini cards side by side after the 3 main cards, or below
-  });
-  doc.setFillColor(255,248,230); doc.rect(margin+156,y,26,30,'F');
-  doc.setTextColor(185,100,0); doc.setFontSize(16); doc.setFont('helvetica','bold');
-  doc.text(String(caCount), margin+169, y+14, {align:'center'});
-  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text('Corrective', margin+169, y+21, {align:'center'});
-  doc.text('Actions', margin+169, y+25, {align:'center'});
-  y += 36;
-
-  // Quick stats row
-  doc.setFillColor(248,250,252); doc.rect(margin,y,colW,14,'F');
-  const statItems = [['Total Items',totalItems,'#1A3C5E'],['✓ Passed',passedItems,'#15803D'],['✗ Failed',failedItems,'#B91C1C'],['N/A',naItems,'#64748B']];
-  statItems.forEach(([lbl,val,col],i)=>{
-    const x = margin+4+(i*(colW/4));
-    doc.setTextColor(col); doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.text(String(val), x+18, y+8, {align:'center'});
-    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-    doc.text(lbl, x+18, y+12, {align:'center'});
-  });
-  y += 20;
-
-  // Section-by-section summary table (the key addition)
-  if (secs.length) {
-    doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('SECTION SUMMARY', margin+3, y+6);
-    y += 11;
-
-    // Table header
-    doc.setFillColor(240,244,248); doc.rect(margin,y,colW,8,'F');
-    doc.setTextColor(80,80,80); doc.setFontSize(8); doc.setFont('helvetica','bold');
-    doc.text('Section', margin+3, y+5.5);
-    doc.text('Earned', margin+110, y+5.5, {align:'right'});
-    doc.text('Max', margin+128, y+5.5, {align:'right'});
-    doc.text('Score', margin+148, y+5.5, {align:'right'});
-    doc.text('Status', pageW-margin-3, y+5.5, {align:'right'});
-    y += 9;
-
-    secs.forEach((sec,si)=>{
-      const pct = sec.max>0 ? Math.round(sec.earned/sec.max*100) : 0;
-      const col = pct>=91?[21,128,61]:pct>=71?[217,119,6]:[185,28,28];
-      const bg  = si%2===0?[255,255,255]:[250,249,247];
-      doc.setFillColor(...bg); doc.rect(margin,y,colW,8,'F');
-      // Left accent bar
-      doc.setFillColor(...col); doc.rect(margin,y,2,8,'F');
-      // Section name
-      doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      const secLabel = doc.splitTextToSize((si+1)+'. '+sec.title, 95);
-      doc.text(secLabel[0], margin+5, y+5.5);
-      // Points
-      doc.setTextColor(...col); doc.setFont('helvetica','bold');
-      doc.text(String(sec.earned), margin+110, y+5.5, {align:'right'});
-      doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
-      doc.text(String(sec.max), margin+128, y+5.5, {align:'right'});
-      doc.setTextColor(...col); doc.setFont('helvetica','bold');
-      doc.text(pct+'%', margin+148, y+5.5, {align:'right'});
-      // Mini bar
-      const barX = margin+152, barW = colW-(152); // remaining space
-      doc.setFillColor(220,217,212); doc.rect(barX,y+2.5,barW-2,3,'F');
-      doc.setFillColor(...col); doc.rect(barX,y+2.5,(barW-2)*(Math.min(pct,100)/100),3,'F');
-      y += 8;
-      doc.setDrawColor(230,228,224); doc.line(margin,y,margin+colW,y);
-    });
-
-    // Total row
-    y += 2;
-    doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
-    doc.text('TOTAL', margin+5, y+6);
-    doc.text(String(a.rawScore||0), margin+110, y+6, {align:'right'});
-    doc.text(String(a.maxScore||0), margin+128, y+6, {align:'right'});
-    doc.text(a.score+'%', margin+148, y+6, {align:'right'});
-    const verdictLbl = pass ? '✓ PASS' : '✗ FAIL';
-    doc.setTextColor(pass?[150,255,150]:([255,160,160])); 
-    // jsPDF setTextColor needs 3 args for RGB
-    doc.setTextColor(pass?150:255, pass?255:160, pass?150:160);
-    doc.text(verdictLbl, pageW-margin-3, y+6, {align:'right'});
-    y += 13;
-  }
-
-  // Corrective actions quick list on summary page (if any)
-  if ((a.correctiveActions||[]).length > 0) {
-    checkPage(14);
-    doc.setFillColor(185,28,28); doc.rect(margin,y,colW,9,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('FAILED ITEMS REQUIRING ACTION ('+a.correctiveActions.length+')', margin+3, y+6);
-    y += 11;
-    a.correctiveActions.forEach((ca,ci)=>{
-      checkPage(14);
-      const rowBg = ci%2===0?[255,248,248]:[255,255,255];
-      doc.setFillColor(...rowBg); doc.rect(margin,y,colW,12,'F');
-      doc.setFillColor(185,28,28); doc.rect(margin,y,2,12,'F');
-      doc.setTextColor(185,28,28); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-      doc.text((ca.section||'—')+' — Item '+(ca.item||''), margin+5, y+4.5);
-      doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      const caLabel = doc.splitTextToSize((ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), colW-10);
-      doc.text(caLabel[0], margin+5, y+9.5);
-      y += 12;
-      doc.setDrawColor(240,220,220); doc.line(margin,y,margin+colW,y);
-    });
-    y += 4;
-  }
-
-  // ── PAGE 2+: FULL DETAIL ─────────────────────────────────────
-  doc.addPage(); y = 14;
-
-  // Header on detail pages
-  doc.setFillColor(26,60,94); doc.rect(0,0,210,32,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Full Audit Detail', margin, 13);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
-  doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
-  y = 40;
-
-  // Info bar (repeated for reference)
-  doc.setFillColor(245,243,238); doc.rect(margin,y,colW,18,'F');
-  doc.setTextColor(30,30,30); doc.setFontSize(9);
-  [['Outlet',a.outlet||'—'],['Type',a.auditType||'—'],['Auditor',a.auditor||'—'],['Date',a.auditDate||'—']].forEach(([lbl,val],i)=>{
-    const x=margin+3+(i*46);
-    doc.setFont('helvetica','bold'); doc.text(lbl+':', x, y+7);
-    doc.setFont('helvetica','normal'); doc.text(val, x, y+14);
-  });
   y += 24;
 
-  // Score cards (compact, repeated for context)
+  // Score cards
   const sc = pass?[21,128,61]:[185,28,28];
   doc.setFillColor(...sc); doc.rect(margin,y,55,26,'F');
   doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
@@ -5418,7 +5259,7 @@ function loadBOHData() {
         if (!bohRoles.includes(sub.role)) return;
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
-          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'—', week:sub.week, days:{}, overallPct:0, qualified:false };
+          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false };
         }
         // Day deduplication — use latest submission per day
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
@@ -5581,19 +5422,26 @@ function openBOHDetailFull(s) {
   if (!s) return;
   if (!db) { openStaffDetail(s); return; }
 
-  // Build the Firebase key directly — same format as service.html pushToFirebase
+  // Build the Firebase key directly — same format as lc.html/st.html/service.html pushToFirebase
   const nameKey   = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_');
-  const outletKey = (s.outlet||'').replace(/[^a-zA-Z0-9]/g,'_');
+  // Strip '—' fallback — if outlet is the dash placeholder, treat as empty
+  const outletRaw = (s.outlet === '—' || s.outlet === '-') ? '' : (s.outlet||'');
+  const outletKey = outletRaw.replace(/[^a-zA-Z0-9]/g,'_');
   const weekKey   = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
   const openingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_opening';
   const closingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_closing';
+  // Also try without outlet in case it was omitted when saved
+  const openingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_opening';
+  const closingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_closing';
 
   Promise.all([
     db.ref('submissions/' + openingKey).once('value'),
-    db.ref('submissions/' + closingKey).once('value')
-  ]).then(([openSnap, closeSnap]) => {
-    const openRec = openSnap.exists() ? {...openSnap.val(), _fbKey: openingKey} : null;
-    const closeRec = closeSnap.exists() ? {...closeSnap.val(), _fbKey: closingKey} : null;
+    db.ref('submissions/' + closingKey).once('value'),
+    db.ref('submissions/' + openingKeyNoOutlet).once('value'),
+    db.ref('submissions/' + closingKeyNoOutlet).once('value')
+  ]).then(([openSnap, closeSnap, openSnapAlt, closeSnapAlt]) => {
+    const openRec  = openSnap.exists()     ? {...openSnap.val(),    _fbKey: openingKey}         : openSnapAlt.exists()  ? {...openSnapAlt.val(),  _fbKey: openingKeyNoOutlet}  : null;
+    const closeRec = closeSnap.exists()    ? {...closeSnap.val(),   _fbKey: closingKey}         : closeSnapAlt.exists() ? {...closeSnapAlt.val(), _fbKey: closingKeyNoOutlet} : null;
 
     // Build fullRecord — start from grouped s for metadata
     const fullRecord = Object.assign({}, s);
