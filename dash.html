@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613440000">
+<meta name="app-version" content="20260613460000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613440000';
+  var v = '20260613460000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5453,19 +5453,47 @@ function openBOHDetailFull(s) {
   const outletRaw = (s.outlet === '—' || s.outlet === '-') ? '' : (s.outlet||'');
   const outletKey = outletRaw.replace(/[^a-zA-Z0-9]/g,'_');
   const weekKey   = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
-  const openingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_opening';
-  const closingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_closing';
-  const openingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_opening';
-  const closingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_closing';
+
+  // Also compute the Monday week-start in case s.week is a submission date not week-start
+  function getMondayKey(dateStr) {
+    if (!dateStr) return '';
+    // Parse in Dubai timezone (UTC+4)
+    const d = new Date(dateStr + 'T00:00:00+04:00');
+    if (isNaN(d)) return '';
+    // Get day of week in Dubai time
+    const dubaiOffset = 4 * 60;
+    const localOffset = d.getTimezoneOffset();
+    const dubaiDate = new Date(d.getTime() + (dubaiOffset + localOffset) * 60000);
+    const day = dubaiDate.getDay(); // 0=Sun,1=Mon...
+    const diff = day === 0 ? -6 : 1 - day;
+    dubaiDate.setDate(dubaiDate.getDate() + diff);
+    return dubaiDate.toISOString().substring(0,10).replace(/[^a-zA-Z0-9]/g,'_');
+  }
+  const mondayKey = getMondayKey(s.week);
+
+  const openingKey          = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey   + '_opening';
+  const closingKey          = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey   + '_closing';
+  const openingKeyNoOutlet  = nameKey + '_' + s.role + '_'             + weekKey         + '_opening';
+  const closingKeyNoOutlet  = nameKey + '_' + s.role + '_'             + weekKey         + '_closing';
+  const openingKeyMonday    = nameKey + '_' + s.role + '_' + outletKey + '_' + mondayKey + '_opening';
+  const closingKeyMonday    = nameKey + '_' + s.role + '_' + outletKey + '_' + mondayKey + '_closing';
 
   Promise.all([
     db.ref('submissions/' + openingKey).once('value'),
     db.ref('submissions/' + closingKey).once('value'),
     db.ref('submissions/' + openingKeyNoOutlet).once('value'),
-    db.ref('submissions/' + closingKeyNoOutlet).once('value')
-  ]).then(([openSnap, closeSnap, openSnapAlt, closeSnapAlt]) => {
-    const openRec  = openSnap.exists()     ? {...openSnap.val(),    _fbKey: openingKey}        : openSnapAlt.exists()  ? {...openSnapAlt.val(),  _fbKey: openingKeyNoOutlet}  : null;
-    const closeRec = closeSnap.exists()    ? {...closeSnap.val(),   _fbKey: closingKey}        : closeSnapAlt.exists() ? {...closeSnapAlt.val(), _fbKey: closingKeyNoOutlet} : null;
+    db.ref('submissions/' + closingKeyNoOutlet).once('value'),
+    db.ref('submissions/' + openingKeyMonday).once('value'),
+    db.ref('submissions/' + closingKeyMonday).once('value'),
+  ]).then(([openSnap, closeSnap, openSnapAlt, closeSnapAlt, openSnapMon, closeSnapMon]) => {
+    const openRec  = openSnap.exists()    ? {...openSnap.val(),    _fbKey: openingKey}
+                   : openSnapAlt.exists() ? {...openSnapAlt.val(), _fbKey: openingKeyNoOutlet}
+                   : openSnapMon.exists() ? {...openSnapMon.val(), _fbKey: openingKeyMonday}
+                   : null;
+    const closeRec = closeSnap.exists()    ? {...closeSnap.val(),    _fbKey: closingKey}
+                   : closeSnapAlt.exists() ? {...closeSnapAlt.val(), _fbKey: closingKeyNoOutlet}
+                   : closeSnapMon.exists() ? {...closeSnapMon.val(), _fbKey: closingKeyMonday}
+                   : null;
 
     // Build fullRecord — start from grouped s for metadata
     const fullRecord = Object.assign({}, s);

@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260613080000';
+  var v = '20260613090000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -23,7 +23,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260613080000">
+<meta name="app-version" content="20260613090000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#2E6DA4">
@@ -1085,9 +1085,6 @@ function renderDay() {
     const btn = document.createElement('button');
     btn.className = 'submit-btn';
     if (closingDone) {
-      btn.disabled = true;
-      btn.textContent = `✓ Day ${currentDay} Fully Submitted — Locked`;
-      container.appendChild(btn);
       const msg = document.createElement('div');
       msg.className = 'synced-msg';
       msg.textContent = '✓ Submitted and synced to dashboard';
