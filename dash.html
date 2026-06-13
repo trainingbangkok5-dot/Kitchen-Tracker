@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613060000">
-<meta name="app-version" content="20260613060000">
+<meta http-equiv="Expires" content="20260613070000">
+<meta name="app-version" content="20260613070000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613060000';
+  var v = '20260613070000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5441,14 +5441,18 @@ function openBOHDetailFull(s) {
         if (!snap.exists()) { openStaffDetail(s); return; }
         snap.forEach(child => {
           const sub = child.val();
-          if (sub.role !== s.role || sub.week !== s.week || !sub.taskData) return;
+          if (sub.role !== s.role) return;
+          // Flexible week match
+          const subDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : sub.week;
+          const staffDate = s.submittedAt ? s.submittedAt.substring(0,10) : s.week;
+          if (subDate !== staffDate && sub.week !== s.week) return;
           if (child.key.endsWith('_opening') || sub.status === 'opening_submitted') {
             fullRecord._fbKey = child.key;
             fullRecord.openingPct = sub.openingPct;
             fullRecord.closingPct = null;
             fullRecord.oicEvalPct = sub.oicEvalPct;
           }
-          Object.assign(fullRecord.taskData, sub.taskData);
+          if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
         });
         openStaffDetail(fullRecord);
       });

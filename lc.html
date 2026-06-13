@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260612360000';
+  var v = '20260613070000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612360000">
-<meta name="app-version" content="20260612360000">
+<meta http-equiv="Expires" content="20260613070000">
+<meta name="app-version" content="20260613070000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#2E6DA4">
@@ -1263,7 +1263,7 @@ function submitOpening() {
     const _hasLocalOpen = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
       const p = _tdOpen[t.id]?.[pk]; return p && p.startsWith('data:');
     });
-    if (yn) {
+    if (yn || _allPhotosOpen.length > 0 || _hasLocalOpen) {
       openingTaskData[`d1_${t.id}`] = {
         day: currentDay, section: SECTIONS[0].title,
         task: t.text, owner: t.ownerLbl,
