@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613270000">
-<meta name="app-version" content="20260613270000">
+<meta http-equiv="Expires" content="20260613280000">
+<meta name="app-version" content="20260613280000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613270000';
+  var v = '20260613280000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -487,15 +487,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow:hidden;">
+      <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:0.5px solid #F1F5F9;">
+        <button onclick="toggleBOHSelectMode(true)" id="bohSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
+      </div>
+      <div id="bohSelectBar" style="display:none;background:#FFF1F0;border-bottom:1px solid #FCA5A5;padding:10px 14px;align-items:center;gap:10px;">
+        <span id="bohSelectCount" style="font-size:12px;font-weight:600;color:#B91C1C;">0 selected</span>
+        <button onclick="deleteSelectedBOH()" style="padding:6px 14px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete Selected</button>
+        <button onclick="toggleBOHSelectMode(false)" style="padding:6px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:12px;cursor:pointer;">✕ Cancel</button>
+      </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:#F8F7F2;">
+              <th id="bohChkAll" style="padding:8px 12px;text-align:center;font-size:10px;display:none;"><input type="checkbox" id="bohSelectAll" onchange="toggleBOHSelectAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;"></th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Staff</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
-
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
@@ -571,17 +579,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow:hidden;">
+      <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:0.5px solid #F1F5F9;">
+        <button onclick="toggleFOHSelectMode(true)" id="fohSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
+      </div>
+      <div id="fohSelectBar" style="display:none;background:#FFF1F0;border-bottom:1px solid #FCA5A5;padding:10px 14px;align-items:center;gap:10px;">
+        <span id="fohSelectCount" style="font-size:12px;font-weight:600;color:#B91C1C;">0 selected</span>
+        <button onclick="deleteSelectedFOH()" style="padding:6px 14px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete Selected</button>
+        <button onclick="toggleFOHSelectMode(false)" style="padding:6px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:12px;cursor:pointer;">✕ Cancel</button>
+      </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:#F8F7F2;">
+              <th id="fohChkAll" style="padding:8px 12px;text-align:center;font-size:10px;display:none;"><input type="checkbox" id="fohSelectAll" onchange="toggleFOHSelectAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;"></th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Staff</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Role</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
-
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
-              
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Action</th>
@@ -5516,7 +5531,11 @@ function renderBOHStaff() {
     tr.style.borderBottom = '0.5px solid #F1F5F9';
     const op = staff.overallPct;
     const canOW = ['areachef','areamanager','training','operations','director','ceo'].includes(currentRole);
+    const rowKey = (staff.staffName||'') + '_' + (staff.role||'') + '_' + (staff.week||'');
     tr.innerHTML = `
+      <td class="boh-chk-cell" style="padding:8px 12px;text-align:center;display:none;">
+        <input type="checkbox" class="boh-row-chk" data-key="${rowKey}" onchange="updateBOHSelectCount()" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;">
+      </td>
       <td style="padding:8px 12px;font-size:12px;font-weight:600">${staff.staffName}</td>
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
@@ -5731,7 +5750,11 @@ function renderFOHStaff() {
     tr.style.borderBottom = '0.5px solid #F1F5F9';
     const op = staff.overallPct;
     const staffIdx = filtered.indexOf(staff);
+    const fohRowKey = (staff.staffName||'') + '_' + (staff.role||'') + '_' + (staff.week||'');
     tr.innerHTML = `
+      <td class="foh-chk-cell" style="padding:8px 12px;text-align:center;display:none;">
+        <input type="checkbox" class="foh-row-chk" data-key="${fohRowKey}" onchange="updateFOHSelectCount()" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;">
+      </td>
       <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#7B2D42;cursor:pointer;text-decoration:underline;" onclick="openFOHDetail(${staffIdx})">${staff.staffName}</td>
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
@@ -7357,6 +7380,106 @@ async function dashCheckNotifStatus() {
   } else if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
     btn.textContent = '🔕 Blocked — tap to fix';
     btn.style.background = 'rgba(239,68,68,0.3)';
+  }
+}
+
+// ── BOH Select to Delete ──────────────────────────────────────
+function toggleBOHSelectMode(on) {
+  const bar = document.getElementById('bohSelectBar');
+  const chkAll = document.getElementById('bohChkAll');
+  const selectBtn = document.getElementById('bohSelectBtn');
+  if (bar) bar.style.display = on ? 'flex' : 'none';
+  if (selectBtn) selectBtn.style.display = on ? 'none' : 'block';
+  document.querySelectorAll('.boh-chk-cell').forEach(c => c.style.display = on ? 'table-cell' : 'none');
+  if (chkAll) chkAll.style.display = on ? 'table-cell' : 'none';
+  if (!on) {
+    document.querySelectorAll('.boh-row-chk').forEach(c => c.checked = false);
+    const sa = document.getElementById('bohSelectAll');
+    if (sa) sa.checked = false;
+    updateBOHSelectCount();
+  }
+}
+function toggleBOHSelectAll(checked) {
+  document.querySelectorAll('.boh-row-chk').forEach(c => c.checked = checked);
+  updateBOHSelectCount();
+}
+function updateBOHSelectCount() {
+  const count = document.querySelectorAll('.boh-row-chk:checked').length;
+  const el = document.getElementById('bohSelectCount');
+  if (el) el.textContent = count + ' selected';
+}
+async function deleteSelectedBOH() {
+  const checked = Array.from(document.querySelectorAll('.boh-row-chk:checked'));
+  if (!checked.length) { showToast('No records selected', 'warn'); return; }
+  if (!confirm('Delete ' + checked.length + ' selected record(s)? This cannot be undone.')) return;
+  if (!db) { showToast('Firebase not connected', 'error'); return; }
+  const keys = checked.map(c => c.getAttribute('data-key'));
+  const snap = await db.ref('submissions').once('value');
+  const updates = {};
+  if (snap.exists()) {
+    snap.forEach(child => {
+      const sub = child.val();
+      const rowKey = (sub.staffName||'') + '_' + (sub.role||'') + '_' + (sub.week||'');
+      if (keys.includes(rowKey)) updates['submissions/' + child.key] = null;
+    });
+  }
+  if (Object.keys(updates).length) {
+    await db.ref().update(updates);
+    showToast(Object.keys(updates).length + ' record(s) deleted ✓', 'ok');
+    toggleBOHSelectMode(false);
+    loadBOHData();
+  } else {
+    showToast('Records not found', 'warn');
+  }
+}
+
+// ── FOH Select to Delete ──────────────────────────────────────
+function toggleFOHSelectMode(on) {
+  const bar = document.getElementById('fohSelectBar');
+  const chkAll = document.getElementById('fohChkAll');
+  const selectBtn = document.getElementById('fohSelectBtn');
+  if (bar) bar.style.display = on ? 'flex' : 'none';
+  if (selectBtn) selectBtn.style.display = on ? 'none' : 'block';
+  document.querySelectorAll('.foh-chk-cell').forEach(c => c.style.display = on ? 'table-cell' : 'none');
+  if (chkAll) chkAll.style.display = on ? 'table-cell' : 'none';
+  if (!on) {
+    document.querySelectorAll('.foh-row-chk').forEach(c => c.checked = false);
+    const sa = document.getElementById('fohSelectAll');
+    if (sa) sa.checked = false;
+    updateFOHSelectCount();
+  }
+}
+function toggleFOHSelectAll(checked) {
+  document.querySelectorAll('.foh-row-chk').forEach(c => c.checked = checked);
+  updateFOHSelectCount();
+}
+function updateFOHSelectCount() {
+  const count = document.querySelectorAll('.foh-row-chk:checked').length;
+  const el = document.getElementById('fohSelectCount');
+  if (el) el.textContent = count + ' selected';
+}
+async function deleteSelectedFOH() {
+  const checked = Array.from(document.querySelectorAll('.foh-row-chk:checked'));
+  if (!checked.length) { showToast('No records selected', 'warn'); return; }
+  if (!confirm('Delete ' + checked.length + ' selected record(s)? This cannot be undone.')) return;
+  if (!fohDb) { showToast('Firebase not connected', 'error'); return; }
+  const keys = checked.map(c => c.getAttribute('data-key'));
+  const snap = await fohDb.ref('submissions').once('value');
+  const updates = {};
+  if (snap.exists()) {
+    snap.forEach(child => {
+      const sub = child.val();
+      const rowKey = (sub.staffName||'') + '_' + (sub.role||'') + '_' + (sub.week||'');
+      if (keys.includes(rowKey)) updates['submissions/' + child.key] = null;
+    });
+  }
+  if (Object.keys(updates).length) {
+    await fohDb.ref().update(updates);
+    showToast(Object.keys(updates).length + ' record(s) deleted ✓', 'ok');
+    toggleFOHSelectMode(false);
+    loadFOHData();
+  } else {
+    showToast('Records not found', 'warn');
   }
 }
 
