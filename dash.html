@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613110000">
-<meta name="app-version" content="20260613110000">
+<meta http-equiv="Expires" content="20260613120000">
+<meta name="app-version" content="20260613120000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613110000';
+  var v = '20260613120000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1488,6 +1488,10 @@ function loadData() {
       allAudits = isManagement ? allAuditTypes :
                   allAuditTypes.filter(a => !a.outlet || a.outlet === currentOutlet || currentOutlet === '');
       if (document.getElementById('page-audits')?.classList.contains('active')) renderAudits();
+    }, err => {
+      console.error('Audit load error:', err);
+      const body = document.getElementById('auditBody');
+      if (body) body.innerHTML = '<div style="padding:20px;color:#B91C1C;text-align:center;">❌ Error loading audits: ' + err.message + '</div>';
     });
 
   // Load FOH submissions independently
@@ -3214,6 +3218,9 @@ function renderAudits() {
   const summaryCards = document.getElementById('auditSummaryCards');
   const typeFilter   = document.getElementById('auditTypeFilter')?.value || '';
   const outletFilter = document.getElementById('auditOutletFilter')?.value || '';
+
+  // Debug info
+  console.log('renderAudits called — allAudits:', allAudits.length, 'role:', currentRole, 'outlet:', currentOutlet);
 
   let filtered = [...allAudits];
   if (typeFilter)   filtered = filtered.filter(a => a.auditType === typeFilter);
@@ -7123,8 +7130,10 @@ function loadMaintenanceLogs() {
     return;
   }
   document.getElementById('maintStatus').textContent = '⏳ Loading...';
+  console.log('loadMaintenanceLogs — maintenanceDb:', !!maintenanceDb);
   // Load last 200 records — no index required
   maintenanceDb.ref('maintenanceLogs').limitToLast(200).once('value', snap => {
+    console.log('Maintenance snap exists:', snap.exists(), 'size:', snap.numChildren());
     allMaintenanceLogs = [];
     if (snap.exists()) {
       snap.forEach(child => {
