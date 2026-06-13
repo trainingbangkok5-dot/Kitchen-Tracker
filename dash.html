@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613590000">
+<meta name="app-version" content="20260613600000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613590000';
+  var v = '20260613600000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -924,16 +924,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div>
         <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Status</label>
         <select id="mow_status" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
-          <option>Pending</option><option>Yes</option><option>No</option>
+          <option value="Pending">⏳ Pending</option>
+          <option value="Yes">✅ Completed</option>
         </select>
       </div>
     </div>
     <div style="margin-bottom:10px;">
       <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Assigned To</label>
-      <select id="mow_assigned" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
+      <select id="mow_assigned" onchange="if(this.value==='__other__'){document.getElementById('mow_assigned_other').style.display='block';}else{document.getElementById('mow_assigned_other').style.display='none';}" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;">
         <option value="Unassigned">Unassigned</option>
         <option>Baldev</option><option>Angelo</option><option>Asad</option><option>Shridhar</option><option>Awais</option>
+        <option>Mr. Eddie</option>
+        <option value="__other__">Other (type name)</option>
       </select>
+      <input id="mow_assigned_other" type="text" placeholder="Type name..." style="display:none;margin-top:6px;width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:14px;">
       <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Reason / Remarks</label>
@@ -7283,7 +7287,9 @@ function saveMaintOverwrite() {
     outlet: document.getElementById('mow_outlet').value,
     description: document.getElementById('mow_desc').value.trim(),
     priority: document.getElementById('mow_priority').value,
-    assignedTo: document.getElementById('mow_assigned').value,
+    assignedTo: document.getElementById('mow_assigned').value === '__other__'
+      ? (document.getElementById('mow_assigned_other')?.value.trim() || 'Unassigned')
+      : document.getElementById('mow_assigned').value,
     status: document.getElementById('mow_status').value,
     remarks: document.getElementById('mow_remarks').value.trim(),
   };
