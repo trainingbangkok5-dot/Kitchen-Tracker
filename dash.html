@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613030000">
-<meta name="app-version" content="20260613030000">
+<meta http-equiv="Expires" content="20260613060000">
+<meta name="app-version" content="20260613060000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613030000';
+  var v = '20260613060000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5902,7 +5902,11 @@ function openFOHDetail(idx) {
     const subs = [];
     snap.forEach(child => {
       const sub = child.val();
-      if (sub.role === staff.role && sub.week === staff.week) {
+      // Flexible week match — handles shift-aware dates (closing after midnight = prev day)
+      const weekMatch = sub.week === staff.week || 
+        (sub.submittedAt && sub.submittedAt.substring(0,10) === staff.week) ||
+        (staff.submittedAt && staff.submittedAt.substring(0,10) === sub.week);
+      if (sub.role === staff.role && weekMatch) {
         subs.push(sub);
       }
     });
