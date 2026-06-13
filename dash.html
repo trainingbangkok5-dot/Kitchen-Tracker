@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613380000">
-<meta name="app-version" content="20260613380000">
+<meta http-equiv="Expires" content="20260613400000">
+<meta name="app-version" content="20260613400000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613380000';
+  var v = '20260613400000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2281,6 +2281,8 @@ function dataURLtoBlob(dataUrl) {
 function buildPhotoHtml(t, role) {
   const seen = new Set();
   const imgs = [];
+  const isFOH = ['service','oic','delco','bartender'].includes(role);
+  const dbrefAttr = isFOH ? 'data-fohdbref' : 'data-dbref';
   // 1) Read photoUrls array (new format)
   if (Array.isArray(t.photoUrls)) {
     t.photoUrls.forEach(url => { if (url && !seen.has(url)) { seen.add(url); imgs.push(url); } });
@@ -2303,19 +2305,23 @@ function buildPhotoHtml(t, role) {
   } else {
     html += imgs.map(url =>
       url.startsWith('db:')
-        ? `<img data-dbref="${url.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;display:none;">`
+        ? `<img ${dbrefAttr}="${url.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;display:none;">`
         : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
     ).join('');
   }
-  // Verifier photo — label depends on role
-  if (t.oicPhotoUrl) {
-    const oicUrl = t.oicPhotoUrl;
+  // Verifier photo
+  const oicUrls = [];
+  if (Array.isArray(t.oicPhotoUrls) && t.oicPhotoUrls.length) oicUrls.push(...t.oicPhotoUrls);
+  else if (t.oicPhotoUrl) oicUrls.push(t.oicPhotoUrl);
+  if (oicUrls.length) {
     const kicRoles = ['linecook','steward','lc','st'];
     const verifierLabel = (role && kicRoles.includes(role)) ? 'KIC Photo:' : 'OIC Photo:';
     html += '<div style="margin-top:4px;"><span style="font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;">' + verifierLabel + '</span> ';
-    html += oicUrl.startsWith('db:')
-      ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
-      : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`;
+    html += oicUrls.map(oicUrl =>
+      oicUrl.startsWith('db:')
+        ? `<img ${dbrefAttr}="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
+        : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`
+    ).join('');
     html += '</div>';
   }
   return html;
@@ -2810,11 +2816,18 @@ function openStaffDetail(s) {
     try {
       const snap = await db.ref('photos/' + ref).once('value');
       const dataUrl = snap.val();
-      if (dataUrl && dataUrl.startsWith('data:')) {
-        img.src = dataUrl;
-        img.style.display = '';
-      }
+      if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
     } catch(e) { console.warn('Photo fetch failed:', e); }
+  });
+  // FOH photos stored in fohDb
+  body.querySelectorAll('img[data-fohdbref]').forEach(async img => {
+    const ref = img.getAttribute('data-fohdbref');
+    if (!ref || !fohDb) return;
+    try {
+      const snap = await fohDb.ref('photos/' + ref).once('value');
+      const dataUrl = snap.val();
+      if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
+    } catch(e) { console.warn('FOH photo fetch failed:', e); }
   });
 }
 
@@ -3266,7 +3279,7 @@ function openAuditDetail(a) {
   // Add PDF + Delete buttons to modal header
   const modalHeader = document.querySelector('#detailModal .modal-header');
   if (modalHeader) {
-    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn').forEach(b=>b.remove());
+    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn,.pdf-daily-btn,.pdf-monthly-btn,.edit-report-btn').forEach(b=>b.remove());
     const pdfBtn = document.createElement('button');
     pdfBtn.className = 'modal-close pdf-audit-btn';
     pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;font-size:12px;padding:5px 12px;';
@@ -4800,10 +4813,15 @@ async function saveOverwrite(s) {
 
   if (!hasChanges) { showToast('No changes made', 'warn'); return; }
 
+  // Determine correct Firebase — FOH roles use fohDb, BOH roles use db
+  const _isFOHRecord = s._isFOH || ['service','oic','delco','bartender'].includes(s.role);
+  const _saveDb = _isFOHRecord ? fohDb : db;
+  if (!_saveDb) { alert('Firebase not connected. Please refresh and try again.'); return; }
+
   // Find Firebase key
   let fbKey = s._fbKey || '';
-  if (!fbKey && db) {
-    const snap = await db.ref('submissions').once('value');
+  if (!fbKey) {
+    const snap = await _saveDb.ref('submissions').once('value');
     if (snap.exists()) {
       snap.forEach(child => {
         const v = child.val();
@@ -4813,7 +4831,7 @@ async function saveOverwrite(s) {
       });
     }
   }
-  if (!db || !fbKey) {
+  if (!fbKey) {
     alert('Cannot save - record not found. Please refresh the page and try again.');
     return;
   }
@@ -4860,7 +4878,7 @@ async function saveOverwrite(s) {
       return Promise.resolve();
     }
     const photoRef = 'photos/oic_' + (s.staffName||'').replace(/\s+/g,'_') + '_' + k + '_' + Date.now();
-    return db.ref(photoRef).set(urlOrBase64).then(() => {
+    return _saveDb.ref(photoRef).set(urlOrBase64).then(() => {
       updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = 'db:' + photoRef;
     });
   });
@@ -4887,11 +4905,9 @@ async function saveOverwrite(s) {
     else if (_closeIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
 
-  // Calculate each score separately
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
   const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
   const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
-  // Total = average of all available scores: opening + closing + OIC eval
   const _allPcts = [opPct, clPct, ePct].filter(v => v != null);
   const newScore = _allPcts.length > 0 ? Math.round(_allPcts.reduce((a,b)=>a+b,0)/_allPcts.length) : parseFloat(s.overallPct||0);
   const newQualified = newScore >= 95;
@@ -4904,14 +4920,12 @@ async function saveOverwrite(s) {
   if (clPct !== null) {
     updates['submissions/' + fbKey + '/closingPct'] = clPct;
   } else if (s.status === 'opening_submitted') {
-    // Explicitly remove stale closingPct from opening-only record
-    await db.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
+    await _saveDb.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
   }
   if (ePct !== null) updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
 
   try {
-    await db.ref().update(updates);
-    // Update local copy
+    await _saveDb.ref().update(updates);
     s._fbKey = fbKey;
     s.overallPct = newScore;
     s.qualified  = newQualified;
@@ -4919,16 +4933,22 @@ async function saveOverwrite(s) {
     if (verifiedBy) s.verifiedBy = verifiedBy;
     if (opPct !== null) s.openingPct = opPct;
     if (clPct !== null) s.closingPct = clPct;
-    // Reset edit state
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
     showToast('✓ Changes saved! Score: ' + newScore + '%', 'ok');
-    // Reload full record from Firebase so photos show correctly
-    const freshSnap = await db.ref('submissions/' + fbKey).once('value');
+    const freshSnap = await _saveDb.ref('submissions/' + fbKey).once('value');
     if (freshSnap.exists()) {
-      const fresh = {...freshSnap.val(), _fbKey: fbKey};
-      // Update in allStaff array
+      const fresh = {...freshSnap.val(), _fbKey: fbKey, _isFOH: _isFOHRecord};
       const idx = allStaff.findIndex(st => st._fbKey === fbKey);
       if (idx >= 0) allStaff[idx] = fresh;
+      const fohIdx = allFOHData.findIndex(st => st.staffName === s.staffName && st.role === s.role && st.week === s.week);
+      if (fohIdx >= 0 && fresh.taskData) {
+        Object.entries(fresh.taskData).forEach(([k, t]) => {
+          if (allFOHData[fohIdx].taskData && allFOHData[fohIdx].taskData[k]) {
+            if (t.comment) allFOHData[fohIdx].taskData[k].comment = t.comment;
+            if (t.oicPhotoUrl) allFOHData[fohIdx].taskData[k].oicPhotoUrl = t.oicPhotoUrl;
+          }
+        });
+      }
       openStaffDetail(fresh);
     } else {
       openStaffDetail(s);
@@ -5259,7 +5279,7 @@ function loadBOHData() {
         if (!bohRoles.includes(sub.role)) return;
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
-          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'—', week:sub.week, days:{}, overallPct:0, qualified:false };
+          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false };
         }
         // Day deduplication — use latest submission per day
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
@@ -5304,6 +5324,12 @@ function loadBOHData() {
         }
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        if (sub.submittedAt) {
+          if (!grouped[gKey].submittedAt || sub.submittedAt > grouped[gKey].submittedAt) grouped[gKey].submittedAt = sub.submittedAt;
+        }
+        if (sub.lastUpdated) {
+          if (!grouped[gKey].lastUpdated || sub.lastUpdated > grouped[gKey].lastUpdated) grouped[gKey].lastUpdated = sub.lastUpdated;
+        }
       });
       allBOHData = Object.values(grouped);
       allBOHData.sort((a,b) => {
@@ -5422,19 +5448,24 @@ function openBOHDetailFull(s) {
   if (!s) return;
   if (!db) { openStaffDetail(s); return; }
 
-  // Build the Firebase key directly — same format as service.html pushToFirebase
+  // Build the Firebase key — same format as lc.html/service.html pushToFirebase
   const nameKey   = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_');
-  const outletKey = (s.outlet||'').replace(/[^a-zA-Z0-9]/g,'_');
+  const outletRaw = (s.outlet === '—' || s.outlet === '-') ? '' : (s.outlet||'');
+  const outletKey = outletRaw.replace(/[^a-zA-Z0-9]/g,'_');
   const weekKey   = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
   const openingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_opening';
   const closingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_closing';
+  const openingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_opening';
+  const closingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_closing';
 
   Promise.all([
     db.ref('submissions/' + openingKey).once('value'),
-    db.ref('submissions/' + closingKey).once('value')
-  ]).then(([openSnap, closeSnap]) => {
-    const openRec = openSnap.exists() ? {...openSnap.val(), _fbKey: openingKey} : null;
-    const closeRec = closeSnap.exists() ? {...closeSnap.val(), _fbKey: closingKey} : null;
+    db.ref('submissions/' + closingKey).once('value'),
+    db.ref('submissions/' + openingKeyNoOutlet).once('value'),
+    db.ref('submissions/' + closingKeyNoOutlet).once('value')
+  ]).then(([openSnap, closeSnap, openSnapAlt, closeSnapAlt]) => {
+    const openRec  = openSnap.exists()     ? {...openSnap.val(),    _fbKey: openingKey}        : openSnapAlt.exists()  ? {...openSnapAlt.val(),  _fbKey: openingKeyNoOutlet}  : null;
+    const closeRec = closeSnap.exists()    ? {...closeSnap.val(),   _fbKey: closingKey}        : closeSnapAlt.exists() ? {...closeSnapAlt.val(), _fbKey: closingKeyNoOutlet} : null;
 
     // Build fullRecord — start from grouped s for metadata
     const fullRecord = Object.assign({}, s);
@@ -6229,6 +6260,8 @@ function triggerFOHPhoto(taskKey, withCapture) {
   setTimeout(() => input.click(), 100);
 }
 
+let _fohPhotoUploading = false;
+
 function handleFOHEditPhoto(input, cardEl) {
   const taskKey = input.getAttribute('data-fohtaskkey');
   if (!taskKey || !input.files[0]) return;
@@ -6237,24 +6270,20 @@ function handleFOHEditPhoto(input, cardEl) {
   reader.onload = e => {
     if (!_fohEditChanges[taskKey]) _fohEditChanges[taskKey] = {};
     _fohEditChanges[taskKey].oicPhotoUrl = e.target.result;
-    // Use passed card element, or fall back to DOM search
     const card = cardEl
       || input.closest('[data-fohtaskkey]')
       || document.querySelector('#fohChecklistArea [data-fohtaskkey="'+taskKey+'"]')
       || document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
     if (card) {
-      // Find or create OIC photo preview div — separate from .foh-photo-display
       let oicPhotoDiv = card.querySelector('.oic-photo-preview');
       if (!oicPhotoDiv) {
         oicPhotoDiv = document.createElement('div');
         oicPhotoDiv.className = 'oic-photo-preview';
         oicPhotoDiv.style.cssText = 'margin-top:6px;padding:6px;background:#FFF1F0;border-radius:8px;border:1px solid #FECACA;';
-        // Add label
         const lbl = document.createElement('div');
         lbl.style.cssText = 'font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:4px;';
-        lbl.textContent = '📷 ' + (['linecook','steward','lc','st'].includes((staff&&staff.role)||'') ? 'KIC' : 'OIC') + ' Photo:';
+        lbl.textContent = '📷 OIC Photo:';
         oicPhotoDiv.appendChild(lbl);
-        // Insert after the staff photo display
         const staffPhotoDiv = card.querySelector('.foh-photo-display');
         if (staffPhotoDiv && staffPhotoDiv.parentNode) {
           staffPhotoDiv.parentNode.insertBefore(oicPhotoDiv, staffPhotoDiv.nextSibling);
@@ -6266,7 +6295,7 @@ function handleFOHEditPhoto(input, cardEl) {
       img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;margin-right:4px;';
       img.src = e.target.result;
       oicPhotoDiv.appendChild(img);
-      // Also show immediately in the foh-photo-display so it's visible right away
+      // Also show immediately in foh-photo-display
       const photoDisplay = card.querySelector('.foh-photo-display');
       if (photoDisplay) {
         const immediateImg = document.createElement('img');
@@ -6276,11 +6305,13 @@ function handleFOHEditPhoto(input, cardEl) {
         immediateImg.onerror = function() { this.style.display='none'; };
         photoDisplay.appendChild(immediateImg);
       }
-      // Scroll into view
       oicPhotoDiv.scrollIntoView({behavior:'smooth', block:'nearest'});
     }
-    showToast('OIC photo added ✓', 'ok');
-    // Upload to Cloudinary
+    // Block save until Cloudinary finishes
+    _fohPhotoUploading = true;
+    const saveBtn = document.getElementById('fohEditBtn');
+    if (saveBtn) { saveBtn.textContent = '⏳ Uploading...'; saveBtn.disabled = true; saveBtn.style.opacity = '0.6'; }
+    showToast('⏳ Uploading photo...', 'ok');
     try {
       const blob = dataURLtoBlob(e.target.result);
       if (blob) {
@@ -6291,20 +6322,31 @@ function handleFOHEditPhoto(input, cardEl) {
           .then(r => r.json())
           .then(j => {
             if (j.secure_url) {
-              _fohEditChanges[taskKey].oicPhotoUrl = j.secure_url; // OIC Cloudinary URL
-              // Update img src to Cloudinary URL in both preview divs
+              _fohEditChanges[taskKey].oicPhotoUrl = j.secure_url;
               const card2 = document.querySelector('[data-fohtaskkey="'+taskKey+'"]');
               if (card2) {
-                const imgs = card2.querySelectorAll('.oic-photo-preview img');
-                if (imgs.length > 0) imgs[imgs.length-1].src = j.secure_url;
+                const oicImgs = card2.querySelectorAll('.oic-photo-preview img');
+                if (oicImgs.length > 0) oicImgs[oicImgs.length-1].src = j.secure_url;
                 const immediateImgs = card2.querySelectorAll('.foh-photo-display .oic-immediate-preview');
                 if (immediateImgs.length > 0) immediateImgs[immediateImgs.length-1].src = j.secure_url;
               }
+              showToast('📷 Photo ready ✓', 'ok');
             }
           })
-          .catch(() => {});
+          .catch(() => { showToast('Photo upload failed — try again', 'error'); })
+          .finally(() => {
+            _fohPhotoUploading = false;
+            const sb = document.getElementById('fohEditBtn');
+            if (sb) { sb.textContent = '💾 Save Changes'; sb.disabled = false; sb.style.opacity = '1'; }
+          });
+      } else {
+        _fohPhotoUploading = false;
+        if (saveBtn) { saveBtn.textContent = '💾 Save Changes'; saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
       }
-    } catch(e2) {}
+    } catch(e2) {
+      _fohPhotoUploading = false;
+      if (saveBtn) { saveBtn.textContent = '💾 Save Changes'; saveBtn.disabled = false; saveBtn.style.opacity = '1'; }
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -6426,6 +6468,9 @@ function toggleFOHEditMode() {
 
   if (_fohEditMode) {
     // Already in edit mode — save
+    if (typeof _fohPhotoUploading !== 'undefined' && _fohPhotoUploading) {
+      showToast('⏳ Please wait — photo still uploading...', 'warn'); return;
+    }
     saveFOHOverwrite(staff);
     return;
   }
@@ -6518,7 +6563,7 @@ function toggleFOHEditMode() {
     cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
     cancelBtn.textContent = '✕ Cancel Edit';
     cancelBtn.onclick = () => {
-      _fohEditMode = false; _fohEditChanges = {};
+      _fohEditMode = false; _fohEditChanges = {}; _fohPhotoUploading = false;
       const b = document.getElementById('fohEditBtn');
       if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
       const editSec = document.querySelector('#oicEditSection');
@@ -6622,9 +6667,9 @@ async function saveFOHOverwrite(staff) {
 
   try {
     await fohDb.ref().update(updates);
-    _fohEditMode = false; _fohEditChanges = {};
+    _fohEditMode = false; _fohEditChanges = {}; _fohPhotoUploading = false;
     const btn = document.getElementById('fohEditBtn');
-    if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
+    if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; btn.disabled = false; btn.style.opacity = '1'; }
     showToast('Changes saved ✓', 'ok');
     // Update staff object in memory immediately — don't wait for Firebase reload
     const staffMem = _fohFiltered[_fohDetailIdx];
@@ -6654,8 +6699,6 @@ async function saveFOHOverwrite(staff) {
         });
       });
     }
-    _fohEditMode = false;
-    _fohEditChanges = {};
     // Reopen immediately with updated data
     openFOHDetail(_fohDetailIdx);
     // Also reload in background for next open
