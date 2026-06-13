@@ -7032,6 +7032,10 @@ function renderMaintenanceLogs() {
     const stsColors = {Yes:'#DCFCE7;color:#15803D',No:'#FEE2E2;color:#B91C1C',Pending:'#FEF3C7;color:#D97706'};
     const stsStyle = stsColors[log.status] || '#FEF3C7;color:#D97706';
 
+    const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
+    const canSetPriority = ['director','maintsupervisor','operations','ceo'].includes(currentRole);
+    const canAssign = ['director','maintsupervisor','operations','ceo'].includes(currentRole);
+
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
     tr.innerHTML = `
@@ -7039,9 +7043,36 @@ function renderMaintenanceLogs() {
       <td style="padding:8px 10px;font-size:11px;white-space:nowrap">${log.dateReported||'—'}</td>
       <td style="padding:8px 10px;white-space:nowrap">${log.reportedBy||'—'}<br><span style="font-size:10px;color:#94A3B8">${(log.reportedByRole||'').toUpperCase()}</span></td>
       <td style="padding:8px 10px;white-space:nowrap;font-size:12px">${log.outlet||'—'}</td>
-      <td style="padding:8px 10px;max-width:200px;font-size:12px">${log.description||'—'}${log.remarks?'<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>':''}</td>
-      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${priStyle}">${log.priority||'—'}</span></td>
-      <td style="padding:8px 10px;font-size:12px;white-space:nowrap">${log.assignedTo||'—'}</td>
+      <td style="padding:8px 10px;max-width:200px;font-size:12px">
+        ${log.description||'—'}
+        ${canManage ? `<br><input id="mrem_${log._key}" type="text" value="${(log.remarks||'').replace(/"/g,'&quot;')}" placeholder="Add remarks..." style="margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">` : (log.remarks ? '<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>' : '')}
+      </td>
+      <td style="padding:8px 10px">
+        ${canSetPriority
+          ? `<select id="mpri_${log._key}" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;">
+              <option value="Urgent" ${log.priority==='Urgent'?'selected':''}>🔴 Urgent</option>
+              <option value="High" ${log.priority==='High'?'selected':''}>🟠 High</option>
+              <option value="Medium" ${log.priority==='Medium'?'selected':''}>🔵 Medium</option>
+              <option value="Low" ${log.priority==='Low'?'selected':''}>🟢 Low</option>
+              <option value="Preventive" ${log.priority==='Preventive'?'selected':''}>🟣 Preventive</option>
+            </select>`
+          : `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${priStyle}">${log.priority||'—'}</span>`
+        }
+      </td>
+      <td style="padding:8px 10px">
+        ${canAssign
+          ? `<select id="masgn_${log._key}" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
+              <option value="Unassigned" ${(!log.assignedTo||log.assignedTo==='Unassigned')?'selected':''}>Unassigned</option>
+              <option value="Baldev" ${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
+              <option value="Angelo" ${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
+              <option value="Asad" ${log.assignedTo==='Asad'?'selected':''}>Asad</option>
+              <option value="Shridhar" ${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
+              <option value="Awais" ${log.assignedTo==='Awais'?'selected':''}>Awais</option>
+              ${!['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''].includes(log.assignedTo||'') ? `<option value="${log.assignedTo}" selected>${log.assignedTo}</option>` : ''}
+            </select>`
+          : `<span style="font-size:12px;color:#475569;">${log.assignedTo||'Unassigned'}</span>`
+        }
+      </td>
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsStyle}">${log.status||'—'}</span></td>
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days !== null ? days+'d' : '—'}</span></td>
       <td style="padding:8px 10px">
@@ -7054,11 +7085,21 @@ function renderMaintenanceLogs() {
       <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
       <td style="padding:8px 10px;font-size:11px;color:#15803D">${log.verifiedBy ? log.verifiedBy + '<br><span style=\"font-size:10px;color:#94A3B8\">' + (log.verifiedByRole||'') + '</span>' : '—'}</td>
     `;
-    // Action cell built separately to avoid template literal nesting issues
+    // Action cell
     const actionTd = document.createElement('td');
     actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
     const actionDiv = document.createElement('div');
-    actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
+    actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;flex-wrap:wrap;';
+
+    // Save button — saves remarks, priority, assigned at once
+    if (canManage) {
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾';
+      saveBtn.title = 'Save changes';
+      saveBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;cursor:pointer;';
+      saveBtn.onclick = () => maintSaveRow(log._key);
+      actionDiv.appendChild(saveBtn);
+    }
     if (log.status !== 'Yes') {
       const doneBtn = document.createElement('button');
       doneBtn.textContent = '✅';
@@ -7088,6 +7129,25 @@ function renderMaintenanceLogs() {
 }
 
 // ── Maintenance Actions (dash) ───────────────────────────────
+function maintSaveRow(key) {
+  if (!maintenanceDb) { showToast('Firebase not connected', 'error'); return; }
+  const updates = {};
+  const rem = document.getElementById('mrem_' + key);
+  if (rem) updates.remarks = rem.value.trim();
+  const pri = document.getElementById('mpri_' + key);
+  if (pri) updates.priority = pri.value;
+  const asgn = document.getElementById('masgn_' + key);
+  if (asgn) updates.assignedTo = asgn.value;
+  if (!Object.keys(updates).length) { showToast('Nothing to save', 'warn'); return; }
+  maintenanceDb.ref('maintenanceLogs/' + key).update(updates)
+    .then(() => {
+      showToast('✓ Saved', 'ok');
+      const log = allMaintenanceLogs.find(l => l._key === key);
+      if (log) Object.assign(log, updates);
+    })
+    .catch(e => showToast('Save failed: ' + e.message, 'error'));
+}
+
 function maintMarkDone(key) {
   if (!maintenanceDb) return;
   const log = allMaintenanceLogs.find(l => l._key === key);
