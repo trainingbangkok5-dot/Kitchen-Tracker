@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613210000">
-<meta name="app-version" content="20260613210000">
+<meta http-equiv="Expires" content="20260613230000">
+<meta name="app-version" content="20260613230000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613210000';
+  var v = '20260613230000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1464,7 +1464,6 @@ function loadData() {
         if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
       }
     });
-    // Cleanup stale closingPct — use db not _db
     Object.values(dedupBOH).forEach(rec => {
       if (rec.status === 'opening_submitted' && rec._fbKey) {
         const db_ = rec._isFOH ? fohDb : db;
@@ -1475,8 +1474,9 @@ function loadData() {
     setLoadingIndicator('');
     db.ref('audits').on('value', aSnap => {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
-      const isManagement = MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole);
-      allAudits = isManagement ? rawA : rawA.filter(a => a.outlet === currentOutlet);
+      const allAuditTypes = rawA;
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? allAuditTypes :
+                  allAuditTypes.filter(a => a.outlet === currentOutlet);
       if (fohDb) {
         fohDb.ref('submissions').once('value', fohSnap => {
           const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
@@ -1583,10 +1583,18 @@ function showTab(el,id) {
   if (id === 'boh') { loadBOHData(); }
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'kpi') { renderKPIPage(); }
-  if (id === 'audits') { loadAndRenderAudits(); }
+  if (id === 'audits') {
+    if (!db) { renderAudits(); return; }
+    db.ref('audits').once('value', snap => {
+      const rawA = snap.val() ? Object.values(snap.val()) : [];
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole))
+        ? rawA : rawA.filter(a => a.outlet === currentOutlet);
+      renderAudits();
+    });
+  }
 }
 
-function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); loadRegistry(); }
+function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
 
 // ── KPI ───────────────────────────────────────────────────────
 function renderKPI() {
@@ -3263,7 +3271,7 @@ function renderAudits() {
   }
 
   if (!filtered.length) {
-    body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits found<br><small>allAudits: ' + allAudits.length + ' | role: ' + currentRole + ' | outlet: ' + (currentOutlet||'none') + '</small></div>';
+    body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits found<br><small style="color:#94A3B8">allAudits: ' + allAudits.length + ' | role: ' + currentRole + ' | outlet: ' + (currentOutlet||'none') + '</small></div>';
     return;
   }
   body.innerHTML = '';
