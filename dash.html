@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613280000">
-<meta name="app-version" content="20260613280000">
+<meta http-equiv="Expires" content="20260613290000">
+<meta name="app-version" content="20260613290000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613280000';
+  var v = '20260613290000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5469,16 +5469,17 @@ function openBOHDetailFull(s) {
         snap.forEach(child => {
           const sub = child.val();
           if (sub.role !== s.role) return;
-          // Flexible week match
-          const subDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : sub.week;
-          const staffDate = s.submittedAt ? s.submittedAt.substring(0,10) : s.week;
-          if (subDate !== staffDate && sub.week !== s.week) return;
-          if (child.key.endsWith('_opening') || sub.status === 'opening_submitted') {
-            fullRecord._fbKey = child.key;
-            fullRecord.openingPct = sub.openingPct;
-            fullRecord.closingPct = null;
-            fullRecord.oicEvalPct = sub.oicEvalPct;
-          }
+          // Flexible week match — compare week string OR submittedAt date
+          const subWeek = sub.week || (sub.submittedAt ? sub.submittedAt.substring(0,10) : '');
+          const staffWeek = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
+          if (subWeek !== staffWeek) return;
+          fullRecord._fbKey = child.key;
+          if (sub.startedAt) fullRecord.startedAt = sub.startedAt;
+          if (sub.submittedAt) fullRecord.submittedAt = sub.submittedAt;
+          if (sub.openingPct != null) fullRecord.openingPct = sub.openingPct;
+          if (sub.closingPct != null) fullRecord.closingPct = sub.closingPct;
+          if (sub.oicEvalPct != null) fullRecord.oicEvalPct = sub.oicEvalPct;
+          if (sub.verifiedBy) { fullRecord.verifiedBy = sub.verifiedBy; fullRecord.verifiedAt = sub.verifiedAt; }
           if (sub.taskData) Object.assign(fullRecord.taskData, sub.taskData);
         });
         openStaffDetail(fullRecord);
