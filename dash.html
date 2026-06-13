@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260612380000">
-<meta name="app-version" content="20260612380000">
+<meta http-equiv="Expires" content="20260613030000">
+<meta name="app-version" content="20260613030000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260612380000';
+  var v = '20260613030000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1415,7 +1415,7 @@ function loadData() {
     // One-time cleanup: delete stale closingPct from opening_submitted records
     Object.values(dedupBOH).forEach(rec => {
       if (rec.status === 'opening_submitted' && rec._fbKey) {
-        const db_ = rec._isFOH ? fohDb : _db;
+        const db_ = rec._isFOH ? fohDb : db;
         if (db_) db_.ref('submissions/' + rec._fbKey + '/closingPct').remove().catch(()=>{});
       }
     });
@@ -2316,7 +2316,7 @@ function openStaffDetail(s) {
   const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   // Clean stale closingPct from Firebase permanently
   if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
-    const _cleanDb = s._isFOH ? fohDb : _db;
+    const _cleanDb = s._isFOH ? fohDb : db;
     if (_cleanDb) _cleanDb.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
     s.closingPct = null;
   }
@@ -3756,7 +3756,7 @@ async function exportDetailPDF() {
   const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   // Clean stale closingPct from Firebase permanently
   if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
-    const _cleanDb = s._isFOH ? fohDb : _db;
+    const _cleanDb = s._isFOH ? fohDb : db;
     if (_cleanDb) _cleanDb.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
     s.closingPct = null;
   }
@@ -5265,7 +5265,7 @@ function loadBOHData() {
           grouped[gKey].closingPct = sub.closingPct;
         } else if (_subIsOpenOnly && sub.closingPct != null) {
           // Stale closingPct — delete from Firebase immediately
-          if (_db && sub._fbKey) _db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
+          if (db && sub._fbKey) db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
           grouped[gKey].closingPct = null;
         }
         // Recalculate overall from opening+closing if both exist
@@ -5789,7 +5789,7 @@ function openFOHDetail(idx) {
   const cPctFoh = _isFohOpeningOnly ? null : (staff.closingPct != null ? staff.closingPct : null);
   // Clean stale closingPct from Firebase permanently
   if (_isFohOpeningOnly && staff.closingPct != null && staff._fbKey) {
-    const _cleanDb2 = staff._isFOH ? fohDb : _db;
+    const _cleanDb2 = staff._isFOH ? fohDb : db;
     if (_cleanDb2) _cleanDb2.ref('submissions/' + staff._fbKey + '/closingPct').remove().catch(()=>{});
     staff.closingPct = null;
   }
