@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613150000">
-<meta name="app-version" content="20260613150000">
+<meta http-equiv="Expires" content="20260613160000">
+<meta name="app-version" content="20260613160000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613150000';
+  var v = '20260613160000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1467,13 +1467,7 @@ function loadData() {
     allStaff = Object.values(dedupBOH);
     setLoadingIndicator('');
 
-    // Step 2: Load audits
-    db.ref('audits').once('value', aSnap => {
-      const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
-      const isManagement = MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole);
-      allAudits = isManagement ? rawA : rawA.filter(a => !a.outlet || a.outlet === currentOutlet || currentOutlet === '');
-
-      // Step 3: Load FOH submissions
+    // Step 2: Load FOH submissions
       if (fohDb) {
         fohDb.ref('submissions').once('value', fohSnap => {
           const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
@@ -1508,7 +1502,6 @@ function loadData() {
       } else {
         _finishLoad();
       }
-    }).catch(() => { _finishLoad(); });
   });
 
   function _finishLoad() {
@@ -1519,8 +1512,21 @@ function loadData() {
     sessionStorage.setItem('dash_name', currentStaffName||'');
     sessionStorage.setItem('dash_outlet', currentOutlet||'');
     if (document.getElementById('page-verified')?.classList.contains('active')) renderVerifiedTab();
-    if (document.getElementById('page-audits')?.classList.contains('active')) renderAudits();
   }
+}
+
+function loadAndRenderAudits() {
+  if (!db) return;
+  const body = document.getElementById('auditBody');
+  if (body) body.innerHTML = '<div style="text-align:center;padding:20px;color:#94A3B8;">⏳ Loading audits...</div>';
+  db.ref('audits').once('value', snap => {
+    const rawA = snap.val() ? Object.values(snap.val()) : [];
+    const isManagement = MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole);
+    allAudits = isManagement ? rawA : rawA.filter(a => !a.outlet || a.outlet === currentOutlet || currentOutlet === '');
+    renderAudits();
+  }, err => {
+    if (body) body.innerHTML = '<div style="text-align:center;padding:20px;color:#B91C1C;">❌ Error: ' + err.message + '</div>';
+  });
 }
 
 function populateFilters() {
@@ -1569,7 +1575,7 @@ function showTab(el,id) {
   if (id === 'boh') { loadBOHData(); }
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'kpi') { renderKPIPage(); }
-  if (id === 'audits') { renderAudits(); }
+  if (id === 'audits') { loadAndRenderAudits(); }
 }
 
 function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
