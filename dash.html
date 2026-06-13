@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613680000">
+<meta name="app-version" content="20260613690000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613680000';
+  var v = '20260613690000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4700,9 +4700,9 @@ function updateLiveScore() {
   });
   const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
   // For closing: only show if closing tasks actually answered in this record
-  const _lsIsOpeningOnly = s.status === 'opening_submitted'
-    || (s._fbKey && s._fbKey.endsWith('_opening'))
-    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  const _lsIsOpeningOnly = (s.status === 'opening_submitted'
+    || (s._fbKey && s._fbKey.endsWith('_opening') && s.closingPct == null)
+    || (!s.status && s.openingPct != null && s.shift !== 'closing' && s.closingPct == null));
   const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
   const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
   // Total = opening+OIC if opening only, closing+OIC if closing only, all if both
@@ -6044,14 +6044,11 @@ function openFOHDetail(idx) {
     const subs = [];
     snap.forEach(child => {
       const sub = child.val();
-      // Flexible week match — handles shift-aware dates (closing after midnight = next day)
+      // Match week strictly — only same week or same submission date
       const subDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : '';
-      const subDateMinus1 = sub.submittedAt ? new Date(new Date(sub.submittedAt) - 86400000).toISOString().substring(0,10) : '';
       const weekMatch = sub.week === staff.week ||
         subDate === staff.week ||
-        subDateMinus1 === staff.week ||
-        (staff.submittedAt && staff.submittedAt.substring(0,10) === sub.week) ||
-        (staff.submittedAt && new Date(new Date(staff.submittedAt) - 86400000).toISOString().substring(0,10) === sub.week);
+        (staff.submittedAt && staff.submittedAt.substring(0,10) === sub.week);
       if (sub.role === staff.role && weekMatch) {
         subs.push(sub);
       }
