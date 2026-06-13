@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613630000">
+<meta name="app-version" content="20260613650000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613630000';
+  var v = '20260613650000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -935,6 +935,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="Unassigned">Unassigned</option>
         <option>Baldev</option><option>Angelo</option><option>Asad</option><option>Shridhar</option><option>Awais</option>
         <option>Mr. Eddie</option>
+        <option>Maintenance Supervisor</option>
         <option value="__other__">Other (type name)</option>
       </select>
       <input id="mow_assigned_other" type="text" placeholder="Type name..." style="display:none;margin-top:6px;width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;box-sizing:border-box;">
@@ -1188,7 +1189,7 @@ function selectRole(btn, role) {
   if (selectedRoleBtn) selectedRoleBtn.classList.remove('selected');
   btn.classList.add('selected');
   selectedRoleBtn = btn;
-  currentRole = role;
+  currentRole = role.toLowerCase();
 
   // Outlet dropdown — for KIC, OIC and Maint. Supervisor
   const outletSel = document.getElementById('outletSel');
@@ -7082,6 +7083,7 @@ function renderMaintenanceLogs() {
               <option value="Shridhar" ${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
               <option value="Awais" ${log.assignedTo==='Awais'?'selected':''}>Awais</option>
               <option value="Mr. Eddie" ${log.assignedTo==='Mr. Eddie'?'selected':''}>Mr. Eddie</option>
+              <option value="Maintenance Supervisor" ${log.assignedTo==='Maintenance Supervisor'?'selected':''}>Maintenance Supervisor</option>
               <option value="__other__">Other (type name)</option>
             </select>
             <input id="masgn_other_${log._key}" type="text" placeholder="Type name..." style="display:none;margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">`
