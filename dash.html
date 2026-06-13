@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613620000">
+<meta name="app-version" content="20260613630000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613620000';
+  var v = '20260613630000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6029,7 +6029,11 @@ function openFOHDetail(idx) {
   document.getElementById('fohDetailModal').style.display = 'flex';
 
   // Fetch full submissions from FOH Firebase to render checklist
-  if (!fohDb) return;
+  if (!fohDb) {
+    document.getElementById('fohChecklistArea').innerHTML = '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;">⚠️ Firebase not connected. Please refresh the page.</div>';
+    return;
+  }
+  // Try staffName query first, with broader week matching for closing shifts submitted after midnight
   fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap => {
     if (!snap.exists()) {
       document.getElementById('fohChecklistArea').innerHTML = '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;">No checklist data found.</div>';
@@ -6039,10 +6043,14 @@ function openFOHDetail(idx) {
     const subs = [];
     snap.forEach(child => {
       const sub = child.val();
-      // Flexible week match — handles shift-aware dates (closing after midnight = prev day)
-      const weekMatch = sub.week === staff.week || 
-        (sub.submittedAt && sub.submittedAt.substring(0,10) === staff.week) ||
-        (staff.submittedAt && staff.submittedAt.substring(0,10) === sub.week);
+      // Flexible week match — handles shift-aware dates (closing after midnight = next day)
+      const subDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : '';
+      const subDateMinus1 = sub.submittedAt ? new Date(new Date(sub.submittedAt) - 86400000).toISOString().substring(0,10) : '';
+      const weekMatch = sub.week === staff.week ||
+        subDate === staff.week ||
+        subDateMinus1 === staff.week ||
+        (staff.submittedAt && staff.submittedAt.substring(0,10) === sub.week) ||
+        (staff.submittedAt && new Date(new Date(staff.submittedAt) - 86400000).toISOString().substring(0,10) === sub.week);
       if (sub.role === staff.role && weekMatch) {
         subs.push(sub);
       }
