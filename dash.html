@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613320000">
-<meta name="app-version" content="20260613320000">
+<meta http-equiv="Expires" content="20260613340000">
+<meta name="app-version" content="20260613340000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613320000';
+  var v = '20260613340000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2307,15 +2307,22 @@ function buildPhotoHtml(t, role) {
         : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;" onerror="this.style.display='none'">`
     ).join('');
   }
-  // Verifier photo — label depends on role
-  if (t.oicPhotoUrl) {
-    const oicUrl = t.oicPhotoUrl;
+  // Verifier photo — label depends on role, supports multiple via oicPhotoUrls array
+  const oicUrls = [];
+  if (Array.isArray(t.oicPhotoUrls) && t.oicPhotoUrls.length) {
+    oicUrls.push(...t.oicPhotoUrls);
+  } else if (t.oicPhotoUrl) {
+    oicUrls.push(t.oicPhotoUrl); // legacy single field
+  }
+  if (oicUrls.length) {
     const kicRoles = ['linecook','steward','lc','st'];
     const verifierLabel = (role && kicRoles.includes(role)) ? 'KIC Photo:' : 'OIC Photo:';
     html += '<div style="margin-top:4px;"><span style="font-size:9px;font-weight:700;color:#7B2D42;text-transform:uppercase;">' + verifierLabel + '</span> ';
-    html += oicUrl.startsWith('db:')
-      ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
-      : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`;
+    html += oicUrls.map(oicUrl =>
+      oicUrl.startsWith('db:')
+        ? `<img data-dbref="${oicUrl.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;display:none;">`
+        : `<img src="${oicUrl}" style="max-width:80px;max-height:60px;border-radius:5px;border:2px solid #7B2D42;" onerror="this.style.display='none'">`
+    ).join('');
     html += '</div>';
   }
   return html;
@@ -3266,7 +3273,7 @@ function openAuditDetail(a) {
   // Add PDF + Delete buttons to modal header
   const modalHeader = document.querySelector('#detailModal .modal-header');
   if (modalHeader) {
-    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn,.pdf-daily-btn,.pdf-monthly-btn,.edit-report-btn').forEach(b=>b.remove());
+    modalHeader.querySelectorAll('.pdf-audit-btn,.delete-audit-btn').forEach(b=>b.remove());
     const pdfBtn = document.createElement('button');
     pdfBtn.className = 'modal-close pdf-audit-btn';
     pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;font-size:12px;padding:5px 12px;';
@@ -4620,7 +4627,38 @@ function toggleEditMode(s) {
       </div>`;
     row.appendChild(extraDiv);
 
-    // Photo preview handler — attach to all photo inputs
+    // Pre-load existing oicPhotoUrls into preview
+    if (task) {
+      const existingOicUrls = [];
+      if (Array.isArray(task.oicPhotoUrls) && task.oicPhotoUrls.length) existingOicUrls.push(...task.oicPhotoUrls);
+      else if (task.oicPhotoUrl) existingOicUrls.push(task.oicPhotoUrl);
+      if (existingOicUrls.length) {
+        const preview = row.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
+        if (preview) {
+          const lbl = document.createElement('div');
+          lbl.style.cssText = 'width:100%;font-size:9px;color:#7B2D42;font-weight:700;text-transform:uppercase;margin-bottom:2px;';
+          lbl.textContent = 'Saved photo' + (existingOicUrls.length > 1 ? 's' : '') + ' (new photo will be added):';
+          preview.appendChild(lbl);
+          existingOicUrls.forEach(oicUrl => {
+            const img = document.createElement('img');
+            img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;';
+            if (oicUrl.startsWith('db:')) {
+              img.src = ''; img.style.display = 'none';
+              if (db) db.ref('photos/' + oicUrl.slice(3)).once('value').then(snap => {
+                if (snap.val()) { img.src = snap.val(); img.style.display = 'inline-block'; }
+              }).catch(()=>{});
+            } else {
+              img.src = oicUrl;
+              img.onerror = function() { this.style.display = 'none'; };
+            }
+            preview.appendChild(img);
+          });
+          preview.style.display = 'flex';
+          preview.style.flexWrap = 'wrap';
+          preview.style.gap = '4px';
+        }
+      }
+    }
     extraDiv.querySelectorAll('.edit-photo-input').forEach(fileInput => {
     fileInput.addEventListener('change', function() {
       const file = this.files[0];
@@ -4760,7 +4798,9 @@ function _editTakePhoto(taskKey, withCapture) {
         previewContainer.scrollIntoView({behavior:'smooth', block:'nearest'});
       }
 
-      _editPhotoChanges[taskKey] = e.target.result;
+      _editPhotoChanges[taskKey] = _editPhotoChanges[taskKey] || [];
+      _editPhotoChanges[taskKey].push(e.target.result);
+      const _newPhotoIdx = _editPhotoChanges[taskKey].length - 1;
       // Upload to Cloudinary immediately
       try {
         const blob = dataURLtoBlob(e.target.result);
@@ -4772,7 +4812,7 @@ function _editTakePhoto(taskKey, withCapture) {
             .then(r => r.json())
             .then(j => {
               if (j.secure_url) {
-                _editPhotoChanges[taskKey] = j.secure_url;
+                _editPhotoChanges[taskKey][_newPhotoIdx] = j.secure_url;
                 // Update the last img src to Cloudinary URL
                 const imgs = previewContainer ? previewContainer.querySelectorAll('img') : [];
                 if (imgs.length > 0) imgs[imgs.length-1].src = j.secure_url;
@@ -4852,17 +4892,28 @@ async function saveOverwrite(s) {
     if (k) updates['submissions/' + fbKey + '/taskData/' + k + '/comment'] = val;
   });
 
-  // Save OIC photos separately — never overwrite staff photos
-  const photoPromises = Object.entries(_editPhotoChanges).map(([k, urlOrBase64]) => {
-    if (urlOrBase64 && urlOrBase64.startsWith('http')) {
-      // Already a Cloudinary URL
-      updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = urlOrBase64;
-      return Promise.resolve();
+  // Save OIC photos — append new ones to existing oicPhotoUrls array, never overwrite
+  const photoPromises = Object.entries(_editPhotoChanges).map(async ([k, newPhotos]) => {
+    if (!Array.isArray(newPhotos) || !newPhotos.length) return;
+    // Start from existing oicPhotoUrls on the task
+    const existingUrls = [];
+    if (s.taskData && s.taskData[k]) {
+      const t = s.taskData[k];
+      if (Array.isArray(t.oicPhotoUrls)) existingUrls.push(...t.oicPhotoUrls);
+      else if (t.oicPhotoUrl) existingUrls.push(t.oicPhotoUrl); // migrate single -> array
     }
-    const photoRef = 'photos/oic_' + (s.staffName||'').replace(/\s+/g,'_') + '_' + k + '_' + Date.now();
-    return db.ref(photoRef).set(urlOrBase64).then(() => {
-      updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = 'db:' + photoRef;
-    });
+    // Upload any base64 photos that haven't been Cloudinaried yet
+    const uploadedUrls = await Promise.all(newPhotos.map(async (urlOrBase64) => {
+      if (urlOrBase64 && urlOrBase64.startsWith('http')) return urlOrBase64;
+      // Upload base64 to Firebase db
+      const photoRef = 'photos/oic_' + (s.staffName||'').replace(/\s+/g,'_') + '_' + k + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+      await db.ref(photoRef).set(urlOrBase64);
+      return 'db:' + photoRef;
+    }));
+    const allUrls = [...existingUrls, ...uploadedUrls];
+    updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrls'] = allUrls;
+    // Keep legacy oicPhotoUrl as the first one for backwards compatibility
+    updates['submissions/' + fbKey + '/taskData/' + k + '/oicPhotoUrl'] = allUrls[0] || '';
   });
   await Promise.all(photoPromises);
 
@@ -5259,7 +5310,7 @@ function loadBOHData() {
         if (!bohRoles.includes(sub.role)) return;
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
-          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false };
+          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'—', week:sub.week, days:{}, overallPct:0, qualified:false };
         }
         // Day deduplication — use latest submission per day
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
@@ -5422,26 +5473,19 @@ function openBOHDetailFull(s) {
   if (!s) return;
   if (!db) { openStaffDetail(s); return; }
 
-  // Build the Firebase key directly — same format as lc.html/st.html/service.html pushToFirebase
+  // Build the Firebase key directly — same format as service.html pushToFirebase
   const nameKey   = (s.staffName||'').replace(/[^a-zA-Z0-9]/g,'_');
-  // Strip '—' fallback — if outlet is the dash placeholder, treat as empty
-  const outletRaw = (s.outlet === '—' || s.outlet === '-') ? '' : (s.outlet||'');
-  const outletKey = outletRaw.replace(/[^a-zA-Z0-9]/g,'_');
+  const outletKey = (s.outlet||'').replace(/[^a-zA-Z0-9]/g,'_');
   const weekKey   = (s.week||'').replace(/[^a-zA-Z0-9]/g,'_');
   const openingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_opening';
   const closingKey = nameKey + '_' + s.role + '_' + outletKey + '_' + weekKey + '_closing';
-  // Also try without outlet in case it was omitted when saved
-  const openingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_opening';
-  const closingKeyNoOutlet = nameKey + '_' + s.role + '_' + weekKey + '_closing';
 
   Promise.all([
     db.ref('submissions/' + openingKey).once('value'),
-    db.ref('submissions/' + closingKey).once('value'),
-    db.ref('submissions/' + openingKeyNoOutlet).once('value'),
-    db.ref('submissions/' + closingKeyNoOutlet).once('value')
-  ]).then(([openSnap, closeSnap, openSnapAlt, closeSnapAlt]) => {
-    const openRec  = openSnap.exists()     ? {...openSnap.val(),    _fbKey: openingKey}         : openSnapAlt.exists()  ? {...openSnapAlt.val(),  _fbKey: openingKeyNoOutlet}  : null;
-    const closeRec = closeSnap.exists()    ? {...closeSnap.val(),   _fbKey: closingKey}         : closeSnapAlt.exists() ? {...closeSnapAlt.val(), _fbKey: closingKeyNoOutlet} : null;
+    db.ref('submissions/' + closingKey).once('value')
+  ]).then(([openSnap, closeSnap]) => {
+    const openRec = openSnap.exists() ? {...openSnap.val(), _fbKey: openingKey} : null;
+    const closeRec = closeSnap.exists() ? {...closeSnap.val(), _fbKey: closingKey} : null;
 
     // Build fullRecord — start from grouped s for metadata
     const fullRecord = Object.assign({}, s);
