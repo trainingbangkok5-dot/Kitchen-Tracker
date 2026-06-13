@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613690000">
+<meta name="app-version" content="20260613710000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613690000';
+  var v = '20260613710000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -763,6 +763,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- Maintenance sub-tabs -->
     <div style="display:flex;gap:2px;margin-bottom:0;flex-wrap:wrap;">
       <button id="mtab-log" onclick="setMaintTab('log')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:#7F1D1D;color:#fff;border-radius:8px 8px 0 0;cursor:pointer;">📋 Log</button>
+      <button id="mtab-completed" onclick="setMaintTab('completed')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">✅ Completed</button>
       <button id="mtab-weekly" onclick="setMaintTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
       <button id="mtab-monthly" onclick="setMaintTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
       <button id="mtab-preventive" onclick="setMaintTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Preventive</button>
@@ -5091,7 +5092,7 @@ async function dashSavePreventive() {
 
 function setMaintTab(tab) {
   currentMaintTab = tab;
-  ['log','weekly','monthly','preventive'].forEach(t => {
+  ['log','completed','weekly','monthly','preventive'].forEach(t => {
     const btn = document.getElementById('mtab-'+t);
     if (btn) {
       btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
@@ -5099,11 +5100,10 @@ function setMaintTab(tab) {
       btn.style.fontWeight = t===tab ? '600' : '500';
     }
   });
-  const titles = {log:'🔧 Maintenance Log', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report', preventive:'🔧 Preventive Schedule'};
+  const titles = {log:'🔧 Active Issues', completed:'✅ Completed Issues', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report', preventive:'🔧 Preventive Schedule'};
   const el = document.getElementById('maintTabTitle');
   if (el) el.textContent = titles[tab]||'';
   const maintWrap = document.getElementById('maintLogTableWrap');
-  const maintStats = document.querySelector('#page-maintenance .stats-grid') || document.querySelector('#page-maintenance [style*="grid-template-columns:repeat(4"]');
   const prevPanel = document.getElementById('dashPreventivePanel');
   if (maintWrap) maintWrap.style.display = tab==='preventive' ? 'none' : '';
   if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
@@ -5113,6 +5113,7 @@ function setMaintTab(tab) {
 
 function renderMaintCurrentTab() {
   if (currentMaintTab === 'log') renderMaintenanceLogs();
+  else if (currentMaintTab === 'completed') renderMaintCompleted();
   else if (currentMaintTab === 'weekly') renderMaintWeekly();
   else if (currentMaintTab === 'monthly') renderMaintMonthly();
 }
@@ -7022,14 +7023,31 @@ function renderMaintenanceLogs() {
   // Update stats
   document.getElementById('mStatTotal').textContent = allMaintenanceLogs.length;
   document.getElementById('mStatUrgent').textContent = allMaintenanceLogs.filter(l=>l.priority==='Urgent').length;
-  document.getElementById('mStatPending').textContent = allMaintenanceLogs.filter(l=>l.status==='Pending').length;
-  document.getElementById('mStatDone').textContent = allMaintenanceLogs.filter(l=>l.status==='Yes').length;
+  document.getElementById('mStatPending').textContent = allMaintenanceLogs.filter(l=>l.status!=='Yes'&&l.status!=='Completed').length;
+  document.getElementById('mStatDone').textContent = allMaintenanceLogs.filter(l=>l.status==='Yes'||l.status==='Completed').length;
 
+  // Log tab shows ONLY active (non-completed) issues
+  const activeLogs = getMaintFiltered().filter(l => l.status !== 'Yes' && l.status !== 'Completed');
   const tbody = document.getElementById('maintTableBody');
   tbody.innerHTML = '';
-  document.getElementById('maintEmpty').style.display = allMaintenanceLogs.length ? 'none' : 'block';
+  document.getElementById('maintEmpty').style.display = activeLogs.length ? 'none' : 'block';
+  if (!activeLogs.length) {
+    document.getElementById('maintEmpty').textContent = '✅ No active issues — all clear!';
+  }
+  activeLogs.forEach(log => renderMaintRow(log, tbody));
+}
 
-  allMaintenanceLogs.forEach(log => {
+function renderMaintCompleted() {
+  const completedLogs = getMaintFiltered().filter(l => l.status === 'Yes' || l.status === 'Completed');
+  const tbody = document.getElementById('maintTableBody');
+  tbody.innerHTML = '';
+  const emptyEl = document.getElementById('maintEmpty');
+  emptyEl.style.display = completedLogs.length ? 'none' : 'block';
+  if (!completedLogs.length) emptyEl.textContent = 'No completed issues yet.';
+  completedLogs.forEach(log => renderMaintRow(log, tbody));
+}
+
+function renderMaintRow(log, tbody) {
     // Days pending
     const start = log.dateReported ? new Date(log.dateReported) : null;
     const end = log.status === 'Yes' && log.dateResolved ? new Date(log.dateResolved) : new Date();
@@ -7091,10 +7109,20 @@ function renderMaintenanceLogs() {
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days !== null ? days+'d' : '—'}</span></td>
       <td style="padding:8px 10px">
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-start;">
-          ${log.beforePhoto ? `<div style="text-align:center"><img src="${log.beforePhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #D97706;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.beforePhoto}'" title="Before"><div style="font-size:8px;color:#D97706;">Before</div></div>` : ''}
-          ${log.afterPhoto ? `<div style="text-align:center"><img src="${log.afterPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #15803D;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.afterPhoto}'" title="After"><div style="font-size:8px;color:#15803D;">After</div></div>` : ''}
-          ${log.oicPhoto ? `<div style="text-align:center"><img src="${log.oicPhoto}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #7B2D42;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${log.oicPhoto}'" title="OIC/KIC Photo"><div style="font-size:8px;color:#7B2D42;">OIC/KIC</div></div>` : ''}
-          ${!log.beforePhoto && !log.afterPhoto && !log.oicPhoto ? '<span style="font-size:11px;color:#94A3B8">—</span>' : ''}
+          ${(()=>{
+            let html = '';
+            // Before photos — supports array and legacy single
+            const beforeArr = Array.isArray(log.beforePhotos) ? log.beforePhotos : (log.beforePhoto ? [log.beforePhoto] : []);
+            beforeArr.forEach(url => { html += `<div style="text-align:center"><img src="${url}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #D97706;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${url}'" title="Before"><div style="font-size:8px;color:#D97706;">Before</div></div>`; });
+            // After photos
+            const afterArr = Array.isArray(log.afterPhotos) ? log.afterPhotos : (log.afterPhoto ? [log.afterPhoto] : []);
+            afterArr.forEach(url => { html += `<div style="text-align:center"><img src="${url}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #15803D;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${url}'" title="After"><div style="font-size:8px;color:#15803D;">After</div></div>`; });
+            // OIC photos
+            const oicArr = Array.isArray(log.oicPhotos) ? log.oicPhotos : (log.oicPhoto ? [log.oicPhoto] : []);
+            oicArr.forEach(url => { html += `<div style="text-align:center"><img src="${url}" style="width:40px;height:32px;object-fit:cover;border-radius:4px;border:2px solid #7B2D42;cursor:pointer;" onclick="document.getElementById('maintPhotoModal').style.display='flex';document.getElementById('maintPhotoImg').src='${url}'" title="OIC/KIC"><div style="font-size:8px;color:#7B2D42;">OIC/KIC</div></div>`; });
+            if (!html) html = '<span style="font-size:11px;color:#94A3B8">—</span>';
+            return html;
+          })()}
         </div>
       </td>
       <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
@@ -7161,7 +7189,6 @@ function renderMaintenanceLogs() {
     actionTd.appendChild(actionDiv);
     tr.appendChild(actionTd);
     tbody.appendChild(tr);
-  });
 }
 
 // ── Maintenance Actions (dash) ───────────────────────────────
@@ -7207,14 +7234,27 @@ function maintUploadPhoto(key) {
       const data = await res.json();
       if (!data.secure_url) throw new Error('Upload failed');
       const log = allMaintenanceLogs.find(l=>l._key===key);
-      // OIC/KIC photo saved separately as oicPhoto
-      let field;
+      const updates = {};
       if (['oic','kic'].includes(currentRole)) {
-        field = 'oicPhoto';
+        // OIC/KIC — append to oicPhotos array
+        const existing = Array.isArray(log?.oicPhotos) ? log.oicPhotos : (log?.oicPhoto ? [log.oicPhoto] : []);
+        updates.oicPhotos = [...existing, data.secure_url];
+      } else if (log?.afterPhotos?.length > 0 || log?.afterPhoto) {
+        // Already has before photo — add as after
+        const existing = Array.isArray(log?.afterPhotos) ? log.afterPhotos : (log?.afterPhoto ? [log.afterPhoto] : []);
+        updates.afterPhotos = [...existing, data.secure_url];
+      } else if (log?.beforePhotos?.length > 0 || log?.beforePhoto) {
+        // Has before, add after
+        const existing = Array.isArray(log?.afterPhotos) ? log.afterPhotos : [];
+        updates.afterPhotos = [...existing, data.secure_url];
       } else {
-        field = (log && log.afterPhoto) ? 'afterPhoto' : (log && log.beforePhoto) ? 'afterPhoto' : 'beforePhoto';
+        // First photo — before
+        const existing = Array.isArray(log?.beforePhotos) ? log.beforePhotos : (log?.beforePhoto ? [log.beforePhoto] : []);
+        updates.beforePhotos = [...existing, data.secure_url];
       }
-      await maintenanceDb.ref('maintenanceLogs/' + key).update({[field]: data.secure_url});
+      await maintenanceDb.ref('maintenanceLogs/' + key).update(updates);
+      // Update local copy
+      if (log) Object.assign(log, updates);
       showToast('📷 Photo saved ✓', 'ok');
       loadMaintenanceLogs();
     } catch(e) { showToast('Upload failed: ' + e.message, 'error'); }
