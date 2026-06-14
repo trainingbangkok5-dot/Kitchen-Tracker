@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614160000">
+<meta name="app-version" content="20260614180000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614160000';
+  var v = '20260614180000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3406,9 +3406,9 @@ function openAuditDetail(a) {
     sectionHtml = `<div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">📊 Full Audit Report — Section by Section</div>`;
     sectionHtml += a.sectionBreakdown.map((s,i) => {
       const pct = s.max>0?Math.round(s.earned/s.max*100):0;
-      const col = pct>=91?'#15803D':pct>=71?'#D97706':'#B91C1C';
-      const bg  = pct>=91?'#DCFCE7':pct>=71?'#FEF3C7':'#FEE2E2';
-      const hBg = pct>=91?'#F0FDF4':pct>=71?'#FFFBEB':'#FEF2F2';
+      const col = pct>=91?'#15803D':pct>=81?'#A18A00':pct>=71?'#C2640E':'#B91C1C';
+      const bg  = pct>=91?'#DCFCE7':pct>=81?'#FEFCE8':pct>=71?'#FEE8D6':'#FEE2E2';
+      const hBg = pct>=91?'#F0FDF4':pct>=81?'#FEFCE8':pct>=71?'#FFF7ED':'#FEF2F2';
       let itemsHtml = (s.items||[]).map((it,ii) => {
         const sc = it.status==='pass'?'#15803D':it.status==='fail'?'#B91C1C':it.status==='na'?'#6B6B60':'#94A3B8';
         const sb = it.status==='pass'?'#DCFCE7':it.status==='fail'?'#FEE2E2':it.status==='na'?'#F3F4F6':'#F8FAFC';
@@ -3793,24 +3793,6 @@ function generateAuditPDF(a) {
     doc.setFont('helvetica','normal'); doc.text(val, x, y+14);
   });
   y += 24;
-
-  // Score cards (compact repeat)
-  const sc = pass?[21,128,61]:[185,28,28];
-  doc.setFillColor(...sc); doc.rect(margin,y,55,26,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
-  doc.text(a.score+'%', margin+27, y+13, {align:'center'});
-  doc.setFontSize(10); doc.text('Grade '+grade+' — '+compliance, margin+27, y+21, {align:'center'});
-  doc.setFillColor(240,246,255); doc.rect(margin+60,y,55,26,'F');
-  doc.setTextColor(26,60,94); doc.setFontSize(18); doc.setFont('helvetica','bold');
-  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+87, y+13, {align:'center'});
-  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text('Points Scored', margin+87, y+20, {align:'center'});
-  doc.setFillColor(248,250,252); doc.rect(margin+120,y,62,26,'F');
-  doc.setTextColor(26,60,94); doc.setFontSize(11); doc.setFont('helvetica','bold');
-  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—', margin+151, y+11, {align:'center'});
-  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text(a.submittedAt?new Date(a.submittedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—', margin+151, y+18, {align:'center'});
-  y += 32;
 
   // Full section breakdown
   if (a.sectionBreakdown && a.sectionBreakdown.length) {
