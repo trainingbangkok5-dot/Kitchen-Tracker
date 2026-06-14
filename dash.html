@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614100000">
+<meta name="app-version" content="20260614110000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614100000';
+  var v = '20260614110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3677,36 +3677,62 @@ function generateAuditPDF(a) {
     doc.text('Section', margin+3, y+5.5);
     doc.text('Earned', margin+110, y+5.5, {align:'right'});
     doc.text('Max', margin+128, y+5.5, {align:'right'});
-    doc.text('Score', margin+148, y+5.5, {align:'right'});
+    // Fixed column positions — locked to prevent text overflow affecting layout
+    const COL_SECTION = margin + 4;      // Section name starts here
+    const COL_SECTION_MAX = 95;          // Max width for section name text
+    const COL_EARNED = margin + 116;     // Earned — right aligned
+    const COL_MAX    = margin + 130;     // Max — right aligned
+    const COL_SCORE  = margin + 144;     // Score % — right aligned
+    const COL_BAR_X  = margin + 148;     // Progress bar starts here
+    const COL_BAR_W  = colW - 150;      // Progress bar width
+
+    // Header row
+    doc.setFillColor(240,244,248); doc.rect(margin,y,colW,8,'F');
+    doc.setTextColor(80,80,80); doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text('Section', COL_SECTION, y+5.5);
+    doc.text('Earned', COL_EARNED, y+5.5, {align:'right'});
+    doc.text('Max', COL_MAX, y+5.5, {align:'right'});
+    doc.text('Score', COL_SCORE, y+5.5, {align:'right'});
+    doc.text('', COL_BAR_X, y+5.5); // Bar column header empty
     y += 9;
+
     secs.forEach((sec,si)=>{
       const pct = sec.max>0 ? Math.round(sec.earned/sec.max*100) : 0;
       const col = pct>=91?[21,128,61]:pct>=71?[217,119,6]:[185,28,28];
       doc.setFillColor(...(si%2===0?[255,255,255]:[250,249,247])); doc.rect(margin,y,colW,8,'F');
       doc.setFillColor(...col); doc.rect(margin,y,2,8,'F');
-      doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      doc.text((si+1)+'. '+sec.title, margin+5, y+5.5);
+      // Truncate long section names to prevent overflow
+      doc.setTextColor(30,30,30); doc.setFontSize(8); doc.setFont('helvetica','normal');
+      const secTitle = doc.splitTextToSize((si+1)+'. '+sec.title, COL_SECTION_MAX)[0];
+      doc.text(secTitle, COL_SECTION, y+5.5);
+      // Earned
       doc.setTextColor(...col); doc.setFont('helvetica','bold');
-      doc.text(String(sec.earned), margin+110, y+5.5, {align:'right'});
+      doc.text(String(sec.earned), COL_EARNED, y+5.5, {align:'right'});
+      // Max
       doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
-      doc.text(String(sec.max), margin+128, y+5.5, {align:'right'});
+      doc.text(String(sec.max), COL_MAX, y+5.5, {align:'right'});
+      // Score %
       doc.setTextColor(...col); doc.setFont('helvetica','bold');
-      doc.text(pct+'%', margin+148, y+5.5, {align:'right'});
-      const barX = margin+152, barW = colW-154;
-      doc.setFillColor(220,217,212); doc.rect(barX,y+2.5,barW,3,'F');
-      doc.setFillColor(...col); doc.rect(barX,y+2.5,barW*(Math.min(pct,100)/100),3,'F');
+      doc.text(pct+'%', COL_SCORE, y+5.5, {align:'right'});
+      // Progress bar
+      doc.setFillColor(220,217,212); doc.rect(COL_BAR_X, y+2.5, COL_BAR_W, 3, 'F');
+      doc.setFillColor(...col); doc.rect(COL_BAR_X, y+2.5, COL_BAR_W*(Math.min(pct,100)/100), 3, 'F');
       y += 8;
       doc.setDrawColor(230,228,224); doc.line(margin,y,margin+colW,y);
     });
+
     y += 2;
+    // TOTAL row — all items strictly within colW
     doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
     doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
-    doc.text('TOTAL', margin+5, y+6);
-    doc.text(String(a.rawScore||0), margin+110, y+6, {align:'right'});
-    doc.text(String(a.maxScore||0), margin+128, y+6, {align:'right'});
-    doc.text(a.score+'%', margin+148, y+6, {align:'right'});
-    doc.setTextColor(pass?150:255, pass?255:160, pass?150:160);
-    doc.text(pass?'✓ PASS':'✗ FAIL', pageW-margin-3, y+6, {align:'right'});
+    doc.text('TOTAL', COL_SECTION, y+6);
+    doc.text(String(a.rawScore||0), COL_EARNED, y+6, {align:'right'});
+    doc.text(String(a.maxScore||0), COL_MAX, y+6, {align:'right'});
+    doc.text(a.score+'%', COL_SCORE, y+6, {align:'right'});
+    // PASS/FAIL inside table, right-aligned within colW
+    doc.setTextColor(pass?[150,255,150]:[255,160,160]);
+    doc.setTextColor(...(pass?[150,255,150]:[255,160,160]));
+    doc.text(pass?'✓ PASS':'✗ FAIL', margin+colW-3, y+6, {align:'right'});
     y += 13;
   }
 
@@ -3715,18 +3741,21 @@ function generateAuditPDF(a) {
     checkPage(14);
     doc.setFillColor(185,28,28); doc.rect(margin,y,colW,9,'F');
     doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('FAILED ITEMS ('+a.correctiveActions.length+')', margin+3, y+6);
+    doc.text('FAILED ITEMS ('+a.correctiveActions.length+')', margin+4, y+6);
     y += 11;
     a.correctiveActions.forEach((ca,ci)=>{
-      checkPage(14);
-      doc.setFillColor(...(ci%2===0?[255,248,248]:[255,255,255])); doc.rect(margin,y,colW,12,'F');
-      doc.setFillColor(185,28,28); doc.rect(margin,y,2,12,'F');
+      checkPage(16);
+      doc.setFillColor(...(ci%2===0?[255,248,248]:[255,255,255])); doc.rect(margin,y,colW,14,'F');
+      doc.setFillColor(185,28,28); doc.rect(margin,y,3,14,'F');
+      // Section label — fixed indent from border
       doc.setTextColor(185,28,28); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-      doc.text((ca.section||'—'), margin+5, y+4.5);
+      const secLabel = doc.splitTextToSize((ca.section||'—'), colW-12)[0];
+      doc.text(secLabel, margin+6, y+5);
+      // Criteria text — same indent
       doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      const label = doc.splitTextToSize((ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), colW-10);
-      doc.text(label[0], margin+5, y+9.5);
-      y += 12;
+      const label = doc.splitTextToSize((ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), colW-12);
+      doc.text(label[0], margin+6, y+10.5);
+      y += 14;
     });
     y += 4;
   }
