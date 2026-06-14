@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614190000">
+<meta name="app-version" content="20260614200000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614190000';
+  var v = '20260614200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3329,7 +3329,7 @@ function renderAudits() {
   filtered.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
     const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
     const compliance2 = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
-    const gc2   = a.score>=91?'#15803D':a.score>=81?'#A18A00':a.score>=71?'#C2640E':'#B91C1C';
+    const gc2   = a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C';
     const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEFCE8':a.score>=71?'#FEE8D6':'#FEE2E2';
     const row = document.createElement('div');
     row.className = 'at-row';
@@ -3352,7 +3352,7 @@ function renderAudits() {
 function openAuditDetail(a) {
   const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
   const compliance2 = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
-  const gc    = a.score>=91?'#15803D':a.score>=81?'#A18A00':a.score>=71?'#C2640E':'#B91C1C';
+  const gc    = a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C';
   const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEFCE8':a.score>=71?'#FEE8D6':'#FEE2E2';
   const pass  = a.score >= 80;
   window._currentAuditData = a;
@@ -3406,7 +3406,7 @@ function openAuditDetail(a) {
     sectionHtml = `<div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">📊 Full Audit Report — Section by Section</div>`;
     sectionHtml += a.sectionBreakdown.map((s,i) => {
       const pct = s.max>0?Math.round(s.earned/s.max*100):0;
-      const col = pct>=91?'#15803D':pct>=81?'#A18A00':pct>=71?'#C2640E':'#B91C1C';
+      const col = pct>=91?'#15803D':pct>=81?'#CAA300':pct>=71?'#EA580C':'#B91C1C';
       const bg  = pct>=91?'#DCFCE7':pct>=81?'#FEFCE8':pct>=71?'#FEE8D6':'#FEE2E2';
       const hBg = pct>=91?'#F0FDF4':pct>=81?'#FEFCE8':pct>=71?'#FFF7ED':'#FEF2F2';
       let itemsHtml = (s.items||[]).map((it,ii) => {
@@ -3606,7 +3606,7 @@ function generateAuditPDF(a) {
   const compliance = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
   const pass  = a.score >= 80;
   // Grade colors per DM grading: A=Green, B=Yellow, C=Orange, D=Red
-  const gradeColor = a.score>=91?[21,128,61]:a.score>=81?[161,138,0]:a.score>=71?[194,100,14]:[185,28,28];
+  const gradeColor = a.score>=91?[21,128,61]:a.score>=81?[202,163,0]:a.score>=71?[234,88,12]:[185,28,28];
   const pageW = 210, margin = 14, colW = pageW - margin*2;
   const photoSize = 38;
   let y = 14;
@@ -3669,7 +3669,7 @@ function generateAuditPDF(a) {
 
   // Stats row
   doc.setFillColor(248,250,252); doc.rect(margin,y,colW,14,'F');
-  const gradeColorHex = a.score>=91?'#15803D':a.score>=81?'#A18A00':a.score>=71?'#C2640E':'#B91C1C';
+  const gradeColorHex = a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C';
   [['✓ Passed',passedItems,'#15803D'],['✗ Failed',failedItems,'#B91C1C'],['N/A',naItems,'#64748B'],['Total',allItems.length,gradeColorHex]].forEach(([lbl,val,col],i)=>{
     const x = margin+4+(i*(colW/4));
     doc.setTextColor(col); doc.setFontSize(11); doc.setFont('helvetica','bold');
@@ -3711,7 +3711,7 @@ function generateAuditPDF(a) {
 
     secs.forEach((sec,si)=>{
       const pct = sec.max>0 ? Math.round(sec.earned/sec.max*100) : 0;
-      const col = pct>=91?[21,128,61]:pct>=81?[161,138,0]:pct>=71?[194,100,14]:[185,28,28];
+      const col = pct>=91?[21,128,61]:pct>=81?[202,163,0]:pct>=71?[234,88,12]:[185,28,28];
       doc.setFillColor(...(si%2===0?[255,255,255]:[250,249,247])); doc.rect(margin,y,colW,8,'F');
       doc.setFillColor(...col); doc.rect(margin,y,2,8,'F');
       // Truncate long section names to prevent overflow
@@ -3806,7 +3806,7 @@ function generateAuditPDF(a) {
     a.sectionBreakdown.forEach((s,si) => {
       checkPage(16);
       const pct = s.max>0?Math.round(s.earned/s.max*100):0;
-      const col = pct>=91?[21,128,61]:pct>=81?[161,138,0]:pct>=71?[194,100,14]:[185,28,28];
+      const col = pct>=91?[21,128,61]:pct>=81?[202,163,0]:pct>=71?[234,88,12]:[185,28,28];
       const bg  = pct>=91?[240,253,244]:pct>=81?[254,252,232]:pct>=71?[254,243,199]:[254,242,242];
       doc.setFillColor(...bg); doc.rect(margin,y,colW,11,'F');
       doc.setDrawColor(...col); doc.setLineWidth(0.5); doc.line(margin,y,margin,y+11); doc.setLineWidth(0.1);
