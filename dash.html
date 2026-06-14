@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614140000">
+<meta name="app-version" content="20260614150000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614140000';
+  var v = '20260614150000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3328,6 +3328,7 @@ function renderAudits() {
   body.innerHTML = '';
   filtered.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
     const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
+    const compliance2 = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
     const gc2   = a.score>=91?'#15803D':a.score>=81?'#A18A00':a.score>=71?'#C2640E':'#B91C1C';
     const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEFCE8':a.score>=71?'#FEE8D6':'#FEE2E2';
     const row = document.createElement('div');
@@ -3459,7 +3460,7 @@ function openAuditDetail(a) {
         <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Score</div>
         <div style="font-size:30px;font-weight:700;color:${gc}">${a.score}%</div>
         <div style="font-size:13px;font-weight:700;color:${gc}">Grade ${grade}</div>
-        <div style="font-size:11px;font-weight:600;color:${gc};margin-top:2px;">${pass?'✅ PASS':'❌ FAIL'}</div>
+        <div style="font-size:11px;font-weight:600;color:${gc};margin-top:2px;">${compliance2}</div>
       </div>
       <div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;padding:14px;text-align:center;">
         <div style="font-size:10px;font-weight:700;color:#6B6B60;text-transform:uppercase;margin-bottom:4px;">Points</div>
@@ -3601,6 +3602,7 @@ function generateAuditPDF(a) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
   const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
+  const compliance = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
   const pass  = a.score >= 80;
   // Grade colors per DM grading: A=Green, B=Yellow, C=Orange, D=Red
   const gradeColor = a.score>=91?[21,128,61]:a.score>=81?[161,138,0]:a.score>=71?[194,100,14]:[185,28,28];
@@ -3641,7 +3643,7 @@ function generateAuditPDF(a) {
   doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
   doc.text(a.score+'%', card1X + card1W/2, y+14, {align:'center'});
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), card1X + card1W/2, y+24, {align:'center'});
+  doc.text('Grade '+grade+' — '+compliance, card1X + card1W/2, y+24, {align:'center'});
 
   // Card 2 — Points Scored
   doc.setFillColor(240,246,255); doc.rect(card2X, y, card2W, cardH, 'F');
@@ -3740,7 +3742,7 @@ function generateAuditPDF(a) {
     doc.text(a.score+'%', COL_SCORE, y+6, {align:'right'});
     // PASS/FAIL inside table, right-aligned within colW
     if (pass) { doc.setTextColor(150,255,150); } else { doc.setTextColor(255,160,160); }
-    doc.text(pass?'PASS':'FAIL', margin+colW-3, y+6, {align:'right'});
+    doc.text(compliance, margin+colW-3, y+6, {align:'right'});
     y += 13;
   }
 
@@ -3796,7 +3798,7 @@ function generateAuditPDF(a) {
   doc.setFillColor(...sc); doc.rect(margin,y,55,26,'F');
   doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
   doc.text(a.score+'%', margin+27, y+13, {align:'center'});
-  doc.setFontSize(10); doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+27, y+21, {align:'center'});
+  doc.setFontSize(10); doc.text('Grade '+grade+' — '+compliance, margin+27, y+21, {align:'center'});
   doc.setFillColor(240,246,255); doc.rect(margin+60,y,55,26,'F');
   doc.setTextColor(26,60,94); doc.setFontSize(18); doc.setFont('helvetica','bold');
   doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+87, y+13, {align:'center'});
