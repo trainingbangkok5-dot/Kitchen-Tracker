@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614150000">
+<meta name="app-version" content="20260614160000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614150000';
+  var v = '20260614160000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3351,8 +3351,9 @@ function renderAudits() {
 
 function openAuditDetail(a) {
   const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
-  const gc    = a.score>=91?'#15803D':a.score>=81?'#D97706':a.score>=71?'#C2410C':'#B91C1C';
-  const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEF3C7':a.score>=71?'#FEE8D6':'#FEE2E2';
+  const compliance2 = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
+  const gc    = a.score>=91?'#15803D':a.score>=81?'#A18A00':a.score>=71?'#C2640E':'#B91C1C';
+  const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEFCE8':a.score>=71?'#FEE8D6':'#FEE2E2';
   const pass  = a.score >= 80;
   window._currentAuditData = a;
 
