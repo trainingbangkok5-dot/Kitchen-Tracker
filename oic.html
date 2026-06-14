@@ -969,15 +969,24 @@ function renderDay() {
       const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
       let photoHtml = '';
       if (task.photo) {
+        // Collect all photos for this task
+        const photos = [];
+        const taskData = load()[getTodayKey()]?.[task.id] || {};
+        if (taskData.photo) photos.push(taskData.photo);
+        let i = 1;
+        while (taskData['photo_' + i]) { photos.push(taskData['photo_' + i]); i++; }
+
+        const thumbsHtml = photos.map((p, idx) => `
+          <div style="display:inline-block;text-align:center;vertical-align:top;margin-right:4px;">
+            <img class="photo-thumb" src="${p}" alt="proof ${idx+1}">
+            <button onclick="removePhoto('${task.id}',${idx})" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑</button>
+          </div>`).join('');
+
         photoHtml = `<div class="photo-row">
-          <button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
-            ${photo ? '✓ Photo saved' : '📷 Tap to take photo'}
+          <button class="photo-btn ${photos.length?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
+            ${photos.length ? `📷 ${photos.length} photo${photos.length>1?'s':''} — tap to add more` : '📷 Tap to take photo'}
           </button>
-          ${photo ? `
-            <div style="display:inline-block;text-align:center;vertical-align:top;">
-              <img class="photo-thumb" src="${photo}" alt="proof">
-              <button onclick="removePhoto(task.id,0)" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>
-            </div>` : ''}
+          ${thumbsHtml}
         </div>`;
       }
       const cmnt = getVal(currentDay, task.id, 'comment') || '';
@@ -1270,18 +1279,31 @@ function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
   const taskId = activePhotoTask;
   activePhotoTask = null;
+  closePhotoModal(); // ← auto-close modal immediately after photo selected
   compressAndReturn(file, async function(dataUrl) {
+    // Support multiple photos — find next available slot
+    const data = load();
+    const dayKey = getTodayKey();
+    if (!data[dayKey]) data[dayKey] = {};
+    if (!data[dayKey][taskId]) data[dayKey][taskId] = {};
+    // Find next photo slot (photo, photo_1, photo_2 ...)
+    let slot = 'photo';
+    if (data[dayKey][taskId]['photo']) {
+      let i = 1;
+      while (data[dayKey][taskId]['photo_' + i]) i++;
+      slot = 'photo_' + i;
+    }
     // Save locally first for instant display
-    setVal(currentDay, taskId, 'photo', dataUrl);
+    setVal(currentDay, taskId, slot, dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
 
-    // Save compressed photo to Firebase Realtime Database
+    // Save compressed photo to Firebase
     const staffName = getStaffName();
     if (staffName && _db) {
       const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
       if (dbRef) {
-        setVal(currentDay, taskId, 'photoUrl', dbRef);
+        setVal(currentDay, taskId, slot + '_url', dbRef);
         showToast('Photo synced ✓', 'ok');
       }
     }
@@ -1290,9 +1312,9 @@ function handlePhotoFile(file) {
 // ── Persist info fields ───────────────────────────────────────
 function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
-  const key = idx === 0 ? 'photo' : 'photo_' + idx;
-  setVal(currentDay, taskId, key, '');
-  setVal(currentDay, taskId, 'photoUrl', '');
+  const slot = idx === 0 ? 'photo' : 'photo_' + idx;
+  setVal(currentDay, taskId, slot, '');
+  setVal(currentDay, taskId, slot + '_url', '');
   renderDay();
   showToast('Photo removed ✓', 'ok');
 }
@@ -1380,18 +1402,5 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 </script>
-
-<div style="margin-top:32px;padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-top:1.5px solid #1A3C5E;font-family:sans-serif;">
-  <div>
-    <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Designed &amp; Developed by</div>
-    <div style="font-size:12px;font-weight:700;color:#1A3C5E;">Sunshine Jade Rogel</div>
-    <div style="font-size:11px;color:#64748B;margin-top:1px;">June 2026</div>
-  </div>
-  <div style="text-align:right;">
-    <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:3px;">Department</div>
-    <div style="font-size:12px;font-weight:700;color:#1A3C5E;">Training &amp; Development</div>
-    <div style="font-size:11px;color:#64748B;margin-top:1px;">Culex Hospitality Operations</div>
-  </div>
-</div>
 </body>
 </html>
