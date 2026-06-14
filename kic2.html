@@ -133,7 +133,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <h1>KIC 6-Day Checklist</h1>
   <div class="header-sub">Kitchen In Charge • Daily verification</div>
   <div class="info-grid">
-    <div class="info-field"><label>KIC Name</label><input id="fName" type="text" placeholder="KIC name..." autocomplete="name" autocorrect="off" autocapitalize="words"></div>
+    <div class="info-field"><label>KIC Name</label><input id="fName" type="text" placeholder="KIC name..." autocomplete="name" autocorrect="off" autocapitalize="words"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div></div>
     <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;cursor:pointer;">
 <option value="" style="color:#000">Select outlet...</option>
 <optgroup label="Little Bangkok" style="color:#000">
@@ -549,9 +549,10 @@ function getMonday(date) {
 // ── Dubai Time (UTC+4) — defined first ───────────────────────
 function getDubaiDate() {
   const now = new Date();
-  const dubaiOffset = 4 * 60;
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (dubaiOffset * 60000));
+  const dubaiStr = now.toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  return new Date(dubaiStr.replace(',',''));
 }
 function getDubaiDateStr() {
   const d = getDubaiDate();

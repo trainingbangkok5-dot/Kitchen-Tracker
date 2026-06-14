@@ -147,7 +147,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="info-grid">
     <div class="info-field" style="position:relative;">
       <label>Staff Name</label>
-      <input id="fName" type="text" placeholder="Type your name..." autocomplete="off" autocorrect="off" autocapitalize="words" oninput="onNameInput(this.value)" style="width:100%;">
+      <input id="fName" type="text" placeholder="Type your name..." autocomplete="off" autocorrect="off" autocapitalize="words" oninput="onNameInput(this.value)" style="width:100%;"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div>
       <input id="fEmpNo" type="hidden" value="">
       <div id="nameDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
     </div>
@@ -1008,9 +1008,10 @@ function setVal(day,tid,field,val) {
 // ── Dubai Time (UTC+4) ────────────────────────────────────────
 function getDubaiDate() {
   const now = new Date();
-  const dubaiOffset = 4 * 60; // UTC+4 in minutes
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + (dubaiOffset * 60000));
+  const dubaiStr = now.toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  return new Date(dubaiStr.replace(',',''));
 }
 function getDubaiDateStr() {
   const d = getDubaiDate();
@@ -1036,15 +1037,6 @@ let currentShift = null; // 'opening' or 'closing'
 function selectShift(shift) {
   const data = load();
   const openingDone = !!data[getTodayKey()]?._openDone;
-
-  if (shift === 'opening') {
-    const hour = getDubaiHour();
-    const openingOpen = hour >= 7 && hour < 15;
-    if (!openingOpen) {
-      showToast('Opening shift is only available 7:00 AM – 3:00 PM ⏰', 'warn');
-      return;
-    }
-  }
 
   if (shift === 'closing') {
     const now = new Date();

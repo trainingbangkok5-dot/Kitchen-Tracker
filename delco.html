@@ -3,6 +3,10 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
+<meta name="app-version" content="20260614010000">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Del.Co Checklist">
@@ -94,7 +98,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <h1>6-Day Incentive Checklist</h1>
   <div class="header-sub">Complete tasks • Submit each day</div>
   <div class="info-grid">
-    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"><div style="font-size:10px;color:#94A3B8;margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div></div>
+    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div></div>
     <div class="info-field">
       <label>Outlet</label>
       <select id="fOutlet">
@@ -222,8 +226,11 @@ function showToast(msg, type) {
 
 // ── Dubai Date ───────────────────────────────────────────────
 function getDubaiDate() {
-  const n=new Date(),u=n.getTime()+(n.getTimezoneOffset()*60000);
-  return new Date(u+(4*3600000));
+  const now = new Date();
+  const dubaiStr = now.toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  return new Date(dubaiStr.replace(',',''));
 }
 function getDubaiDateStr() {
   const d=getDubaiDate();
