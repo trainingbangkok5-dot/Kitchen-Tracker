@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614120000">
+<meta name="app-version" content="20260614130000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614120000';
+  var v = '20260614130000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3628,32 +3628,40 @@ function generateAuditPDF(a) {
   });
   y += 22;
 
-  // Score cards
-  const passCol = pass?[21,128,61]:[185,28,28];
-  doc.setFillColor(...passCol); doc.rect(margin,y,60,34,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
-  doc.text(a.score+'%', margin+30, y+14, {align:'center'});
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+30, y+24, {align:'center'});
-  doc.setFillColor(240,246,255); doc.rect(margin+64,y,50,34,'F');
-  doc.setTextColor(26,60,94); doc.setFontSize(17); doc.setFont('helvetica','bold');
-  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+89, y+14, {align:'center'});
-  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text('Points Scored', margin+84, y+21, {align:'center'});
+  // Score cards — all same height (34mm), evenly spaced
+  const cardH = 34;
+  const card1X = margin;       const card1W = 58;
+  const card2X = margin + 62;  const card2W = 52;
+  const card3X = margin + 118; const card3W = 38;
 
-  // Quick stats
+  // Card 1 — Score % + Grade
+  const passCol = pass?[21,128,61]:[185,28,28];
+  doc.setFillColor(...passCol); doc.rect(card1X, y, card1W, cardH, 'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
+  doc.text(a.score+'%', card1X + card1W/2, y+14, {align:'center'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), card1X + card1W/2, y+24, {align:'center'});
+
+  // Card 2 — Points Scored
+  doc.setFillColor(240,246,255); doc.rect(card2X, y, card2W, cardH, 'F');
+  doc.setTextColor(26,60,94); doc.setFontSize(17); doc.setFont('helvetica','bold');
+  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), card2X + card2W/2, y+14, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+  doc.text('Points Scored', card2X + card2W/2, y+24, {align:'center'});
+
+  // Card 3 — Actions
   const secs = a.sectionBreakdown||[];
   const allItems = secs.flatMap(s=>s.items||[]);
   const passedItems = allItems.filter(it=>it.status==='pass').length;
   const failedItems = allItems.filter(it=>it.status==='fail').length;
   const naItems = allItems.filter(it=>it.status==='na').length;
   const caCount = (a.correctiveActions||[]).length;
-  doc.setFillColor(255,248,230); doc.rect(margin+113,y,32,30,'F');
+  doc.setFillColor(255,248,230); doc.rect(card3X, y, card3W, cardH, 'F');
   doc.setTextColor(185,100,0); doc.setFontSize(16); doc.setFont('helvetica','bold');
-  doc.text(String(caCount), margin+129, y+14, {align:'center'});
+  doc.text(String(caCount), card3X + card3W/2, y+14, {align:'center'});
   doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-  doc.text('Actions', margin+129, y+21, {align:'center'});
-  y += 36;
+  doc.text('Actions', card3X + card3W/2, y+24, {align:'center'});
+  y += cardH + 4;
 
   // Stats row
   doc.setFillColor(248,250,252); doc.rect(margin,y,colW,14,'F');
