@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614090000">
+<meta name="app-version" content="20260614100000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614090000';
+  var v = '20260614100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3630,14 +3630,14 @@ function generateAuditPDF(a) {
 
   // Score cards
   const passCol = pass?[21,128,61]:[185,28,28];
-  doc.setFillColor(...passCol); doc.rect(margin,y,55,30,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(26); doc.setFont('helvetica','bold');
-  doc.text(a.score+'%', margin+27, y+15, {align:'center'});
+  doc.setFillColor(...passCol); doc.rect(margin,y,60,34,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
+  doc.text(a.score+'%', margin+30, y+14, {align:'center'});
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+27, y+23, {align:'center'});
-  doc.setFillColor(240,246,255); doc.rect(margin+59,y,50,30,'F');
+  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+30, y+24, {align:'center'});
+  doc.setFillColor(240,246,255); doc.rect(margin+64,y,50,34,'F');
   doc.setTextColor(26,60,94); doc.setFontSize(17); doc.setFont('helvetica','bold');
-  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+84, y+14, {align:'center'});
+  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+89, y+14, {align:'center'});
   doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
   doc.text('Points Scored', margin+84, y+21, {align:'center'});
 
