@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614110000">
+<meta name="app-version" content="20260614120000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614110000';
+  var v = '20260614120000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3693,7 +3693,7 @@ function generateAuditPDF(a) {
     doc.text('Earned', COL_EARNED, y+5.5, {align:'right'});
     doc.text('Max', COL_MAX, y+5.5, {align:'right'});
     doc.text('Score', COL_SCORE, y+5.5, {align:'right'});
-    doc.text('', COL_BAR_X, y+5.5); // Bar column header empty
+    // No text in bar column header
     y += 9;
 
     secs.forEach((sec,si)=>{
@@ -3730,9 +3730,8 @@ function generateAuditPDF(a) {
     doc.text(String(a.maxScore||0), COL_MAX, y+6, {align:'right'});
     doc.text(a.score+'%', COL_SCORE, y+6, {align:'right'});
     // PASS/FAIL inside table, right-aligned within colW
-    doc.setTextColor(pass?[150,255,150]:[255,160,160]);
-    doc.setTextColor(...(pass?[150,255,150]:[255,160,160]));
-    doc.text(pass?'✓ PASS':'✗ FAIL', margin+colW-3, y+6, {align:'right'});
+    if (pass) { doc.setTextColor(150,255,150); } else { doc.setTextColor(255,160,160); }
+    doc.text(pass?'PASS':'FAIL', margin+colW-3, y+6, {align:'right'});
     y += 13;
   }
 
