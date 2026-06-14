@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614040000">
+<meta name="app-version" content="20260614050000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614040000';
+  var v = '20260614050000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2592,10 +2592,19 @@ function openStaffDetail(s) {
     });
   }
   if (s.taskData && Object.keys(s.taskData).length > 0) {
-    // Group by section only — ignore day number, use submission date as header
+    // Deduplicate taskData — if same base task ID exists with day prefix (d1_f1, d2_f1),
+    // keep only the latest one (highest day number)
+    const deduped = {};
+    Object.entries(s.taskData).forEach(([k, t]) => {
+      const baseId = k.replace(/^d[0-9]+_/, '');
+      const dayNum = parseInt((k.match(/^d([0-9]+)_/) || [0,0])[1]) || 0;
+      if (!deduped[baseId] || dayNum > (deduped[baseId]._dayNum || 0)) {
+        deduped[baseId] = {...t, _origKey: k, _dayNum: dayNum, taskKey: k};
+      }
+    });
+    // Group by section
     const bySec = {};
-    Object.entries(s.taskData).forEach(([k,t]) => {
-      t.taskKey = k;
+    Object.values(deduped).forEach(t => {
       const sec = t.section||'Tasks';
       if (!bySec[sec]) bySec[sec] = [];
       bySec[sec].push(t);
