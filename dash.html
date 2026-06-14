@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614020000">
+<meta name="app-version" content="20260614040000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614020000';
+  var v = '20260614040000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6252,7 +6252,6 @@ function openFOHDetail(idx) {
     const subs = [];
     snap.forEach(child => {
       const sub = child.val();
-      // Match week strictly — only same week or same submission date
       const subDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : '';
       const weekMatch = sub.week === staff.week ||
         subDate === staff.week ||
@@ -6265,9 +6264,18 @@ function openFOHDetail(idx) {
       document.getElementById('fohChecklistArea').innerHTML = '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;">No checklist data found for this week.</div>';
       return;
     }
+    // Deduplicate subs — for each unique date keep only the most recent submission
+    const subsByDate = {};
+    subs.forEach(sub => {
+      const d = sub.submittedAt ? sub.submittedAt.substring(0,10) : (sub.week || 'unknown');
+      if (!subsByDate[d] || sub.submittedAt > subsByDate[d].submittedAt) {
+        subsByDate[d] = sub;
+      }
+    });
+    const dedupedSubs = Object.values(subsByDate);
     // Group taskData by day then section
     const byDay = {};
-    subs.forEach(sub => {
+    dedupedSubs.forEach(sub => {
       if (!sub.taskData) return;
       Object.entries(sub.taskData).forEach(([k, t]) => {
         if (!t.yn || t.yn === '') return;
@@ -6287,7 +6295,7 @@ function openFOHDetail(idx) {
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
       const tasks = byDay[day];
       // Find submitted date for this day
-      const daySub = subs.find(s => {
+      const daySub = dedupedSubs.find(s => {
         if (s.date) {
           const ws = new Date(staff.week + 'T00:00:00');
           const sd = new Date(s.date);
@@ -6303,12 +6311,14 @@ function openFOHDetail(idx) {
           : 'Day ' + day);
 
       // Group by section — skip OIC observation tasks (rendered separately below)
+      // Exception: for oic role, ALL tasks are the main checklist — don't filter any out
       const oicObsIds = ['u1','s1','s2','s3','f1','f2','t1','t2','t3','t4'];
+      const isOICRole = (staff.role === 'oic');
       const bySec = {};
       tasks.forEach(t => {
         const key = t._key || '';
-        const isOicTask = oicObsIds.some(id => key===id || key.endsWith('_'+id) || key.startsWith(id+'_'));
-        if (isOicTask || (t.owner||'').toLowerCase() === 'oic only') return; // skip — shown in OIC section
+        const isOicTask = !isOICRole && oicObsIds.some(id => key===id || key.endsWith('_'+id) || key.startsWith(id+'_'));
+        if (isOicTask || (!isOICRole && (t.owner||'').toLowerCase() === 'oic only')) return;
         const sec = t.section || 'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -6399,7 +6409,7 @@ function openFOHDetail(idx) {
       const oicBySec = {};
       oicEvalTasks.forEach(t => {
         // Check if already in taskData
-        const existing = subs.reduce((found, sub) => {
+        const existing = dedupedSubs.reduce((found, sub) => {
           if (found) return found;
           if (sub.taskData) {
             const k = Object.keys(sub.taskData).find(k => k===t.id||k.endsWith('_'+t.id)||k.startsWith(t.id+'_'));
@@ -6417,7 +6427,7 @@ function openFOHDetail(idx) {
       html += '<div data-oic-view-section="1" style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Observation</div>';
       // Only show if at least one OIC task has been answered
       const hasAnyOIC = oicEvalTasks.some(t => {
-        const existing = subs.reduce((found, sub) => {
+        const existing = dedupedSubs.reduce((found, sub) => {
           if (found) return found;
           if (sub.taskData) {
             const k = Object.keys(sub.taskData).find(k => k===t.id||k.endsWith('_'+t.id)||k.startsWith(t.id+'_'));
@@ -7336,10 +7346,8 @@ function renderMaintRow(log, tbody) {
       <td style="padding:8px 10px;font-size:11px;">
         ${log.verifiedBy
           ? `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''}</div>`
-          : (log.status==='Yes' || log.status==='Completed')
-            ? `<input id="mverify_${log._key}" type="text" placeholder="Your name..." style="width:90px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;margin-bottom:3px;display:block;">
-               <button data-mverify="${log._key}" style="font-size:10px;padding:3px 8px;background:#15803D;color:#fff;border:none;border-radius:5px;cursor:pointer;">✅ Verify</button>`
-            : '<span style="color:#94A3B8;font-size:11px">—</span>'
+          : `<input id="mverify_${log._key}" type="text" placeholder="Your name..." style="width:90px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;margin-bottom:3px;display:block;">
+             <button data-mverify="${log._key}" style="font-size:10px;padding:3px 8px;background:#15803D;color:#fff;border:none;border-radius:5px;cursor:pointer;">✅ Verify</button>`
         }
       </td>
     `;
