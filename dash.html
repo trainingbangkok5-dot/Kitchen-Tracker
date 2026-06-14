@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614050000">
+<meta name="app-version" content="20260614060000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614050000';
+  var v = '20260614060000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -7274,11 +7274,15 @@ function renderMaintCompleted() {
 }
 
 function renderMaintRow(log, tbody) {
-    // Days pending
-    const start = log.dateReported ? new Date(log.dateReported) : null;
-    const end = log.status === 'Yes' && log.dateResolved ? new Date(log.dateResolved) : new Date();
-    const days = start ? Math.floor((end - start) / (1000*60*60*24)) : null;
-    const daysCls = log.status==='Yes' ? 'background:#DCFCE7;color:#15803D' : days >= 3 ? 'background:#FEE2E2;color:#B91C1C' : 'background:#FEF3C7;color:#D97706';
+    // Days pending — auto-calculate from dateReported to today (or dateResolved if done)
+    const reportedStr = log.dateReported || (log.loggedAt ? new Date(log.loggedAt).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) : '');
+    const start = reportedStr && reportedStr !== '0' ? new Date(reportedStr + 'T00:00:00') : null;
+    const end = (log.status === 'Yes' || log.status === 'Completed') && log.dateResolved
+      ? new Date(log.dateResolved + 'T00:00:00')
+      : new Date(new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}) + 'T00:00:00');
+    const autoDays = start && !isNaN(start) ? Math.max(0, Math.floor((end - start) / (1000*60*60*24))) : null;
+    const days = log.daysOverride != null ? parseInt(log.daysOverride) : autoDays;
+    const daysCls = (log.status==='Yes'||log.status==='Completed') ? 'background:#DCFCE7;color:#15803D' : days >= 3 ? 'background:#FEE2E2;color:#B91C1C' : 'background:#FEF3C7;color:#D97706';
 
     // Priority pill
     const priColors = {Urgent:'#FEE2E2;color:#B91C1C',High:'#FEF3C7;color:#D97706',Medium:'#E0F2FE;color:#0891B2',Low:'#DCFCE7;color:#15803D',Preventive:'#EDE9FE;color:#7C3AED'};
@@ -7332,7 +7336,9 @@ function renderMaintRow(log, tbody) {
         }
       </td>
       <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsStyle}">${stsLabel}</span></td>
-      <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;${daysCls}">${days !== null ? days+'d' : '—'}</span></td>
+      <td style="padding:8px 10px;">
+        <span id="days_${log._key}" style="display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;title='Click to edit';${daysCls}" onclick="maintEditDays('${log._key}',${days !== null ? days : 0})">${days !== null ? days+'d' : '—'}</span>
+      </td>
       <td style="padding:8px 10px">
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:flex-start;">
           ${(()=>{
@@ -7416,6 +7422,23 @@ function renderMaintRow(log, tbody) {
 }
 
 // ── Maintenance Actions (dash) ───────────────────────────────
+function maintEditDays(key, currentDays) {
+  const val = prompt('Edit days for this issue:\n(Leave blank to use auto-calculation)', currentDays);
+  if (val === null) return; // cancelled
+  if (val.trim() === '') {
+    // Remove override — revert to auto
+    maintenanceDb.ref('maintenanceLogs/' + key + '/daysOverride').remove()
+      .then(() => { showToast('Days reset to auto', 'ok'); loadMaintenanceLogs(); })
+      .catch(e => showToast('Error: ' + e.message, 'error'));
+  } else {
+    const num = parseInt(val);
+    if (isNaN(num) || num < 0) { showToast('Please enter a valid number', 'warn'); return; }
+    maintenanceDb.ref('maintenanceLogs/' + key).update({daysOverride: num})
+      .then(() => { showToast('Days updated to ' + num + 'd', 'ok'); loadMaintenanceLogs(); })
+      .catch(e => showToast('Error: ' + e.message, 'error'));
+  }
+}
+
 function maintVerify(key) {
   if (!maintenanceDb) return;
   const nameInput = document.getElementById('mverify_' + key);
