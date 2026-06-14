@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614200000">
+<meta name="app-version" content="20260614210000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614200000';
+  var v = '20260614210000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -801,6 +801,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
       <div style="font-size:15px;font-weight:700;color:#1A3C5E;">📋 Internal Audit Results</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="auditMonthFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
+          <option value="">All Months</option>
+          <option value="2026-01">January 2026</option>
+          <option value="2026-02">February 2026</option>
+          <option value="2026-03">March 2026</option>
+          <option value="2026-04">April 2026</option>
+          <option value="2026-05">May 2026</option>
+          <option value="2026-06">June 2026</option>
+          <option value="2026-07">July 2026</option>
+          <option value="2026-08">August 2026</option>
+          <option value="2026-09">September 2026</option>
+          <option value="2026-10">October 2026</option>
+          <option value="2026-11">November 2026</option>
+          <option value="2026-12">December 2026</option>
+        </select>
         <select id="auditTypeFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
           <option value="">BOH + FOH</option>
           <option value="BOH">BOH Only</option>
@@ -1622,6 +1637,12 @@ function showTab(el,id) {
       const rawA = snap.val() ? Object.values(snap.val()) : [];
       allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole))
         ? rawA : rawA.filter(a => a.outlet === currentOutlet);
+      // Auto-select current month on first load
+      const monthSel = document.getElementById('auditMonthFilter');
+      if (monthSel && !monthSel.value) {
+        const now = new Date();
+        monthSel.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+      }
       renderAudits();
     });
   }
@@ -3275,9 +3296,12 @@ function renderAudits() {
   const summaryCards = document.getElementById('auditSummaryCards');
   const typeFilter   = document.getElementById('auditTypeFilter')?.value || '';
   const outletFilter = document.getElementById('auditOutletFilter')?.value || '';
+  const monthFilter  = document.getElementById('auditMonthFilter')?.value || '';
 
   let filtered = [...allAudits];
   if (typeFilter)   filtered = filtered.filter(a => a.auditType === typeFilter);
+  if (outletFilter) filtered = filtered.filter(a => a.outlet === outletFilter);
+  if (monthFilter)  filtered = filtered.filter(a => (a.auditDate||'').startsWith(monthFilter));
   if (outletFilter) filtered = filtered.filter(a => (a.outlet||'') === outletFilter);
 
   // Populate outlet dropdown
