@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614080000">
+<meta name="app-version" content="20260614090000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614080000';
+  var v = '20260614090000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3559,11 +3559,37 @@ function exportAuditPDF(a) {
         });
       });
 
-      // Wait for all with overall 8 second cap
+      // Wait for all with overall 15 second cap — extra time for Cloudinary photos
       await Promise.race([
         Promise.all(fetchPromises),
-        new Promise(resolve => setTimeout(resolve, 8000))
+        new Promise(resolve => setTimeout(resolve, 15000))
       ]);
+
+      // Convert Cloudinary https:// URLs to base64 for PDF rendering
+      const cloudConversions = [];
+      a.sectionBreakdown.forEach(sec => {
+        (sec.items||[]).forEach(it => {
+          it.photos = (it.photos||[]).filter(Boolean);
+          it.photos.forEach((url, idx) => {
+            if (url && url.startsWith('https://')) {
+              cloudConversions.push(
+                fetch(url)
+                  .then(r => r.blob())
+                  .then(blob => new Promise((res) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => { it.photos[idx] = reader.result; res(); };
+                    reader.onerror = () => res();
+                    reader.readAsDataURL(blob);
+                  }))
+                  .catch(() => {})
+              );
+            }
+          });
+        });
+      });
+      if (cloudConversions.length > 0) {
+        await Promise.race([Promise.all(cloudConversions), new Promise(r => setTimeout(r, 10000))]);
+      }
     }
     generateAuditPDF(a);
   }
@@ -3807,7 +3833,7 @@ function generateAuditPDF(a) {
         if(it.correctiveAction){doc.setFillColor(255,235,235);doc.rect(margin+8,iy-3,colW-10,actionLines*3.5+3,'F');doc.setTextColor(185,28,28);doc.setFontSize(7.5);doc.setFont('helvetica','bold');const at=doc.splitTextToSize('Action: '+it.correctiveAction,colW-14);doc.text(at,margin+10,iy);iy+=at.length*3.5+2;}
         if(it.responsible||it.deadline){doc.setTextColor(120,80,80);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text([it.responsible?'Responsible: '+it.responsible:'',it.deadline?'Deadline: '+it.deadline:''].filter(Boolean).join('   |   '),margin+10,iy);iy+=4;}
 
-        if(photos.length>0){iy+=2;let px=margin+8;photos.forEach(url=>{if(!url||!url.startsWith('data:'))return;try{const fmt=url.includes('data:image/png')?'PNG':'JPEG';if(px+photoSize>pageW-margin){px=margin+8;iy+=photoSize+3;}doc.addImage(url,fmt,px,iy,photoSize,photoSize);px+=photoSize+3;}catch(e){}});iy+=photoSize+3;}
+        if(photos.length>0){iy+=2;let px=margin+8;photos.forEach(url=>{if(!url||!url.startsWith('data:'))return;try{const fmt=url.startsWith('data:image/png')?'PNG':'JPEG';if(px+photoSize>pageW-margin){px=margin+8;iy+=photoSize+3;}doc.addImage(url,fmt,px,iy,photoSize,photoSize);px+=photoSize+3;}catch(e){}});iy+=photoSize+3;}
         y = startY+baseH;
       });
       y += 4;
