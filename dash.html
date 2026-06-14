@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260613720000">
+<meta name="app-version" content="20260614020000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260613720000';
+  var v = '20260614020000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -291,6 +291,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabBOH" onclick="showTab(this,'boh')" style="display:none;">🍳 BOH</div>
     <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
+    <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
     <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
   </div>
@@ -635,6 +636,68 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div id="archiveStatus" style="font-size:12px;color:#94A3B8;margin-bottom:10px;"></div>
     <div id="archiveList"></div>
+  </div>
+
+
+  <!-- VERIFIED TAB PAGE -->
+  <div class="page" id="page-verified" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">✅ Verification Status</h2>
+        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">BOH + FOH records — verification overview</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <select id="verifiedRoleFilter" onchange="renderVerifiedTab()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Roles</option>
+          <option value="linecook">Line Cook</option>
+          <option value="steward">Steward</option>
+          <option value="kic">KIC</option>
+          <option value="service">Service</option>
+          <option value="bartender">Bartender</option>
+          <option value="delco">Del.Co</option>
+          <option value="oic">OIC</option>
+        </select>
+        <select id="verifiedStatusFilter" onchange="renderVerifiedTab()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Status</option>
+          <option value="verified">Verified</option>
+          <option value="pending">Pending</option>
+        </select>
+        <select id="verifiedOutletFilter" onchange="renderVerifiedTab()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
+          <option value="">All Outlets</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#1A3C5E" id="verifiedTotal">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Total Records</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#15803D" id="verifiedCount">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Verified</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;border:0.5px solid #E0DDD4;">
+        <div style="font-size:22px;font-weight:700;color:#D97706" id="verifiedPending">0</div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Pending</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:580px;font-size:12px;">
+        <thead>
+          <tr style="background:#F8F7F2;">
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Staff</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Role</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Outlet</th>
+            <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Week</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Score</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Verification</th>
+            <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;border-bottom:1px solid #E0DDD4;">Type</th>
+          </tr>
+        </thead>
+        <tbody id="verifiedTableBody"></tbody>
+      </table>
+      <div id="verifiedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No records found</div>
+    </div>
   </div>
 
   <div class="page" id="page-registry">
@@ -1273,6 +1336,7 @@ function doLogin() {
     setTimeout(dashCheckNotifStatus, 2000);
   }
   document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabVerified').style.display = ['areachef','areamanager','training','operations','director','ceo','oic'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
 
@@ -1551,6 +1615,7 @@ function showTab(el,id) {
   if (id === 'foh') { loadFOHData(); }
   if (id === 'boh') { loadBOHData(); }
   if (id === 'kpi') { renderKPIPage(); }
+  if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
     db.ref('audits').once('value', snap => {
@@ -3508,11 +3573,137 @@ function generateAuditPDF(a) {
 
   function checkPage(needed) { if (y+needed > 278) { doc.addPage(); y=14; } }
 
-  // Header
+  // ── PAGE 1: SUMMARY ──────────────────────────────────────────
+  doc.setFillColor(26,60,94); doc.rect(0,0,210,32,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(15); doc.setFont('helvetica','bold');
+  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Audit Report', margin, 13);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
+  doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
+  y = 38;
+
+  // Info bar
+  doc.setFillColor(245,243,238); doc.rect(margin,y,colW,18,'F');
+  doc.setTextColor(30,30,30); doc.setFontSize(9);
+  [['Outlet',a.outlet||'—'],['Type',a.auditType||'—'],['Auditor',a.auditor||'—'],['Date',a.auditDate||'—']].forEach(([lbl,val],i)=>{
+    const x=margin+3+(i*46);
+    doc.setFont('helvetica','bold'); doc.text(lbl+':', x, y+7);
+    doc.setFont('helvetica','normal'); doc.text(val, x, y+14);
+  });
+  y += 22;
+
+  // Score cards
+  const passCol = pass?[21,128,61]:[185,28,28];
+  doc.setFillColor(...passCol); doc.rect(margin,y,55,30,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(26); doc.setFont('helvetica','bold');
+  doc.text(a.score+'%', margin+27, y+15, {align:'center'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Grade '+grade+' — '+(pass?'PASS':'FAIL'), margin+27, y+23, {align:'center'});
+  doc.setFillColor(240,246,255); doc.rect(margin+59,y,50,30,'F');
+  doc.setTextColor(26,60,94); doc.setFontSize(17); doc.setFont('helvetica','bold');
+  doc.text((a.rawScore||'0')+'/'+(a.maxScore||'0'), margin+84, y+14, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+  doc.text('Points Scored', margin+84, y+21, {align:'center'});
+
+  // Quick stats
+  const secs = a.sectionBreakdown||[];
+  const allItems = secs.flatMap(s=>s.items||[]);
+  const passedItems = allItems.filter(it=>it.status==='pass').length;
+  const failedItems = allItems.filter(it=>it.status==='fail').length;
+  const naItems = allItems.filter(it=>it.status==='na').length;
+  const caCount = (a.correctiveActions||[]).length;
+  doc.setFillColor(255,248,230); doc.rect(margin+113,y,32,30,'F');
+  doc.setTextColor(185,100,0); doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text(String(caCount), margin+129, y+14, {align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+  doc.text('Actions', margin+129, y+21, {align:'center'});
+  y += 36;
+
+  // Stats row
+  doc.setFillColor(248,250,252); doc.rect(margin,y,colW,14,'F');
+  [['✓ Passed',passedItems,'#15803D'],['✗ Failed',failedItems,'#B91C1C'],['N/A',naItems,'#64748B'],['Total',allItems.length,'#1A3C5E']].forEach(([lbl,val,col],i)=>{
+    const x = margin+4+(i*(colW/4));
+    doc.setTextColor(col); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text(String(val), x+18, y+8, {align:'center'});
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+    doc.text(lbl, x+18, y+12, {align:'center'});
+  });
+  y += 20;
+
+  // Section summary table
+  if (secs.length) {
+    doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text('SECTION SUMMARY', margin+3, y+6);
+    y += 11;
+    doc.setFillColor(240,244,248); doc.rect(margin,y,colW,8,'F');
+    doc.setTextColor(80,80,80); doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text('Section', margin+3, y+5.5);
+    doc.text('Earned', margin+110, y+5.5, {align:'right'});
+    doc.text('Max', margin+128, y+5.5, {align:'right'});
+    doc.text('Score', margin+148, y+5.5, {align:'right'});
+    y += 9;
+    secs.forEach((sec,si)=>{
+      const pct = sec.max>0 ? Math.round(sec.earned/sec.max*100) : 0;
+      const col = pct>=91?[21,128,61]:pct>=71?[217,119,6]:[185,28,28];
+      doc.setFillColor(...(si%2===0?[255,255,255]:[250,249,247])); doc.rect(margin,y,colW,8,'F');
+      doc.setFillColor(...col); doc.rect(margin,y,2,8,'F');
+      doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+      doc.text((si+1)+'. '+sec.title, margin+5, y+5.5);
+      doc.setTextColor(...col); doc.setFont('helvetica','bold');
+      doc.text(String(sec.earned), margin+110, y+5.5, {align:'right'});
+      doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
+      doc.text(String(sec.max), margin+128, y+5.5, {align:'right'});
+      doc.setTextColor(...col); doc.setFont('helvetica','bold');
+      doc.text(pct+'%', margin+148, y+5.5, {align:'right'});
+      const barX = margin+152, barW = colW-154;
+      doc.setFillColor(220,217,212); doc.rect(barX,y+2.5,barW,3,'F');
+      doc.setFillColor(...col); doc.rect(barX,y+2.5,barW*(Math.min(pct,100)/100),3,'F');
+      y += 8;
+      doc.setDrawColor(230,228,224); doc.line(margin,y,margin+colW,y);
+    });
+    y += 2;
+    doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont('helvetica','bold');
+    doc.text('TOTAL', margin+5, y+6);
+    doc.text(String(a.rawScore||0), margin+110, y+6, {align:'right'});
+    doc.text(String(a.maxScore||0), margin+128, y+6, {align:'right'});
+    doc.text(a.score+'%', margin+148, y+6, {align:'right'});
+    doc.setTextColor(pass?150:255, pass?255:160, pass?150:160);
+    doc.text(pass?'✓ PASS':'✗ FAIL', pageW-margin-3, y+6, {align:'right'});
+    y += 13;
+  }
+
+  // Corrective actions list
+  if ((a.correctiveActions||[]).length > 0) {
+    checkPage(14);
+    doc.setFillColor(185,28,28); doc.rect(margin,y,colW,9,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.text('FAILED ITEMS ('+a.correctiveActions.length+')', margin+3, y+6);
+    y += 11;
+    a.correctiveActions.forEach((ca,ci)=>{
+      checkPage(14);
+      doc.setFillColor(...(ci%2===0?[255,248,248]:[255,255,255])); doc.rect(margin,y,colW,12,'F');
+      doc.setFillColor(185,28,28); doc.rect(margin,y,2,12,'F');
+      doc.setTextColor(185,28,28); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+      doc.text((ca.section||'—'), margin+5, y+4.5);
+      doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+      const label = doc.splitTextToSize((ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), colW-10);
+      doc.text(label[0], margin+5, y+9.5);
+      y += 12;
+    });
+    y += 4;
+  }
+
+  // ── PAGE 2+: FULL DETAIL ─────────────────────────────────────
+  doc.addPage(); y = 14;
+
+  // Header on detail page
   doc.setFillColor(26,60,94); doc.rect(0,0,210,32,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Internal Monthly Audit Report', margin, 13);
+  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Full Audit Detail', margin, 13);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
   doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
@@ -3528,7 +3719,7 @@ function generateAuditPDF(a) {
   });
   y += 24;
 
-  // Score cards
+  // Score cards (compact repeat)
   const sc = pass?[21,128,61]:[185,28,28];
   doc.setFillColor(...sc); doc.rect(margin,y,55,26,'F');
   doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
@@ -4614,7 +4805,8 @@ function toggleEditMode(s) {
     const photoCountLabel = httpPhotos.length > 0 ? `✓ ${httpPhotos.length} staff photo(s)` : (existingPhotos.length > 0 ? '📷 Photo taken' : '');
     const extraDiv = document.createElement('div');
     extraDiv.className = 'edit-extra-fields';
-    extraDiv.style.cssText = 'margin-top:8px;padding:10px;background:#F8FAFC;border-radius:8px;border:1px solid #E0DDD4;';
+    extraDiv.style.cssText = 'flex-basis:100%;padding:10px;background:#F8FAFC;border-radius:0 0 8px 8px;border-top:1px solid #E0DDD4;';
+    row.style.flexWrap = 'wrap';
     extraDiv.innerHTML = `
       <div style="font-size:10px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:8px;">✏️ OIC Notes</div>
       <div style="margin-bottom:8px;">
@@ -7792,6 +7984,54 @@ function updateFOHSelectCount() {
   const el = document.getElementById('fohSelectCount');
   if (el) el.textContent = count + ' selected';
 }
+// ── Verified Tab ──────────────────────────────────────────────
+function renderVerifiedTab() {
+  const roleF   = document.getElementById('verifiedRoleFilter')?.value || '';
+  const statusF = document.getElementById('verifiedStatusFilter')?.value || '';
+  const outletF = document.getElementById('verifiedOutletFilter')?.value || '';
+  const bohRecs = (allBOHData || []).map(r => ({...r, _type:'BOH'}));
+  const fohRecs = (allFOHData || []).map(r => ({...r, _type:'FOH'}));
+  let all = [...bohRecs, ...fohRecs];
+  const outletSel = document.getElementById('verifiedOutletFilter');
+  if (outletSel && outletSel.options.length <= 1) {
+    const outlets = [...new Set(all.map(r => r.outlet).filter(Boolean))].sort();
+    outletSel.innerHTML = '<option value="">All Outlets</option>' + outlets.map(o => `<option value="${o}">${o}</option>`).join('');
+  }
+  all = all.filter(r => {
+    if (roleF && r.role !== roleF) return false;
+    if (outletF && r.outlet !== outletF) return false;
+    if (statusF === 'verified' && !r.verifiedBy) return false;
+    if (statusF === 'pending' && r.verifiedBy) return false;
+    if (!r.overallPct && !r.openingPct) return false;
+    return true;
+  });
+  all.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||b.week||0) - new Date(a.submittedAt||a.lastUpdated||a.week||0));
+  document.getElementById('verifiedTotal').textContent   = all.length;
+  document.getElementById('verifiedCount').textContent   = all.filter(r => r.verifiedBy).length;
+  document.getElementById('verifiedPending').textContent = all.filter(r => !r.verifiedBy).length;
+  const tbody = document.getElementById('verifiedTableBody');
+  const empty = document.getElementById('verifiedEmpty');
+  tbody.innerHTML = '';
+  empty.style.display = all.length ? 'none' : 'block';
+  const roleLabels = {linecook:'🍳 Line Cook', steward:'🧹 Steward', kic:'👨‍🍳 KIC', service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
+  const scoreColor = p => p >= 95 ? '#0F766E' : p >= 70 ? '#D97706' : '#B91C1C';
+  const scoreBg    = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
+  all.forEach(r => {
+    const sc = parseFloat(r.overallPct || r.openingPct || 0);
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    tr.innerHTML = `
+      <td style="padding:8px 12px;font-weight:600;color:#1A3C5E;">${r.staffName||'—'}</td>
+      <td style="padding:8px 12px;font-size:11px;">${roleLabels[r.role]||r.role}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B;">${r.outlet||'—'}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B;">${r.week||'—'}</td>
+      <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(sc)};color:${scoreColor(sc)}">${sc > 0 ? sc + '%' : '—'}</span></td>
+      <td style="padding:6px 8px;text-align:center;">${r.verifiedBy ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;">✅ ${r.verifiedBy}</span>` : sc > 0 ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;">⏳ Pending</span>` : `<span style="background:#F1F5F9;color:#94A3B8;padding:3px 10px;border-radius:10px;font-size:10px;">—</span>`}</td>
+      <td style="padding:8px 12px;text-align:center;"><span style="background:${r._type==='BOH'?'#EFF6FF':'#FFF1F0'};color:${r._type==='BOH'?'#1D4ED8':'#7B2D42'};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;">${r._type}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 async function deleteSelectedFOH() {
   const checked = Array.from(document.querySelectorAll('.foh-row-chk:checked'));
   if (!checked.length) { showToast('No records selected', 'warn'); return; }
