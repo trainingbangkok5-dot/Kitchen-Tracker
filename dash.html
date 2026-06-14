@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614070000">
+<meta name="app-version" content="20260614080000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614070000';
+  var v = '20260614080000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -7549,6 +7549,17 @@ function maintSaveRow(key) {
       showToast('✓ Saved', 'ok');
       const log = allMaintenanceLogs.find(l => l._key === key);
       if (log) Object.assign(log, updates);
+      // Show green Saved badge next to assigned dropdown
+      const asgnEl = document.getElementById('masgn_' + key);
+      if (asgnEl) {
+        const existing = asgnEl.parentNode.querySelector('.maint-saved-badge');
+        if (existing) existing.remove();
+        const badge = document.createElement('span');
+        badge.className = 'maint-saved-badge';
+        badge.textContent = 'Saved ✓';
+        badge.style.cssText = 'display:inline-block;margin-top:4px;padding:2px 8px;background:#DCFCE7;color:#15803D;border-radius:10px;font-size:10px;font-weight:700;';
+        asgnEl.parentNode.appendChild(badge);
+      }
     })
     .catch(e => showToast('Save failed: ' + e.message, 'error'));
 }
