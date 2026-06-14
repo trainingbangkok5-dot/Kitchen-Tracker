@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614060000">
+<meta name="app-version" content="20260614070000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614060000';
+  var v = '20260614070000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5790,6 +5790,22 @@ function openBOHDetailFull(s) {
       });
       return;
     }
+
+    // Merge scores and data from grouped record as fallback
+    if (fullRecord.closingPct == null && s.closingPct != null) fullRecord.closingPct = s.closingPct;
+    if (fullRecord.openingPct == null && s.openingPct != null) fullRecord.openingPct = s.openingPct;
+    if (fullRecord.startedAt == null && s.startedAt != null) fullRecord.startedAt = s.startedAt;
+    if (fullRecord.submittedAt == null && s.submittedAt != null) fullRecord.submittedAt = s.submittedAt;
+    if (s.taskData && Object.keys(s.taskData).length > 0) {
+      if (!fullRecord.taskData) fullRecord.taskData = {};
+      Object.assign(fullRecord.taskData, s.taskData);
+    }
+    // Recalculate overall from both scores
+    const _fop = fullRecord.openingPct;
+    const _fcl = fullRecord.closingPct;
+    if (_fop != null && _fcl != null) fullRecord.overallPct = Math.round((_fop + _fcl) / 2);
+    else if (_fop != null) fullRecord.overallPct = _fop;
+    else if (_fcl != null) fullRecord.overallPct = _fcl;
 
     openStaffDetail(fullRecord);
   }).catch(() => openStaffDetail(s));

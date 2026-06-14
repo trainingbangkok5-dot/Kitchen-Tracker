@@ -1038,6 +1038,15 @@ function selectShift(shift) {
   const data = load();
   const openingDone = !!data[getTodayKey()]?._openDone;
 
+  if (shift === 'opening') {
+    const hour = getDubaiHour();
+    const openingOpen = hour >= 7 && hour < 15; // Opening window: 7:00 AM – 3:00 PM
+    if (!openingOpen) {
+      showToast('Opening shift is only available 7:00 AM – 3:00 PM ⏰', 'warn');
+      return;
+    }
+  }
+
   if (shift === 'closing') {
     const now = new Date();
     const hour = getDubaiHour();
@@ -1097,9 +1106,14 @@ function renderDay() {
     const openerName = data[dayKey]?._openerName || '';
     const nowH = getDubaiHour();
     const isAfter3pm = nowH >= 15 || nowH < 2; // Closing window: 3:00 PM – 2:00 AM
+    const openingOpen = nowH >= 7 && nowH < 15;  // Opening window: 7:00 AM – 3:00 PM
     const minsLeft = isAfter3pm ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
     let closingBtnStyle, closingBtnLabel, closingSubNote;
+    let openingBtnStyle = openingOpen
+      ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;'
+      : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
+    let openingSubNote = openingOpen ? '' : '<div style="font-size:11px;color:#94A3B8;margin-top:4px;margin-bottom:12px;">Opening shift is available 7:00 AM – 3:00 PM only 🕐</div>';
     if (closingDone) {
       closingBtnStyle = 'background:linear-gradient(135deg,#1A4740,#0D9488);color:#fff;cursor:pointer;';
       closingBtnLabel = '🌙 Closing Shift ✓';
@@ -1117,9 +1131,10 @@ function renderDay() {
       <div style="font-size:32px;margin-bottom:8px;">👋</div>
       <h2 style="font-size:16px;font-weight:700;color:#7B2D42;margin-bottom:6px;">Which shift are you on?</h2>
       <p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>
-      <button onclick="selectShift('opening')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;">
+      <button onclick="selectShift('opening')" style="${openingBtnStyle}">
         🌅 Opening Shift ${openingDone ? '✓' : ''}
       </button>
+      ${openingSubNote}
       <button onclick="selectShift('closing')" style="display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;margin-bottom:4px;${closingBtnStyle}">
         ${closingBtnLabel}
       </button>
