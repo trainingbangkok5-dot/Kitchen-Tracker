@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615260000">
+<meta name="app-version" content="20260615270000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615260000';
+  var v = '20260615270000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2469,7 +2469,7 @@ function openStaffDetail(s) {
       (currentRole === 'director') ||
       (['training','operations','ceo'].includes(currentRole))
     );
-    if (canOverwrite) {
+    if (canOverwrite && !['areachef','areamanager'].includes(s.role)) {
       const editBtn = document.createElement('button');
       editBtn.className = 'modal-close pdf-daily-btn edit-report-btn';
       editBtn.style.cssText = 'background:#E87722;margin-right:6px;';
@@ -2709,10 +2709,10 @@ function openStaffDetail(s) {
         <td style="padding:7px 8px;font-weight:600;font-size:12px">${label}</td>
         <td style="padding:7px 8px;text-align:center;color:#64748B">${max}</td>
         <td style="padding:7px 8px;text-align:center;color:#64748B">${amBaseline[key]}</td>
-        <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
+        <td style="padding:7px 8px;text-align:center"><span id="kpi-matrix-${key}" style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
       </tr>`;
     });
-    html += `<tr style="background:#EFF6FF;font-weight:700"><td style="padding:8px">TOTAL KPI SCORE</td><td style="text-align:center;padding:8px">95</td><td style="text-align:center;padding:8px">80.0</td><td style="text-align:center;padding:8px"><span style="background:${amTierBg};color:${amTierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${amTotal.toFixed(1)}</span></td></tr>`;
+    html += `<tr style="background:#EFF6FF;font-weight:700"><td style="padding:8px">TOTAL KPI SCORE</td><td style="text-align:center;padding:8px">95</td><td style="text-align:center;padding:8px">80.0</td><td style="text-align:center;padding:8px"><span id="kpi-matrix-total" style="background:${amTierBg};color:${amTierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${amTotal.toFixed(1)}</span></td></tr>`;
     html += `</table>`;
 
     // Overall score card
@@ -2735,7 +2735,7 @@ function openStaffDetail(s) {
         const sc = parseFloat(r.score);
         const hasScore = !isNaN(sc) && r.score !== '';
         const color = hasScore?(sc>=90?'#15803D':sc>=80?'#854D0E':'#B91C1C'):'#94A3B8';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/name" type="text" value="${r.name||''}" placeholder="Name" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/name" type="text" value="${r.name||''}" placeholder="Name" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly oninput="kpiUpdateMatrix()" style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
       });
       html += `</table>`;
     }
@@ -2814,9 +2814,9 @@ function openStaffDetail(s) {
       const p = sc/amMax[k];
       const c = p>=0.9?'#15803D':p>=0.7?'#854D0E':'#B91C1C';
       const b = p>=0.9?'#DCFCE7':p>=0.7?'#FEF9C3':'#FEE2E2';
-      html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px;font-weight:600">${label}</td><td style="padding:7px 8px;text-align:center;color:#64748B">${amMax[k]}</td><td style="padding:7px 8px;text-align:center;color:#64748B">${amBL[k]}</td><td style="padding:7px 8px;text-align:center"><span style="background:${b};color:${c};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${sc.toFixed(1)}</span></td></tr>`;
+      html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px;font-weight:600">${label}</td><td style="padding:7px 8px;text-align:center;color:#64748B">${amMax[k]}</td><td style="padding:7px 8px;text-align:center;color:#64748B">${amBL[k]}</td><td style="padding:7px 8px;text-align:center"><span id="kpi-matrix-${k}" style="background:${b};color:${c};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${sc.toFixed(1)}</span></td></tr>`;
     });
-    html += `<tr style="background:#EFF6FF;font-weight:700"><td style="padding:8px">TOTAL</td><td style="text-align:center;padding:8px">95</td><td style="text-align:center;padding:8px">80.0</td><td style="text-align:center;padding:8px"><span style="background:${amTierBg};color:${amTierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${amTot.toFixed(1)}</span></td></tr>`;
+    html += `<tr style="background:#EFF6FF;font-weight:700"><td style="padding:8px">TOTAL</td><td style="text-align:center;padding:8px">95</td><td style="text-align:center;padding:8px">80.0</td><td style="text-align:center;padding:8px"><span id="kpi-matrix-total" style="background:${amTierBg};color:${amTierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${amTot.toFixed(1)}</span></td></tr>`;
     html += `</table>`;
     if (s.icRollup && s.icRollup.length) {
       html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Supervisor In-Charge Rollup</div>`;
@@ -2889,14 +2889,14 @@ function openStaffDetail(s) {
         <td style="padding:7px 8px;font-weight:600">${label}${note}</td>
         <td style="padding:7px 8px;text-align:center;color:#64748B">${max}</td>
         <td style="padding:7px 8px;text-align:center;color:#64748B">${kpiBaseline[key]}</td>
-        <td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
+        <td style="padding:7px 8px;text-align:center"><span id="kpi-matrix-${key}" style="background:${sb};color:${sc};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${score.toFixed(1)}</span></td>
       </tr>`;
     });
     html += `<tr style="background:#FFF1F1;font-weight:700">
       <td style="padding:8px">OVERALL AREA CHEF KPI SCORE</td>
       <td style="padding:8px;text-align:center">85</td>
       <td style="padding:8px;text-align:center">49</td>
-      <td style="padding:8px;text-align:center"><span style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td>
+      <td style="padding:8px;text-align:center"><span id="kpi-matrix-total" style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td>
     </tr>`;
     html += `</table>`;
 
@@ -2912,7 +2912,7 @@ function openStaffDetail(s) {
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/name" type="text" value="${r.name||''}" placeholder="Name" readonly style="width:100px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?score:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?score:''}" placeholder="0-100" readonly oninput="kpiUpdateMatrix()" style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
         </tr>`;
       });
       html += `</table>`;
@@ -4950,6 +4950,7 @@ function kpiUpdateFCStatus(inp, idx, role) {
     if (statusEl) { statusEl.textContent = status; statusEl.style.color = color; statusEl.style.background = bg; }
   }
   inp.style.color = color;
+  kpiUpdateMatrix();
 }
 
 function kpiUpdateSalesStatus(inp, idx) {
@@ -4976,6 +4977,7 @@ function kpiUpdateSalesStatus(inp, idx) {
   const bg     = ach>=100?'#DCFCE7':ach>=90?'#FEF9C3':'#FEE2E2';
   achEl.textContent = ach + '%'; achEl.style.color = color;
   statEl.textContent = status; statEl.style.color = color; statEl.style.background = bg;
+  kpiUpdateMatrix();
 }
 
 function kpiUpdateAuditGrade(inp, gradeId) {
@@ -4987,6 +4989,53 @@ function kpiUpdateAuditGrade(inp, gradeId) {
   inp.style.color = color;
   const el = document.getElementById(gradeId);
   if (el) { el.textContent = grade; el.style.color = color; el.style.background = bg; }
+  kpiUpdateMatrix();
+}
+
+
+function kpiUpdateMatrix() {
+  const body = document.getElementById('modalBody');
+  if (!body) return;
+  const trackerData = {};
+  body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
+    const parts = (inp.getAttribute('data-kpi-field')||'').split('/');
+    if (parts.length === 3) {
+      const [arr, idx, key] = parts;
+      if (!trackerData[arr]) trackerData[arr] = {};
+      if (!trackerData[arr][idx]) trackerData[arr][idx] = {};
+      const v = inp.value.trim();
+      trackerData[arr][idx][key] = isNaN(parseFloat(v)) ? v : parseFloat(v);
+    }
+  });
+  function toArr(obj) { if (!obj) return []; return Object.keys(obj).filter(k=>!k.startsWith('new_')).map(k=>obj[k]).concat(Object.keys(obj).filter(k=>k.startsWith('new_')).map(k=>obj[k])); }
+  const fc=toArr(trackerData.fcTracker), ic=toArr(trackerData.icRollup);
+  const adAC=toArr(trackerData.auditData), adAM=toArr(trackerData.auditTracker), sales=toArr(trackerData.salesTracker);
+  const isAC = !!document.getElementById('kpi-matrix-kicAccountability');
+  const isAM = !!document.getElementById('kpi-matrix-supervisorAcct');
+  function setPill(k,v,max){const el=document.getElementById('kpi-matrix-'+k);if(!el||v===null)return;const p=v/max;const c=p>=0.9?'#15803D':p>=0.7?'#854D0E':'#B91C1C';const b=p>=0.9?'#DCFCE7':p>=0.7?'#FEF9C3':'#FEE2E2';el.textContent=v.toFixed(1);el.style.color=c;el.style.background=b;}
+  function setTotal(v,isAC){const el=document.getElementById('kpi-matrix-total');if(!el)return;const c=v>=(isAC?90:85)?'#15803D':v>=(isAC?80:76)?'#854D0E':'#B91C1C';const b=v>=(isAC?90:85)?'#DCFCE7':v>=(isAC?80:76)?'#FEF9C3':'#FEE2E2';el.textContent=v.toFixed(1);el.style.color=c;el.style.background=b;const big=document.querySelector('.kpi-overall-score');if(big)big.textContent=v.toFixed(1);}
+  if (isAC) {
+    const fcV=fc.filter(r=>r&&r.fc!==''&&!isNaN(parseFloat(r.fc)));
+    let fS=null;if(fcV.length){const s=fcV.map(r=>{const f=parseFloat(r.fc);if(f<=25)return 30;if(f<=25.5)return 29.5-((f-25.1)/0.4)*2;if(f<=26)return 27-((f-25.6)/0.4)*2;return Math.max(0,25-(f-26)*5);});fS=Math.round(Math.min(30,s.reduce((a,b)=>a+b,0)/s.length)*100)/100;}
+    const icV=ic.filter(r=>r&&r.score!==''&&!isNaN(parseFloat(r.score)));
+    let iS=null;if(icV.length){const avg=icV.map(r=>parseFloat(r.score)).reduce((a,b)=>a+b,0)/icV.length;let s2;if(avg>=95)s2=25;else if(avg>=85)s2=20+((avg-85)/10)*5;else if(avg>=75)s2=15+((avg-75)/10)*5;else s2=(avg/75)*15;iS=Math.round(Math.min(25,s2)*100)/100;}
+    const aV=adAC.filter(r=>r&&r.score!==''&&!isNaN(parseFloat(r.score)));
+    let aS=null;if(aV.length){const avg=aV.map(r=>parseFloat(r.score)).reduce((a,b)=>a+b,0)/aV.length;aS=Math.min(30,Math.round((avg/100)*30*100)/100);}
+    setPill('foodCost',fS,30);setPill('kicAccountability',iS,25);setPill('internalAudits',aS,30);
+    const t=Math.round(((fS||0)+(iS||0)+(aS||0))*10)/10;setTotal(t,true);
+  }
+  if (isAM) {
+    const fcV=fc.filter(r=>r&&r.fc!==''&&!isNaN(parseFloat(r.fc)));
+    let fS=null;if(fcV.length){const s=fcV.map(r=>Math.max(0,Math.min(30,30-((parseFloat(r.fc)/100-0.25)*100*5))));fS=Math.round(Math.min(30,s.reduce((a,b)=>a+b,0)/s.length)*100)/100;}
+    const icV=ic.filter(r=>r&&r.score!==''&&!isNaN(parseFloat(r.score)));
+    let iS=null;if(icV.length){const avg=icV.map(r=>parseFloat(r.score)).reduce((a,b)=>a+b,0)/icV.length;iS=Math.min(25,Math.round(avg*0.2*100)/100);}
+    const aV=adAM.filter(r=>r&&r.score!==''&&!isNaN(parseFloat(r.score)));
+    let aS=null;if(aV.length){const avg=aV.map(r=>parseFloat(r.score)).reduce((a,b)=>a+b,0)/aV.length;aS=Math.min(10,Math.round((avg/100)*10*100)/100);}
+    const sV=sales.filter(r=>r&&!isNaN(parseFloat(r.target))&&parseFloat(r.target)>0&&!isNaN(parseFloat(r.actual)));
+    let saS=null;if(sV.length){const achs=sV.map(r=>(parseFloat(r.actual)/parseFloat(r.target))*100);const avg=achs.reduce((a,b)=>a+b,0)/achs.length;saS=Math.min(30,Math.round((avg/100)*30*10)/10);}
+    setPill('foodCost',fS,30);setPill('supervisorAcct',iS,25);setPill('internalAudits',aS,10);setPill('salesTarget',saS,30);
+    const t=Math.round(((fS||0)+(iS||0)+(aS||0)+(saS||0))*10)/10;setTotal(t,false);
+  }
 }
 
 function kpiAddAuditRow(btn, arr) {
@@ -5031,21 +5080,20 @@ function toggleKPIEditMode(s) {
     );
   });
 
-  // Add "Add Row" button for audit sections
-  body.querySelectorAll('[id^="audit-grade-"]').forEach(el => {
-    const row = el.closest('tr');
-    if (!row) return;
-    const table = row.closest('table');
-    if (!table || table.querySelector('.kpi-add-audit-row')) return;
+  // Add "Add Row" button for audit sections — find audit tables by header text
+  body.querySelectorAll('table').forEach(table => {
+    const headerText = table.previousElementSibling ? table.previousElementSibling.textContent : '';
+    if (!headerText.toLowerCase().includes('audit')) return;
+    if (table.querySelector('.kpi-add-audit-row')) return;
+    // Determine array name from nearby data-kpi-field inputs
+    const firstInp = table.querySelector('input[data-kpi-field]');
+    const arr = firstInp ? firstInp.getAttribute('data-kpi-field').split('/')[0] : (s.role === 'areachef' ? 'auditData' : 'auditTracker');
     const addRow = document.createElement('tr');
     addRow.className = 'kpi-add-audit-row';
-    const isAM = el.id.includes('-am-');
-    const arr = isAM ? 'auditTracker' : 'auditData';
-    const nextIdx = table.querySelectorAll('tr[data-audit-new]').length + (s[arr] ? s[arr].length : 0);
     addRow.innerHTML = `<td colspan="3" style="padding:6px 8px;">
       <button onclick="kpiAddAuditRow(this,'${arr}')" style="width:100%;padding:6px;background:#F0F9FF;border:1px dashed #1A3C5E;border-radius:6px;font-size:11px;color:#1A3C5E;cursor:pointer;font-weight:600;">+ Add Outlet</button>
     </td>`;
-    table.querySelector('tbody') ? table.querySelector('tbody').appendChild(addRow) : table.appendChild(addRow);
+    table.appendChild(addRow);
   });
 
   // Add cancel button
