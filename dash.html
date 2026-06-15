@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615240000">
+<meta name="app-version" content="20260615250000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615240000';
+  var v = '20260615250000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -5002,15 +5002,20 @@ function toggleKPIEditMode(s) {
     kpiBtn.onclick = () => saveKPIOverwrite(s);
   }
 
-  // Make all fields editable
+  // Make all fields editable — override inline styles completely
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
     inp.readOnly = false;
+    inp.removeAttribute('readonly');
+    inp.style.cssText = inp.style.cssText
+      .replace(/pointer-events:[^;]+;?/g, '')
+      .replace(/background:[^;]+;?/g, '')
+      .replace(/border:[^;]+;?/g, '');
+    inp.style.pointerEvents = 'auto';
     inp.style.background = '#fff';
     inp.style.border = '1px solid #1A3C5E';
-    inp.style.pointerEvents = 'auto';
-    inp.style.opacity = '1';
     inp.style.borderRadius = '5px';
     inp.style.padding = '2px 4px';
+    inp.style.opacity = '1';
   });
 
   // Add cancel button
