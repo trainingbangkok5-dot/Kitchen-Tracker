@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615320000">
+<meta name="app-version" content="20260615330000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615320000';
+  var v = '20260615330000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -282,7 +282,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </select>
       <span style="font-size:11px;color:rgba(255,255,255,0.4);" id="loadingIndicator"></span>
     </div>
-    <div class="tab active" onclick="showTab(this,'overview')">📊 Overview</div>
     <!-- All Staff tab removed — BOH tab shows all staff -->
     <div class="tab" onclick="showTab(this,'weekly')">📆 Weekly</div>
     <div class="tab" onclick="showTab(this,'monthly')">📅 Monthly</div>
@@ -296,7 +295,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
   </div>
 
-  <div class="page active" id="page-overview">
+  <div class="page" id="page-overview" style="display:none;">
     <div class="sec-title" id="lastUpdate">KPI by Role</div>
     <div class="kpi-grid" id="kpiGrid"></div>
     <div class="sec-title">Recent Submissions <span style="font-size:11px;font-weight:400;color:#6B6B60">(tap a name to see full report)</span></div>
@@ -433,7 +432,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span>🍳 BOH Reports</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="bohStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
-        <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+        <button onclick="showTab(document.getElementById('tabBOH'),'boh')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
@@ -523,7 +522,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span>🛎️ FOH Reports</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="fohStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
-        <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+        <button onclick="showTab(document.getElementById('tabBOH'),'boh')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
@@ -867,7 +866,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span id="maintTabTitle">🔧 Maintenance Log</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <span id="maintStatus" style="font-size:10px;opacity:0.8;">⏳ Loading...</span>
-        <button onclick="showTab(document.getElementById('tabOverview'),'overview')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
+        <button onclick="showTab(document.getElementById('tabBOH'),'boh')" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕ Exit</button>
       </div>
     </div>
     <!-- Stats -->
@@ -1365,11 +1364,19 @@ function doLogin() {
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
   const fohSubOicBtn = document.getElementById('fohSubOic');
   if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
-  // KIC defaults to BOH tab, OIC defaults to FOH tab
+  // Set default tab — Overview removed, route each role to their primary tab
   if (currentRole === 'kic') {
     setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
   } else if (currentRole === 'oic') {
     setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
+  } else if (currentRole === 'areachef') {
+    setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
+  } else if (currentRole === 'areamanager') {
+    setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
+  } else if (['training','operations','director','ceo'].includes(currentRole)) {
+    setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
+  } else if (currentRole === 'maintsupervisor') {
+    setTimeout(() => showTab(document.getElementById('tabMaintenance') || document.querySelector('[onclick*="maintenance"]'), 'maintenance'), 100);
   }
   loadData();
 }
