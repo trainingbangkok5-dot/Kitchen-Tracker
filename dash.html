@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615190000">
+<meta name="app-version" content="20260615200000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615190000';
+  var v = '20260615200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2735,7 +2735,7 @@ function openStaffDetail(s) {
         const sc = parseFloat(r.score);
         const hasScore = !isNaN(sc) && r.score !== '';
         const color = hasScore?(sc>=90?'#15803D':sc>=80?'#854D0E':'#B91C1C'):'#94A3B8';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px">${r.name||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px">${r.name||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
       });
       html += `</table>`;
     }
@@ -2750,7 +2750,7 @@ function openStaffDetail(s) {
         const status = hasF?(f<=25?'Target Achieved':f<=25.5?'Acceptable Variance':f<=26?'Critical Warning':'Action Plan Required'):'—';
         const sc = hasF?(f<=25?'#15803D':f<=25.5?'#854D0E':'#B91C1C'):'#94A3B8';
         const sb = hasF?(f<=25?'#DCFCE7':f<=25.5?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasF?f:''}" placeholder="e.g. 24" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${sc};pointer-events:none;opacity:1;">%</td><td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td></tr>`;
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="fcTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasF?f:''}" placeholder="e.g. 24" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${sc};pointer-events:none;opacity:1;">%</td><td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td></tr>`;
       });
       html += `</table>`;
     }
@@ -2767,7 +2767,7 @@ function openStaffDetail(s) {
         const sc = hasData?(ach>=100?'#15803D':ach>=90?'#854D0E':'#B91C1C'):'#94A3B8';
         const sb = hasData?(ach>=100?'#DCFCE7':ach>=90?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px"><input data-kpi-field="salesTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/target" type="number" min="0" step="1" value="${hasData?target:''}" placeholder="0" readonly style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/actual" type="number" min="0" step="1" value="${hasData?actual:''}" placeholder="0" readonly style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center;font-weight:700;color:${sc}">${hasData?ach+'%':'—'}</td>
@@ -2835,7 +2835,7 @@ function openStaffDetail(s) {
           // Find original index in s.auditTracker for correct field path
           const origIdx = s.auditTracker ? s.auditTracker.findIndex(x => x.outlet === r.outlet) : idx;
           const fieldIdx = origIdx >= 0 ? origIdx : idx;
-          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditTracker/${fieldIdx}/score" type="number" min="0" max="100" step="0.5" value="${sc}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
+          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="auditTracker/${fieldIdx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditTracker/${fieldIdx}/score" type="number" min="0" max="100" step="0.5" value="${sc}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
         });
         html += `</table>`;
       }
@@ -2906,7 +2906,7 @@ function openStaffDetail(s) {
         const hasScore = !isNaN(score) && r.score !== '';
         const color = hasScore ? (score>=90?'#15803D':score>=80?'#854D0E':'#B91C1C') : '#94A3B8';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px">${r.name||'—'}</td>
           <td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?score:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
         </tr>`;
@@ -2930,7 +2930,7 @@ function openStaffDetail(s) {
           else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
         }
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px"><input data-kpi-field="fcTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasFC?f:''}" placeholder="e.g. 25" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;">%</td>
           <td style="padding:7px 8px;text-align:center;font-weight:700;color:${color}">${hasFC?score.toFixed(1):'—'}</td>
           <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
@@ -2951,7 +2951,7 @@ function openStaffDetail(s) {
         const color = hasSc?(sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C'):'#94A3B8';
         const bg    = hasSc?(sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2'):'#F1F5F9';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px"><input data-kpi-field="auditData/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditData/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasSc?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td>
         </tr>`;
@@ -4936,13 +4936,15 @@ function toggleKPIEditMode(s) {
     kpiBtn.onclick = () => saveKPIOverwrite(s);
   }
 
-  // Make all number inputs in KPI report editable
+  // Make all number inputs AND outlet text inputs editable
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
     inp.readOnly = false;
     inp.style.background = '#fff';
     inp.style.border = '1px solid #1A3C5E';
     inp.style.pointerEvents = 'auto';
     inp.style.opacity = '1';
+    inp.style.borderRadius = '5px';
+    inp.style.padding = '2px 4px';
   });
 
   // Add cancel button
@@ -4957,6 +4959,84 @@ function toggleKPIEditMode(s) {
   }
 }
 
+// ── KPI score recalculation (mirrors ac.html / am.html formulas) ──
+function recalcKPIScores(s, trackerData) {
+  const role = s.role;
+  const kpiScores = Object.assign({}, s.kpiScores || {});
+
+  if (role === 'areachef') {
+    // foodCost: avg of fcTracker scores (same sliding scale as ac.html)
+    const fcValid = (trackerData.fcTracker || []).filter(r => r.fc !== '' && !isNaN(parseFloat(r.fc)));
+    if (fcValid.length) {
+      function fcScoreAC(fc) {
+        const f = parseFloat(fc);
+        if(f<=25) return 30;
+        if(f<=25.5) return 29.5-((f-25.1)/0.4)*2;
+        if(f<=26) return 27-((f-25.6)/0.4)*2;
+        return Math.max(0,25-(f-26)*5);
+      }
+      const scores = fcValid.map(r => fcScoreAC(r.fc));
+      kpiScores.foodCost = Math.round(Math.min(30, scores.reduce((a,b)=>a+b,0)/scores.length) * 100) / 100;
+    }
+    // kicAccountability: avg of icRollup scores → formula from ac.html
+    const icValid = (trackerData.icRollup || []).filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
+    if (icValid.length) {
+      const avg = icValid.map(r => parseFloat(r.score)).reduce((a,b)=>a+b,0) / icValid.length;
+      let s2;
+      if(avg>=95) s2=25;
+      else if(avg>=85) s2=20+((avg-85)/10)*5;
+      else if(avg>=75) s2=15+((avg-75)/10)*5;
+      else s2=(avg/75)*15;
+      kpiScores.kicAccountability = Math.round(Math.min(25, s2) * 100) / 100;
+    }
+    // internalAudits: avg of auditData scores, scaled to 30pts
+    const auditValid = (trackerData.auditData || []).filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
+    if (auditValid.length) {
+      const avg = auditValid.map(r => parseFloat(r.score)).reduce((a,b)=>a+b,0) / auditValid.length;
+      kpiScores.internalAudits = Math.min(30, Math.round((avg/100)*30*100)/100);
+    }
+
+  } else if (role === 'areamanager') {
+    // barCost (foodCost): avg of fcTracker, same bar cost formula
+    const fcValid = (trackerData.fcTracker || []).filter(r => r.fc !== '' && !isNaN(parseFloat(r.fc)));
+    if (fcValid.length) {
+      function fcScoreAM(fc) {
+        const f = parseFloat(fc);
+        // Excel: MAX(0, MIN(30, 30 - ((actual - 0.25) * 100 * 5)))
+        return Math.max(0, Math.min(30, 30 - ((f/100 - 0.25) * 100 * 5)));
+      }
+      const scores = fcValid.map(r => fcScoreAM(r.fc));
+      kpiScores.foodCost = Math.round(Math.min(30, scores.reduce((a,b)=>a+b,0)/scores.length) * 100) / 100;
+    }
+    // supervisorAcct: avg * 0.2, capped at 25
+    const icValid = (trackerData.icRollup || []).filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
+    if (icValid.length) {
+      const avg = icValid.map(r => parseFloat(r.score)).reduce((a,b)=>a+b,0) / icValid.length;
+      kpiScores.supervisorAcct = Math.min(25, Math.round(avg * 0.2 * 100) / 100);
+    }
+    // internalAudits: avg scaled to 10pts
+    const auditValid = (trackerData.auditTracker || []).filter(r => r.score !== '' && !isNaN(parseFloat(r.score)));
+    if (auditValid.length) {
+      const avg = auditValid.map(r => parseFloat(r.score)).reduce((a,b)=>a+b,0) / auditValid.length;
+      kpiScores.internalAudits = Math.min(10, Math.round((avg/100)*10*100)/100);
+    }
+    // salesTarget: avg achievement scaled to 30pts
+    const salesValid = (trackerData.salesTracker || []).filter(r => {
+      const t=parseFloat(r.target), a=parseFloat(r.actual);
+      return !isNaN(t) && t>0 && !isNaN(a);
+    });
+    if (salesValid.length) {
+      const achs = salesValid.map(r => (parseFloat(r.actual)/parseFloat(r.target))*100);
+      const avgAch = achs.reduce((a,b)=>a+b,0) / achs.length;
+      kpiScores.salesTarget = Math.min(30, Math.round((avgAch/100)*30*10)/10);
+    }
+  }
+
+  // Recalculate overallPct
+  const total = Object.values(kpiScores).reduce((a,b) => a + (parseFloat(b)||0), 0);
+  return { kpiScores, overallPct: Math.round(total * 10) / 10 };
+}
+
 async function saveKPIOverwrite(s) {
   const body = document.getElementById('modalBody');
   if (!body) return;
@@ -4966,19 +5046,44 @@ async function saveKPIOverwrite(s) {
   if (!_saveDb) { alert('Firebase not connected. Please refresh.'); return; }
 
   let fbKey = s._fbKey || '';
-  if (!fbKey) {
-    showToast('Cannot save — record key not found. Please refresh.', 'error');
-    return;
-  }
+  if (!fbKey) { showToast('Cannot save — record key not found. Please refresh.', 'error'); return; }
 
-  // Collect all editable inputs
-  const updates = {};
+  // Collect tracker data from editable inputs
+  const trackerData = { icRollup: [], fcTracker: [], auditData: [], auditTracker: [], salesTracker: [] };
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
     const field = inp.getAttribute('data-kpi-field');
     const val = inp.value.trim();
-    updates['submissions/' + fbKey + '/' + field] = isNaN(parseFloat(val)) ? val : Math.round(parseFloat(val) * 100) / 100;
+    const parts = field.split('/'); // e.g. ['icRollup','0','score']
+    if (parts.length === 3) {
+      const [arr, idx, key] = parts;
+      if (!trackerData[arr]) trackerData[arr] = [];
+      if (!trackerData[arr][idx]) trackerData[arr][idx] = {};
+      trackerData[arr][idx][key] = isNaN(parseFloat(val)) ? val : parseFloat(val);
+    }
   });
 
+  // Auto-recalculate KPI scores from updated tracker data
+  const { kpiScores, overallPct } = recalcKPIScores(s, trackerData);
+
+  // Build Firebase updates
+  const updates = {};
+  // Write tracker arrays
+  ['icRollup','fcTracker','auditData','auditTracker','salesTracker'].forEach(arr => {
+    if (trackerData[arr] && trackerData[arr].length) {
+      trackerData[arr].forEach((row, i) => {
+        if (row && Object.keys(row).length) {
+          Object.entries(row).forEach(([k, v]) => {
+            updates['submissions/' + fbKey + '/' + arr + '/' + i + '/' + k] = v;
+          });
+        }
+      });
+    }
+  });
+  // Write recalculated KPI scores
+  Object.entries(kpiScores).forEach(([k, v]) => {
+    updates['submissions/' + fbKey + '/kpiScores/' + k] = v;
+  });
+  updates['submissions/' + fbKey + '/overallPct'] = overallPct;
   updates['submissions/' + fbKey + '/lastUpdated'] = new Date().toISOString();
 
   const kpiBtn = document.querySelector('.kpi-edit-btn');
@@ -4987,7 +5092,6 @@ async function saveKPIOverwrite(s) {
   try {
     await _saveDb.ref().update(updates);
     showToast('KPI report updated ✓', 'ok');
-    // Reload fresh record
     const fresh = await _saveDb.ref('submissions/' + fbKey).once('value');
     if (fresh.exists()) {
       const rec = fresh.val();
