@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615250000">
+<meta name="app-version" content="20260615260000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615250000';
+  var v = '20260615260000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -4989,6 +4989,20 @@ function kpiUpdateAuditGrade(inp, gradeId) {
   if (el) { el.textContent = grade; el.style.color = color; el.style.background = bg; }
 }
 
+function kpiAddAuditRow(btn, arr) {
+  const addRow = btn.closest('tr');
+  const table = addRow.closest('table');
+  const existingRows = table.querySelectorAll('tr[data-audit-new]');
+  const idx = 'new_' + existingRows.length;
+  const newRow = document.createElement('tr');
+  newRow.setAttribute('data-audit-new', idx);
+  newRow.innerHTML = `
+    <td style="padding:5px 8px"><input data-kpi-field="${arr}/${idx}/outlet" type="text" placeholder="Outlet" style="width:90px;border:1.5px solid #1A3C5E;border-radius:5px;padding:2px 5px;font-size:12px;"></td>
+    <td style="padding:5px 8px;text-align:center"><input data-kpi-field="${arr}/${idx}/score" type="number" min="0" max="100" step="0.5" placeholder="0-100" oninput="kpiUpdateAuditGrade(this,'audit-grade-new-${idx}')" style="width:64px;text-align:center;border:1.5px solid #1A3C5E;border-radius:5px;padding:2px 5px;font-size:11px;font-weight:700;"></td>
+    <td style="padding:5px 8px;text-align:center"><span id="audit-grade-new-${idx}" style="background:#F1F5F9;color:#94A3B8;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;">—</span></td>`;
+  table.insertBefore(newRow, addRow);
+}
+
 // ── KPI Inline Edit (AC / AM) ────────────────────────────────
 function toggleKPIEditMode(s) {
   const body = document.getElementById('modalBody');
@@ -5002,20 +5016,36 @@ function toggleKPIEditMode(s) {
     kpiBtn.onclick = () => saveKPIOverwrite(s);
   }
 
-  // Make all fields editable — override inline styles completely
+  // Make all fields editable — force override all inline styles
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
-    inp.readOnly = false;
     inp.removeAttribute('readonly');
-    inp.style.cssText = inp.style.cssText
-      .replace(/pointer-events:[^;]+;?/g, '')
-      .replace(/background:[^;]+;?/g, '')
-      .replace(/border:[^;]+;?/g, '');
-    inp.style.pointerEvents = 'auto';
-    inp.style.background = '#fff';
-    inp.style.border = '1px solid #1A3C5E';
-    inp.style.borderRadius = '5px';
-    inp.style.padding = '2px 4px';
-    inp.style.opacity = '1';
+    inp.readOnly = false;
+    inp.setAttribute('style',
+      inp.getAttribute('style')
+        .replace(/pointer-events\s*:\s*[^;]+;?\s*/gi, '')
+        .replace(/background\s*:\s*[^;]+;?\s*/gi, '')
+        .replace(/border\s*:\s*[^;]+;?\s*/gi, '')
+        .replace(/border-radius\s*:\s*[^;]+;?\s*/gi, '')
+        .replace(/padding\s*:\s*[^;]+;?\s*/gi, '')
+      + ';pointer-events:auto;background:#fff;border:1.5px solid #1A3C5E;border-radius:5px;padding:2px 5px;'
+    );
+  });
+
+  // Add "Add Row" button for audit sections
+  body.querySelectorAll('[id^="audit-grade-"]').forEach(el => {
+    const row = el.closest('tr');
+    if (!row) return;
+    const table = row.closest('table');
+    if (!table || table.querySelector('.kpi-add-audit-row')) return;
+    const addRow = document.createElement('tr');
+    addRow.className = 'kpi-add-audit-row';
+    const isAM = el.id.includes('-am-');
+    const arr = isAM ? 'auditTracker' : 'auditData';
+    const nextIdx = table.querySelectorAll('tr[data-audit-new]').length + (s[arr] ? s[arr].length : 0);
+    addRow.innerHTML = `<td colspan="3" style="padding:6px 8px;">
+      <button onclick="kpiAddAuditRow(this,'${arr}')" style="width:100%;padding:6px;background:#F0F9FF;border:1px dashed #1A3C5E;border-radius:6px;font-size:11px;color:#1A3C5E;cursor:pointer;font-weight:600;">+ Add Outlet</button>
+    </td>`;
+    table.querySelector('tbody') ? table.querySelector('tbody').appendChild(addRow) : table.appendChild(addRow);
   });
 
   // Add cancel button
@@ -5120,35 +5150,47 @@ async function saveKPIOverwrite(s) {
   if (!fbKey) { showToast('Cannot save — record key not found. Please refresh.', 'error'); return; }
 
   // Collect all tracker data from editable inputs
-  const trackerData = { icRollup: [], fcTracker: [], auditData: [], auditTracker: [], salesTracker: [] };
+  const trackerData = { icRollup: {}, fcTracker: {}, auditData: {}, auditTracker: {}, salesTracker: {} };
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
     const field = inp.getAttribute('data-kpi-field');
     const val = inp.value.trim();
-    const parts = field.split('/'); // e.g. ['icRollup','0','score']
+    const parts = field.split('/');
     if (parts.length === 3) {
       const [arr, idx, key] = parts;
-      if (!trackerData[arr]) trackerData[arr] = [];
+      if (!trackerData[arr]) trackerData[arr] = {};
       if (!trackerData[arr][idx]) trackerData[arr][idx] = {};
       trackerData[arr][idx][key] = isNaN(parseFloat(val)) ? val : parseFloat(val);
     }
   });
 
-  // Preserve locked fields (FC%, Sales) from original record
-  if (s.fcTracker) trackerData.fcTracker = s.fcTracker.map((r, i) => Object.assign({}, r, trackerData.fcTracker[i]||{}));
-  if (s.salesTracker) trackerData.salesTracker = s.salesTracker.map((r, i) => Object.assign({}, r, trackerData.salesTracker[i]||{}));
-  if (s.icRollup) trackerData.icRollup = s.icRollup.map((r, i) => Object.assign({}, r, trackerData.icRollup[i]||{}));
-  if (s.auditData) trackerData.auditData = s.auditData.map((r, i) => Object.assign({}, r, trackerData.auditData[i]||{}));
-  if (s.auditTracker) trackerData.auditTracker = s.auditTracker.map((r, i) => Object.assign({}, r, trackerData.auditTracker[i]||{}));
+  // Merge with original record — preserve existing entries, apply edits, append new rows
+  function mergeTracker(orig, edits) {
+    const base = (orig || []).map((r, i) => Object.assign({}, r, edits[i] || {}));
+    // Append new rows (keys like 'new_0', 'new_1')
+    Object.keys(edits).filter(k => k.startsWith('new_')).forEach(k => {
+      const row = edits[k];
+      if (row.outlet || row.score || row.fc || row.target || row.actual) base.push(row);
+    });
+    return base;
+  }
 
-  // Auto-recalculate KPI scores from updated tracker data
-  const { kpiScores, overallPct } = recalcKPIScores(s, trackerData);
+  const merged = {
+    icRollup:     mergeTracker(s.icRollup,     trackerData.icRollup),
+    fcTracker:    mergeTracker(s.fcTracker,     trackerData.fcTracker),
+    auditData:    mergeTracker(s.auditData,     trackerData.auditData),
+    auditTracker: mergeTracker(s.auditTracker,  trackerData.auditTracker),
+    salesTracker: mergeTracker(s.salesTracker,  trackerData.salesTracker),
+  };
+
+  // Auto-recalculate KPI scores from merged tracker data
+  const { kpiScores, overallPct } = recalcKPIScores(s, merged);
 
   // Build Firebase updates
   const updates = {};
-  // Write tracker arrays
+  // Write merged tracker arrays to Firebase
   ['icRollup','fcTracker','auditData','auditTracker','salesTracker'].forEach(arr => {
-    if (trackerData[arr] && trackerData[arr].length) {
-      trackerData[arr].forEach((row, i) => {
+    if (merged[arr] && merged[arr].length) {
+      merged[arr].forEach((row, i) => {
         if (row && Object.keys(row).length) {
           Object.entries(row).forEach(([k, v]) => {
             updates['submissions/' + fbKey + '/' + arr + '/' + i + '/' + k] = v;
