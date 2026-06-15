@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-version" content="20260615140000">
+<meta name="app-version" content="20260615160000">
 <script>
 (function() {
-  var v = '20260615140000';
+  var v = '20260615160000';
   var stored = localStorage.getItem('app_version_am_kpi');
   if (stored !== v) {
     localStorage.setItem('app_version_am_kpi', v);
@@ -613,10 +613,11 @@ function submitKPI() {
   };
 
   if (!_db) { showToast('Firebase not ready — try again', 'warn'); return; }
-  const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areamanager_' + getDubaiDateStr() + '_' + Date.now();
+  const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areamanager_' + period.replace(/[^a-zA-Z0-9]/g,'_');
   _db.ref('submissions/' + key).set(record)
     .then(() => {
       document.getElementById('synced-msg').style.display = 'block';
+      document.querySelector('.submit-btn').textContent = '💾 Update Report';
       showToast('KPI submitted successfully ✓', 'ok');
     })
     .catch(e => showToast('Submit failed: ' + e.message, 'error'));

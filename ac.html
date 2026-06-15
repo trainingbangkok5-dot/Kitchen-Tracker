@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-version" content="20260615130000">
+<meta name="app-version" content="20260615160000">
 <script>
 (function() {
-  var v = '20260615130000';
+  var v = '20260615160000';
   var stored = localStorage.getItem('app_version_ac_kpi2');
   if (stored !== v) {
     localStorage.setItem('app_version_ac_kpi2', v);
@@ -241,6 +241,7 @@ const FIREBASE_CONFIG = {
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
 let _db = null;
+const _startedAt = new Date().toISOString();
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
@@ -521,6 +522,7 @@ function submitKPI() {
     fcTracker:   fcData,
     auditData:   auditData.filter(r => r.outlet && r.score !== '' && !isNaN(parseFloat(r.score))).map(r => ({outlet: r.outlet, score: Math.round(parseFloat(r.score) * 10) / 10})),
     submittedAt: new Date().toISOString(),
+    startedAt:   _startedAt,
     lastUpdated: new Date().toISOString(),
   };
 
@@ -529,10 +531,11 @@ function submitKPI() {
     setTimeout(submitKPI, 1500);
     return; 
   }
-  const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areachef_' + getDubaiDateStr() + '_' + Date.now();
+  const key = name.replace(/[^a-zA-Z0-9]/g,'_') + '_areachef_' + period.replace(/[^a-zA-Z0-9]/g,'_');
   _db.ref('submissions/' + key).set(record)
     .then(() => {
       document.getElementById('synced-msg').style.display = 'block';
+      document.querySelector('.submit-btn').textContent = '💾 Update Report';
       showToast('KPI submitted successfully ✓', 'ok');
     })
     .catch(e => { 
