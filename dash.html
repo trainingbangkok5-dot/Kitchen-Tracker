@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615280000">
+<meta name="app-version" content="20260615320000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615280000';
+  var v = '20260615320000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -437,8 +437,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
-      <button id="bohSubAll" onclick="setBOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
-      <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍳 Line Cook</button>
+      <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">🍳 Line Cook</button>
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
       <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
     </div>
@@ -528,8 +527,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
-      <button id="fohSubAll" onclick="setFOHSub('all')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">All Staff</button>
-      <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🛎️ Service</button>
+      <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">🛎️ Service</button>
       <button id="fohSubOic" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
       <button id="fohSubDelco" onclick="setFOHSub('delco')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🚚 Del.Co</button>
       <button id="fohSubBartender" onclick="setFOHSub('bartender')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍹 Bartender</button>
@@ -6006,7 +6004,7 @@ function updateDayHeaders(prefix, weekStr) {
 
 // ── BOH Reports ──────────────────────────────────────────────
 let allBOHData = [];
-let currentBOHSub = 'all';
+let currentBOHSub = 'linecook';
 
 function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
@@ -6098,7 +6096,7 @@ function loadBOHData() {
 
 function setBOHSub(sub) {
   currentBOHSub = sub;
-  ['all','linecook','steward','kic'].forEach(s => {
+  ['linecook','steward','kic'].forEach(s => {
     const id = 'bohSub' + s.charAt(0).toUpperCase() + s.slice(1);
     const btn = document.getElementById(id);
     if (btn) {
@@ -6410,7 +6408,7 @@ function renderBOHStaff() {
 
 // ── FOH Reports ──────────────────────────────────────────────
 let allFOHData = [];
-let currentFOHSub = 'all';
+let currentFOHSub = 'service';
 
 function loadFOHData() {
   if (!fohDb) {
@@ -6549,7 +6547,7 @@ function loadFOHData() {
 
 function setFOHSub(sub) {
   currentFOHSub = sub;
-  ['All','Service','Oic','Delco','Bartender'].forEach(s => {
+  ['Service','Oic','Delco','Bartender'].forEach(s => {
     const btn = document.getElementById('fohSub' + s);
     if (btn) {
       const match = s.toLowerCase() === sub;
