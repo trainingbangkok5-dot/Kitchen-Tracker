@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615130000">
+<meta name="app-version" content="20260615150000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615140000';
+  var v = '20260615150000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2758,6 +2758,23 @@ function openStaffDetail(s) {
       html += `</table>`;
     }
 
+    // Audit Tracker
+    if (s.auditTracker && s.auditTracker.length) {
+      const validAudits = s.auditTracker.filter(r => r.outlet && r.score !== '' && !isNaN(parseFloat(r.score)));
+      if (validAudits.length) {
+        html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Internal Audit Scores</div>`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Audit Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Grade</th></tr>`;
+        validAudits.forEach(r => {
+          const sc = parseFloat(r.score);
+          const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
+          const color = sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C';
+          const bg    = sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2';
+          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center;font-weight:700">${sc.toFixed(1)}</td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
+        });
+        html += `</table>`;
+      }
+    }
+
   } else if (s.kpiScores && s.role === 'areamanager') {
     // ── Area Manager KPI (weekly detail) ─────────────────────
     const amKN = {foodCost:'Bar Cost Optimization',supervisorAcct:'Supervisor Accountability',internalAudits:'Internal Audits',salesTarget:'Sales Target Achievement'};
@@ -4377,6 +4394,34 @@ async function exportDetailPDF() {
         margin:{left:14,right:14}
       });
       y = doc.lastAutoTable.finalY + 8;
+    }
+
+    // Audit Tracker — PDF
+    if (s.auditTracker && s.auditTracker.length) {
+      const validAudits = s.auditTracker.filter(r => r.outlet && r.score !== '' && !isNaN(parseFloat(r.score)));
+      if (validAudits.length) {
+        if (y > H-30) { doc.addPage(); y=16; }
+        doc.autoTable({
+          startY: y,
+          head: [['Outlet','Audit Score','Grade']],
+          body: validAudits.map(r => {
+            const sc = parseFloat(r.score);
+            const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
+            return [r.outlet||'—', sc.toFixed(1), grade];
+          }),
+          styles:{fontSize:9,cellPadding:4},
+          headStyles:{fillColor:[26,60,94],textColor:[255,255,255]},
+          columnStyles:{1:{halign:'center',fontStyle:'bold'},2:{halign:'center',fontStyle:'bold'}},
+          didParseCell:(data)=>{
+            if(data.section==='body'&&data.column.index===2){
+              const v=data.cell.raw;
+              data.cell.styles.textColor=v==='A'?[21,128,61]:v==='B'?[133,77,14]:v==='C'?[146,64,14]:[185,28,28];
+            }
+          },
+          margin:{left:14,right:14}
+        });
+        y = doc.lastAutoTable.finalY + 8;
+      }
     }
 
   } else if (s.kpiScores) {
