@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615200000">
+<meta name="app-version" content="20260615220000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615200000';
+  var v = '20260615220000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2735,7 +2735,7 @@ function openStaffDetail(s) {
         const sc = parseFloat(r.score);
         const hasScore = !isNaN(sc) && r.score !== '';
         const color = hasScore?(sc>=90?'#15803D':sc>=80?'#854D0E':'#B91C1C'):'#94A3B8';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px">${r.name||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/name" type="text" value="${r.name||''}" placeholder="Name" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
       });
       html += `</table>`;
     }
@@ -2907,7 +2907,7 @@ function openStaffDetail(s) {
         const color = hasScore ? (score>=90?'#15803D':score>=80?'#854D0E':'#B91C1C') : '#94A3B8';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px">${r.name||'—'}</td>
+          <td style="padding:7px 8px"><input data-kpi-field="icRollup/${idx}/name" type="text" value="${r.name||''}" placeholder="Name" readonly style="width:100px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?score:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
         </tr>`;
       });
@@ -4936,7 +4936,7 @@ function toggleKPIEditMode(s) {
     kpiBtn.onclick = () => saveKPIOverwrite(s);
   }
 
-  // Make all number inputs AND outlet text inputs editable
+  // Make all fields editable
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
     inp.readOnly = false;
     inp.style.background = '#fff';
@@ -5048,7 +5048,7 @@ async function saveKPIOverwrite(s) {
   let fbKey = s._fbKey || '';
   if (!fbKey) { showToast('Cannot save — record key not found. Please refresh.', 'error'); return; }
 
-  // Collect tracker data from editable inputs
+  // Collect all tracker data from editable inputs
   const trackerData = { icRollup: [], fcTracker: [], auditData: [], auditTracker: [], salesTracker: [] };
   body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
     const field = inp.getAttribute('data-kpi-field');
@@ -5061,6 +5061,13 @@ async function saveKPIOverwrite(s) {
       trackerData[arr][idx][key] = isNaN(parseFloat(val)) ? val : parseFloat(val);
     }
   });
+
+  // Preserve locked fields (FC%, Sales) from original record
+  if (s.fcTracker) trackerData.fcTracker = s.fcTracker.map((r, i) => Object.assign({}, r, trackerData.fcTracker[i]||{}));
+  if (s.salesTracker) trackerData.salesTracker = s.salesTracker.map((r, i) => Object.assign({}, r, trackerData.salesTracker[i]||{}));
+  if (s.icRollup) trackerData.icRollup = s.icRollup.map((r, i) => Object.assign({}, r, trackerData.icRollup[i]||{}));
+  if (s.auditData) trackerData.auditData = s.auditData.map((r, i) => Object.assign({}, r, trackerData.auditData[i]||{}));
+  if (s.auditTracker) trackerData.auditTracker = s.auditTracker.map((r, i) => Object.assign({}, r, trackerData.auditTracker[i]||{}));
 
   // Auto-recalculate KPI scores from updated tracker data
   const { kpiScores, overallPct } = recalcKPIScores(s, trackerData);
