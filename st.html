@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260613070000';
+  var v = '20260615310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260613070000">
-<meta name="app-version" content="20260613070000">
+<meta http-equiv="Expires" content="20260615310000">
+<meta name="app-version" content="20260615310000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#16A34A">
@@ -1348,16 +1348,18 @@ function handlePhotoFile(file) {
 // ── Persist info fields ───────────────────────────────────────
 function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
-  const key = idx === 0 ? 'photo' : 'photo_' + idx;
-  setVal(currentDay, taskId, key, '');
-  // Shift remaining photos down
-  for (let pi = idx; pi < 4; pi++) {
-    const nextKey = (pi+1) === 1 ? 'photo' : 'photo_' + (pi+1);
-    const currentKey = pi === 0 ? 'photo' : 'photo_' + pi;
-    const nextVal = getVal(currentDay, taskId, (pi+1) === 1 ? 'photo' : 'photo_' + (pi+1)) || '';
-    setVal(currentDay, taskId, currentKey, nextVal);
-    setVal(currentDay, taskId, nextKey, '');
+  // Shift both base64 and photoUrl slots down after removal
+  for (let pi = idx; pi < 5; pi++) {
+    const curKey    = pi === 0 ? 'photo'    : 'photo_'    + pi;
+    const curUrlKey = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
+    const nxtKey    = 'photo_'    + (pi + 1);
+    const nxtUrlKey = 'photoUrl_' + (pi + 1);
+    setVal(currentDay, taskId, curKey,    getVal(currentDay, taskId, nxtKey)    || '');
+    setVal(currentDay, taskId, curUrlKey, getVal(currentDay, taskId, nxtUrlKey) || '');
   }
+  // Clear the last slot
+  setVal(currentDay, taskId, 'photo_5',    '');
+  setVal(currentDay, taskId, 'photoUrl_5', '');
   renderDay();
 }
 

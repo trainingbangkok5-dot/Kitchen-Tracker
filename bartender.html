@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260613060000';
+  var v = '20260615310000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -791,9 +791,10 @@ function tryOverwrite() {
 // ── Init ─────────────────────────────────────────────────────
 function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
-  const key = idx === 0 ? 'photo' : 'photo_' + idx;
+  const key    = idx === 0 ? 'photo'    : 'photo_'    + idx;
+  const urlKey = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
   setVal(currentDay, taskId, key, '');
-  setVal(currentDay, taskId, 'photoUrl', '');
+  setVal(currentDay, taskId, urlKey, '');
   renderDay();
   showToast('Photo removed ✓', 'ok');
 }

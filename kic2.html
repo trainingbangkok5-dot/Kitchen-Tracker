@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260606180000">
-<meta name="app-version" content="20260606180000">
+<meta http-equiv="Expires" content="20260615290000">
+<meta name="app-version" content="20260615290000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608143723';
+  var v = '20260615300000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -232,14 +232,26 @@ function pushToFirebase(record) {
 const CLOUDINARY_CLOUD = 'db94rgiil';
 const CLOUDINARY_PRESET = 'culex_uploads';
 
+function dataURLtoBlob(dataUrl) {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const bstr = atob(parts[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  } catch(e) { return null; }
+}
+
 async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
   try {
     if (!dataUrl) return null;
     const compressed = await compressToSize(dataUrl, 60);
     // Try Cloudinary first
     try {
-      const res = await fetch(compressed);
-      const blob = await res.blob();
+      const blob = dataURLtoBlob(compressed);
+      if (!blob) throw new Error('blob conversion failed');
       const folder = 'culex/' + ROLE + '/' + (staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_');
       const fd = new FormData();
       fd.append('file', blob);
@@ -1381,19 +1393,32 @@ function submitDay() {
     })(),
     taskData: (function() {
       const tasks = {};
+      const data = load();
+      // Build day-number → date-key mapping using week start
+      const weekStartStr = localStorage.getItem('kic_info_kic_fWeek') || getDubaiDateStr();
+      const weekStart = new Date(weekStartStr + 'T00:00:00');
       for (let dd=1; dd<=6; dd++) {
+        // Calculate the actual date for this day number
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + (dd - 1));
+        const dateStr = dayDate.getFullYear() + '-' +
+          String(dayDate.getMonth()+1).padStart(2,'0') + '-' +
+          String(dayDate.getDate()).padStart(2,'0');
+        const dateKey = 'dt' + dateStr;
+        const dayData = data[dateKey] || {};
         SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const yn    = getVal(dd, t.id, 'yn');
-          const photo = getVal(dd, t.id, 'photo'); // base64 local photo
-          const pUrl  = getVal(dd, t.id, 'photoUrl'); // firebase url
-          if (yn || photo || pUrl) {
+          const td    = dayData[t.id] || {};
+          const yn    = td.yn;
+          const pUrl  = td.photoUrl || td.photo_url;
+          const base64 = td.photo;
+          if (yn || pUrl || base64) {
             tasks[`d${dd}_${t.id}`] = {
               day: dd,
               section: s.title,
               task: t.text,
               owner: t.ownerLbl,
               yn: yn||'',
-              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '', // Cloudinary URL only — never base64
+              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : (base64 && base64.startsWith('data:')) ? base64 : '',
             };
           }
         }));
@@ -1478,9 +1503,10 @@ function handlePhotoFile(file) {
 // ── Persist info fields ───────────────────────────────────────
 function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
-  const key = idx === 0 ? 'photo' : 'photo_' + idx;
+  const key    = idx === 0 ? 'photo'    : 'photo_'    + idx;
+  const urlKey = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
   setVal(currentDay, taskId, key, '');
-  setVal(currentDay, taskId, 'photoUrl', '');
+  setVal(currentDay, taskId, urlKey, '');
   renderDay();
   showToast('Photo removed ✓', 'ok');
 }
