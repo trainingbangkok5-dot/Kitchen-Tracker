@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-version" content="20260606180000">
+<meta name="app-version" content="20260615140000">
 <script>
 (function() {
-  var v = '20260605030000';
+  var v = '20260615140000';
   var stored = localStorage.getItem('app_version_am_kpi');
   if (stored !== v) {
     localStorage.setItem('app_version_am_kpi', v);
@@ -183,7 +183,8 @@ select.outlet-sel:focus{outline:none;border-color:#1A3C5E}
       <span>Target: 100% achievement = full 30 pts</span>
       <span>Max KPI Weight: <strong style="color:#0F172A">30 pts</strong></span>
     </div>
-    <table class="t">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <table class="t" style="min-width:420px;">
       <tr>
         <th>Outlet</th>
         <th style="text-align:center">Target (AED)</th>
@@ -198,6 +199,7 @@ select.outlet-sel:focus{outline:none;border-color:#1A3C5E}
         <td style="text-align:center" id="sales-avg-score">—</td>
       </tr>
     </table>
+    </div>
     <button class="add-btn" onclick="addSales()">+ Add Outlet</button>
     <div style="margin-top:12px">
       <div style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">KPI Model Logic Reference</div>
@@ -276,6 +278,7 @@ const FIREBASE_CONFIG = {
   appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
 };
 let _db = null;
+const _startedAt = new Date().toISOString();
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
@@ -605,6 +608,7 @@ function submitKPI() {
     auditTracker: auditData,
     salesTracker: salesData,
     submittedAt:  new Date().toISOString(),
+    startedAt:    _startedAt,
     lastUpdated:  new Date().toISOString(),
   };
 

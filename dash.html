@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615130000';
+  var v = '20260615140000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2783,6 +2783,23 @@ function openStaffDetail(s) {
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">In-Charge</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
       s.icRollup.forEach(r=>{const sc=parseFloat(r.score);const h=!isNaN(sc)&&r.score!=='';const c=h?(sc>=90?'#15803D':sc>=80?'#854D0E':'#B91C1C'):'#94A3B8';const b=h?(sc>=90?'#DCFCE7':sc>=80?'#FEF9C3':'#FEE2E2'):'#F1F5F9';html+=`<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px">${r.name||'—'}</td><td style="padding:7px 8px;text-align:center"><span style="background:${b};color:${c};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${h?sc:'—'}</span></td></tr>`;});
       html += `</table>`;
+    }
+
+    // Audit Tracker
+    if (s.auditTracker && s.auditTracker.length) {
+      const validAudits = s.auditTracker.filter(r => r.outlet && r.score !== '' && !isNaN(parseFloat(r.score)));
+      if (validAudits.length) {
+        html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Internal Audit Scores</div>`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Audit Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Grade</th></tr>`;
+        validAudits.forEach(r => {
+          const sc = parseFloat(r.score);
+          const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
+          const color = sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C';
+          const bg    = sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2';
+          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center;font-weight:700">${sc.toFixed(1)}</td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
+        });
+        html += `</table>`;
+      }
     }
   } else if (s.kpiScores) {
     // Area Chef KPI Tracker report — Full 6-KPI Matrix
