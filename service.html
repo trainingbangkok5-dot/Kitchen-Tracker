@@ -12,15 +12,9 @@
   var v = '20260613100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
-    // Only clear app cache keys, preserve staff name and settings
-    var keep = ['staffName','outlet','weekStart','fName'];
-    var saved = {};
-    keep.forEach(function(k) { saved[k] = localStorage.getItem(k); });
-    Object.keys(localStorage).forEach(function(k) { localStorage.removeItem(k); });
-    keep.forEach(function(k) { if (saved[k]) localStorage.setItem(k, saved[k]); });
     localStorage.setItem('app_version', v);
-    if (location.search.indexOf('_reloaded') === -1) {
-      location.replace(location.pathname + '?_reloaded=1');
+    if (stored) {
+      window.location.reload(true);
     }
   }
 })();
