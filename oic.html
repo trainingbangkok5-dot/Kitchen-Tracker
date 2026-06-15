@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260606180000">
-<meta name="app-version" content="20260606180000">
+<meta http-equiv="Expires" content="20260615280000">
+<meta name="app-version" content="20260615280000">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260608131626';
+  var v = '20260615280000';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -1216,16 +1216,33 @@ function submitDay() {
       const tasks = {};
       const _td = load()[getTodayKey()] || {};
       SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const yn   = _td[t.id]?.yn;
-        const pUrl = _td[t.id]?.photoUrl;
-        if (yn || pUrl) {
+        const td = _td[t.id] || {};
+        const yn = td.yn;
+        // Collect all photos — prefer _url (Cloudinary) over base64
+        const photoUrls = [];
+        let i = 0;
+        while (true) {
+          const slot     = i === 0 ? 'photo'     : 'photo_'     + i;
+          const slotUrl  = i === 0 ? 'photo_url' : 'photo_'     + i + '_url';
+          const base64   = td[slot];
+          const httpUrl  = td[slotUrl];
+          if (!base64 && !httpUrl) break;
+          const best = (httpUrl && httpUrl.startsWith('http')) ? httpUrl : (base64 && base64.startsWith('data:')) ? base64 : null;
+          if (best) photoUrls.push(best);
+          i++;
+          if (i > 10) break;
+        }
+        // Also check legacy photoUrl field
+        if (td.photoUrl && !photoUrls.includes(td.photoUrl)) photoUrls.push(td.photoUrl);
+        if (yn || photoUrls.length) {
           tasks[t.id] = {
             day: currentDay,
             section: s.title,
             task: t.text,
             owner: t.ownerLbl,
             yn: yn||'',
-            photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : '',
+            photoUrl: photoUrls[0] || '',
+            photoUrls: photoUrls,
           };
         }
       }));
