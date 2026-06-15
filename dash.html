@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615220000">
+<meta name="app-version" content="20260615240000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615220000';
+  var v = '20260615240000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2747,10 +2747,14 @@ function openStaffDetail(s) {
       s.fcTracker.forEach((r, idx) => {
         const f = parseFloat(r.fc);
         const hasF = !isNaN(f);
-        const status = hasF?(f<=25?'Target Achieved':f<=25.5?'Acceptable Variance':f<=26?'Critical Warning':'Action Plan Required'):'—';
         const sc = hasF?(f<=25?'#15803D':f<=25.5?'#854D0E':'#B91C1C'):'#94A3B8';
+        const status = hasF?(f<=25?'Target Achieved':f<=25.5?'Acceptable Variance':f<=26?'Critical Warning':'Action Plan Required'):'—';
         const sb = hasF?(f<=25?'#DCFCE7':f<=25.5?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="fcTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasF?f:''}" placeholder="e.g. 24" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${sc};pointer-events:none;opacity:1;">%</td><td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td></tr>`;
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+          <td style="padding:7px 8px"><input data-kpi-field="fcTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasF?f:''}" placeholder="e.g. 24" readonly oninput="kpiUpdateFCStatus(this,${idx},'am')" style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${sc};pointer-events:none;opacity:1;">%</td>
+          <td style="padding:7px 8px;text-align:center"><span id="fc-status-am-${idx}" style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
+        </tr>`;
       });
       html += `</table>`;
     }
@@ -2768,10 +2772,10 @@ function openStaffDetail(s) {
         const sb = hasData?(ach>=100?'#DCFCE7':ach>=90?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px"><input data-kpi-field="salesTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/target" type="number" min="0" step="1" value="${hasData?target:''}" placeholder="0" readonly style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/actual" type="number" min="0" step="1" value="${hasData?actual:''}" placeholder="0" readonly style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center;font-weight:700;color:${sc}">${hasData?ach+'%':'—'}</td>
-          <td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/target" type="number" min="0" step="1" value="${hasData?target:''}" placeholder="0" readonly oninput="kpiUpdateSalesStatus(this,${idx})" style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/actual" type="number" min="0" step="1" value="${hasData?actual:''}" placeholder="0" readonly oninput="kpiUpdateSalesStatus(this,${idx})" style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
+          <td id="sales-ach-${idx}" style="padding:7px 8px;text-align:center;font-weight:700;color:${sc}">${hasData?ach+'%':'—'}</td>
+          <td style="padding:7px 8px;text-align:center"><span id="sales-status-${idx}" style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
         </tr>`;
       });
       html += `</table>`;
@@ -2835,7 +2839,7 @@ function openStaffDetail(s) {
           // Find original index in s.auditTracker for correct field path
           const origIdx = s.auditTracker ? s.auditTracker.findIndex(x => x.outlet === r.outlet) : idx;
           const fieldIdx = origIdx >= 0 ? origIdx : idx;
-          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="auditTracker/${fieldIdx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditTracker/${fieldIdx}/score" type="number" min="0" max="100" step="0.5" value="${sc}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
+          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px"><input data-kpi-field="auditTracker/${fieldIdx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:80px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditTracker/${fieldIdx}/score" type="number" min="0" max="100" step="0.5" value="${sc}" placeholder="0-100" readonly oninput="kpiUpdateAuditGrade(this,'audit-grade-am-${fieldIdx}')" style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><span id="audit-grade-am-${fieldIdx}" style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
         });
         html += `</table>`;
       }
@@ -2931,9 +2935,9 @@ function openStaffDetail(s) {
         }
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px"><input data-kpi-field="fcTracker/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasFC?f:''}" placeholder="e.g. 25" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;">%</td>
-          <td style="padding:7px 8px;text-align:center;font-weight:700;color:${color}">${hasFC?score.toFixed(1):'—'}</td>
-          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasFC?f:''}" placeholder="e.g. 25" readonly oninput="kpiUpdateFCStatus(this,${idx},'ac')" style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;">%</td>
+          <td id="fc-score-ac-${idx}" style="padding:7px 8px;text-align:center;font-weight:700;color:${color}">${hasFC?score.toFixed(1):'—'}</td>
+          <td style="padding:7px 8px;text-align:center"><span id="fc-status-ac-${idx}" style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
         </tr>`;
       });
       html += `</table>`;
@@ -2952,8 +2956,8 @@ function openStaffDetail(s) {
         const bg    = hasSc?(sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2'):'#F1F5F9';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px"><input data-kpi-field="auditData/${idx}/outlet" type="text" value="${r.outlet||''}" placeholder="Outlet" readonly style="width:90px;border:none;background:transparent;font-size:12px;pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditData/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasSc?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
-          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditData/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasSc?sc:''}" placeholder="0-100" readonly oninput="kpiUpdateAuditGrade(this,'audit-grade-ac-${idx}')" style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
+          <td style="padding:7px 8px;text-align:center"><span id="audit-grade-ac-${idx}" style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td>
         </tr>`;
       });
       html += `</table>`;
@@ -4922,6 +4926,68 @@ let _editStaffData = null;
 let _editChanges = {}; // taskKey -> new yn value
 let _editPhotoChanges = {}; // taskKey -> base64 photo
 let _verifiedByEdit = ''; // verified by field
+
+// ── KPI live-update helpers ───────────────────────────────────
+function kpiUpdateFCStatus(inp, idx, role) {
+  const f = parseFloat(inp.value);
+  if (isNaN(f)) return;
+  let status, color, bg, score;
+  if (role === 'ac') {
+    if(f<=25){score=30;status='Target Achieved';color='#15803D';bg='#DCFCE7';}
+    else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable Variance';color='#854D0E';bg='#FEF9C3';}
+    else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning Zone';color='#B91C1C';bg='#FEE2E2';}
+    else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
+    const scoreEl = document.getElementById(`fc-score-ac-${idx}`);
+    if (scoreEl) { scoreEl.textContent = score.toFixed(1); scoreEl.style.color = color; }
+    const statusEl = document.getElementById(`fc-status-ac-${idx}`);
+    if (statusEl) { statusEl.textContent = status; statusEl.style.color = color; statusEl.style.background = bg; }
+  } else {
+    if(f<=25){status='Target Achieved';color='#15803D';bg='#DCFCE7';}
+    else if(f<=25.5){status='Acceptable Variance';color='#854D0E';bg='#FEF9C3';}
+    else if(f<=26){status='Critical Warning';color='#B91C1C';bg='#FEE2E2';}
+    else{status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
+    const statusEl = document.getElementById(`fc-status-am-${idx}`);
+    if (statusEl) { statusEl.textContent = status; statusEl.style.color = color; statusEl.style.background = bg; }
+  }
+  inp.style.color = color;
+}
+
+function kpiUpdateSalesStatus(inp, idx) {
+  const row = inp.closest('tr');
+  if (!row) return;
+  const inputs = row.querySelectorAll('input[data-kpi-field]');
+  let target, actual;
+  inputs.forEach(i => {
+    const f = i.getAttribute('data-kpi-field');
+    if (f && f.includes('/target')) target = parseFloat(i.value);
+    if (f && f.includes('/actual')) actual = parseFloat(i.value);
+  });
+  const achEl  = document.getElementById(`sales-ach-${idx}`);
+  const statEl = document.getElementById(`sales-status-${idx}`);
+  if (!achEl || !statEl) return;
+  if (isNaN(target) || isNaN(actual) || target <= 0) {
+    achEl.textContent = '—'; achEl.style.color = '#94A3B8';
+    statEl.textContent = '—'; statEl.style.color = '#94A3B8'; statEl.style.background = '#F1F5F9';
+    return;
+  }
+  const ach = Math.round((actual/target)*100*10)/10;
+  const status = ach>=100?'Target Achieved':ach>=90?'Acceptable Variance':ach>=75?'Below Target':'Action Plan Required';
+  const color  = ach>=100?'#15803D':ach>=90?'#854D0E':'#B91C1C';
+  const bg     = ach>=100?'#DCFCE7':ach>=90?'#FEF9C3':'#FEE2E2';
+  achEl.textContent = ach + '%'; achEl.style.color = color;
+  statEl.textContent = status; statEl.style.color = color; statEl.style.background = bg;
+}
+
+function kpiUpdateAuditGrade(inp, gradeId) {
+  const sc = parseFloat(inp.value);
+  if (isNaN(sc)) return;
+  const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
+  const color = sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C';
+  const bg    = sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2';
+  inp.style.color = color;
+  const el = document.getElementById(gradeId);
+  if (el) { el.textContent = grade; el.style.color = color; el.style.background = bg; }
+}
 
 // ── KPI Inline Edit (AC / AM) ────────────────────────────────
 function toggleKPIEditMode(s) {
