@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615150000">
+<meta name="app-version" content="20260615190000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615150000';
+  var v = '20260615190000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2477,6 +2477,21 @@ function openStaffDetail(s) {
       editBtn.onclick = () => toggleEditMode(s);
       if (closeBtn) modalHeader.insertBefore(editBtn, pdfBtn);
     }
+    // KPI Edit button — only for AC/AM roles, accessible to themselves + director/training/ops/ceo
+    const isKPIRole = ['areachef','areamanager'].includes(s.role);
+    const canEditKPI = isKPIRole && (
+      (currentRole === 'areachef' && s.role === 'areachef') ||
+      (currentRole === 'areamanager' && s.role === 'areamanager') ||
+      ['director','training','operations','ceo'].includes(currentRole)
+    );
+    if (canEditKPI) {
+      const kpiEditBtn = document.createElement('button');
+      kpiEditBtn.className = 'modal-close pdf-daily-btn kpi-edit-btn';
+      kpiEditBtn.style.cssText = 'background:#1A3C5E;margin-right:6px;';
+      kpiEditBtn.textContent = '✏️ Edit KPI';
+      kpiEditBtn.onclick = () => toggleKPIEditMode(s);
+      if (closeBtn) modalHeader.insertBefore(kpiEditBtn, pdfBtn);
+    }
   }
 
   const body = document.getElementById('modalBody');
@@ -2716,27 +2731,26 @@ function openStaffDetail(s) {
     if (s.icRollup && s.icRollup.length) {
       html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Supervisor In-Charge Rollup</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">In-Charge</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
-      s.icRollup.forEach(r => {
+      s.icRollup.forEach((r, idx) => {
         const sc = parseFloat(r.score);
         const hasScore = !isNaN(sc) && r.score !== '';
         const color = hasScore?(sc>=90?'#15803D':sc>=80?'#854D0E':'#B91C1C'):'#94A3B8';
-        const bg    = hasScore?(sc>=90?'#DCFCE7':sc>=80?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px">${r.name||'—'}</td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${hasScore?sc:'—'}</span></td></tr>`;
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px">${r.name||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td></tr>`;
       });
       html += `</table>`;
     }
 
-    // Food Cost Tracker
+    // Bar Cost Tracker
     if (s.fcTracker && s.fcTracker.length) {
       html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Bar Cost %</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">FC%</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Status</th></tr>`;
-      s.fcTracker.forEach(r => {
+      s.fcTracker.forEach((r, idx) => {
         const f = parseFloat(r.fc);
-        if (isNaN(f)) { html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td colspan="2" style="padding:7px 8px;text-align:center;color:#94A3B8">—</td></tr>`; return; }
-        const status = f<=25?'Target Achieved':f<=25.5?'Acceptable Variance':f<=26?'Critical Warning':'Action Plan Required';
-        const sc = f<=25?'#15803D':f<=25.5?'#854D0E':'#B91C1C';
-        const sb = f<=25?'#DCFCE7':f<=25.5?'#FEF9C3':'#FEE2E2';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center">${f}%</td><td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td></tr>`;
+        const hasF = !isNaN(f);
+        const status = hasF?(f<=25?'Target Achieved':f<=25.5?'Acceptable Variance':f<=26?'Critical Warning':'Action Plan Required'):'—';
+        const sc = hasF?(f<=25?'#15803D':f<=25.5?'#854D0E':'#B91C1C'):'#94A3B8';
+        const sb = hasF?(f<=25?'#DCFCE7':f<=25.5?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasF?f:''}" placeholder="e.g. 24" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${sc};pointer-events:none;opacity:1;">%</td><td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td></tr>`;
       });
       html += `</table>`;
     }
@@ -2745,15 +2759,20 @@ function openStaffDetail(s) {
     if (s.salesTracker && s.salesTracker.length) {
       html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Outlet Sales Target</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Target</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Actual</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Ach%</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Status</th></tr>`;
-      s.salesTracker.forEach(r => {
+      s.salesTracker.forEach((r, idx) => {
         const target = parseFloat(r.target), actual = parseFloat(r.actual);
         const hasData = !isNaN(target) && !isNaN(actual) && target > 0;
-        if (!hasData) { html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td colspan="4" style="padding:7px 8px;text-align:center;color:#94A3B8">—</td></tr>`; return; }
-        const ach = Math.round((actual/target)*100*10)/10;
-        const status = ach>=100?'Target Achieved':ach>=90?'Acceptable Variance':ach>=75?'Below Target':'Action Plan Required';
-        const sc = ach>=100?'#15803D':ach>=90?'#854D0E':'#B91C1C';
-        const sb = ach>=100?'#DCFCE7':ach>=90?'#FEF9C3':'#FEE2E2';
-        html += `<tr style="border-bottom:0.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center">${target.toLocaleString()}</td><td style="padding:7px 8px;text-align:center">${actual.toLocaleString()}</td><td style="padding:7px 8px;text-align:center;font-weight:700;color:${sc}">${ach}%</td><td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td></tr>`;
+        const ach = hasData?Math.round((actual/target)*100*10)/10:null;
+        const status = hasData?(ach>=100?'Target Achieved':ach>=90?'Acceptable Variance':ach>=75?'Below Target':'Action Plan Required'):'—';
+        const sc = hasData?(ach>=100?'#15803D':ach>=90?'#854D0E':'#B91C1C'):'#94A3B8';
+        const sb = hasData?(ach>=100?'#DCFCE7':ach>=90?'#FEF9C3':'#FEE2E2'):'#F1F5F9';
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/target" type="number" min="0" step="1" value="${hasData?target:''}" placeholder="0" readonly style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="salesTracker/${idx}/actual" type="number" min="0" step="1" value="${hasData?actual:''}" placeholder="0" readonly style="width:70px;text-align:center;border:none;background:transparent;font-size:11px;color:#374151;pointer-events:none;opacity:1;"></td>
+          <td style="padding:7px 8px;text-align:center;font-weight:700;color:${sc}">${hasData?ach+'%':'—'}</td>
+          <td style="padding:7px 8px;text-align:center"><span style="background:${sb};color:${sc};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
+        </tr>`;
       });
       html += `</table>`;
     }
@@ -2808,12 +2827,15 @@ function openStaffDetail(s) {
       if (validAudits.length) {
         html += `<div style="background:#1A3C5E;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Internal Audit Scores</div>`;
         html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px"><tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Audit Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Grade</th></tr>`;
-        validAudits.forEach(r => {
+        validAudits.forEach((r, idx) => {
           const sc = parseFloat(r.score);
           const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
           const color = sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C';
           const bg    = sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2';
-          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center;font-weight:700">${sc.toFixed(1)}</td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
+          // Find original index in s.auditTracker for correct field path
+          const origIdx = s.auditTracker ? s.auditTracker.findIndex(x => x.outlet === r.outlet) : idx;
+          const fieldIdx = origIdx >= 0 ? origIdx : idx;
+          html += `<tr style="border-bottom:.5px solid #F1F5F9"><td style="padding:7px 8px">${r.outlet||'—'}</td><td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditTracker/${fieldIdx}/score" type="number" min="0" max="100" step="0.5" value="${sc}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td><td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td></tr>`;
         });
         html += `</table>`;
       }
@@ -2879,15 +2901,14 @@ function openStaffDetail(s) {
       html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Outlet In-Charge Rollup</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
       html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">In-Charge</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th></tr>`;
-      s.icRollup.forEach(r => {
+      s.icRollup.forEach((r, idx) => {
         const score = parseFloat(r.score);
         const hasScore = !isNaN(score) && r.score !== '';
         const color = hasScore ? (score>=90?'#15803D':score>=80?'#854D0E':'#B91C1C') : '#94A3B8';
-        const bg    = hasScore ? (score>=90?'#DCFCE7':score>=80?'#FEF9C3':'#FEE2E2') : '#F1F5F9';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px">${r.outlet||'—'}</td>
           <td style="padding:7px 8px">${r.name||'—'}</td>
-          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${hasScore?score:'—'}</span></td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="icRollup/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasScore?score:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
         </tr>`;
       });
       html += `</table>`;
@@ -2898,26 +2919,20 @@ function openStaffDetail(s) {
       html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Area Chef Outlet Wise Food Cost %</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
       html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">FC%</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Status</th></tr>`;
-      s.fcTracker.forEach(r => {
-        if (!r.fc && r.fc !== 0) {
-          html += `<tr style="border-bottom:0.5px solid #F1F5F9">
-            <td style="padding:7px 8px">${r.outlet||'—'}</td>
-            <td style="padding:7px 8px;text-align:center;color:#94A3B8">—</td>
-            <td style="padding:7px 8px;text-align:center;color:#94A3B8">—</td>
-            <td style="padding:7px 8px;text-align:center;color:#94A3B8">—</td>
-          </tr>`;
-          return;
-        }
+      s.fcTracker.forEach((r, idx) => {
         const f = parseFloat(r.fc);
-        let score, status, color, bg;
-        if (f<=25){score=30;status='Target Achieved';color='#15803D';bg='#DCFCE7';}
-        else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable Variance';color='#854D0E';bg='#FEF9C3';}
-        else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning Zone';color='#B91C1C';bg='#FEE2E2';}
-        else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
+        const hasFC = !isNaN(f);
+        let score=0, status='—', color='#94A3B8', bg='#F1F5F9';
+        if (hasFC) {
+          if(f<=25){score=30;status='Target Achieved';color='#15803D';bg='#DCFCE7';}
+          else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable Variance';color='#854D0E';bg='#FEF9C3';}
+          else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning Zone';color='#B91C1C';bg='#FEE2E2';}
+          else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';color='#B91C1C';bg='#FEE2E2';}
+        }
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px">${r.outlet||'—'}</td>
-          <td style="padding:7px 8px;text-align:center">${f}%</td>
-          <td style="padding:7px 8px;text-align:center;font-weight:700">${score.toFixed(1)}</td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="fcTracker/${idx}/fc" type="number" min="0" max="100" step="0.1" value="${hasFC?f:''}" placeholder="e.g. 25" readonly style="width:60px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;">%</td>
+          <td style="padding:7px 8px;text-align:center;font-weight:700;color:${color}">${hasFC?score.toFixed(1):'—'}</td>
           <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
         </tr>`;
       });
@@ -2929,14 +2944,15 @@ function openStaffDetail(s) {
       html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Internal Audit Scores</div>`;
       html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
       html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Audit Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Grade</th></tr>`;
-      s.auditData.forEach(r => {
+      s.auditData.forEach((r, idx) => {
         const sc = parseFloat(r.score);
-        const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
-        const color = sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C';
-        const bg    = sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2';
+        const hasSc = !isNaN(sc);
+        const grade = hasSc?(sc>=91?'A':sc>=80?'B':sc>=70?'C':'D'):'—';
+        const color = hasSc?(sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C'):'#94A3B8';
+        const bg    = hasSc?(sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2'):'#F1F5F9';
         html += `<tr style="border-bottom:0.5px solid #F1F5F9">
           <td style="padding:7px 8px">${r.outlet||'—'}</td>
-          <td style="padding:7px 8px;text-align:center;font-weight:700">${sc.toFixed(1)}</td>
+          <td style="padding:7px 8px;text-align:center"><input data-kpi-field="auditData/${idx}/score" type="number" min="0" max="100" step="0.5" value="${hasSc?sc:''}" placeholder="0-100" readonly style="width:64px;text-align:center;border:none;background:transparent;font-size:11px;font-weight:700;color:${color};pointer-events:none;opacity:1;"></td>
           <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td>
         </tr>`;
       });
@@ -4906,6 +4922,86 @@ let _editStaffData = null;
 let _editChanges = {}; // taskKey -> new yn value
 let _editPhotoChanges = {}; // taskKey -> base64 photo
 let _verifiedByEdit = ''; // verified by field
+
+// ── KPI Inline Edit (AC / AM) ────────────────────────────────
+function toggleKPIEditMode(s) {
+  const body = document.getElementById('modalBody');
+  if (!body) return;
+
+  // Update button
+  const kpiBtn = document.querySelector('.kpi-edit-btn');
+  if (kpiBtn) {
+    kpiBtn.textContent = '💾 Save KPI';
+    kpiBtn.style.background = '#16A34A';
+    kpiBtn.onclick = () => saveKPIOverwrite(s);
+  }
+
+  // Make all number inputs in KPI report editable
+  body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
+    inp.readOnly = false;
+    inp.style.background = '#fff';
+    inp.style.border = '1px solid #1A3C5E';
+    inp.style.pointerEvents = 'auto';
+    inp.style.opacity = '1';
+  });
+
+  // Add cancel button
+  const existing = body.querySelector('#cancelKPIEditBtn');
+  if (!existing) {
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancelKPIEditBtn';
+    cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
+    cancelBtn.textContent = '✕ Cancel';
+    cancelBtn.onclick = () => openStaffDetail(s);
+    body.appendChild(cancelBtn);
+  }
+}
+
+async function saveKPIOverwrite(s) {
+  const body = document.getElementById('modalBody');
+  if (!body) return;
+
+  const _isFOHRecord = s._isFOH || ['service','oic','delco','bartender'].includes(s.role);
+  const _saveDb = _isFOHRecord ? fohDb : db;
+  if (!_saveDb) { alert('Firebase not connected. Please refresh.'); return; }
+
+  let fbKey = s._fbKey || '';
+  if (!fbKey) {
+    showToast('Cannot save — record key not found. Please refresh.', 'error');
+    return;
+  }
+
+  // Collect all editable inputs
+  const updates = {};
+  body.querySelectorAll('input[data-kpi-field]').forEach(inp => {
+    const field = inp.getAttribute('data-kpi-field');
+    const val = inp.value.trim();
+    updates['submissions/' + fbKey + '/' + field] = isNaN(parseFloat(val)) ? val : Math.round(parseFloat(val) * 100) / 100;
+  });
+
+  updates['submissions/' + fbKey + '/lastUpdated'] = new Date().toISOString();
+
+  const kpiBtn = document.querySelector('.kpi-edit-btn');
+  if (kpiBtn) { kpiBtn.disabled = true; kpiBtn.textContent = 'Saving...'; }
+
+  try {
+    await _saveDb.ref().update(updates);
+    showToast('KPI report updated ✓', 'ok');
+    // Reload fresh record
+    const fresh = await _saveDb.ref('submissions/' + fbKey).once('value');
+    if (fresh.exists()) {
+      const rec = fresh.val();
+      rec._fbKey = fbKey;
+      rec._isFOH = _isFOHRecord;
+      openStaffDetail(rec);
+    } else {
+      openStaffDetail(s);
+    }
+  } catch(e) {
+    showToast('Save failed: ' + e.message, 'error');
+    if (kpiBtn) { kpiBtn.disabled = false; kpiBtn.textContent = '💾 Save KPI'; }
+  }
+}
 
 function toggleEditMode(s) {
   _editMode = true;
