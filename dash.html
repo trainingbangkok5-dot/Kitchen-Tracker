@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260614210000">
+<meta name="app-version" content="20260615130000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260614210000';
+  var v = '20260615130000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2789,13 +2789,10 @@ function openStaffDetail(s) {
     const kpiNames = {
       foodCost:          'Outlet Food Cost Optimization',
       kicAccountability: 'Kitchen Incharge Accountability',
-      staffProficiency:  'Staff Technical Proficiency',
-      webAppIntegrity:   'Web App Data Integrity',
       internalAudits:    'Internal Audits',
-      assetCare:         'Asset Care & Preventive Maintenance'
     };
-    const kpiMax      = {foodCost:30, kicAccountability:25, staffProficiency:20, webAppIntegrity:10, internalAudits:30, assetCare:5};
-    const kpiBaseline = {foodCost:27, kicAccountability:18, staffProficiency:18, webAppIntegrity:9,  internalAudits:4,  assetCare:4.5};
+    const kpiMax      = {foodCost:30, kicAccountability:25, internalAudits:30};
+    const kpiBaseline = {foodCost:27, kicAccountability:18, internalAudits:4};
 
     // Overall score from all 6 KPIs
     let kpiTotal = 0;
@@ -2811,7 +2808,7 @@ function openStaffDetail(s) {
     html += `<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:14px;text-align:center;margin-bottom:12px">
       <div style="font-size:11px;color:#64748B;margin-bottom:4px">OVERALL AREA CHEF KPI SCORE</div>
       <div style="font-size:44px;font-weight:700;color:#7F1D1D;line-height:1">${kpiTotal.toFixed(1)}</div>
-      <div style="font-size:11px;color:#94A3B8;margin-top:4px">/ 120 pts  ·  Baseline: 80.5 pts</div>
+      <div style="font-size:11px;color:#94A3B8;margin-top:4px">/ 85 pts  ·  Baseline: 49 pts</div>
       <div style="background:${tierBg};border:2px solid ${tierColor};border-radius:10px;padding:10px;margin-top:10px">
         <div style="font-size:13px;font-weight:700;color:${tierColor}">${tierName}</div>
         <div style="font-size:11px;color:#475569;margin-top:4px">Evaluation Period: ${s.period||'—'}</div>
@@ -2837,8 +2834,8 @@ function openStaffDetail(s) {
     });
     html += `<tr style="background:#FFF1F1;font-weight:700">
       <td style="padding:8px">OVERALL AREA CHEF KPI SCORE</td>
-      <td style="padding:8px;text-align:center">120</td>
-      <td style="padding:8px;text-align:center">80.5</td>
+      <td style="padding:8px;text-align:center">85</td>
+      <td style="padding:8px;text-align:center">49</td>
       <td style="padding:8px;text-align:center"><span style="background:${tierBg};color:${tierColor};padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700">${kpiTotal.toFixed(1)}</span></td>
     </tr>`;
     html += `</table>`;
@@ -2888,6 +2885,25 @@ function openStaffDetail(s) {
           <td style="padding:7px 8px;text-align:center">${f}%</td>
           <td style="padding:7px 8px;text-align:center;font-weight:700">${score.toFixed(1)}</td>
           <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">${status}</span></td>
+        </tr>`;
+      });
+      html += `</table>`;
+    }
+
+    // Audit Breakdown (Section 4 — per-outlet audit scores)
+    if (s.auditData && s.auditData.length) {
+      html += `<div style="background:#7F1D1D;color:#fff;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px">Internal Audit Scores</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">`;
+      html += `<tr style="background:#F8FAFC"><th style="padding:6px 8px;text-align:left;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Outlet</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Audit Score</th><th style="padding:6px 8px;text-align:center;font-size:10px;color:#64748B;border-bottom:1px solid #E2E8F0">Grade</th></tr>`;
+      s.auditData.forEach(r => {
+        const sc = parseFloat(r.score);
+        const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
+        const color = sc>=91?'#15803D':sc>=80?'#854D0E':sc>=70?'#92400E':'#B91C1C';
+        const bg    = sc>=91?'#DCFCE7':sc>=80?'#FEF9C3':sc>=70?'#FFF7ED':'#FEE2E2';
+        html += `<tr style="border-bottom:0.5px solid #F1F5F9">
+          <td style="padding:7px 8px">${r.outlet||'—'}</td>
+          <td style="padding:7px 8px;text-align:center;font-weight:700">${sc.toFixed(1)}</td>
+          <td style="padding:7px 8px;text-align:center"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700">${grade}</span></td>
         </tr>`;
       });
       html += `</table>`;

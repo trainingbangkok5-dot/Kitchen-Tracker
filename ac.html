@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta name="app-version" content="20260606180000">
+<meta name="app-version" content="20260615130000">
 <script>
 (function() {
-  var v = '20260608153240';
+  var v = '20260615130000';
   var stored = localStorage.getItem('app_version_ac_kpi2');
   if (stored !== v) {
     localStorage.setItem('app_version_ac_kpi2', v);
@@ -281,9 +281,7 @@ function calcAll() {
     }
   }
   // Update section input pills
-  const sp = document.getElementById('sp-pill'); if(sp){const v=kpiVals[2]||0;sp.textContent=v.toFixed(1);sp.className='pill '+(v/20>=0.9?'g':v/20>=0.7?'y':'r');}
-  const wa = document.getElementById('wa-pill'); if(wa){const v=kpiVals[3]||0;wa.textContent=v.toFixed(1);wa.className='pill '+(v/10>=0.9?'g':v/10>=0.7?'y':'r');}
-  const ac = document.getElementById('ac-pill'); if(ac){const v=kpiVals[5]||0;ac.textContent=v.toFixed(1);ac.className='pill '+(v/5>=0.9?'g':v/5>=0.7?'y':'r');}
+
 
   total = Math.round(total * 10) / 10;
   const mTotal = document.getElementById('m-total'); if (mTotal) mTotal.textContent = total.toFixed(1);
@@ -503,15 +501,12 @@ function submitKPI() {
   if (!name) { showToast('Please enter your name', 'warn'); return; }
   if (!outlet) { showToast('Please enter your outlet', 'warn'); return; }
 
-  const kpiScores = {};
-  const kpiNames = ['foodCost','kicAccountability','staffProficiency','webAppIntegrity','internalAudits','assetCare'];
-  let total = 0;
-  for (let i = 0; i < 6; i++) {
-    const val = Math.min(kpiVals[i] || 0, MAX[i]);
-    kpiScores[kpiNames[i]] = Math.round(val * 100) / 100;
-    total += val;
-  }
-  total = Math.round(total * 10) / 10;
+  const kpiScores = {
+    foodCost:          Math.round(Math.min(kpiVals[0]||0, MAX[0]) * 100) / 100,
+    kicAccountability: Math.round(Math.min(kpiVals[1]||0, MAX[1]) * 100) / 100,
+    internalAudits:    Math.round(Math.min(kpiVals[4]||0, MAX[4]) * 100) / 100,
+  };
+  let total = Math.round((kpiScores.foodCost + kpiScores.kicAccountability + kpiScores.internalAudits) * 10) / 10;
 
   const record = {
     staffName:   name,
@@ -524,6 +519,7 @@ function submitKPI() {
     kpiScores:   kpiScores,
     icRollup:    icData,
     fcTracker:   fcData,
+    auditData:   auditData.filter(r => r.outlet && r.score !== '' && !isNaN(parseFloat(r.score))).map(r => ({outlet: r.outlet, score: Math.round(parseFloat(r.score) * 10) / 10})),
     submittedAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString(),
   };
