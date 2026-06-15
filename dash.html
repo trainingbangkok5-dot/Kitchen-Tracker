@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615330000">
+<meta name="app-version" content="20260615340000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615330000';
+  var v = '20260615340000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -937,6 +937,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </select>
         <span id="dashPrevStatus" style="font-size:11px;color:#94A3B8;"></span>
         <button id="dashPrevSaveBtn" onclick="dashSavePreventive()" style="display:none;padding:5px 12px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">💾 Save</button>
+        <button id="dashPrevOverwriteBtn" onclick="toggleDashPrevOverwrite()" style="display:none;padding:5px 12px;background:#E87722;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">✏️ Overwrite</button>
       </div>
     </div>
     <div style="overflow-x:auto;">
@@ -5700,6 +5701,18 @@ let currentMaintTab = 'log';
 
 const DASH_PREV_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 let _dashPrevSchedule = [];
+let _dashPrevOverwriteMode = false;
+
+function toggleDashPrevOverwrite() {
+  _dashPrevOverwriteMode = !_dashPrevOverwriteMode;
+  const btn = document.getElementById('dashPrevOverwriteBtn');
+  if (btn) {
+    btn.textContent = _dashPrevOverwriteMode ? '🔒 Lock Status' : '✏️ Overwrite';
+    btn.style.background = _dashPrevOverwriteMode ? '#B91C1C' : '#E87722';
+  }
+  dashRenderPreventive();
+  showToast(_dashPrevOverwriteMode ? 'Overwrite mode ON — status fields unlocked' : 'Overwrite mode OFF — status fields locked', _dashPrevOverwriteMode ? 'warn' : 'ok');
+}
 
 const DASH_JUNE_2026 = [
   {date:'2026-06-01',day:'Monday',outlet:'',equipment:'',staff:''},
@@ -5781,6 +5794,8 @@ async function dashLoadPreventive() {
   }
   document.getElementById('dashPrevStatus').textContent = '';
   document.getElementById('dashPrevSaveBtn').style.display = dashCanEditPrev() ? 'inline-block' : 'none';
+  document.getElementById('dashPrevOverwriteBtn').style.display = dashCanEditPrev() ? 'inline-block' : 'none';
+  _dashPrevOverwriteMode = false;
   dashRenderPreventive();
 }
 
@@ -5804,15 +5819,18 @@ function dashRenderPreventive() {
         ${canEdit ? `<input value="${row.staff||''}" onchange="_dashPrevSchedule[${i}].staff=this.value" style="width:100px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;">` : `<span style="font-size:12px;">${row.staff||'—'}</span>`}
       </td>
       <td style="padding:7px 12px;">
-        <select onchange="_dashPrevSchedule[${i}].status=this.value;dashRenderPreventive()" style="padding:3px 7px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;color:${statusColor(row.status)};font-weight:600;">
-          <option value="Pending" ${row.status==='Pending'?'selected':''}>⏳ Pending</option>
-          <option value="In Progress" ${row.status==='In Progress'?'selected':''}>🔄 In Progress</option>
-          <option value="Done" ${row.status==='Done'?'selected':''}>✅ Done</option>
-          <option value="Skipped" ${row.status==='Skipped'?'selected':''}>⏭ Skipped</option>
-        </select>
+        ${(_dashPrevOverwriteMode || row.status === 'Pending')
+          ? `<select onchange="_dashPrevSchedule[${i}].status=this.value;dashRenderPreventive()" style="padding:3px 7px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;color:${statusColor(row.status)};font-weight:600;">
+              <option value="Pending" ${row.status==='Pending'?'selected':''}>⏳ Pending</option>
+              <option value="In Progress" ${row.status==='In Progress'?'selected':''}>🔄 In Progress</option>
+              <option value="Done" ${row.status==='Done'?'selected':''}>✅ Done</option>
+              <option value="Skipped" ${row.status==='Skipped'?'selected':''}>⏭ Skipped</option>
+            </select>`
+          : `<span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;color:${statusColor(row.status)};background:${row.status==='Done'?'#DCFCE7':row.status==='In Progress'?'#FEF9C3':'#F1F5F9'};">${row.status==='Done'?'✅ Done':row.status==='In Progress'?'🔄 In Progress':row.status==='Skipped'?'⏭ Skipped':'⏳ '+row.status}</span>`
+        }
       </td>
       <td style="padding:7px 12px;">
-        <input value="${row.remarks||''}" placeholder="Remarks..." onchange="_dashPrevSchedule[${i}].remarks=this.value" style="width:110px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;">
+        <input value="${row.remarks||''}" placeholder="Remarks..." onchange="_dashPrevSchedule[${i}].remarks=this.value" style="width:110px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;" ${!_dashPrevOverwriteMode && row.status !== 'Pending' ? 'disabled style="background:#F8FAFC;color:#94A3B8;"' : ''}>
       </td>
     </tr>`;
   }).join('');
