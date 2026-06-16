@@ -7852,8 +7852,10 @@ function renderMaintRow(log, tbody) {
     const priColors = {Urgent:'#FEE2E2;color:#B91C1C',High:'#FEF3C7;color:#D97706',Medium:'#E0F2FE;color:#0891B2',Low:'#DCFCE7;color:#15803D',Preventive:'#EDE9FE;color:#7C3AED'};
     const priStyle = priColors[log.priority] || '#F1F5F9;color:#64748B';
     const stsColors = {Yes:'#DCFCE7;color:#15803D', Completed:'#DCFCE7;color:#15803D', No:'#FEF3C7;color:#D97706', Pending:'#FEF3C7;color:#D97706'};
-    const stsStyle = stsColors[log.status] || '#FEF3C7;color:#D97706';
-    const stsLabel = (log.status==='Yes'||log.status==='Completed') ? '✅ Completed' : '⏳ Pending';
+    const isCompleted = log.status==='Yes' || log.status==='Completed';
+    const isAssigned  = !isCompleted && log.assignedTo && log.assignedTo !== 'Unassigned';
+    const stsStyle = isCompleted ? '#DCFCE7;color:#15803D' : isAssigned ? '#DBEAFE;color:#1A3C5E' : '#FEF3C7;color:#D97706';
+    const stsLabel = isCompleted ? '✅ Completed' : isAssigned ? '🔧 Assigned' : '⏳ Pending';
 
     const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
     const canSetPriority = ['director','maintsupervisor','operations','ceo','admin','training'].includes(currentRole);
