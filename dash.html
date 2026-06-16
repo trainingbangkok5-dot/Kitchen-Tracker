@@ -1021,6 +1021,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <label style="font-size:11px;font-weight:600;color:#64748B;display:block;margin-bottom:4px;">Reason / Remarks</label>
       <input type="text" id="mow_remarks" style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:7px;font-size:12px;outline:none;" placeholder="Remarks...">
     </div>
+    <div style="margin-bottom:14px;padding:12px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;">
+      <label style="font-size:11px;font-weight:700;color:#15803D;display:block;margin-bottom:8px;">✅ Mark as Completed & Verify</label>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input type="checkbox" id="mow_mark_done" style="width:16px;height:16px;cursor:pointer;accent-color:#15803D;">
+        <label for="mow_mark_done" style="font-size:12px;font-weight:600;color:#15803D;cursor:pointer;">Mark this issue as Completed</label>
+      </div>
+      <input type="text" id="mow_verify_name" placeholder="Your name (verifier)..." style="width:100%;padding:8px;border:1.5px solid #86EFAC;border-radius:7px;font-size:12px;outline:none;box-sizing:border-box;">
+      <div style="font-size:10px;color:#64748B;margin-top:4px;">Enter your name to verify completion. Leave blank to skip verification.</div>
+    </div>
     <input type="hidden" id="mow_key">
     <button onclick="saveMaintOverwrite()" style="width:100%;padding:12px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">💾 Save Changes</button>
   </div>
@@ -7928,9 +7937,8 @@ function renderMaintRow(log, tbody) {
       <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
       <td style="padding:8px 10px;font-size:11px;">
         ${log.verifiedBy
-          ? `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''}</div>`
-          : `<input id="mverify_${log._key}" type="text" placeholder="Your name..." style="width:90px;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;margin-bottom:3px;display:block;">
-             <button data-mverify="${log._key}" style="font-size:10px;padding:3px 8px;background:#15803D;color:#fff;border:none;border-radius:5px;cursor:pointer;">✅ Verify</button>`
+          ? `<div style="font-weight:600;color:#15803D;font-size:11px;">✅ ${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8;">${log.verifiedByRole||''}</div>`
+          : `<span style="font-size:11px;color:#94A3B8;">—</span>`
         }
       </td>
     `;
@@ -7938,50 +7946,35 @@ function renderMaintRow(log, tbody) {
     const verifyBtn = tr.querySelector('[data-mverify]');
     if (verifyBtn) verifyBtn.addEventListener('click', () => maintVerify(verifyBtn.getAttribute('data-mverify')));
 
-    // Action cell
+    // Action cell — simplified to 3 buttons: Edit, Photo, Delete
     const actionTd = document.createElement('td');
     actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
     const actionDiv = document.createElement('div');
-    actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;flex-wrap:wrap;';
+    actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
 
-    // Save button — saves remarks, priority, assigned at once
-    if (canManage) {
-      const saveBtn = document.createElement('button');
-      saveBtn.textContent = '💾';
-      saveBtn.title = 'Save changes';
-      saveBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;cursor:pointer;';
-      saveBtn.onclick = () => maintSaveRow(log._key);
-      actionDiv.appendChild(saveBtn);
-    }
+    // Edit button — handles everything in one modal
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Edit / Update';
+    editBtn.style.cssText = 'font-size:13px;padding:5px 9px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;cursor:pointer;';
+    editBtn.onclick = () => maintOverwrite(log._key);
+    actionDiv.appendChild(editBtn);
+
     // Photo upload button
     if (canManage) {
       const photoBtn = document.createElement('button');
       photoBtn.textContent = '📷';
       photoBtn.title = 'Upload photo';
-      photoBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#FEF3C7;color:#D97706;border:none;border-radius:6px;cursor:pointer;';
+      photoBtn.style.cssText = 'font-size:13px;padding:5px 9px;background:#FEF3C7;color:#D97706;border:none;border-radius:6px;cursor:pointer;';
       photoBtn.onclick = () => maintUploadPhoto(log._key);
       actionDiv.appendChild(photoBtn);
     }
-    if (log.status !== 'Yes') {
-      const doneBtn = document.createElement('button');
-      doneBtn.textContent = '✅';
-      doneBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;';
-      doneBtn.onclick = () => maintMarkDone(log._key);
-      actionDiv.appendChild(doneBtn);
-    } else {
-      const doneSpan = document.createElement('span');
-      doneSpan.textContent = '✓';
-      doneSpan.style.cssText = 'font-size:10px;color:#15803D;font-weight:600;';
-      actionDiv.appendChild(doneSpan);
-    }
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️';
-    editBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#EFF6FF;color:#1A3C5E;border:none;border-radius:6px;cursor:pointer;';
-    editBtn.onclick = () => maintOverwrite(log._key);
-    actionDiv.appendChild(editBtn);
+
+    // Delete button
     const delBtn = document.createElement('button');
     delBtn.textContent = '🗑';
-    delBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;';
+    delBtn.title = 'Delete';
+    delBtn.style.cssText = 'font-size:13px;padding:5px 9px;background:#FEE2E2;color:#B91C1C;border:none;border-radius:6px;cursor:pointer;';
     delBtn.onclick = () => maintDelete(log._key);
     actionDiv.appendChild(delBtn);
     actionTd.appendChild(actionDiv);
@@ -8160,27 +8153,40 @@ function maintOverwrite(key) {
     assignedOther.style.display = 'block';
     assignedOther.value = assignedVal;
   }
+  // Mark done checkbox + verify name
+  const isDone = log.status === 'Yes' || log.status === 'Completed';
+  document.getElementById('mow_mark_done').checked = isDone;
+  document.getElementById('mow_verify_name').value = log.verifiedBy || '';
   document.getElementById('maintOverwriteModal').style.display = 'flex';
 }
 
 function saveMaintOverwrite() {
   const key = document.getElementById('mow_key').value;
   if (!key || !maintenanceDb) return;
+  const markDone    = document.getElementById('mow_mark_done').checked;
+  const verifyName  = (document.getElementById('mow_verify_name').value || '').trim();
+  const log         = allMaintenanceLogs.find(l => l._key === key);
   const updates = {
     dateReported: document.getElementById('mow_date').value,
-    reportedBy: document.getElementById('mow_reporter').value.trim(),
-    outlet: document.getElementById('mow_outlet').value,
-    description: document.getElementById('mow_desc').value.trim(),
-    priority: document.getElementById('mow_priority').value,
-    assignedTo: document.getElementById('mow_assigned').value === '__other__'
+    reportedBy:   document.getElementById('mow_reporter').value.trim(),
+    outlet:       document.getElementById('mow_outlet').value,
+    description:  document.getElementById('mow_desc').value.trim(),
+    priority:     document.getElementById('mow_priority').value,
+    assignedTo:   document.getElementById('mow_assigned').value === '__other__'
       ? (document.getElementById('mow_assigned_other')?.value.trim() || 'Unassigned')
       : document.getElementById('mow_assigned').value,
-    status: document.getElementById('mow_status').value,
-    remarks: document.getElementById('mow_remarks').value.trim(),
+    status:       markDone ? 'Yes' : document.getElementById('mow_status').value,
+    remarks:      document.getElementById('mow_remarks').value.trim(),
   };
-  if (updates.status === 'Yes') {
-    const log = allMaintenanceLogs.find(l => l._key === key);
-    if (!log?.dateResolved) updates.dateResolved = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
+  // Mark done — set resolved date
+  if (markDone && !log?.dateResolved) {
+    updates.dateResolved = new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
+  }
+  // Verify name
+  if (verifyName) {
+    updates.verifiedBy     = verifyName;
+    updates.verifiedByRole = currentRole;
+    updates.verifiedAt     = new Date().toISOString();
   }
   maintenanceDb.ref('maintenanceLogs/' + key).update(updates)
     .then(() => {
