@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260615310000';
+  var v = '20260616110000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -702,7 +702,8 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
 
 function submitDay() {
   const name=getStaffName(), outlet=getOutlet();
-  if(!name){ showToast('Please enter your name first','warn'); return; }
+  const _vn=validateFullName(name);
+  if(!_vn.valid){ showToast(_vn.msg,'warn'); return; }
   if(!outlet){ showToast('Please select your outlet first','warn'); return; }
 
   const shiftSections=SECTIONS.filter(s=>s.shift===currentShift);

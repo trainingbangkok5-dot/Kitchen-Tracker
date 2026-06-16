@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260615310000';
+  var v = '20260616110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260615310000">
-<meta name="app-version" content="20260615310000">
+<meta http-equiv="Expires" content="20260616110000">
+<meta name="app-version" content="20260616110000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#16A34A">
@@ -416,6 +416,29 @@ function saveSharedDB(db) {
   try { localStorage.setItem(SHARED_DB_KEY, JSON.stringify(db)); } catch(e) {}
 }
 
+
+// ── Full Name Validation ─────────────────────────────────────
+function validateFullName(name) {
+  if (!name || !name.trim()) {
+    return { valid: false, msg: 'Please enter your full name before submitting.' };
+  }
+  const trimmed = name.trim();
+  // Letters and spaces only
+  if (!/^[a-zA-Z\s]+$/.test(trimmed)) {
+    return { valid: false, msg: 'Name must contain letters only — no numbers or special characters.' };
+  }
+  // At least 2 words
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 2) {
+    return { valid: false, msg: 'Please enter your full name (first and last name required).' };
+  }
+  // Proper case — each word starts with capital
+  const properCase = words.every(w => w[0] === w[0].toUpperCase() && w[0] !== w[0].toLowerCase());
+  if (!properCase) {
+    return { valid: false, msg: 'Please capitalize your name correctly (e.g. Juan dela Cruz).' };
+  }
+  return { valid: true, msg: '' };
+}
 function pushToMasterDashboard(record) {
   // record: { staffName, role, outlet, week, day, overallPct, qualified, submittedAt, verifiedBy }
   const db = loadSharedDB();
@@ -1118,7 +1141,8 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
 
 function submitOpening() {
   const name = getStaffName();
-  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  const _vnO = validateFullName(name);
+  if (!_vnO.valid) { showToast(_vnO.msg, 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
   const openingTasks = SECTIONS[0].tasks;
@@ -1184,7 +1208,8 @@ function submitOpening() {
 
 function submitDay() {
   const name = getStaffName();
-  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  const _vnO = validateFullName(name);
+  if (!_vnO.valid) { showToast(_vnO.msg, 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
   if (!getWeekStart()) { showToast('Please set the week starting date', 'warn'); return; }
   const closingTasks = SECTIONS[1].tasks;

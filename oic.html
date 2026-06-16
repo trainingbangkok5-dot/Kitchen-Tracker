@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615300000';
+  var v = '20260616110000';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -368,6 +368,29 @@ function saveSharedDB(db) {
   try { localStorage.setItem(SHARED_DB_KEY, JSON.stringify(db)); } catch(e) {}
 }
 
+
+// ── Full Name Validation ─────────────────────────────────────
+function validateFullName(name) {
+  if (!name || !name.trim()) {
+    return { valid: false, msg: 'Please enter your full name before submitting.' };
+  }
+  const trimmed = name.trim();
+  // Letters and spaces only
+  if (!/^[a-zA-Z\s]+$/.test(trimmed)) {
+    return { valid: false, msg: 'Name must contain letters only — no numbers or special characters.' };
+  }
+  // At least 2 words
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 2) {
+    return { valid: false, msg: 'Please enter your full name (first and last name required).' };
+  }
+  // Proper case — each word starts with capital
+  const properCase = words.every(w => w[0] === w[0].toUpperCase() && w[0] !== w[0].toLowerCase());
+  if (!properCase) {
+    return { valid: false, msg: 'Please capitalize your name correctly (e.g. Juan dela Cruz).' };
+  }
+  return { valid: true, msg: '' };
+}
 function pushToMasterDashboard(record) {
   // record: { staffName, role, outlet, week, day, overallPct, qualified, submittedAt, verifiedBy }
   const db = loadSharedDB();
@@ -1189,7 +1212,8 @@ function fmtTimeOnly(iso) {
 // ── Submit day ────────────────────────────────────────────────
 function submitDay() {
   const name = getStaffName();
-  if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
+  const _vn = validateFullName(name);
+  if (!_vn.valid) { showToast(_vn.msg, 'warn'); document.getElementById('fName').focus(); return; }
   // Update SK from name only (outlet handled in Firebase key)
   SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   // getWeekStart always returns Dubai date as fallback

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615340000">
+<meta name="app-version" content="20260616110000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615340000';
+  var v = '20260616110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1403,10 +1403,13 @@ function filterByRole(staff) {
   if (MGMT_ACCESS.includes(currentRole)) return staff;
   const myOutlet = (currentOutlet||'').trim().toLowerCase();
   // KIC sees only LC and ST from their outlet
-  if (currentRole === 'kic') return staff.filter(s =>
-    (s.outlet||'').trim().toLowerCase().includes(myOutlet) || myOutlet.includes((s.outlet||'').trim().toLowerCase()) &&
-    ['linecook','steward'].includes(s.role)
-  ).filter(s => ['linecook','steward'].includes(s.role));
+  if (currentRole === 'kic') {
+    return staff.filter(s => {
+      const sOutlet = (s.outlet||'').trim().toLowerCase();
+      const outletMatch = myOutlet && (sOutlet === myOutlet || sOutlet.includes(myOutlet) || myOutlet.includes(sOutlet));
+      return outletMatch && ['linecook','steward'].includes(s.role);
+    });
+  }
   // Area Chef sees LC, ST, KIC (BOH) — across all outlets
   if (currentRole === 'areachef') return staff.filter(s =>
     ['linecook','steward','kic'].includes(s.role)
