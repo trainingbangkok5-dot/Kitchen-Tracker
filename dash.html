@@ -7884,18 +7884,20 @@ function renderMaintRow(log, tbody) {
       </td>
       <td style="padding:8px 10px">
         ${canAssign
-          ? `<select id="masgn_${log._key}" onchange="maintHandleAssignedChange('${log._key}')" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
-              <option value="Unassigned" ${(!log.assignedTo||log.assignedTo==='Unassigned')?'selected':''}>Unassigned</option>
-              <option value="Baldev" ${log.assignedTo==='Baldev'?'selected':''}>Baldev</option>
-              <option value="Angelo" ${log.assignedTo==='Angelo'?'selected':''}>Angelo</option>
-              <option value="Asad" ${log.assignedTo==='Asad'?'selected':''}>Asad</option>
-              <option value="Shridhar" ${log.assignedTo==='Shridhar'?'selected':''}>Shridhar</option>
-              <option value="Awais" ${log.assignedTo==='Awais'?'selected':''}>Awais</option>
-              <option value="Mr. Eddie" ${log.assignedTo==='Mr. Eddie'?'selected':''}>Mr. Eddie</option>
-              <option value="Maintenance Supervisor" ${log.assignedTo==='Maintenance Supervisor'?'selected':''}>Maintenance Supervisor</option>
-              <option value="__other__">Other (type name)</option>
-            </select>
-            <input id="masgn_other_${log._key}" type="text" placeholder="Type name..." style="display:none;margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">`
+          ? ((!log.assignedTo || log.assignedTo === 'Unassigned')
+            ? `<select id="masgn_${log._key}" onchange="maintHandleAssignedChange('${log._key}')" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;min-width:90px;">
+                <option value="Unassigned" selected>Unassigned</option>
+                <option value="Baldev">Baldev</option>
+                <option value="Angelo">Angelo</option>
+                <option value="Asad">Asad</option>
+                <option value="Shridhar">Shridhar</option>
+                <option value="Awais">Awais</option>
+                <option value="Mr. Eddie">Mr. Eddie</option>
+                <option value="Maintenance Supervisor">Maintenance Supervisor</option>
+                <option value="__other__">Other (type name)</option>
+              </select>
+              <input id="masgn_other_${log._key}" type="text" placeholder="Type name..." style="display:none;margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">`
+            : `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#DBEAFE;color:#1A3C5E;border:1px solid #93C5FD;">👤 ${log.assignedTo}</span>`)
           : `<span style="font-size:12px;color:#475569;">${log.assignedTo||'Unassigned'}</span>`
         }
       </td>
