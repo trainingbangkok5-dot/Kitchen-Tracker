@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260615310000';
+  var v = '20260616100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -22,8 +22,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260615310000">
-<meta name="app-version" content="20260615310000">
+<meta http-equiv="Expires" content="20260616100000">
+<meta name="app-version" content="20260616100000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#C4533A">
@@ -965,6 +965,18 @@ function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e)
 
 
 function getTodayKey() {
+  // Closing shift after midnight (12AM–2AM) belongs to previous day
+  try {
+    const hour = getDubaiHour();
+    if (currentShift === 'closing' && hour < 2) {
+      const d = getDubaiDate();
+      d.setDate(d.getDate() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return 'dt' + y + '-' + m + '-' + dd;
+    }
+  } catch(e) {}
   return 'dt' + getDubaiDateStr(); // Dubai date key
 }
 function getVal(day,tid,field) {
