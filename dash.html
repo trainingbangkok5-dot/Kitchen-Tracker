@@ -7882,16 +7882,7 @@ function renderMaintRow(log, tbody) {
         ${canManage ? `<br><input id="mrem_${log._key}" type="text" value="${(log.remarks||'').replace(/['"]/g,'')}" placeholder="Add remarks..." style="margin-top:4px;width:100%;padding:3px 6px;border:1px solid #E0DDD4;border-radius:5px;font-size:11px;outline:none;">` : (log.remarks ? '<br><span style="font-size:10px;color:#94A3B8">'+log.remarks+'</span>' : '')}
       </td>
       <td style="padding:8px 10px">
-        ${canSetPriority
-          ? `<select id="mpri_${log._key}" style="padding:3px 6px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;">
-              <option value="Urgent" ${log.priority==='Urgent'?'selected':''}>🔴 Urgent</option>
-              <option value="High" ${log.priority==='High'?'selected':''}>🟠 High</option>
-              <option value="Medium" ${log.priority==='Medium'?'selected':''}>🔵 Medium</option>
-              <option value="Low" ${log.priority==='Low'?'selected':''}>🟢 Low</option>
-              <option value="Preventive" ${log.priority==='Preventive'?'selected':''}>🟣 Preventive</option>
-            </select>`
-          : `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${priStyle}">${log.priority||'—'}</span>`
-        }
+        <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${priStyle}">${log.priority==='Urgent'?'🔴 Urgent':log.priority==='High'?'🟠 High':log.priority==='Medium'?'🔵 Medium':log.priority==='Low'?'🟢 Low':log.priority==='Preventive'?'🟣 Preventive':log.priority||'—'}</span>
       </td>
       <td style="padding:8px 10px">
         ${canAssign
