@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260616110000';
+  var v = '20260616120000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -707,16 +707,17 @@ function submitDay() {
   if(!outlet){ showToast('Please select your outlet first','warn'); return; }
 
   const shiftSections=SECTIONS.filter(s=>s.shift===currentShift);
-  const unanswered=shiftSections.flatMap(s=>s.tasks).filter(t=>!getVal(currentDay,t.id,'yn'));
+  const selfTasks=shiftSections.flatMap(s=>s.tasks).filter(t=>t.owner!=='verify');
+  const unanswered=selfTasks.filter(t=>!getVal(currentDay,t.id,'yn'));
   if(unanswered.length){ showToast('Please answer all tasks first ('+unanswered.length+' remaining)','warn'); return; }
 
-  // Photo check
+  // Photo check — only for self tasks (verify tasks are filled by OIC via dashboard)
   const hasPhotoForTask = (tid) => !!(getVal(currentDay,tid,'photo')||getVal(currentDay,tid,'photo_0')||getVal(currentDay,tid,'photoUrl'));
-  const missingPhoto = shiftSections.flatMap(s=>s.tasks).filter(t=>t.photo&&!hasPhotoForTask(t.id));
+  const missingPhoto = selfTasks.filter(t=>t.photo&&!hasPhotoForTask(t.id));
   if(missingPhoto.length){ showToast('📷 Photo required for all tasks ('+missingPhoto.length+' missing)','warn'); return; }
 
-  // NO comment check
-  const missingComment=shiftSections.flatMap(s=>s.tasks).filter(t=>getVal(currentDay,t.id,'yn')==='no'&&!(getVal(currentDay,t.id,'comment')||'').trim());
+  // NO comment check — only for self tasks
+  const missingComment=selfTasks.filter(t=>getVal(currentDay,t.id,'yn')==='no'&&!(getVal(currentDay,t.id,'comment')||'').trim());
   if(missingComment.length){ showToast('📝 Comment required for every NO answer','warn'); return; }
 
   const d=load(), dayKey=getTodayKey();
@@ -725,9 +726,10 @@ function submitDay() {
   d[dayKey]._shift=currentShift;
   save(d);
 
-  // Calculate score
+  // Calculate score — only self tasks count (verify tasks are OIC responsibility)
   let total=0, yes=0;
   shiftSections.forEach(s=>s.tasks.forEach(t=>{
+    if(t.owner==='verify') return;
     const v=getVal(currentDay,t.id,'yn');
     if(v&&v!=='na'){total++;if(v==='yes')yes++;}
   }));
