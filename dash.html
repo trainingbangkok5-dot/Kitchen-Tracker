@@ -614,6 +614,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">📈 Consolidated Weekly Staff Report</h2>
         <p style="font-size:12px;color:#94A3B8;margin-top:2px;">One report per employee — combines all roles worked during the week. Click a name for the full breakdown.</p>
       </div>
+      <button onclick="toggleSSSelectMode(true)" id="ssSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
+    </div>
+    <div id="ssSelectBar" style="display:none;background:#FFF1F0;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;align-items:center;gap:10px;margin-bottom:14px;">
+      <span id="ssSelectCount" style="font-size:12px;font-weight:600;color:#B91C1C;">0 selected</span>
+      <button onclick="deleteSelectedSS()" style="padding:6px 14px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete Selected</button>
+      <button onclick="toggleSSSelectMode(false)" style="padding:6px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:12px;cursor:pointer;">✕ Cancel</button>
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E0DDD4;">
@@ -664,6 +670,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px;">
         <thead>
           <tr style="background:#1A3C5E;">
+            <th class="ss-chk-cell" id="ssChkAllHeader" style="display:none;padding:9px 6px;text-align:center;color:#fff;"><input type="checkbox" id="ssSelectAll" onchange="toggleSSSelectAll(this.checked)"></th>
             <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Rank</th>
             <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Staff Name</th>
             <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Roles Worked</th>
@@ -1929,7 +1936,20 @@ function ssConsolidateByEmployee(rows) {
     e.rawRows.push(...rs.rawRows);
   });
 
+  // A week value is valid if it's a real YYYY-MM-DD date or an explicit
+  // "X to Y" range string (used in date-range mode). Anything else —
+  // empty, or a corrupted string like "NaN-NaN-NaN" written by a buggy
+  // submit path upstream — gets flagged so it's visible instead of silently
+  // showing as a blank/zero row with no explanation.
+  function ssIsValidWeek(w) {
+    if (!w) return false;
+    if (w.includes(' to ')) return true;
+    return /^\d{4}-\d{2}-\d{2}$/.test(w);
+  }
+
   return Object.values(byEmployee).map(e => {
+    const invalidWeek = !ssIsValidWeek(e.week);
+
     // Try building a true daily breakdown from days/ nodes first.
     const dailyBreakdown = ssBuildDailyBreakdown(e.rawRows);
 
@@ -1946,10 +1966,11 @@ function ssConsolidateByEmployee(rows) {
         roleNames: e.roles.map(r => ssRoleLabel(r.role)),
         dailyBreakdown,
         daysSubmitted,
-        eligible: daysSubmitted >= 4,
+        eligible: daysSubmitted >= 4 && !invalidWeek,
         combinedScore: Math.round(combinedScore * 10) / 10,
         combinedChecklists: e.combinedChecklists,
         combinedAvg,
+        invalidWeek,
       };
     }
 
@@ -1964,10 +1985,11 @@ function ssConsolidateByEmployee(rows) {
       roleNames: e.roles.map(r => ssRoleLabel(r.role)),
       dailyBreakdown: null, // signals "no daily list available for this week"
       daysSubmitted,
-      eligible: daysSubmitted >= 4,
+      eligible: daysSubmitted >= 4 && !invalidWeek,
       combinedScore: Math.round(e.combinedScore * 10) / 10,
       combinedChecklists: e.combinedChecklists,
       combinedAvg,
+      invalidWeek,
     };
   });
 }
@@ -2031,12 +2053,15 @@ function renderSummaryScoring() {
   empty.style.display = 'none';
 
   tbody.innerHTML = employees.map((e, i) => `
-    <tr style="border-bottom:1px solid #F1F5F9;background:${i%2===0?'#fff':'#FAFBFC'};cursor:pointer;" onclick="openStaffWeeklyDetail(${i})">
+    <tr style="border-bottom:1px solid #F1F5F9;background:${e.invalidWeek?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC')};cursor:pointer;" onclick="openStaffWeeklyDetail(${i})">
+      <td class="ss-chk-cell" style="display:none;padding:8px 6px;text-align:center;" onclick="event.stopPropagation()">
+        <input type="checkbox" class="ss-row-chk" data-key="${(e.staffName||'').replace(/"/g,'')}_${(e.outlet||'').replace(/"/g,'')}_${(e.week||'').replace(/"/g,'')}" onchange="updateSSSelectCount()">
+      </td>
       <td style="padding:8px 10px;text-align:center;font-weight:700;color:${e.rank===1?'#D97706':'#1A3C5E'};">${e.rank!=null?(e.rank===1?'🥇 1':e.rank===2?'🥈 2':e.rank===3?'🥉 3':e.rank):'—'}</td>
       <td style="padding:8px 10px;font-weight:600;color:#1A3C5E;text-decoration:underline;">${e.staffName}</td>
       <td style="padding:8px 10px;color:#475569;font-size:11px;">${e.roleNames.join(', ')}</td>
       <td style="padding:8px 10px;color:#475569;">${e.outlet||'—'}</td>
-      <td style="padding:8px 10px;text-align:center;color:#475569;">${e.week||'—'}</td>
+      <td style="padding:8px 10px;text-align:center;color:${e.invalidWeek?'#B45309':'#475569'};">${e.invalidWeek?'⚠️ Invalid week data':(e.week||'—')}</td>
       <td style="padding:8px 10px;text-align:center;color:${e.daysSubmitted>=4?'#15803D':'#D97706'};font-weight:700;">${e.daysSubmitted}</td>
       <td style="padding:8px 10px;text-align:center;color:#475569;">${e.combinedChecklists}</td>
       <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1A3C5E;">${e.combinedScore}</td>
@@ -9123,7 +9148,118 @@ function updateFOHSelectCount() {
   const el = document.getElementById('fohSelectCount');
   if (el) el.textContent = count + ' selected';
 }
-// ── Verified Tab ──────────────────────────────────────────────
+// ── Weekly Staff Report Select to Delete ───────────────────────
+// NOTE: a row here is a CONSOLIDATED employee+outlet+week — it can represent
+// multiple underlying Firebase records (opening, closing, and/or multiple
+// roles for the same person). Deleting a row deletes ALL matching records
+// for that staffName+outlet+week across BOTH the BOH and FOH databases,
+// since this report spans both. This is intentionally an "all or nothing"
+// per-row delete — see saveOverwrite/saveVerification for per-day edits.
+function toggleSSSelectMode(on) {
+  const bar = document.getElementById('ssSelectBar');
+  const chkAllHeader = document.getElementById('ssChkAllHeader');
+  const selectBtn = document.getElementById('ssSelectBtn');
+  if (bar) bar.style.display = on ? 'flex' : 'none';
+  if (selectBtn) selectBtn.style.display = on ? 'none' : 'block';
+  document.querySelectorAll('.ss-chk-cell').forEach(c => c.style.display = on ? 'table-cell' : 'none');
+  if (chkAllHeader) chkAllHeader.style.display = on ? 'table-cell' : 'none';
+  if (!on) {
+    document.querySelectorAll('.ss-row-chk').forEach(c => c.checked = false);
+    const sa = document.getElementById('ssSelectAll');
+    if (sa) sa.checked = false;
+    updateSSSelectCount();
+  }
+}
+function toggleSSSelectAll(checked) {
+  document.querySelectorAll('.ss-row-chk').forEach(c => c.checked = checked);
+  updateSSSelectCount();
+}
+function updateSSSelectCount() {
+  const count = document.querySelectorAll('.ss-row-chk:checked').length;
+  const el = document.getElementById('ssSelectCount');
+  if (el) el.textContent = count + ' selected';
+}
+async function deleteSelectedSS() {
+  const checked = Array.from(document.querySelectorAll('.ss-row-chk:checked'));
+  if (!checked.length) { showToast('No records selected', 'warn'); return; }
+
+  // Date-range mode produces a synthetic "X to Y" week string that doesn't
+  // match any real Firebase record — block deletion here rather than silently
+  // match nothing or, worse, match the wrong thing.
+  const useDateRange = !!(document.getElementById('ssDateFrom').value && document.getElementById('ssDateTo').value);
+  if (useDateRange) {
+    showToast('Clear the date range filter before deleting — select-to-delete only works on a single week at a time', 'warn');
+    return;
+  }
+
+  const keys = checked.map(c => c.getAttribute('data-key'));
+  // Build a clear, specific confirmation listing exactly what will be removed —
+  // this report drives incentive pay, so a generic "delete N records?" isn't enough.
+  // Read display info straight from each checkbox's own row cells (robust —
+  // doesn't depend on checkbox/array ordering staying in sync).
+  const confirmLines = checked.map(c => {
+    const row = c.closest('tr');
+    const cells = row ? row.querySelectorAll('td') : [];
+    const name = cells[2]?.textContent?.trim() || '(unknown)';
+    const outlet = cells[4]?.textContent?.trim() || '—';
+    const week = cells[5]?.textContent?.trim() || '—';
+    return `• ${name} — ${outlet} — ${week}`;
+  });
+  const confirmMsg = 'This will permanently delete ALL submission records (opening, closing, and every role) for:\n\n'
+    + confirmLines.join('\n')
+    + '\n\nThis cannot be undone. Continue?';
+  if (!confirm(confirmMsg)) return;
+
+  if (!db && !fohDb) { showToast('Firebase not connected', 'error'); return; }
+
+  const updates = {};
+  let matchCount = 0;
+
+  if (db) {
+    const bohSnap = await db.ref('submissions').once('value');
+    if (bohSnap.exists()) {
+      bohSnap.forEach(child => {
+        const sub = child.val();
+        const rowKey = (sub.staffName||'') + '_' + (sub.outlet||'') + '_' + (sub.week||'');
+        if (keys.includes(rowKey)) { updates[child.key] = { db: 'boh' }; matchCount++; }
+      });
+    }
+  }
+  if (fohDb) {
+    const fohSnap = await fohDb.ref('submissions').once('value');
+    if (fohSnap.exists()) {
+      fohSnap.forEach(child => {
+        const sub = child.val();
+        const rowKey = (sub.staffName||'') + '_' + (sub.outlet||'') + '_' + (sub.week||'');
+        if (keys.includes(rowKey)) { updates[child.key] = { db: 'foh' }; matchCount++; }
+      });
+    }
+  }
+
+  if (matchCount === 0) {
+    showToast('Records not found', 'warn');
+    return;
+  }
+
+  const bohUpdates = {};
+  const fohUpdates = {};
+  Object.entries(updates).forEach(([key, meta]) => {
+    if (meta.db === 'boh') bohUpdates['submissions/' + key] = null;
+    else fohUpdates['submissions/' + key] = null;
+  });
+
+  try {
+    if (Object.keys(bohUpdates).length && db) await db.ref().update(bohUpdates);
+    if (Object.keys(fohUpdates).length && fohDb) await fohDb.ref().update(fohUpdates);
+    showToast(matchCount + ' record(s) deleted ✓', 'ok');
+    toggleSSSelectMode(false);
+    initSummaryScoring(); // reload from Firebase so the report reflects the deletion
+  } catch (e) {
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+
 function renderVerifiedTab() {
   const roleF   = document.getElementById('verifiedRoleFilter')?.value || '';
   const statusF = document.getElementById('verifiedStatusFilter')?.value || '';
