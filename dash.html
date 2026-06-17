@@ -1764,7 +1764,8 @@ function initSummaryScoring() {
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
           openingPct: s.openingPct, closingPct: s.closingPct, oicEvalPct: null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
-          submittedAt: s.submittedAt || null
+          submittedAt: s.submittedAt || null,
+          days: s.days || null // NEW: per-date breakdown (may be absent on older records)
         });
       });
       done();
@@ -1787,7 +1788,8 @@ function initSummaryScoring() {
           openingPct: s.openingPct, closingPct: s.closingPct,
           oicEvalPct: s.role === 'service' ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
-          submittedAt: s.submittedAt || null
+          submittedAt: s.submittedAt || null,
+          days: s.days || null // NEW: per-date breakdown (may be absent on older records)
         });
       });
       done();
@@ -1816,6 +1818,44 @@ function ssPctColor(v) {
   return v >= 90 ? '#15803D' : v >= 75 ? '#D97706' : '#B91C1C';
 }
 
+// Build a per-calendar-date breakdown for one employee by merging the `days`
+// sub-node of every role-record (opening key + closing key, etc.) belonging
+// to them for the selected week/range. Daily % = average of WHATEVER was
+// submitted that day (opening/closing/OIC eval) — a missing shift is never
+// zero-filled, per explicit requirement. Returns [] if no row has `days` data
+// (i.e. legacy records only), so callers can fall back to the old calculation.
+function ssBuildDailyBreakdown(rowsForEmployee) {
+  const dateMap = {};
+  let hasAnyDaysNode = false;
+  rowsForEmployee.forEach(s => {
+    if (!s.days) return;
+    hasAnyDaysNode = true;
+    Object.entries(s.days).forEach(([date, dayVals]) => {
+      if (!dateMap[date]) dateMap[date] = {};
+      Object.entries(dayVals || {}).forEach(([field, val]) => {
+        if (val != null) dateMap[date][field] = parseFloat(val);
+      });
+    });
+  });
+  if (!hasAnyDaysNode) return null; // signal "no daily data available — use legacy calc"
+
+  const dates = Object.keys(dateMap).sort(); // YYYY-MM-DD sorts chronologically as a string
+  return dates.map(date => {
+    const v = dateMap[date];
+    const components = [v.openingPct, v.closingPct, v.oicEvalPct].filter(x => x != null);
+    const dayPct = components.length > 0
+      ? Math.round(components.reduce((a,b) => a+b, 0) / components.length)
+      : null;
+    return {
+      date,
+      openingPct: v.openingPct != null ? v.openingPct : null,
+      closingPct: v.closingPct != null ? v.closingPct : null,
+      oicEvalPct: v.oicEvalPct != null ? v.oicEvalPct : null,
+      dayPct
+    };
+  }).filter(d => d.dayPct != null);
+}
+
 // Consolidate raw role-level records into one record per employee per week
 function ssConsolidateByEmployee(rows) {
   const byRole = {};
@@ -1828,6 +1868,7 @@ function ssConsolidateByEmployee(rows) {
         closingSum: 0, closingCount: 0,
         oicSum: 0, oicCount: 0,
         submittedDatesSet: new Set(),
+        rawRows: [],
       };
     }
     const g = byRole[roleKey];
@@ -1841,6 +1882,7 @@ function ssConsolidateByEmployee(rows) {
       // count the submission's own date so it isn't unfairly counted as 0 days
       g.submittedDatesSet.add(s.submittedAt.substring(0, 10));
     }
+    g.rawRows.push(s); // keep raw rows so we can look for a `days` node per role
   });
 
   // Per-role summary (used in the detail breakdown)
@@ -1864,6 +1906,7 @@ function ssConsolidateByEmployee(rows) {
       roleSubmittedCount,
       roleAvg: roleSubmittedCount > 0 ? Math.round((roleTotal / roleSubmittedCount) * 10) / 10 : null,
       submittedDates: [...g.submittedDatesSet],
+      rawRows: g.rawRows,
     };
   });
 
@@ -1875,6 +1918,7 @@ function ssConsolidateByEmployee(rows) {
       byEmployee[empKey] = {
         staffName: rs.staffName, outlet: rs.outlet, week: rs.week,
         roles: [], combinedScore: 0, combinedChecklists: 0, allDatesSet: new Set(),
+        rawRows: [],
       };
     }
     const e = byEmployee[empKey];
@@ -1882,15 +1926,43 @@ function ssConsolidateByEmployee(rows) {
     e.combinedScore += rs.roleTotal;
     e.combinedChecklists += rs.roleSubmittedCount;
     rs.submittedDates.forEach(d => e.allDatesSet.add(d));
+    e.rawRows.push(...rs.rawRows);
   });
 
   return Object.values(byEmployee).map(e => {
+    // Try building a true daily breakdown from days/ nodes first.
+    const dailyBreakdown = ssBuildDailyBreakdown(e.rawRows);
+
+    if (dailyBreakdown !== null) {
+      // NEW PATH: daily data exists — this becomes the source of truth for
+      // daysSubmitted / combinedScore / combinedAvg (the incentive figures),
+      // so the report, the visible daily list, and the weekly total always agree.
+      const daysSubmitted = dailyBreakdown.length;
+      const combinedScore = dailyBreakdown.reduce((a,d) => a + d.dayPct, 0);
+      const combinedAvg = daysSubmitted > 0 ? Math.round(combinedScore / daysSubmitted) : null;
+      return {
+        staffName: e.staffName, outlet: e.outlet, week: e.week,
+        roles: e.roles,
+        roleNames: e.roles.map(r => ssRoleLabel(r.role)),
+        dailyBreakdown,
+        daysSubmitted,
+        eligible: daysSubmitted >= 4,
+        combinedScore: Math.round(combinedScore * 10) / 10,
+        combinedChecklists: e.combinedChecklists,
+        combinedAvg,
+      };
+    }
+
+    // LEGACY PATH: no days/ node on any matching record (old data from before
+    // this feature shipped) — preserve exactly today's existing calculation
+    // so historical weeks keep displaying the same numbers they always have.
     const daysSubmitted = e.allDatesSet.size;
     const combinedAvg = e.combinedChecklists > 0 ? Math.round((e.combinedScore / e.combinedChecklists) * 10) / 10 : null;
     return {
       staffName: e.staffName, outlet: e.outlet, week: e.week,
       roles: e.roles,
       roleNames: e.roles.map(r => ssRoleLabel(r.role)),
+      dailyBreakdown: null, // signals "no daily list available for this week"
       daysSubmitted,
       eligible: daysSubmitted >= 4,
       combinedScore: Math.round(e.combinedScore * 10) / 10,
@@ -1986,6 +2058,41 @@ function openStaffWeeklyDetail(idx) {
   const isRange = (e.week||'').includes(' to ');
   document.getElementById('ssDetailSub').textContent = `${e.outlet||'—'} · ${isRange ? e.week : 'Week of ' + (e.week||'—')}`;
 
+  function ssFormatDateLabel(dateStr) {
+    // '2026-06-15' -> '15 June 2026'
+    try {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+    } catch(err) { return dateStr; }
+  }
+
+  // Daily Breakdown — one line per calendar date, showing exactly which
+  // shifts were submitted that day and the resulting day score. Only
+  // rendered when days/ data exists for this employee's week; older
+  // records without it simply skip this block (role cards below still show).
+  let dailyBreakdownHtml = '';
+  if (e.dailyBreakdown && e.dailyBreakdown.length) {
+    const dailyRowsHtml = e.dailyBreakdown.map(d => {
+      const parts = [];
+      if (d.openingPct != null) parts.push('Opening ' + d.openingPct + '%');
+      if (d.closingPct != null) parts.push('Closing ' + d.closingPct + '%');
+      if (d.oicEvalPct != null) parts.push('OIC Eval ' + d.oicEvalPct + '%');
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F1F5F9;">
+          <div>
+            <span style="font-size:12.5px;font-weight:600;color:#1A3C5E;">${ssFormatDateLabel(d.date)}</span>
+            <span style="font-size:10.5px;color:#94A3B8;margin-left:8px;">${parts.join(' · ')}</span>
+          </div>
+          <span style="padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700;background:${ssPctColor(d.dayPct)}22;color:${ssPctColor(d.dayPct)};">${d.dayPct}%</span>
+        </div>`;
+    }).join('');
+    dailyBreakdownHtml = `
+      <div style="margin-bottom:16px;background:#F8FAFC;border:1px solid #E0DDD4;border-radius:10px;padding:12px 14px;">
+        <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:8px;">🗓️ Daily Breakdown</div>
+        ${dailyRowsHtml}
+      </div>`;
+  }
+
   function roleBlock(r) {
     const rows = [];
     rows.push(['Opening Score', r.openingAvg]);
@@ -2012,7 +2119,8 @@ function openStaffWeeklyDetail(idx) {
       <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:10px;">📋 Weekly Summary</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
         <div><span style="color:#64748B;">Total Days Submitted:</span> <strong style="color:${e.daysSubmitted>=4?'#15803D':'#D97706'};">${e.daysSubmitted}</strong></div>
-        <div><span style="color:#64748B;">Total Checklists:</span> <strong>${e.combinedChecklists}</strong></div>
+        <div><span style="color:#64748B;">Total Weekly Score (sum):</span> <strong>${e.combinedScore}</strong></div>
+        <div style="grid-column:1 / -1;"><span style="color:#64748B;">Weekly Average Score:</span> <strong style="font-size:14px;color:${ssPctColor(e.combinedAvg)};">${e.combinedAvg!=null?e.combinedAvg+'%':'—'}</strong></div>
         <div><span style="color:#64748B;">Ranking Position:</span> <strong>${e.rank!=null?'#'+e.rank:'Not ranked'}</strong></div>
         <div><span style="color:#64748B;">Eligibility:</span> <strong style="color:${e.eligible?'#15803D':'#B91C1C'};">${e.eligible?'✅ Eligible':'❌ Not Eligible'}</strong></div>
       </div>
@@ -2031,7 +2139,7 @@ function openStaffWeeklyDetail(idx) {
       </div>
     </div>`;
 
-  document.getElementById('ssDetailBody').innerHTML = weeklySummaryHtml + roleBlocksHtml + overallHtml;
+  document.getElementById('ssDetailBody').innerHTML = dailyBreakdownHtml + weeklySummaryHtml + roleBlocksHtml + overallHtml;
   document.getElementById('ssDetailModal').style.display = 'flex';
 }
 
