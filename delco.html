@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260616130000';
+  var v = '20260617120000';
   var stored = localStorage.getItem('app_version_delco');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -255,6 +255,21 @@ function getWeekStart() {
 // ── Storage ──────────────────────────────────────────────────
 function load() { try { return JSON.parse(localStorage.getItem(SK)||'{}'); } catch(e) { return {}; } }
 function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) {} }
+
+// ── Track Submitted Dates (for weekly attendance/eligibility) ──
+function trackSubmittedDate(weekStart) {
+  try {
+    const d = load();
+    if (!d._submittedDates) d._submittedDates = {};
+    if (!d._submittedDates[weekStart]) d._submittedDates[weekStart] = [];
+    const todayDateStr = getTodayKey().replace('dt', '');
+    if (!d._submittedDates[weekStart].includes(todayDateStr)) {
+      d._submittedDates[weekStart].push(todayDateStr);
+    }
+    save(d);
+    return d._submittedDates[weekStart];
+  } catch(e) { return []; }
+}
 function getVal(day,tid,field) {
   const data=load(), dateKey=getTodayKey();
   return data[dateKey]?.[tid]?.[field] || data['d'+day]?.[tid]?.[field] || null;
@@ -773,6 +788,7 @@ function submitDay() {
     openingPct: currentShift==='opening' ? pct : null,
     closingPct: currentShift==='closing' ? pct : null,
     taskData, submittedAt:new Date().toISOString(), lastUpdated:new Date().toISOString(),
+    submittedDates: trackSubmittedDate(getWeekStart()),
   };
 
   if(_db){

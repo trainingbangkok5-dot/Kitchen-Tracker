@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260616110000';
+  var v = '20260617120000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -23,7 +23,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260616110000">
+<meta name="app-version" content="20260617120000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#2E6DA4">
@@ -710,6 +710,21 @@ let activePhotoTask = null;
 // ── Storage ───────────────────────────────────────────────────
 function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
 function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
+
+// ── Track Submitted Dates (for weekly attendance/eligibility) ──
+function trackSubmittedDate(weekStart) {
+  try {
+    const d = load();
+    if (!d._submittedDates) d._submittedDates = {};
+    if (!d._submittedDates[weekStart]) d._submittedDates[weekStart] = [];
+    const todayDateStr = getTodayKey().replace('dt', '');
+    if (!d._submittedDates[weekStart].includes(todayDateStr)) {
+      d._submittedDates[weekStart].push(todayDateStr);
+    }
+    save(d);
+    return d._submittedDates[weekStart];
+  } catch(e) { return []; }
+}
 function getTodayKey() {
   // Closing shift after midnight (12AM–2AM) belongs to previous day
   const hour = getDubaiHour();
@@ -1313,6 +1328,7 @@ function submitOpening() {
     submittedAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString(),
     taskData:    openingTaskData,
+    submittedDates: trackSubmittedDate(getWeekStart()),
   });
   showToast('Opening tasks submitted ✓', 'ok');
   currentShift = null; // reset so closing staff sees shift picker
@@ -1370,6 +1386,7 @@ function submitDay() {
     qualified:    false,
     status:       'closing_submitted',
     day:        currentDay,
+    submittedDates: trackSubmittedDate(getWeekStart()),
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     // Store closing task responses only — today only
     taskData: (function() {

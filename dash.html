@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260615340000">
+<meta name="app-version" content="20260617140000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260615340000';
+  var v = '20260617140000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -292,6 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
+    <div class="tab" id="tabSummaryScoring" onclick="showTab(this,'summaryscoring')" style="display:none;">📈 Summary Scoring</div>
     <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
   </div>
 
@@ -604,6 +605,69 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </table>
       </div>
       <div id="fohEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No FOH submissions found</div>
+    </div>
+  </div>
+
+  <div class="page" id="page-summaryscoring" style="padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">📈 Summary Scoring</h2>
+        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">Weekly performance summary — Opening, Closing, OIC Evaluation & Average scores per staff</p>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;background:#F8FAFC;padding:12px;border-radius:10px;border:1px solid #E0DDD4;">
+      <div>
+        <label style="font-size:10px;color:#64748B;font-weight:600;display:block;margin-bottom:3px;">Week Starting Date</label>
+        <select id="ssWeekFilter" onchange="renderSummaryScoring()" style="padding:6px 10px;border-radius:7px;border:1px solid #E0DDD4;font-size:12px;min-width:140px;">
+          <option value="all">All Weeks</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#64748B;font-weight:600;display:block;margin-bottom:3px;">Outlet</label>
+        <select id="ssOutletFilter" onchange="renderSummaryScoring()" style="padding:6px 10px;border-radius:7px;border:1px solid #E0DDD4;font-size:12px;min-width:130px;">
+          <option value="all">All Outlets</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#64748B;font-weight:600;display:block;margin-bottom:3px;">Role</label>
+        <select id="ssRoleFilter" onchange="renderSummaryScoring()" style="padding:6px 10px;border-radius:7px;border:1px solid #E0DDD4;font-size:12px;min-width:120px;">
+          <option value="all">All Roles</option>
+          <option value="linecook">Line Cook</option>
+          <option value="steward">Steward</option>
+          <option value="kic">KIC</option>
+          <option value="oic">OIC</option>
+          <option value="service">Service</option>
+          <option value="delco">Delivery Coordinator</option>
+          <option value="bartender">Bartender</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:140px;">
+        <label style="font-size:10px;color:#64748B;font-weight:600;display:block;margin-bottom:3px;">Staff Name</label>
+        <input id="ssNameFilter" type="text" placeholder="Search name..." oninput="renderSummaryScoring()" style="width:100%;padding:6px 10px;border-radius:7px;border:1px solid #E0DDD4;font-size:12px;box-sizing:border-box;">
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;background:#fff;border-radius:10px;border:1px solid #E0DDD4;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:980px;">
+        <thead>
+          <tr style="background:#1A3C5E;">
+            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Staff Name</th>
+            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Role</th>
+            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Outlet</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Week Starting</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Days Submitted</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Opening</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">OIC Eval</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Closing</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Total</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Average %</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Eligibility</th>
+          </tr>
+        </thead>
+        <tbody id="ssTableBody"></tbody>
+      </table>
+      <div id="ssEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No submissions found for the selected filters</div>
     </div>
   </div>
 
@@ -1096,6 +1160,12 @@ let selectedRoleBtn = null;
 
 // Initialize Firebase after page loads
 function initFirebase() {
+  // Safety check — if database SDK isn't ready yet, retry shortly instead of failing silently
+  if (typeof firebase.database !== 'function') {
+    console.warn('firebase.database not ready yet — retrying initFirebase()');
+    setTimeout(initFirebase, 300);
+    return;
+  }
   // Init FOH Firebase
   try {
     const fohApp = firebase.apps.find(a=>a.name==='foh') || firebase.initializeApp(FOH_FIREBASE_CONFIG,'foh');
@@ -1361,6 +1431,7 @@ function doLogin() {
   document.getElementById('tabVerified').style.display = 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabSummaryScoring').style.display = ['areachef','areamanager','director','training','operations','ceo','kic','oic'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
   // BOH tab — visible to KIC and full access roles
@@ -1501,7 +1572,7 @@ function loadData() {
     const dedupBOH = {};
     rawFiltered.forEach(s => {
       if (!s.staffName) return;
-      const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
+      const subDate = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
         const rec = {...s};
@@ -1555,7 +1626,7 @@ function loadData() {
     const dedupMap = {};
     combined.forEach(s => {
       if (!s.staffName) return;
-      const subDate = s.submittedAt ? s.submittedAt.substring(0,10) : (s.week||'');
+      const subDate = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key]) {
         const rec2 = {...s};
@@ -1637,6 +1708,170 @@ function setSyncStatus(st,msg) {
   t.textContent=msg;
 }
 
+// ── Summary Scoring Tab ─────────────────────────────────────
+let _ssData = []; // raw rows: {staffName, role, outlet, week, openingPct, closingPct, oicEvalPct}
+
+function initSummaryScoring() {
+  const tbody = document.getElementById('ssTableBody');
+  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94A3B8;">Loading…</td></tr>';
+  _ssData = [];
+
+  const isAreaChef = currentRole === 'areachef';
+  const isAreaMgr  = currentRole === 'areamanager';
+  const isOutletRole = ['kic','oic'].includes(currentRole);
+  const myOutlet = (currentOutlet||'').trim().toLowerCase();
+
+  let pending = 2;
+  function done() { pending--; if (pending === 0) populateSSFilters(); }
+
+  if (db) {
+    db.ref('submissions').orderByChild('week').limitToLast(3000).once('value', snap => {
+      const raw = snap.val() ? Object.values(snap.val()) : [];
+      raw.forEach(s => {
+        if (!s.staffName || !['linecook','steward','kic'].includes(s.role)) return;
+        if (isAreaChef && !['linecook','steward','kic'].includes(s.role)) return;
+        if (isOutletRole && currentRole === 'kic') {
+          const sOutlet = (s.outlet||'').trim().toLowerCase();
+          if (!myOutlet || !(sOutlet===myOutlet || sOutlet.includes(myOutlet) || myOutlet.includes(sOutlet))) return;
+        }
+        if (isOutletRole && currentRole === 'oic') return;
+        _ssData.push({
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
+          openingPct: s.openingPct, closingPct: s.closingPct, oicEvalPct: null,
+          submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : []
+        });
+      });
+      done();
+    }, () => done());
+  } else { done(); }
+
+  if (fohDb) {
+    fohDb.ref('submissions').orderByChild('week').limitToLast(3000).once('value', snap => {
+      const raw = snap.val() ? Object.values(snap.val()) : [];
+      raw.forEach(s => {
+        if (!s.staffName || !['oic','service','delco','bartender'].includes(s.role)) return;
+        if (isAreaMgr && !['oic','service','delco','bartender'].includes(s.role)) return;
+        if (isOutletRole && currentRole === 'oic') {
+          const sOutlet = (s.outlet||'').trim().toLowerCase();
+          if (!myOutlet || !(sOutlet===myOutlet || sOutlet.includes(myOutlet) || myOutlet.includes(sOutlet))) return;
+        }
+        if (isOutletRole && currentRole === 'kic') return;
+        _ssData.push({
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
+          openingPct: s.openingPct, closingPct: s.closingPct,
+          oicEvalPct: s.role === 'service' ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
+          submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : []
+        });
+      });
+      done();
+    }, () => done());
+  } else { done(); }
+}
+
+function populateSSFilters() {
+  const weekSel   = document.getElementById('ssWeekFilter');
+  const outletSel = document.getElementById('ssOutletFilter');
+  const weeks   = [...new Set(_ssData.map(s => s.week).filter(Boolean))].sort().reverse();
+  const outlets = [...new Set(_ssData.map(s => s.outlet).filter(Boolean))].sort();
+
+  weekSel.innerHTML = '<option value="all">All Weeks</option>' + weeks.map(w => `<option value="${w}">${w}</option>`).join('');
+  outletSel.innerHTML = '<option value="all">All Outlets</option>' + outlets.map(o => `<option value="${o}">${o}</option>`).join('');
+
+  renderSummaryScoring();
+}
+
+function ssRoleLabel(role) {
+  return {linecook:'Line Cook', steward:'Steward', kic:'KIC', oic:'OIC', service:'Service', delco:'Delivery Coordinator', bartender:'Bartender'}[role] || role;
+}
+
+function renderSummaryScoring() {
+  const weekF  = document.getElementById('ssWeekFilter').value;
+  const outF   = document.getElementById('ssOutletFilter').value;
+  const roleF  = document.getElementById('ssRoleFilter').value;
+  const nameF  = (document.getElementById('ssNameFilter').value || '').trim().toLowerCase();
+
+  let rows = _ssData.filter(s => {
+    if (weekF !== 'all' && s.week !== weekF) return false;
+    if (outF  !== 'all' && s.outlet !== outF) return false;
+    if (roleF !== 'all' && s.role !== roleF) return false;
+    if (nameF && !(s.staffName||'').toLowerCase().includes(nameF)) return false;
+    return true;
+  });
+
+  const grouped = {};
+  rows.forEach(s => {
+    const key = s.staffName + '_' + s.role + '_' + s.outlet + '_' + s.week;
+    if (!grouped[key]) {
+      grouped[key] = {
+        staffName: s.staffName, role: s.role, outlet: s.outlet, week: s.week,
+        openingSum: 0, openingCount: 0,
+        closingSum: 0, closingCount: 0,
+        oicSum: 0, oicCount: 0,
+        submittedDatesSet: new Set(),
+      };
+    }
+    const g = grouped[key];
+    if (s.openingPct != null) { g.openingSum += parseFloat(s.openingPct); g.openingCount++; }
+    if (s.closingPct != null) { g.closingSum += parseFloat(s.closingPct); g.closingCount++; }
+    if (s.oicEvalPct != null) { g.oicSum += parseFloat(s.oicEvalPct); g.oicCount++; }
+    (s.submittedDates || []).forEach(d => g.submittedDatesSet.add(d));
+  });
+
+  const finalRows = Object.values(grouped).map(g => {
+    const isService = g.role === 'service';
+    const totalScore = g.openingSum + g.closingSum + (isService ? g.oicSum : 0);
+    const submittedCount = g.openingCount + g.closingCount + (isService ? g.oicCount : 0);
+    const avgPct = submittedCount > 0 ? Math.round((totalScore / submittedCount) * 10) / 10 : null;
+    const daysSubmitted = g.submittedDatesSet.size;
+    return {
+      ...g,
+      openingAvg: g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null,
+      closingAvg: g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null,
+      oicAvg:     g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null,
+      totalScore: Math.round(totalScore * 10) / 10,
+      avgPct, isService,
+      daysSubmitted,
+      eligible: daysSubmitted >= 4,
+    };
+  });
+
+  finalRows.sort((a,b) => (b.week||'').localeCompare(a.week||'') || a.staffName.localeCompare(b.staffName));
+
+  const tbody = document.getElementById('ssTableBody');
+  const empty = document.getElementById('ssEmpty');
+  if (!finalRows.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  function pctColor(v) {
+    if (v == null) return '#94A3B8';
+    return v >= 90 ? '#15803D' : v >= 75 ? '#D97706' : '#B91C1C';
+  }
+
+  tbody.innerHTML = finalRows.map((r, i) => `
+    <tr style="border-bottom:1px solid #F1F5F9;background:${i%2===0?'#fff':'#FAFBFC'};">
+      <td style="padding:8px 10px;font-weight:600;color:#1A3C5E;">${r.staffName}</td>
+      <td style="padding:8px 10px;color:#475569;">${ssRoleLabel(r.role)}</td>
+      <td style="padding:8px 10px;color:#475569;">${r.outlet||'—'}</td>
+      <td style="padding:8px 10px;text-align:center;color:#475569;">${r.week||'—'}</td>
+      <td style="padding:8px 10px;text-align:center;color:${r.daysSubmitted>=4?'#15803D':'#D97706'};font-weight:700;">${r.daysSubmitted}</td>
+      <td style="padding:8px 10px;text-align:center;color:${pctColor(r.openingAvg)};font-weight:600;">${r.openingAvg!=null?r.openingAvg+'%':'—'}</td>
+      <td style="padding:8px 10px;text-align:center;color:${r.isService?pctColor(r.oicAvg):'#CBD5E1'};font-weight:600;">${r.isService?(r.oicAvg!=null?r.oicAvg+'%':'—'):'N/A'}</td>
+      <td style="padding:8px 10px;text-align:center;color:${pctColor(r.closingAvg)};font-weight:600;">${r.closingAvg!=null?r.closingAvg+'%':'—'}</td>
+      <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1A3C5E;">${r.totalScore}</td>
+      <td style="padding:8px 10px;text-align:center;">
+        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${pctColor(r.avgPct)}22;color:${pctColor(r.avgPct)};">${r.avgPct!=null?r.avgPct+'%':'—'}</span>
+      </td>
+      <td style="padding:8px 10px;text-align:center;">
+        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.eligible?'#DCFCE7':'#FEE2E2'};color:${r.eligible?'#15803D':'#B91C1C'};">${r.eligible?'✅ Eligible':'❌ Not Eligible'}</span>
+      </td>
+    </tr>
+  `).join('');
+}
+
 function showTab(el,id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1650,6 +1885,7 @@ function showTab(el,id) {
   if (id === 'boh') { loadBOHData(); }
   if (id === 'kpi') { renderKPIPage(); }
   if (id === 'verified') { renderVerifiedTab(); }
+  if (id === 'summaryscoring') { initSummaryScoring(); }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
     db.ref('audits').once('value', snap => {
@@ -8189,15 +8425,19 @@ function saveMaintOverwrite() {
 
 window.addEventListener('DOMContentLoaded', function() {
   function tryInitFirebase(attempts) {
-    if (typeof firebase !== 'undefined') {
+    // Wait for BOTH the app SDK and the database SDK to be ready —
+    // typeof firebase !== 'undefined' alone only confirms firebase-app loaded;
+    // firebase.database must also exist as a function before .database() calls are safe.
+    if (typeof firebase !== 'undefined' && typeof firebase.database === 'function') {
       initFirebase();
     } else if (attempts > 0) {
       setTimeout(function() { tryInitFirebase(attempts - 1); }, 300);
     } else {
-      console.error('Firebase SDK failed to load after retries');
+      console.error('Firebase Database SDK failed to load after retries');
+      showToast('⚠️ Connection issue — please refresh the page', 'error');
     }
   }
-  tryInitFirebase(15);
+  tryInitFirebase(25);
   // Restore session if exists
   const savedRole = sessionStorage.getItem('dash_role');
   const savedName = sessionStorage.getItem('dash_name');
