@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260617140000">
+<meta name="app-version" content="20260617150000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260617140000';
+  var v = '20260617150000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -292,7 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
-    <div class="tab" id="tabSummaryScoring" onclick="showTab(this,'summaryscoring')" style="display:none;">📈 Summary Scoring</div>
+    <div class="tab" id="tabSummaryScoring" onclick="showTab(this,'summaryscoring')" style="display:none;">📈 Weekly Staff Report</div>
     <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
   </div>
 
@@ -611,8 +611,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="page" id="page-summaryscoring" style="padding:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <div>
-        <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">📈 Summary Scoring</h2>
-        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">Weekly performance summary — Opening, Closing, OIC Evaluation & Average scores per staff</p>
+        <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">📈 Consolidated Weekly Staff Report</h2>
+        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">One report per employee — combines all roles worked during the week. Click a name for the full breakdown.</p>
       </div>
     </div>
 
@@ -649,25 +649,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <div style="overflow-x:auto;background:#fff;border-radius:10px;border:1px solid #E0DDD4;">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:980px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px;">
         <thead>
           <tr style="background:#1A3C5E;">
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Rank</th>
             <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Staff Name</th>
-            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Role</th>
+            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Roles Worked</th>
             <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Outlet</th>
             <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Week Starting</th>
             <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Days Submitted</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Opening</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">OIC Eval</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Closing</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Total</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Average %</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Checklists</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Combined Score</th>
+            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Overall Average %</th>
             <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Eligibility</th>
           </tr>
         </thead>
         <tbody id="ssTableBody"></tbody>
       </table>
       <div id="ssEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No submissions found for the selected filters</div>
+    </div>
+  </div>
+
+  <!-- CONSOLIDATED STAFF REPORT DETAIL MODAL -->
+  <div id="ssDetailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:88vh;overflow-y:auto;">
+      <div style="background:#1A3C5E;padding:16px 20px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div id="ssDetailName" style="font-size:16px;font-weight:700;color:#fff;">Staff Name</div>
+          <div id="ssDetailSub" style="font-size:11px;color:#B8C9DC;margin-top:2px;">Outlet · Week</div>
+        </div>
+        <button onclick="document.getElementById('ssDetailModal').style.display='none'" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;padding:6px 12px;border-radius:8px;cursor:pointer;">✕ Close</button>
+      </div>
+      <div id="ssDetailBody" style="padding:18px 20px;"></div>
     </div>
   </div>
 
@@ -1713,7 +1726,7 @@ let _ssData = []; // raw rows: {staffName, role, outlet, week, openingPct, closi
 
 function initSummaryScoring() {
   const tbody = document.getElementById('ssTableBody');
-  tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94A3B8;">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#94A3B8;">Loading…</td></tr>';
   _ssData = [];
 
   const isAreaChef = currentRole === 'areachef';
@@ -1784,6 +1797,85 @@ function ssRoleLabel(role) {
   return {linecook:'Line Cook', steward:'Steward', kic:'KIC', oic:'OIC', service:'Service', delco:'Delivery Coordinator', bartender:'Bartender'}[role] || role;
 }
 
+function ssPctColor(v) {
+  if (v == null) return '#94A3B8';
+  return v >= 90 ? '#15803D' : v >= 75 ? '#D97706' : '#B91C1C';
+}
+
+// Consolidate raw role-level records into one record per employee per week
+function ssConsolidateByEmployee(rows) {
+  const byRole = {};
+  rows.forEach(s => {
+    const roleKey = s.staffName + '_' + s.role + '_' + s.outlet + '_' + s.week;
+    if (!byRole[roleKey]) {
+      byRole[roleKey] = {
+        staffName: s.staffName, role: s.role, outlet: s.outlet, week: s.week,
+        openingSum: 0, openingCount: 0,
+        closingSum: 0, closingCount: 0,
+        oicSum: 0, oicCount: 0,
+        submittedDatesSet: new Set(),
+      };
+    }
+    const g = byRole[roleKey];
+    if (s.openingPct != null) { g.openingSum += parseFloat(s.openingPct); g.openingCount++; }
+    if (s.closingPct != null) { g.closingSum += parseFloat(s.closingPct); g.closingCount++; }
+    if (s.oicEvalPct != null) { g.oicSum += parseFloat(s.oicEvalPct); g.oicCount++; }
+    (s.submittedDates || []).forEach(d => g.submittedDatesSet.add(d));
+  });
+
+  // Per-role summary (used in the detail breakdown)
+  const roleSummaries = Object.values(byRole).map(g => {
+    const isService = g.role === 'service';
+    const roleTotal = g.openingSum + g.closingSum + (isService ? g.oicSum : 0);
+    const roleSubmittedCount = g.openingCount + g.closingCount + (isService ? g.oicCount : 0);
+    return {
+      staffName: g.staffName, role: g.role, outlet: g.outlet, week: g.week,
+      openingAvg: g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null,
+      closingAvg: g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null,
+      oicAvg:     g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null,
+      isService,
+      roleTotal: Math.round(roleTotal * 10) / 10,
+      roleSubmittedCount,
+      roleAvg: roleSubmittedCount > 0 ? Math.round((roleTotal / roleSubmittedCount) * 10) / 10 : null,
+      submittedDates: [...g.submittedDatesSet],
+    };
+  });
+
+  // Group role summaries by employee + outlet + week
+  const byEmployee = {};
+  roleSummaries.forEach(rs => {
+    const empKey = rs.staffName + '_' + rs.outlet + '_' + rs.week;
+    if (!byEmployee[empKey]) {
+      byEmployee[empKey] = {
+        staffName: rs.staffName, outlet: rs.outlet, week: rs.week,
+        roles: [], combinedScore: 0, combinedChecklists: 0, allDatesSet: new Set(),
+      };
+    }
+    const e = byEmployee[empKey];
+    e.roles.push(rs);
+    e.combinedScore += rs.roleTotal;
+    e.combinedChecklists += rs.roleSubmittedCount;
+    rs.submittedDates.forEach(d => e.allDatesSet.add(d));
+  });
+
+  return Object.values(byEmployee).map(e => {
+    const daysSubmitted = e.allDatesSet.size;
+    const combinedAvg = e.combinedChecklists > 0 ? Math.round((e.combinedScore / e.combinedChecklists) * 10) / 10 : null;
+    return {
+      staffName: e.staffName, outlet: e.outlet, week: e.week,
+      roles: e.roles,
+      roleNames: e.roles.map(r => ssRoleLabel(r.role)),
+      daysSubmitted,
+      eligible: daysSubmitted >= 4,
+      combinedScore: Math.round(e.combinedScore * 10) / 10,
+      combinedChecklists: e.combinedChecklists,
+      combinedAvg,
+    };
+  });
+}
+
+let _ssConsolidatedRows = [];
+
 function renderSummaryScoring() {
   const weekF  = document.getElementById('ssWeekFilter').value;
   const outF   = document.getElementById('ssOutletFilter').value;
@@ -1798,78 +1890,102 @@ function renderSummaryScoring() {
     return true;
   });
 
-  const grouped = {};
-  rows.forEach(s => {
-    const key = s.staffName + '_' + s.role + '_' + s.outlet + '_' + s.week;
-    if (!grouped[key]) {
-      grouped[key] = {
-        staffName: s.staffName, role: s.role, outlet: s.outlet, week: s.week,
-        openingSum: 0, openingCount: 0,
-        closingSum: 0, closingCount: 0,
-        oicSum: 0, oicCount: 0,
-        submittedDatesSet: new Set(),
-      };
-    }
-    const g = grouped[key];
-    if (s.openingPct != null) { g.openingSum += parseFloat(s.openingPct); g.openingCount++; }
-    if (s.closingPct != null) { g.closingSum += parseFloat(s.closingPct); g.closingCount++; }
-    if (s.oicEvalPct != null) { g.oicSum += parseFloat(s.oicEvalPct); g.oicCount++; }
-    (s.submittedDates || []).forEach(d => g.submittedDatesSet.add(d));
-  });
+  let employees = ssConsolidateByEmployee(rows);
 
-  const finalRows = Object.values(grouped).map(g => {
-    const isService = g.role === 'service';
-    const totalScore = g.openingSum + g.closingSum + (isService ? g.oicSum : 0);
-    const submittedCount = g.openingCount + g.closingCount + (isService ? g.oicCount : 0);
-    const avgPct = submittedCount > 0 ? Math.round((totalScore / submittedCount) * 10) / 10 : null;
-    const daysSubmitted = g.submittedDatesSet.size;
-    return {
-      ...g,
-      openingAvg: g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null,
-      closingAvg: g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null,
-      oicAvg:     g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null,
-      totalScore: Math.round(totalScore * 10) / 10,
-      avgPct, isService,
-      daysSubmitted,
-      eligible: daysSubmitted >= 4,
-    };
-  });
+  // Rank by Overall Weekly Average (combinedAvg), highest first — only among eligible staff for rank number
+  employees.sort((a,b) => (b.combinedAvg||0) - (a.combinedAvg||0));
+  let rankCounter = 0;
+  employees.forEach(e => { if (e.eligible) { rankCounter++; e.rank = rankCounter; } else { e.rank = null; } });
 
-  finalRows.sort((a,b) => (b.week||'').localeCompare(a.week||'') || a.staffName.localeCompare(b.staffName));
+  // Final display order: by week desc, then rank/name
+  employees.sort((a,b) => (b.week||'').localeCompare(a.week||'') ||
+    (a.rank!=null && b.rank!=null ? a.rank-b.rank : a.staffName.localeCompare(b.staffName)));
+
+  _ssConsolidatedRows = employees;
 
   const tbody = document.getElementById('ssTableBody');
   const empty = document.getElementById('ssEmpty');
-  if (!finalRows.length) {
+  if (!employees.length) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
     return;
   }
   empty.style.display = 'none';
 
-  function pctColor(v) {
-    if (v == null) return '#94A3B8';
-    return v >= 90 ? '#15803D' : v >= 75 ? '#D97706' : '#B91C1C';
-  }
-
-  tbody.innerHTML = finalRows.map((r, i) => `
-    <tr style="border-bottom:1px solid #F1F5F9;background:${i%2===0?'#fff':'#FAFBFC'};">
-      <td style="padding:8px 10px;font-weight:600;color:#1A3C5E;">${r.staffName}</td>
-      <td style="padding:8px 10px;color:#475569;">${ssRoleLabel(r.role)}</td>
-      <td style="padding:8px 10px;color:#475569;">${r.outlet||'—'}</td>
-      <td style="padding:8px 10px;text-align:center;color:#475569;">${r.week||'—'}</td>
-      <td style="padding:8px 10px;text-align:center;color:${r.daysSubmitted>=4?'#15803D':'#D97706'};font-weight:700;">${r.daysSubmitted}</td>
-      <td style="padding:8px 10px;text-align:center;color:${pctColor(r.openingAvg)};font-weight:600;">${r.openingAvg!=null?r.openingAvg+'%':'—'}</td>
-      <td style="padding:8px 10px;text-align:center;color:${r.isService?pctColor(r.oicAvg):'#CBD5E1'};font-weight:600;">${r.isService?(r.oicAvg!=null?r.oicAvg+'%':'—'):'N/A'}</td>
-      <td style="padding:8px 10px;text-align:center;color:${pctColor(r.closingAvg)};font-weight:600;">${r.closingAvg!=null?r.closingAvg+'%':'—'}</td>
-      <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1A3C5E;">${r.totalScore}</td>
+  tbody.innerHTML = employees.map((e, i) => `
+    <tr style="border-bottom:1px solid #F1F5F9;background:${i%2===0?'#fff':'#FAFBFC'};cursor:pointer;" onclick="openStaffWeeklyDetail(${i})">
+      <td style="padding:8px 10px;text-align:center;font-weight:700;color:${e.rank===1?'#D97706':'#1A3C5E'};">${e.rank!=null?(e.rank===1?'🥇 1':e.rank===2?'🥈 2':e.rank===3?'🥉 3':e.rank):'—'}</td>
+      <td style="padding:8px 10px;font-weight:600;color:#1A3C5E;text-decoration:underline;">${e.staffName}</td>
+      <td style="padding:8px 10px;color:#475569;font-size:11px;">${e.roleNames.join(', ')}</td>
+      <td style="padding:8px 10px;color:#475569;">${e.outlet||'—'}</td>
+      <td style="padding:8px 10px;text-align:center;color:#475569;">${e.week||'—'}</td>
+      <td style="padding:8px 10px;text-align:center;color:${e.daysSubmitted>=4?'#15803D':'#D97706'};font-weight:700;">${e.daysSubmitted}</td>
+      <td style="padding:8px 10px;text-align:center;color:#475569;">${e.combinedChecklists}</td>
+      <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1A3C5E;">${e.combinedScore}</td>
       <td style="padding:8px 10px;text-align:center;">
-        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${pctColor(r.avgPct)}22;color:${pctColor(r.avgPct)};">${r.avgPct!=null?r.avgPct+'%':'—'}</span>
+        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${ssPctColor(e.combinedAvg)}22;color:${ssPctColor(e.combinedAvg)};">${e.combinedAvg!=null?e.combinedAvg+'%':'—'}</span>
       </td>
       <td style="padding:8px 10px;text-align:center;">
-        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.eligible?'#DCFCE7':'#FEE2E2'};color:${r.eligible?'#15803D':'#B91C1C'};">${r.eligible?'✅ Eligible':'❌ Not Eligible'}</span>
+        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${e.eligible?'#DCFCE7':'#FEE2E2'};color:${e.eligible?'#15803D':'#B91C1C'};">${e.eligible?'✅ Eligible':'❌ Not Eligible'}</span>
       </td>
     </tr>
   `).join('');
+}
+
+function openStaffWeeklyDetail(idx) {
+  const e = _ssConsolidatedRows[idx];
+  if (!e) return;
+
+  document.getElementById('ssDetailName').textContent = e.staffName;
+  document.getElementById('ssDetailSub').textContent = `${e.outlet||'—'} · Week of ${e.week||'—'}`;
+
+  function roleBlock(r) {
+    const rows = [];
+    rows.push(['Opening Score', r.openingAvg]);
+    if (r.isService) rows.push(['Evaluation Score', r.oicAvg]);
+    rows.push(['Closing Score', r.closingAvg]);
+    const rowsHtml = rows.map(([label, val]) => `
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F1F5F9;">
+        <span style="font-size:12px;color:#64748B;">${label}</span>
+        <span style="font-size:12px;font-weight:700;color:${ssPctColor(val)};">${val!=null?val+'%':'—'}</span>
+      </div>`).join('');
+    return `
+      <div style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E0DDD4;border-radius:10px;padding:12px;">
+        <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">${ssRoleLabel(r.role)}</div>
+        ${rowsHtml}
+        <div style="display:flex;justify-content:space-between;padding-top:6px;margin-top:4px;border-top:1px solid #E0DDD4;">
+          <span style="font-size:12px;font-weight:700;color:#1A3C5E;">Average Score</span>
+          <span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${ssPctColor(r.roleAvg)}22;color:${ssPctColor(r.roleAvg)};">${r.roleAvg!=null?r.roleAvg+'%':'—'}</span>
+        </div>
+      </div>`;
+  }
+
+  const weeklySummaryHtml = `
+    <div style="margin-bottom:16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px;">
+      <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:10px;">📋 Weekly Summary</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div><span style="color:#64748B;">Total Days Submitted:</span> <strong style="color:${e.daysSubmitted>=4?'#15803D':'#D97706'};">${e.daysSubmitted}</strong></div>
+        <div><span style="color:#64748B;">Total Checklists:</span> <strong>${e.combinedChecklists}</strong></div>
+        <div><span style="color:#64748B;">Ranking Position:</span> <strong>${e.rank!=null?'#'+e.rank:'Not ranked'}</strong></div>
+        <div><span style="color:#64748B;">Eligibility:</span> <strong style="color:${e.eligible?'#15803D':'#B91C1C'};">${e.eligible?'✅ Eligible':'❌ Not Eligible'}</strong></div>
+      </div>
+    </div>`;
+
+  const roleBlocksHtml = e.roles.map(roleBlock).join('');
+
+  const overallHtml = `
+    <div style="background:#1A3C5E;border-radius:10px;padding:14px;color:#fff;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🏆 Overall Performance</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div><span style="color:#B8C9DC;">Combined Weekly Score:</span> <strong>${e.combinedScore}</strong></div>
+        <div><span style="color:#B8C9DC;">Combined Weekly Average:</span> <strong>${e.combinedAvg!=null?e.combinedAvg+'%':'—'}</strong></div>
+        <div><span style="color:#B8C9DC;">Total Checklists Submitted:</span> <strong>${e.combinedChecklists}</strong></div>
+        <div><span style="color:#B8C9DC;">Total Days Present:</span> <strong>${e.daysSubmitted}</strong></div>
+      </div>
+    </div>`;
+
+  document.getElementById('ssDetailBody').innerHTML = weeklySummaryHtml + roleBlocksHtml + overallHtml;
+  document.getElementById('ssDetailModal').style.display = 'flex';
 }
 
 function showTab(el,id) {
