@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260617160000">
+<meta name="app-version" content="20260617170000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260617160000';
+  var v = '20260617170000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1763,7 +1763,8 @@ function initSummaryScoring() {
         _ssData.push({
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
           openingPct: s.openingPct, closingPct: s.closingPct, oicEvalPct: null,
-          submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : []
+          submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
+          submittedAt: s.submittedAt || null
         });
       });
       done();
@@ -1785,7 +1786,8 @@ function initSummaryScoring() {
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
           openingPct: s.openingPct, closingPct: s.closingPct,
           oicEvalPct: s.role === 'service' ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
-          submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : []
+          submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
+          submittedAt: s.submittedAt || null
         });
       });
       done();
@@ -1832,19 +1834,31 @@ function ssConsolidateByEmployee(rows) {
     if (s.openingPct != null) { g.openingSum += parseFloat(s.openingPct); g.openingCount++; }
     if (s.closingPct != null) { g.closingSum += parseFloat(s.closingPct); g.closingCount++; }
     if (s.oicEvalPct != null) { g.oicSum += parseFloat(s.oicEvalPct); g.oicCount++; }
-    (s.submittedDates || []).forEach(d => g.submittedDatesSet.add(d));
+    if (s.submittedDates && s.submittedDates.length) {
+      s.submittedDates.forEach(d => g.submittedDatesSet.add(d));
+    } else if (s.submittedAt) {
+      // Fallback for older records submitted before day-tracking was added —
+      // count the submission's own date so it isn't unfairly counted as 0 days
+      g.submittedDatesSet.add(s.submittedAt.substring(0, 10));
+    }
   });
 
   // Per-role summary (used in the detail breakdown)
   const roleSummaries = Object.values(byRole).map(g => {
     const isService = g.role === 'service';
-    const roleTotal = g.openingSum + g.closingSum + (isService ? g.oicSum : 0);
-    const roleSubmittedCount = g.openingCount + g.closingCount + (isService ? g.oicCount : 0);
+    const openingAvg = g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null;
+    const closingAvg = g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null;
+    const oicAvg     = g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null;
+    // roleTotal is built from the SAME averages shown in the breakdown below —
+    // not from raw accumulated sums — so the displayed scores and the combined
+    // total always agree, even when a staff member has multiple submissions
+    // for the same shift within the selected period.
+    const avgComponents = [openingAvg, closingAvg, isService ? oicAvg : null].filter(v => v != null);
+    const roleTotal = avgComponents.reduce((a,b) => a+b, 0);
+    const roleSubmittedCount = avgComponents.length;
     return {
       staffName: g.staffName, role: g.role, outlet: g.outlet, week: g.week,
-      openingAvg: g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null,
-      closingAvg: g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null,
-      oicAvg:     g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null,
+      openingAvg, closingAvg, oicAvg,
       isService,
       roleTotal: Math.round(roleTotal * 10) / 10,
       roleSubmittedCount,
