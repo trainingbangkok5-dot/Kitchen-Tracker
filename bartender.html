@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260619140000';
+  var v = '20260619150000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -470,20 +470,22 @@ function renderDay() {
   if (!currentShift) {
     document.getElementById('shiftScreen').style.display='block';
     const hour=getDubaiHour();
-    // Opening: 7am (7) to 3pm (15)
     const openingOpen = hour >= 7 && hour < 15;
-    // Closing: 3pm (15) to 2am next day (hour < 2)
     const closingOpen = hour >= 15 || hour < 2;
+    const _dayData = data[dayKey] || {};
+    const _openSubmitted = !!_dayData._openDone;
+    const _closeSubmitted = !!_dayData._closeDone;
 
     const openingBtn = document.getElementById('openingBtn');
     if (openingBtn) {
-      openingBtn.disabled = !openingOpen;
-      openingBtn.title = openingOpen ? '' : 'Opening shift is only available 7:00 AM – 3:00 PM';
+      // Allow viewing if already submitted, block only if not submitted and outside hours
+      openingBtn.disabled = !openingOpen && !_openSubmitted;
+      openingBtn.title = (!openingOpen && !_openSubmitted) ? 'Opening shift is only available 7:00 AM – 3:00 PM' : (_openSubmitted ? 'View submitted opening checklist' : '');
     }
     const closingBtn = document.getElementById('closingBtn');
     if (closingBtn) {
-      closingBtn.disabled = !closingOpen;
-      closingBtn.title = closingOpen ? '' : 'Closing shift is only available 3:00 PM – 2:00 AM';
+      closingBtn.disabled = !closingOpen && !_closeSubmitted;
+      closingBtn.title = (!closingOpen && !_closeSubmitted) ? 'Closing shift is only available 3:00 PM – 2:00 AM' : (_closeSubmitted ? 'View submitted closing checklist' : '');
     }
     const note = document.getElementById('shiftNote');
     if (note) {
@@ -584,8 +586,8 @@ function renderDay() {
     const opSections = SECTIONS.filter(s=>s.shift==='opening');
     const clSections = SECTIONS.filter(s=>s.shift==='closing');
     let oY2=0,oM2=0,cY2=0,cM2=0;
-    opSections.forEach(s=>s.tasks.forEach(t=>{const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){oM2++;if(v==='yes')oY2++;}}));
-    clSections.forEach(s=>s.tasks.forEach(t=>{const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){cM2++;if(v==='yes')cY2++;}}));
+    opSections.forEach(s=>s.tasks.forEach(t=>{if(t.owner==='verify') return; const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){oM2++;if(v==='yes')oY2++;}}));
+    clSections.forEach(s=>s.tasks.forEach(t=>{if(t.owner==='verify') return; const v=getVal(currentDay,t.id,'yn');if(v&&v!=='na'){cM2++;if(v==='yes')cY2++;}}));
     const oPct=oM2>0?Math.round((oY2/oM2)*100):null;
     const cPct=cM2>0?Math.round((cY2/cM2)*100):null;
     // Total = all YES / all answered tasks
@@ -655,15 +657,15 @@ function tapYN(tid, val, el) {
   setVal(currentDay,tid,'yn',val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
-  // Refresh score bar AND score boxes live
+  // Refresh score bar AND score boxes live — only count self tasks (matches submitDay)
   let t=0,y=0,oY=0,oM=0,cY=0,cM=0;
   const _td = load()[getTodayKey()] || {};
   SECTIONS.forEach(s => {
     const isOpen = s.shift === 'opening';
     const isClose = s.shift === 'closing';
     s.tasks.forEach(tk => {
+      if (tk.owner === 'verify') return; // exclude verify tasks from score
       const v = _td[tk.id]?.yn;
-      // Only count answered tasks
       if (v && v !== 'na') {
         if (isOpen)  { oM++; if(v==='yes') oY++; }
         if (isClose) { cM++; if(v==='yes') cY++; }
