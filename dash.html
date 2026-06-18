@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260617170000">
+<meta name="app-version" content="20260619120000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260617170000';
+  var v = '20260619120000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1769,7 +1769,10 @@ function initSummaryScoring() {
         if (isOutletRole && currentRole === 'oic') return;
         _ssData.push({
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
-          openingPct: s.openingPct, closingPct: s.closingPct, oicEvalPct: null,
+          // openingPct fallback: older KIC records only have overallPct, not openingPct
+          openingPct: s.openingPct != null ? s.openingPct : (s.role === 'kic' && s.overallPct != null ? s.overallPct : null),
+          closingPct: s.closingPct,
+          oicEvalPct: null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
           days: s.days || null // NEW: per-date breakdown (may be absent on older records)
@@ -1792,7 +1795,9 @@ function initSummaryScoring() {
         if (isOutletRole && currentRole === 'kic') return;
         _ssData.push({
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
-          openingPct: s.openingPct, closingPct: s.closingPct,
+          // openingPct fallback: older OIC records only have overallPct, not openingPct
+          openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
+          closingPct: s.closingPct,
           oicEvalPct: s.role === 'service' ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
