@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260619150000';
+  var v = '20260619160000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -475,17 +475,21 @@ function renderDay() {
     const _dayData = data[dayKey] || {};
     const _openSubmitted = !!_dayData._openDone;
     const _closeSubmitted = !!_dayData._closeDone;
+    // Also check _done (set by submitDay) and _shift to know which shift was submitted
+    const _doneShift = _dayData._shift;
+    const _isDone = !!_dayData._done;
+    const _anyOpenSubmitted = _openSubmitted || (_isDone && _doneShift === 'opening');
+    const _anyCloseSubmitted = _closeSubmitted || (_isDone && _doneShift === 'closing');
 
     const openingBtn = document.getElementById('openingBtn');
     if (openingBtn) {
-      // Allow viewing if already submitted, block only if not submitted and outside hours
-      openingBtn.disabled = !openingOpen && !_openSubmitted;
-      openingBtn.title = (!openingOpen && !_openSubmitted) ? 'Opening shift is only available 7:00 AM – 3:00 PM' : (_openSubmitted ? 'View submitted opening checklist' : '');
+      openingBtn.disabled = !openingOpen && !_anyOpenSubmitted;
+      openingBtn.title = (!openingOpen && !_anyOpenSubmitted) ? 'Opening shift is only available 7:00 AM – 3:00 PM' : (_anyOpenSubmitted ? 'View submitted opening checklist' : '');
     }
     const closingBtn = document.getElementById('closingBtn');
     if (closingBtn) {
-      closingBtn.disabled = !closingOpen && !_closeSubmitted;
-      closingBtn.title = (!closingOpen && !_closeSubmitted) ? 'Closing shift is only available 3:00 PM – 2:00 AM' : (_closeSubmitted ? 'View submitted closing checklist' : '');
+      closingBtn.disabled = !closingOpen && !_anyCloseSubmitted;
+      closingBtn.title = (!closingOpen && !_anyCloseSubmitted) ? 'Closing shift is only available 3:00 PM – 2:00 AM' : (_anyCloseSubmitted ? 'View submitted closing checklist' : '');
     }
     const note = document.getElementById('shiftNote');
     if (note) {
@@ -759,8 +763,10 @@ function submitDay() {
 
   const d=load(), dayKey=getTodayKey();
   if(!d[dayKey]) d[dayKey]={};
-  d[dayKey]._done=getDubaiDateStr(); // Store Dubai date for reliable comparison
+  d[dayKey]._done=getDubaiDateStr();
   d[dayKey]._shift=currentShift;
+  if(currentShift==='opening') d[dayKey]._openDone = new Date().toISOString();
+  else d[dayKey]._closeDone = new Date().toISOString();
   save(d);
 
   // Calculate score — only self tasks count (verify tasks are OIC responsibility)
