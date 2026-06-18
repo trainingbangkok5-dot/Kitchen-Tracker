@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260619100000';
+  var v = '20260619140000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -183,11 +183,11 @@ const SECTIONS = [
     { id:'o5', owner:'verify', ownerLbl:'Verify by OIC', text:'Chiller and freezer temperatures are checked and recorded', photo:true },
   ]},
   { title: '🌙 Closing Responsibilities', shift: 'closing', tasks: [
-    { id:'c1', owner:'verify', ownerLbl:'Verify by OIC', text:'All bar equipment is cleaned and switched off properly at the end of the shift', photo:true },
-    { id:'c2', owner:'verify', ownerLbl:'Verify by OIC', text:'Bar station is cleaned, sanitized, and organized for the next day', photo:true },
-    { id:'c3', owner:'verify', ownerLbl:'Verify by OIC', text:'All ingredients are stored properly, labeled, and following FIFO standards', photo:true },
-    { id:'c4', owner:'verify', ownerLbl:'Verify by OIC', text:'Closing stock count is completed and any shortages are reported', photo:false },
-    { id:'c5', owner:'verify', ownerLbl:'Verify by OIC', text:'Chiller and freezer temperatures are checked and recorded before closing', photo:true },
+    { id:'c1', owner:'self', ownerLbl:'Self-report', text:'All bar equipment is cleaned and switched off properly at the end of the shift', photo:true },
+    { id:'c2', owner:'self', ownerLbl:'Self-report', text:'Bar station is cleaned, sanitized, and organized for the next day', photo:true },
+    { id:'c3', owner:'self', ownerLbl:'Self-report', text:'All ingredients are stored properly, labeled, and following FIFO standards', photo:true },
+    { id:'c4', owner:'self', ownerLbl:'Self-report', text:'Closing stock count is completed and any shortages are reported', photo:true },
+    { id:'c5', owner:'self', ownerLbl:'Self-report', text:'Chiller and freezer temperatures are checked and recorded before closing', photo:true },
   ]},
 ];
 
