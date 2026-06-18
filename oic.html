@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619100000';
+  var v = '20260619110000';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -1266,6 +1266,8 @@ function submitDay() {
     week:       getWeekStart(), // Actual week-starting date (fixed — was today's date)
     verifiedBy: getVerified(),
     overallPct: op,
+    openingPct: op,
+    closingPct: null,
     qualified:  op>=95,
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
