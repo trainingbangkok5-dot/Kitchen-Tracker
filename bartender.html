@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260619160000';
+  var v = '20260619170000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -555,7 +555,7 @@ function renderDay() {
           <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
           <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
           <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">N/A</div>
-          ${task.photo?`<button class="photo-btn ${photo?'taken':''}" onclick="openPhotoModal('${task.id}')">${photo?'📷 ✓':'📷'}</button>`:''}
+          ${task.photo?('<button class="photo-btn '+(photo?'taken':'')+'" onclick="openPhotoModal(\''+task.id+'\')">'+(photo?'📷 ✓':'📷')+'</button>'):''}
         </div>
         <textarea class="comment-box" rows="2" placeholder="Add comment (required for NO)..." onchange="setComment('${task.id}',this.value)">${comment}</textarea>
         ${(()=>{
