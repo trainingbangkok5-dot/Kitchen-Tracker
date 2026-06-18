@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260617120000';
+  var v = '20260619100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -221,6 +221,13 @@ function pushToFirebase(record) {
       console.warn('Firebase write failed:', e);
       showToast('⚠ Sync failed: ' + e.message, 'error');
     });
+    // Also write per-day score to days/{date} node for daily breakdown report
+    try {
+      const _dayDate = getTodayKey().replace('dt', '');
+      const _dayData = { submittedAt: new Date().toISOString() };
+      if (record.overallPct != null) _dayData.openingPct = record.overallPct;
+      _db.ref('submissions/' + key + '/days/' + _dayDate).update(_dayData);
+    } catch(e) { console.warn('Daily score write failed:', e); }
   } catch(e) {
     console.warn('Firebase error:', e);
     showToast('⚠ Firebase error: ' + e.message, 'error');

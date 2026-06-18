@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260617120000';
+  var v = '20260619100000';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -801,6 +801,16 @@ function submitDay() {
     _db.ref('submissions/'+key).set(record)
       .then(()=>showToast('Submitted ✓','ok'))
       .catch(e=>showToast('Submit failed: '+e.message,'error'));
+    // Also write per-day score to days/{date} node for daily breakdown report
+    try {
+      const _dayDate = getTodayKey().replace('dt','');
+      const _dayData = { submittedAt: new Date().toISOString() };
+      if (record.overallPct != null) {
+        if (currentShift === 'opening') _dayData.openingPct = record.overallPct;
+        else _dayData.closingPct = record.overallPct;
+      }
+      _db.ref('submissions/'+key+'/days/'+_dayDate).update(_dayData);
+    } catch(e) { console.warn('Daily score write failed:',e); }
   }
 
   showToast('Checklist submitted ✓','ok');

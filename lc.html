@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260617120000';
+  var v = '20260619100000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -23,7 +23,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260617120000">
+<meta name="app-version" content="20260619100000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#2E6DA4">
@@ -298,6 +298,15 @@ function pushToFirebase(record) {
       console.warn('Firebase write failed:', e);
       showToast('⚠ Sync failed: ' + e.message, 'error');
     });
+    // Also write per-day score to days/{date} node for daily breakdown report
+    try {
+      const _dayDate = getTodayKey().replace('dt', '');
+      const _dayData = { submittedAt: new Date().toISOString() };
+      if (record.openingPct != null) _dayData.openingPct = record.openingPct;
+      if (record.closingPct != null) _dayData.closingPct = record.closingPct;
+      if (record.oicEvalPct != null) _dayData.oicEvalPct = record.oicEvalPct;
+      _db.ref('submissions/' + key + '/days/' + _dayDate).update(_dayData);
+    } catch(e) { console.warn('Daily score write failed:', e); }
   } catch(e) {
     console.warn('Firebase error:', e);
     showToast('⚠ Firebase error: ' + e.message, 'error');
