@@ -486,6 +486,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Avg Score</div>
       </div>
     </div>
+    <div id="bohACAlert" style="display:none;background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:12px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:20px;line-height:1;">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px;">KIC Evaluation Pending</div>
+          <div id="bohACAlertText" style="font-size:12px;color:#78350F;line-height:1.5;"></div>
+          <div style="font-size:11px;color:#92400E;margin-top:6px;">Open each KIC record → press <strong>✏️ Edit</strong> → complete the Area Chef Observation section.</div>
+        </div>
+      </div>
+    </div>
     <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow:hidden;">
       <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:0.5px solid #F1F5F9;">
         <button onclick="toggleBOHSelectMode(true)" id="bohSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
@@ -2190,7 +2200,7 @@ function openStaffWeeklyDetail(idx) {
       const parts = [];
       if (d.openingPct != null) parts.push('Opening ' + d.openingPct + '%');
       if (d.closingPct != null) parts.push('Closing ' + d.closingPct + '%');
-      if (d.oicEvalPct != null) parts.push('OIC Eval ' + d.oicEvalPct + '%');
+      if (d.oicEvalPct != null) parts.push((e.roles && e.roles.some(r=>r.role==='kic') ? 'AC Eval' : 'OIC Eval') + ' ' + d.oicEvalPct + '%');
       return `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F1F5F9;">
           <div>
@@ -2210,7 +2220,7 @@ function openStaffWeeklyDetail(idx) {
   function roleBlock(r) {
     const rows = [];
     rows.push(['Opening Score', r.openingAvg]);
-    if (r.isService || r.role === 'oic' || r.role === 'kic') rows.push(['Evaluation Score', r.oicAvg]);
+    if (r.isService || r.role === 'oic' || r.role === 'kic') rows.push([r.role === 'kic' ? 'AC Evaluation' : 'OIC Evaluation', r.oicAvg]);
     rows.push(['Closing Score', r.closingAvg]);
     const rowsHtml = rows.map(([label, val]) => `
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F1F5F9;">
@@ -3168,7 +3178,7 @@ function openStaffDetail(s) {
               return canVerify;
             })()
             ? `<div style="display:flex;gap:6px;margin-top:4px;">
-               <input id="verifyNameInput" type="text" placeholder="Enter your name..." value=""
+               <input id="verifyNameInput" type="text" placeholder="${s.role==='kic'?'Enter Area Chef name...':['linecook','steward'].includes(s.role)?'Enter KIC name...':'Enter your name...'}" value=""
                  style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
                <button onclick="saveVerification()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✅ Verify</button>
              </div>
@@ -3185,18 +3195,20 @@ function openStaffDetail(s) {
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
     const isService = ['service','oic','kic'].includes(s.role); // kic also has eval score
-    // Total score logic:
-    // Opening only: (Opening + OIC Eval) / available
-    // Closing only: (Closing + OIC Eval) / available  
-    // Both shifts: (Opening + Closing + OIC Eval) / available
+    const isKICRole = s.role === 'kic';
+    // Total score formula: opening+eval, closing+eval, or opening+closing+eval
     const hasOpening = opO !== null;
     const hasClosing = opC !== null;
     const hasOIC = oicEvalPct !== null;
-    let _scoreComponents = [];
-    if (hasOpening) _scoreComponents.push(opO);
-    if (hasClosing) _scoreComponents.push(opC);
-    if (hasOIC) _scoreComponents.push(oicEvalPct);
-    const totalScore = _scoreComponents.length > 0 ? Math.round(_scoreComponents.reduce((a,b)=>a+b,0)/_scoreComponents.length) : sc;
+    let totalScore;
+    if (hasOpening && hasClosing && hasOIC)  totalScore = Math.round((opO+opC+oicEvalPct)/3);
+    else if (hasOpening && hasOIC)           totalScore = Math.round((opO+oicEvalPct)/2);
+    else if (hasClosing && hasOIC)           totalScore = Math.round((opC+oicEvalPct)/2);
+    else if (hasOpening && hasClosing)       totalScore = Math.round((opO+opC)/2);
+    else if (hasOpening)                     totalScore = opO;
+    else if (hasClosing)                     totalScore = opC;
+    else if (hasOIC)                         totalScore = oicEvalPct;
+    else                                     totalScore = sc;
     const pass = totalScore >= 95;
     // Build all 4 score boxes as separate rows for mobile compatibility
     const scoreRows = [];
@@ -3218,9 +3230,9 @@ function openStaffDetail(s) {
       scoreRows.push(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
           '<div style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
-            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">👥 OIC EVAL</div>' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : '👥 OIC EVAL') + '</div>' +
             '<div style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
-            '<div style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?'Pending OIC':oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+            '<div style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
           '</div>' +
           '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
@@ -3303,6 +3315,14 @@ function openStaffDetail(s) {
           const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
           const isLast = ti===secTasks.length-1;
           const taskKey = t.taskKey || (Object.keys(s.taskData||{}).find(k => s.taskData[k] === t) || '');
+          // Special display for aud1 — show audit score instead of YES/NO
+          const baseTaskId = taskKey.replace(/^d[0-9]+_/,'');
+          const isAud1 = baseTaskId === 'aud1';
+          const audScoreDisplay = isAud1 && t.audScore != null ? parseFloat(t.audScore) : null;
+          const audPass = audScoreDisplay != null && audScoreDisplay >= 90;
+          const audDisplayBg  = audScoreDisplay==null?'#F3F4F6':audPass?'#DCFCE7':'#FEE2E2';
+          const audDisplayCol = audScoreDisplay==null?'#6B6B60':audPass?'#15803D':'#B91C1C';
+          const audDisplayLbl = audScoreDisplay==null?(yn==='yes'?'✓ YES':yn==='no'?'✗ NO':'—'):(audScoreDisplay+'% '+(audPass?'✓ Pass':'✗ Below'));
           html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-taskkey="${taskKey}">
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
@@ -3311,7 +3331,7 @@ function openStaffDetail(s) {
               ${buildPhotoHtml(t, s ? s.role : (staff ? staff.role : ""))}
             </div>
             <div class="task-yn-display">
-              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
+              <span style="background:${isAud1?audDisplayBg:ynBg};color:${isAud1?audDisplayCol:ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${isAud1?audDisplayLbl:ynLbl}</span>
             </div>
             <div class="task-yn-edit" style="display:none;gap:4px;">
               <button onclick="setTaskYN(this,'yes')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
@@ -6877,17 +6897,30 @@ function loadBOHData() {
           if (db && sub._fbKey) db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
           grouped[gKey].closingPct = null;
         }
-        // Recalculate overall from opening+closing if both exist
+        if (sub.oicEvalPct != null && sub.role === 'kic') grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+        // Recalculate overall from opening+closing+eval for KIC, opening+closing for others
         const _op = grouped[gKey].openingPct;
         const _cl = grouped[gKey].closingPct;
-        if (_op != null && _cl != null) {
-          grouped[gKey].overallPct = Math.round((_op + _cl) / 2);
-          grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
-        } else if (_op != null && grouped[gKey].overallPct === 0) {
-          grouped[gKey].overallPct = _op;
-        } else if (_cl != null && grouped[gKey].overallPct === 0) {
-          grouped[gKey].overallPct = _cl;
+        const _ev = grouped[gKey].oicEvalPct != null ? grouped[gKey].oicEvalPct : null;
+        if (sub.role === 'kic') {
+          if (_op!=null && _cl!=null && _ev!=null) grouped[gKey].overallPct = Math.round((_op+_cl+_ev)/3);
+          else if (_op!=null && _ev!=null)          grouped[gKey].overallPct = Math.round((_op+_ev)/2);
+          else if (_cl!=null && _ev!=null)          grouped[gKey].overallPct = Math.round((_cl+_ev)/2);
+          else if (_op!=null && _cl!=null)          grouped[gKey].overallPct = Math.round((_op+_cl)/2);
+          else if (_op!=null)                       grouped[gKey].overallPct = _op;
+          else if (_cl!=null)                       grouped[gKey].overallPct = _cl;
+          else if (_ev!=null)                       grouped[gKey].overallPct = _ev;
+        } else {
+          if (_op != null && _cl != null) {
+            grouped[gKey].overallPct = Math.round((_op + _cl) / 2);
+            grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
+          } else if (_op != null && grouped[gKey].overallPct === 0) {
+            grouped[gKey].overallPct = _op;
+          } else if (_cl != null && grouped[gKey].overallPct === 0) {
+            grouped[gKey].overallPct = _cl;
+          }
         }
+        grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
         if (sub.submittedAt) {
@@ -7181,6 +7214,22 @@ function renderBOHStaff() {
   document.getElementById('bohStatFail').textContent = filtered.filter(s=>!s.qualified&&s.overallPct>0).length;
   const avg = filtered.length ? Math.round(filtered.reduce((a,s)=>a+s.overallPct,0)/filtered.length) : 0;
   document.getElementById('bohStatAvg').textContent = filtered.length ? avg+'%' : '—';
+
+  // AC alert — show only to areachef/director/training/operations/ceo
+  const bohAlertEl = document.getElementById('bohACAlert');
+  const bohAlertTextEl = document.getElementById('bohACAlertText');
+  if (bohAlertEl && bohAlertTextEl && ['areachef','director','training','operations','ceo'].includes(currentRole)) {
+    const pendingKICs = filtered.filter(s => s.role === 'kic' && (s.oicEvalPct == null || s.oicEvalPct === undefined));
+    if (pendingKICs.length > 0) {
+      const names = pendingKICs.map(s => `<strong>${s.staffName}</strong> (${s.outlet})`).join(', ');
+      bohAlertTextEl.innerHTML = `${pendingKICs.length} KIC record${pendingKICs.length > 1 ? 's' : ''} still need your evaluation this week: ${names}.`;
+      bohAlertEl.style.display = 'block';
+    } else {
+      bohAlertEl.style.display = 'none';
+    }
+  } else if (bohAlertEl) {
+    bohAlertEl.style.display = 'none';
+  }
   const tbody = document.getElementById('bohTableBody');
   tbody.innerHTML = '';
   document.getElementById('bohEmpty').style.display = filtered.length ? 'none' : 'block';
@@ -7206,7 +7255,7 @@ function renderBOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.submittedAt ? new Date(staff.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : staff.week}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}</td>
+      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}${staff.role==='kic'&&(staff.oicEvalPct==null||staff.oicEvalPct===undefined)?'<br><span style="background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;margin-top:3px;display:inline-block;">⚠️ AC Eval Needed</span>':''}</td>
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
         ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
         : op > 0
@@ -7756,6 +7805,14 @@ function openFOHDetail(idx) {
           const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
           const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
           const isLast = ti === secTasks.length - 1;
+          // Special display for aud1 — show audit score
+          const fohBaseId = (t._key||'').replace(/^d[0-9]+_/,'');
+          const isFohAud1 = fohBaseId === 'aud1';
+          const fohAudScore = isFohAud1 && t.audScore != null ? parseFloat(t.audScore) : null;
+          const fohAudPass = fohAudScore != null && fohAudScore >= 90;
+          const fohAudBg  = fohAudScore==null?ynBg:fohAudPass?'#DCFCE7':'#FEE2E2';
+          const fohAudCol = fohAudScore==null?ynCol:fohAudPass?'#15803D':'#B91C1C';
+          const fohAudLbl = fohAudScore==null?ynLbl:(fohAudScore+'% '+(fohAudPass?'✓ Pass':'✗ Below'));
           // Owner tag color
           const ownerCols = {
             'Self-report':'background:#DBEAFE;color:#1D4ED8',
@@ -7776,7 +7833,7 @@ function openFOHDetail(idx) {
               <div class="foh-photo-display">${buildPhotoHtml(t, staff ? staff.role : '')}</div>
             </div>
             <div class="foh-yn-display" style="flex-shrink:0;">
-              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+              <span style="background:${isFohAud1?fohAudBg:ynBg};color:${isFohAud1?fohAudCol:ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${isFohAud1?fohAudLbl:ynLbl}</span>
             </div>
             <div class="foh-yn-edit" style="display:none;flex-direction:column;gap:6px;flex-shrink:0;min-width:200px;">
               <div style="display:flex;gap:4px;">
