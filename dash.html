@@ -577,6 +577,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;">Avg Score</div>
       </div>
     </div>
+    <div id="fohAMAlert" style="display:none;background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:10px;padding:12px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:20px;line-height:1;">⚠️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px;">OIC Evaluation Pending</div>
+          <div id="fohAMAlertText" style="font-size:12px;color:#78350F;line-height:1.5;"></div>
+          <div style="font-size:11px;color:#92400E;margin-top:6px;">Open each OIC record → press <strong>✏️ Edit / Overwrite</strong> → complete the Area Manager Observation section.</div>
+        </div>
+      </div>
+    </div>
     <div style="background:#fff;border-radius:10px;border:0.5px solid #E0DDD4;overflow:hidden;">
       <div style="display:flex;justify-content:flex-end;padding:8px 12px;border-bottom:0.5px solid #F1F5F9;">
         <button onclick="toggleFOHSelectMode(true)" id="fohSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
@@ -6013,6 +6023,144 @@ function toggleEditMode(s) {
   cancelBtn.textContent = '✕ Cancel Edit';
   cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; _editPhotoChanges = {}; openStaffDetail(s); };
   body.appendChild(cancelBtn);
+
+  // ── OIC Observation injection (Area Manager overwriting service staff record via BOH modal) ──
+  if (s.role === 'service' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
+    const oicObsDefs = [
+      {id:'u1', section:'💰 Upselling',                       text:'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.'},
+      {id:'s1', section:'⭐ Service Standards',               text:'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.'},
+      {id:'s2', section:'⭐ Service Standards',               text:'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.'},
+      {id:'s3', section:'⭐ Service Standards',               text:'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.'},
+      {id:'f1', section:'📝 Customer Feedback & Performance', text:'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.'},
+      {id:'f2', section:'📝 Customer Feedback & Performance', text:'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.'},
+      {id:'t1', section:'🤝 Team Player & Professionalism',   text:'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.'},
+      {id:'t2', section:'🤝 Team Player & Professionalism',   text:'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.'},
+      {id:'t3', section:'🤝 Team Player & Professionalism',   text:'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.'},
+      {id:'t4', section:'🤝 Team Player & Professionalism',   text:'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.'},
+    ];
+
+    let oicBOHEditContainer = body.querySelector('#oicBOHEditSection');
+    if (!oicBOHEditContainer) {
+      oicBOHEditContainer = document.createElement('div');
+      oicBOHEditContainer.id = 'oicBOHEditSection';
+      oicBOHEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      body.insertBefore(oicBOHEditContainer, body.querySelector('#cancelEditBtn'));
+    }
+
+    let oicBOHHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑‍💼 OIC Observation</div>';
+    let lastSecBOH = '';
+    oicObsDefs.forEach(t => {
+      if (t.section !== lastSecBOH) {
+        lastSecBOH = t.section;
+        oicBOHHtml += `<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
+      }
+      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
+      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      oicBOHHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC observation comment...">${existingComment}</textarea>
+        </div>
+      </div>`;
+    });
+    oicBOHEditContainer.innerHTML = oicBOHHtml;
+  }
+
+  // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
+  if (s.role === 'kic') {
+    const allKicDefs = [
+      {id:'fc1', section:'🍽️ Food Cost Control',      text:'Food cost % is within the target range for the outlet.'},
+      {id:'fc2', section:'🍽️ Food Cost Control',      text:'Waste is minimized — no over-preparation or spoilage observed.'},
+      {id:'fc3', section:'🍽️ Food Cost Control',      text:'Portion sizes are consistent and follow standard recipe guidelines.'},
+      {id:'fc4', section:'🍽️ Food Cost Control',      text:'Receiving and storage procedures are followed to prevent loss.'},
+      {id:'fo1', section:'🔪 Food Operations',         text:'All station setups are complete and ready before service begins.'},
+      {id:'fo2', section:'🔪 Food Operations',         text:'Kitchen hygiene and cleanliness standards are maintained throughout the shift.'},
+      {id:'fo3', section:'🔪 Food Operations',         text:'Food safety practices (temperatures, labeling, FIFO) are followed correctly.'},
+      {id:'cost1',section:'💰 Cost Management',        text:'Monthly outlet food cost target is being tracked and managed.'},
+      {id:'sp2',  section:'📋 Staff Performance',      text:'Line cooks and stewards are performing consistently and meeting shift expectations.'},
+      {id:'cc1',  section:'🤝 Communication & Culture',text:'KIC communicates clearly with BOH team and maintains a positive kitchen environment.'},
+    ];
+    const kicAudScore = (s.taskData && s.taskData['aud1'] && s.taskData['aud1'].audScore != null) ? s.taskData['aud1'].audScore : '';
+
+    let kicEditContainer = body.querySelector('#kicEditSection');
+    if (!kicEditContainer) {
+      kicEditContainer = document.createElement('div');
+      kicEditContainer.id = 'kicEditSection';
+      kicEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      body.insertBefore(kicEditContainer, body.querySelector('#cancelEditBtn'));
+    }
+
+    let kicHtml = '<div style="background:#166534;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">👨‍🍳 Area Chef Observation — KIC Evaluation</div>';
+    let lastSec = '';
+    allKicDefs.forEach(t => {
+      if (t.section !== lastSec) {
+        lastSec = t.section;
+        kicHtml += `<div style="background:#15803D;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
+      }
+      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
+      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      kicHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Area Chef comment...">${existingComment}</textarea>
+        </div>
+      </div>`;
+    });
+    kicEditContainer.innerHTML = kicHtml;
+
+    // Audit score row — separate from YES/NO tasks
+    const audScore = kicAudScore;
+    const audColor = audScore >= 90 ? '#15803D' : audScore ? '#B91C1C' : '#94A3B8';
+    const audBg    = audScore >= 90 ? '#DCFCE7' : audScore ? '#FEE2E2' : '#F8FAFC';
+    const audDiv = document.createElement('div');
+    audDiv.style.cssText = 'background:#F5F3EE;border-top:2px solid #E0DDD4;padding:12px;';
+    audDiv.innerHTML = `
+      <div style="background:#1A3C5E;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;border-radius:6px 6px 0 0;margin:-12px -12px 10px -12px;">🗂️ Audit Compliance</div>
+      <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Last internal audit score — must be 90% or above to qualify.</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input id="kicAud1ScoreInput" type="number" min="0" max="100" step="0.5" value="${audScore}" placeholder="e.g. 92"
+          style="width:80px;padding:7px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:14px;font-weight:700;text-align:center;color:${audColor};background:${audBg};outline:none;"
+          oninput="(function(inp){
+            const v=parseFloat(inp.value);
+            const pass=!isNaN(v)&&v>=90;
+            inp.style.color=isNaN(v)?'#94A3B8':pass?'#15803D':'#B91C1C';
+            inp.style.background=isNaN(v)?'#F8FAFC':pass?'#DCFCE7':'#FEE2E2';
+            inp.style.borderColor=isNaN(v)?'#E0DDD4':pass?'#15803D':'#B91C1C';
+            const lbl=document.getElementById('kicAud1Label');
+            if(lbl){lbl.textContent=isNaN(v)?'Enter score':pass?'✅ Passes (90%+)':'❌ Below 90% — does not qualify';lbl.style.color=isNaN(v)?'#94A3B8':pass?'#15803D':'#B91C1C';}
+            if(!isNaN(v)){_editChanges['aud1']=pass?'yes':'no';_editChanges['aud1_score']=v;if(typeof updateLiveScore==='function')updateLiveScore();}
+          })(this)">
+        <span id="kicAud1Label" style="font-size:12px;font-weight:600;color:${audScore>=90?'#15803D':audScore?'#B91C1C':'#94A3B8'};">
+          ${audScore>=90?'✅ Passes (90%+)':audScore?'❌ Below 90% — does not qualify':'Enter score'}
+        </span>
+      </div>`;
+    kicEditContainer.appendChild(audDiv);
+
+    // Wire up audit score to _editChanges on save
+    kicEditContainer.querySelector('#kicAud1ScoreInput').addEventListener('change', function() {
+      const v = parseFloat(this.value);
+      if (!isNaN(v)) {
+        _editChanges['aud1'] = v >= 90 ? 'yes' : 'no';
+        _editChanges['aud1_score'] = v;
+      }
+    });
+  }
 }
 
 function setTaskYN(btn, val) {
@@ -6040,7 +6188,7 @@ function updateLiveScore() {
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
   });
   // Use task IDs to split — never section name (unreliable)
-  const _lsOicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+  const _lsOicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = ['c1','c2','c3','c4','c5'];
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
@@ -6058,9 +6206,19 @@ function updateLiveScore() {
     || (!s.status && s.openingPct != null && s.shift !== 'closing' && s.closingPct == null));
   const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
   const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
-  // Total = opening+OIC if opening only, closing+OIC if closing only, all if both
-  const _lsScores = [opPct, clPct, ePct].filter(v => v != null);
-  const newScore = _lsScores.length > 0 ? Math.round(_lsScores.reduce((a,b)=>a+b,0)/_lsScores.length) : 0;
+  // Total score formula:
+  // Opening shift only:  (opening + eval) / 2
+  // Closing shift only:  (closing + eval) / 2
+  // Straight (both):     (opening + closing + eval) / 3
+  const hasOp = opPct !== null, hasCl = clPct !== null, hasEv = ePct !== null;
+  let newScore = 0;
+  if (hasOp && hasCl && hasEv) newScore = Math.round((opPct + clPct + ePct) / 3);
+  else if (hasOp && hasEv)     newScore = Math.round((opPct + ePct) / 2);
+  else if (hasCl && hasEv)     newScore = Math.round((clPct + ePct) / 2);
+  else if (hasOp && hasCl)     newScore = Math.round((opPct + clPct) / 2);
+  else if (hasOp)              newScore = opPct;
+  else if (hasCl)              newScore = clPct;
+  else if (hasEv)              newScore = ePct;
   const pass = newScore >= 95;
   // Update score boxes — explicitly show "—" for null scores
   document.querySelectorAll('#detailModal [data-scorebox], #detailBody [data-scorebox]').forEach(box => {
@@ -6196,6 +6354,11 @@ async function saveOverwrite(s) {
   // Build updates
   const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (k === 'aud1_score') {
+      // Save raw audit score to taskData/aud1/audScore
+      updates['submissions/' + fbKey + '/taskData/aud1/audScore'] = yn;
+      return;
+    }
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
   });
 
@@ -6246,7 +6409,9 @@ async function saveOverwrite(s) {
   // Recalculate score
   const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
   Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (k === 'aud1_score') return; // raw score stored separately, not a yn task
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
+    else updatedTaskData[k] = {yn}; // new task (e.g. KIC eval task not in original submission)
   });
 
   // Use task ID to identify opening/closing/eval — based on actual checklist task IDs
@@ -6255,7 +6420,7 @@ async function saveOverwrite(s) {
   const _isKIC = s.role === 'kic';
   const _evalIds  = _isKIC
     ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
-    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
   const _openIds  = ['o1','o2','o3','o4','o5'];
   const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
@@ -6270,8 +6435,15 @@ async function saveOverwrite(s) {
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
   const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
   const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
-  const _allPcts = [opPct, clPct, ePct].filter(v => v != null);
-  const newScore = _allPcts.length > 0 ? Math.round(_allPcts.reduce((a,b)=>a+b,0)/_allPcts.length) : parseFloat(s.overallPct||0);
+  // Total score formula: opening+eval, closing+eval, or opening+closing+eval
+  let newScore = parseFloat(s.overallPct||0);
+  if (opPct!==null && clPct!==null && ePct!==null) newScore = Math.round((opPct+clPct+ePct)/3);
+  else if (opPct!==null && ePct!==null)             newScore = Math.round((opPct+ePct)/2);
+  else if (clPct!==null && ePct!==null)             newScore = Math.round((clPct+ePct)/2);
+  else if (opPct!==null && clPct!==null)            newScore = Math.round((opPct+clPct)/2);
+  else if (opPct!==null)                            newScore = opPct;
+  else if (clPct!==null)                            newScore = clPct;
+  else if (ePct!==null)                             newScore = ePct;
   const newQualified = newScore >= 95;
 
   updates['submissions/' + fbKey + '/overallPct']    = newScore;
@@ -7135,7 +7307,7 @@ function loadFOHData() {
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
-          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']; // OIC eval task IDs
+          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1']; // OIC eval task IDs
           const hasOICData = oicTaskIds.some(tid => {
             // Check both 'd1_u1' format and direct 'u1' format
             return Object.keys(sub.taskData).some(k =>
@@ -7153,7 +7325,7 @@ function loadFOHData() {
               }
             });
           });
-          if(oicT>0) { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
+          if(oicT>0 && sub.role === 'service') { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
           const hasStaffData = staffTaskIds.some(tid =>
@@ -7236,6 +7408,22 @@ function renderFOHStaff() {
   const avg = filtered.length ? Math.round(filtered.reduce((a,s)=>a+s.overallPct,0)/filtered.length) : 0;
   document.getElementById('fohStatAvg').textContent = filtered.length ? avg + '%' : '—';
 
+  // AM alert — show only to areamanager/director/training/operations/ceo
+  const alertEl = document.getElementById('fohAMAlert');
+  const alertTextEl = document.getElementById('fohAMAlertText');
+  if (alertEl && alertTextEl && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
+    const pendingOICs = filtered.filter(s => s.role === 'oic' && (s.oicEvalPct == null || s.oicEvalPct === undefined));
+    if (pendingOICs.length > 0) {
+      const names = pendingOICs.map(s => `<strong>${s.staffName}</strong> (${s.outlet})`).join(', ');
+      alertTextEl.innerHTML = `${pendingOICs.length} OIC record${pendingOICs.length > 1 ? 's' : ''} still need your evaluation this week: ${names}.`;
+      alertEl.style.display = 'block';
+    } else {
+      alertEl.style.display = 'none';
+    }
+  } else if (alertEl) {
+    alertEl.style.display = 'none';
+  }
+
   const tbody = document.getElementById('fohTableBody');
   tbody.innerHTML = '';
   document.getElementById('fohEmpty').style.display = filtered.length ? 'none' : 'block';
@@ -7261,7 +7449,7 @@ function renderFOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.submittedAt ? new Date(staff.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : staff.week}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}</td>
+      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}${staff.role==='oic'&&(staff.oicEvalPct==null||staff.oicEvalPct===undefined)?'<br><span style="background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;margin-top:3px;display:inline-block;">⚠️ AM Eval Needed</span>':''}</td>
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
         ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
         : op > 0
@@ -7338,10 +7526,19 @@ function openFOHDetail(idx) {
     if (_cleanDb2) _cleanDb2.ref('submissions/' + staff._fbKey + '/closingPct').remove().catch(()=>{});
     staff.closingPct = null;
   }
-  const oicPctFoh = staff.oicEvalPct != null ? staff.oicEvalPct : (staff.oicPct != null ? staff.oicPct : null);
-  // Total = average of all available scores: opening + closing + OIC eval
-  const _fohScores = [oPctFoh, cPctFoh, oicPctFoh].filter(v => v != null);
-  const fohTotal = _fohScores.length > 0 ? Math.round(_fohScores.reduce((a,b)=>a+b,0)/_fohScores.length) : op;
+  // For OIC role: oicEvalPct is set only when AM explicitly submits evaluation — don't fall back to oicPct
+  const oicPctFoh = staff.role === 'oic'
+    ? (staff.oicEvalPct != null ? parseFloat(staff.oicEvalPct) : null)
+    : (staff.oicEvalPct != null ? staff.oicEvalPct : (staff.oicPct != null ? staff.oicPct : null));
+  // Total score formula: opening+eval, closing+eval, or opening+closing+eval
+  let fohTotal = op;
+  if (oPctFoh!==null && cPctFoh!==null && oicPctFoh!==null)      fohTotal = Math.round((oPctFoh+cPctFoh+oicPctFoh)/3);
+  else if (oPctFoh!==null && oicPctFoh!==null)                    fohTotal = Math.round((oPctFoh+oicPctFoh)/2);
+  else if (cPctFoh!==null && oicPctFoh!==null)                    fohTotal = Math.round((cPctFoh+oicPctFoh)/2);
+  else if (oPctFoh!==null && cPctFoh!==null)                      fohTotal = Math.round((oPctFoh+cPctFoh)/2);
+  else if (oPctFoh!==null)                                         fohTotal = oPctFoh;
+  else if (cPctFoh!==null)                                         fohTotal = cPctFoh;
+  else if (oicPctFoh!==null)                                       fohTotal = oicPctFoh;
   const fohTotalPass = fohTotal >= 95;
   const isService = staff.role === 'service';
   const isOIC = staff.role === 'oic';
@@ -7371,7 +7568,7 @@ function openFOHDetail(idx) {
         ${staff.verifiedBy
           ? `<div style="font-size:12px;font-weight:700;color:#15803D;">✅ ${staff.verifiedBy}</div>`
           : `<div style="display:flex;gap:6px;margin-top:2px;">
-               <input id="fohVerifiedByInput" type="text" placeholder="Enter OIC name..." value=""
+               <input id="fohVerifiedByInput" type="text" placeholder="${staff.role==='oic'?'Enter Area Manager name...':'Enter OIC name...'}" value=""
                  style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
                <button onclick="saveFOHVerifiedBy()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✓ Verify</button>
              </div>
@@ -7382,11 +7579,28 @@ function openFOHDetail(idx) {
 
     <!-- Score boxes -->
     ${isOIC ? `
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:14px;">
-      <div data-scorebox="total" style="background:${staff.qualified?'#F0FDF4':'#FFF1F0'};border:2px solid ${staff.qualified?'#22C55E':'#EF4444'};border-radius:10px;padding:14px;text-align:center;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">
+      <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 OPENING</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'}">${oPctFoh!=null?oPctFoh+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'Not submitted':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+      </div>
+      <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 CLOSING</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'Not submitted':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
+      <div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:12px;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">📋 AM EVAL</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'};margin-top:2px;">${oicPctFoh===null?'Pending AM Eval':oicPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+      </div>
+      <div data-scorebox="total" style="background:${fohTotalPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${fohTotalPass?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
-        <div class="sb-pct" style="font-size:32px;font-weight:800;color:${scoreColor(op)}">${op}%</div>
-        <div class="sb-lbl" style="font-size:11px;font-weight:600;color:${staff.qualified?'#15803D':'#B91C1C'};margin-top:4px;">${staff.qualified?'✅ Incentive Qualified':'❌ Not Qualified (target: 95%)'}</div>
+        <div class="sb-pct" style="font-size:24px;font-weight:800;color:${scoreColor(fohTotal)}">${fohTotal>0?fohTotal+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:10px;font-weight:600;color:${fohTotalPass?'#15803D':'#B91C1C'};margin-top:2px;">${fohTotalPass?'✅ Qualified':'❌ Not Qualified'}</div>
       </div>
     </div>` : `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">
@@ -7891,7 +8105,7 @@ function setFOHTaskYN(btn, val) {
     else merged[k] = {yn};
   });
   // Use task IDs to split scores correctly
-  const oicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+  const oicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
   const openIds  = ['o1','o2','o3','o4','o5'];
   const closeIds = ['c1','c2','c3','c4','c5'];
   let oicY=0, oicT=0, opY=0, opT=0, clY=0, clT=0;
@@ -7905,9 +8119,19 @@ function setFOHTaskYN(btn, val) {
   const opScore  = opT  > 0 ? Math.round((opY/opT)*100)   : (staff && staff.openingPct != null ? parseFloat(staff.openingPct) : null);
   const clScore  = clT  > 0 ? Math.round((clY/clT)*100)   : null; // never fallback for closing
   const oicScore = oicT > 0 ? Math.round((oicY/oicT)*100) : (staff && staff.oicEvalPct != null ? parseFloat(staff.oicEvalPct) : null);
-  // Total = avg of available scores
-  const _scores = [opScore, clScore, oicScore].filter(v => v != null);
-  const totalScore = _scores.length > 0 ? Math.round(_scores.reduce((a,b)=>a+b,0)/_scores.length) : 0;
+  // Total score formula:
+  // Opening shift only:  (opening + eval) / 2
+  // Closing shift only:  (closing + eval) / 2
+  // Straight (both):     (opening + closing + eval) / 3
+  const hasOp2 = opScore !== null, hasCl2 = clScore !== null, hasEv2 = oicScore !== null;
+  let totalScore = 0;
+  if (hasOp2 && hasCl2 && hasEv2) totalScore = Math.round((opScore + clScore + oicScore) / 3);
+  else if (hasOp2 && hasEv2)      totalScore = Math.round((opScore + oicScore) / 2);
+  else if (hasCl2 && hasEv2)      totalScore = Math.round((clScore + oicScore) / 2);
+  else if (hasOp2 && hasCl2)      totalScore = Math.round((opScore + clScore) / 2);
+  else if (hasOp2)                 totalScore = opScore;
+  else if (hasCl2)                 totalScore = clScore;
+  else if (hasEv2)                 totalScore = oicScore;
   const pass = totalScore >= 95;
   // Update score boxes — closing shows "—" if null
   document.querySelectorAll('#fohDetailModal [data-scorebox]').forEach(box => {
@@ -8041,6 +8265,133 @@ function toggleFOHEditMode() {
     oicEditContainer.innerHTML = oicHtml;
   }
 
+  // -- Area Manager Observation -- OIC role
+  if (staff && staff.role === 'oic') {
+    const oicObsDefs = [
+      {id:'s1', section:'Service Standards',           text:'Customer Interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.'},
+      {id:'s2', section:'Service Standards',           text:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.'},
+      {id:'s3', section:'Service Standards',           text:'Service Awareness: OIC demonstrates good awareness of floor needs and ensures staff respond promptly throughout service.'},
+      {id:'s4', section:'Service Standards',           text:'Outlet Standard Compliance: OIC ensures all service, hygiene, and brand standards are upheld during the shift.'},
+      {id:'m1', section:'Management & Accountability', text:'Shift Management: OIC effectively manages the shift — tasks are delegated, followed up, and completed on time.'},
+      {id:'m2', section:'Management & Accountability', text:'Staff Accountability: OIC holds FOH staff accountable for their checklist tasks and performance during the shift.'},
+      {id:'u1', section:'Upselling & Revenue',         text:'Upselling: OIC coaches staff on upselling techniques and monitors results throughout the shift.'},
+      {id:'u2', section:'Upselling & Revenue',         text:'Revenue Awareness: OIC is aware of daily sales targets and actively drives the team toward achieving them.'},
+      {id:'w1', section:'Teamwork & Culture',          text:'Team Leadership: OIC leads by example — communicates clearly, supports staff, and maintains positive team morale.'},
+      {id:'w2', section:'Teamwork & Culture',          text:'Conflict Resolution: OIC handles staff or guest issues calmly and professionally without escalation.'},
+      {id:'p1', section:'Performance & Reporting',     text:'Checklist Completion: OIC ensures all FOH checklists (service, bartender, del.co) are submitted on time and correctly.'},
+      {id:'p2', section:'Performance & Reporting',     text:'Incident Reporting: Any complaints, incidents, or unusual events are reported to the Area Manager promptly.'},
+      {id:'mp1',section:'Monitoring & Presence',       text:'Floor Presence: OIC is actively present on the floor and monitors service quality throughout the shift.'},
+      {id:'mp2',section:'Monitoring & Presence',       text:'Opening/Closing Execution: OIC ensures opening and closing tasks are completed correctly and on schedule.'},
+      {id:'a1', section:'Attendance & Punctuality',    text:'Attendance: OIC arrives on time, is present for the full shift, and adheres to the schedule without deviation.'},
+    ];
+    let oicAMContainer = area.querySelector('#oicAMEditSection');
+    if (!oicAMContainer) {
+      oicAMContainer = document.createElement('div');
+      oicAMContainer.id = 'oicAMEditSection';
+      oicAMContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      const cancelExisting = area.querySelector('#fohCancelEditBtn');
+      if (cancelExisting) area.insertBefore(oicAMContainer, cancelExisting);
+      else area.appendChild(oicAMContainer);
+    }
+    let oicAMHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑 Area Manager Observation — OIC Evaluation</div>';
+    let lastAMSec = '';
+    oicObsDefs.forEach(function(t) {
+      if (t.section !== lastAMSec) {
+        lastAMSec = t.section;
+        oicAMHtml += '<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">' + t.section + '</div>';
+      }
+      const existingYN = (staff.taskData && staff.taskData[t.id]) ? staff.taskData[t.id].yn : '';
+      const existingComment = (staff.taskData && staff.taskData[t.id]) ? (staff.taskData[t.id].comment || '') : '';
+      const yS = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nS = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aS = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      oicAMHtml += '<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="' + t.id + '">' +
+        '<div style="font-size:12px;font-weight:500;margin-bottom:6px;">' + t.text + '</div>' +
+        '<div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">' +
+          '<div style="display:flex;gap:4px;">' +
+            '<button onclick="setFOHTaskYN(this,&apos;yes&apos;)" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;' + yS + '">YES</button>' +
+            '<button onclick="setFOHTaskYN(this,&apos;no&apos;)"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;' + nS + '">NO</button>' +
+            '<button onclick="setFOHTaskYN(this,&apos;na&apos;)"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;' + aS + '">N/A</button>' +
+          '</div>' +
+          '<textarea data-fohtaskkey="' + t.id + '" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Area Manager comment...">' + existingComment + '</textarea>' +
+        '</div>' +
+      '</div>';
+    });
+    oicAMContainer.innerHTML = oicAMHtml;
+
+    // Audit Compliance — score input (must be 90%+)
+    (function() {
+      const audScoreVal = (staff.taskData && staff.taskData.aud1 && staff.taskData.aud1.audScore != null) ? staff.taskData.aud1.audScore : '';
+      const audC = audScoreVal >= 90 ? '#15803D' : audScoreVal ? '#B91C1C' : '#94A3B8';
+      const audB = audScoreVal >= 90 ? '#DCFCE7' : audScoreVal ? '#FEE2E2' : '#F8FAFC';
+      const audLbl = audScoreVal >= 90 ? 'Passes (90%+)' : audScoreVal ? 'Below 90% — does not qualify' : 'Enter score';
+      const oicAudDiv = document.createElement('div');
+      oicAudDiv.style.cssText = 'background:#F5F3EE;border-top:2px solid #E0DDD4;padding:12px;border-radius:0 0 10px 10px;';
+      const audHeader = document.createElement('div');
+      audHeader.style.cssText = 'background:#1A3C5E;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;border-radius:6px 6px 0 0;margin:-12px -12px 10px -12px;';
+      audHeader.textContent = 'Audit Compliance';
+      const audDesc = document.createElement('div');
+      audDesc.style.cssText = 'font-size:12px;font-weight:500;margin-bottom:8px;';
+      audDesc.textContent = 'Last month audit compliance achieved a minimum score of 90% and above.';
+      const audRow = document.createElement('div');
+      audRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
+      const audInput = document.createElement('input');
+      audInput.id = 'oicAud1ScoreInput';
+      audInput.type = 'number'; audInput.min = '0'; audInput.max = '100'; audInput.step = '0.5';
+      audInput.value = audScoreVal; audInput.placeholder = 'e.g. 92';
+      audInput.style.cssText = 'width:80px;padding:7px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:14px;font-weight:700;text-align:center;color:' + audC + ';background:' + audB + ';outline:none;';
+      audInput.addEventListener('input', function() {
+        const v = parseFloat(this.value);
+        const pass = !isNaN(v) && v >= 90;
+        this.style.color = isNaN(v) ? '#94A3B8' : pass ? '#15803D' : '#B91C1C';
+        this.style.background = isNaN(v) ? '#F8FAFC' : pass ? '#DCFCE7' : '#FEE2E2';
+        this.style.borderColor = isNaN(v) ? '#E0DDD4' : pass ? '#15803D' : '#B91C1C';
+        const lbl = document.getElementById('oicAud1Label');
+        if (lbl) { lbl.textContent = isNaN(v) ? 'Enter score' : pass ? 'Passes (90%+)' : 'Below 90% — does not qualify'; lbl.style.color = isNaN(v) ? '#94A3B8' : pass ? '#15803D' : '#B91C1C'; }
+        _fohEditChanges.aud1 = {yn: (!isNaN(v) && v >= 90) ? 'yes' : 'no', audScore: v};
+        // Trigger live FOH score box update
+        if (typeof _fohFiltered !== 'undefined' && typeof _fohDetailIdx !== 'undefined') {
+          const _audStaff = _fohFiltered[_fohDetailIdx];
+          if (_audStaff) {
+            const _m = _audStaff.taskData ? Object.assign({}, _audStaff.taskData) : {};
+            Object.entries(_fohEditChanges).forEach(function(e2) { const yn2 = typeof e2[1]==='string'?e2[1]:e2[1].yn; if(yn2) { if(_m[e2[0]]) _m[e2[0]]={..._m[e2[0]],yn:yn2}; else _m[e2[0]]={yn:yn2}; } });
+            const oicI2=['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
+            const opI2=['o1','o2','o3','o4','o5'], clI2=['c1','c2','c3','c4','c5'];
+            let oY2=0,oT2=0,cY2=0,cT2=0,eY2=0,eT2=0;
+            Object.entries(_m).forEach(function(e3){const t3=e3[1];if(!t3||!t3.yn||t3.yn==='na')return;const tid3=e3[0].replace(/^d[0-9]+_/,'');if(oicI2.some(function(id){return tid3===id;})){eT2++;if(t3.yn==='yes')eY2++;}else if(opI2.includes(tid3)){oT2++;if(t3.yn==='yes')oY2++;}else if(clI2.includes(tid3)){cT2++;if(t3.yn==='yes')cY2++;}});
+            const opS2=oT2>0?Math.round((oY2/oT2)*100):(_audStaff.openingPct!=null?parseFloat(_audStaff.openingPct):null);
+            const clS2=cT2>0?Math.round((cY2/cT2)*100):null;
+            const evS2=eT2>0?Math.round((eY2/eT2)*100):(_audStaff.oicEvalPct!=null?parseFloat(_audStaff.oicEvalPct):null);
+            let tot2=0;
+            if(opS2!==null&&clS2!==null&&evS2!==null)tot2=Math.round((opS2+clS2+evS2)/3);
+            else if(opS2!==null&&evS2!==null)tot2=Math.round((opS2+evS2)/2);
+            else if(clS2!==null&&evS2!==null)tot2=Math.round((clS2+evS2)/2);
+            else if(opS2!==null&&clS2!==null)tot2=Math.round((opS2+clS2)/2);
+            else if(opS2!==null)tot2=opS2; else if(clS2!==null)tot2=clS2; else if(evS2!==null)tot2=evS2;
+            document.querySelectorAll('#fohDetailModal [data-scorebox]').forEach(function(box){
+              const type=box.getAttribute('data-scorebox');
+              const pctEl=box.querySelector('.sb-pct')||box, lblEl=box.querySelector('.sb-lbl');
+              let pct=type==='opening'?opS2:type==='closing'?clS2:type==='oic'?evS2:tot2;
+              if(pct===null){if(type==='closing'){pctEl.textContent='—';pctEl.style.color='#94A3B8';if(lblEl){lblEl.textContent='Not submitted';lblEl.style.color='#94A3B8';}}return;}
+              pctEl.textContent=pct+'%';pctEl.style.color=pct>=95?'#0F766E':'#B91C1C';
+              if(lblEl){lblEl.textContent=pct>=95?'✓ Pass':'✗ Below target';lblEl.style.color=pct>=95?'#0F766E':'#B91C1C';}
+            });
+          }
+        }
+      });
+      const audSpan = document.createElement('span');
+      audSpan.id = 'oicAud1Label';
+      audSpan.style.cssText = 'font-size:12px;font-weight:600;color:' + audC + ';';
+      audSpan.textContent = audLbl;
+      audRow.appendChild(audInput);
+      audRow.appendChild(audSpan);
+      oicAudDiv.appendChild(audHeader);
+      oicAudDiv.appendChild(audDesc);
+      oicAudDiv.appendChild(audRow);
+      oicAMContainer.appendChild(oicAudDiv);
+    })();
+  }
+
   // Add cancel button
   let cancelBtn = document.getElementById('fohCancelEditBtn');
   if (!cancelBtn) {
@@ -8088,6 +8439,7 @@ async function saveFOHOverwrite(staff) {
         if (yn) updates['submissions/' + child.key + '/taskData/' + taskKey + '/yn'] = yn;
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
         if (changes && changes.oicPhotoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/oicPhotoUrl'] = changes.oicPhotoUrl;
+        if (changes && changes.audScore != null) updates['submissions/' + child.key + '/taskData/' + taskKey + '/audScore'] = changes.audScore;
         // Also store task metadata for new OIC tasks
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = 'OIC Observation';
@@ -8111,7 +8463,7 @@ async function saveFOHOverwrite(staff) {
       });
       // Calculate opening, closing, oic scores separately
       // OIC task IDs — never count these toward opening or closing score
-      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']; // OIC eval task IDs
+      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1']; // OIC eval task IDs
       // Opening task IDs — o1..o5
       const openTaskIds = ['o1','o2','o3','o4','o5'];
       // Closing task IDs — c1..c5
@@ -8132,9 +8484,15 @@ async function saveFOHOverwrite(staff) {
       const fohOpPct2 = oT > 0 ? Math.round((oY/oT)*100) : (sub.openingPct != null ? parseFloat(sub.openingPct) : null);
       const fohClPct2 = cT > 0 ? Math.round((cY/cT)*100) : null;
       const fohEPct2  = eT > 0 ? Math.round((eY/eT)*100) : (sub.oicEvalPct != null ? parseFloat(sub.oicEvalPct) : null);
-      // Total = average of all available scores: opening + closing + OIC eval
-      const _fohPcts2 = [fohOpPct2, fohClPct2, fohEPct2].filter(v => v != null);
-      const newPct = _fohPcts2.length > 0 ? Math.round(_fohPcts2.reduce((a,b)=>a+b,0)/_fohPcts2.length) : parseFloat(sub.overallPct||0);
+      // Total score: opening+eval, closing+eval, or opening+closing+eval
+      let newPct = parseFloat(sub.overallPct||0);
+      if(fohOpPct2!==null&&fohClPct2!==null&&fohEPct2!==null) newPct=Math.round((fohOpPct2+fohClPct2+fohEPct2)/3);
+      else if(fohOpPct2!==null&&fohEPct2!==null)               newPct=Math.round((fohOpPct2+fohEPct2)/2);
+      else if(fohClPct2!==null&&fohEPct2!==null)               newPct=Math.round((fohClPct2+fohEPct2)/2);
+      else if(fohOpPct2!==null&&fohClPct2!==null)              newPct=Math.round((fohOpPct2+fohClPct2)/2);
+      else if(fohOpPct2!==null)                                 newPct=fohOpPct2;
+      else if(fohClPct2!==null)                                 newPct=fohClPct2;
+      else if(fohEPct2!==null)                                  newPct=fohEPct2;
       updates['submissions/' + child.key + '/overallPct'] = newPct;
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
