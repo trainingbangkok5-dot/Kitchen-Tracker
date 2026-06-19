@@ -6097,16 +6097,16 @@ function toggleEditMode(s) {
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
   if (s.role === 'kic') {
     const allKicDefs = [
-      {id:'fc1', section:'🍽️ Food Cost Control',      text:'Food cost % is within the target range for the outlet.'},
-      {id:'fc2', section:'🍽️ Food Cost Control',      text:'Waste is minimized — no over-preparation or spoilage observed.'},
-      {id:'fc3', section:'🍽️ Food Cost Control',      text:'Portion sizes are consistent and follow standard recipe guidelines.'},
-      {id:'fc4', section:'🍽️ Food Cost Control',      text:'Receiving and storage procedures are followed to prevent loss.'},
-      {id:'fo1', section:'🔪 Food Operations',         text:'All station setups are complete and ready before service begins.'},
-      {id:'fo2', section:'🔪 Food Operations',         text:'Kitchen hygiene and cleanliness standards are maintained throughout the shift.'},
-      {id:'fo3', section:'🔪 Food Operations',         text:'Food safety practices (temperatures, labeling, FIFO) are followed correctly.'},
-      {id:'cost1',section:'💰 Cost Management',        text:'Monthly outlet food cost target is being tracked and managed.'},
-      {id:'sp2',  section:'📋 Staff Performance',      text:'Line cooks and stewards are performing consistently and meeting shift expectations.'},
-      {id:'cc1',  section:'🤝 Communication & Culture',text:'KIC communicates clearly with BOH team and maintains a positive kitchen environment.'},
+      {id:'fc1', section:'🍲 Food Consistency Today',      text:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.'},
+      {id:'fc2', section:'🍲 Food Consistency Today',      text:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.'},
+      {id:'fc3', section:'🍲 Food Consistency Today',      text:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation before leaving the kitchen.'},
+      {id:'fc4', section:'🍲 Food Consistency Today',      text:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.'},
+      {id:'fo1', section:'⚙️ Flow of Operation for the Day', text:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.'},
+      {id:'fo2', section:'⚙️ Flow of Operation for the Day', text:'All sections maintained mise en place standards throughout the shift.'},
+      {id:'fo3', section:'⚙️ Flow of Operation for the Day', text:'Communication between FOH and BOH was clear and effective throughout the shift.'},
+      {id:'cost1',section:'💰 Food Cost & Staff',           text:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.'},
+      {id:'sp2',  section:'💰 Food Cost & Staff',           text:'Team performance maintains an overall score above 90% each shift.'},
+      {id:'cc1',  section:'💰 Food Cost & Staff',           text:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.'},
     ];
     const kicAudScore = (s.taskData && s.taskData['aud1'] && s.taskData['aud1'].audScore != null) ? s.taskData['aud1'].audScore : '';
 
@@ -6152,7 +6152,7 @@ function toggleEditMode(s) {
     audDiv.style.cssText = 'background:#F5F3EE;border-top:2px solid #E0DDD4;padding:12px;';
     audDiv.innerHTML = `
       <div style="background:#1A3C5E;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;border-radius:6px 6px 0 0;margin:-12px -12px 10px -12px;">🗂️ Audit Compliance</div>
-      <div style="font-size:12px;font-weight:500;margin-bottom:8px;">Last internal audit score — must be 90% or above to qualify.</div>
+      <div style="font-size:12px;font-weight:500;margin-bottom:8px;">The outlet achieved a score above 90% in the last monthly audit visit.</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <input id="kicAud1ScoreInput" type="number" min="0" max="100" step="0.5" value="${audScore}" placeholder="e.g. 92"
           style="width:80px;padding:7px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:14px;font-weight:700;text-align:center;color:${audColor};background:${audBg};outline:none;"
@@ -8389,7 +8389,7 @@ function toggleFOHEditMode() {
       audHeader.textContent = 'Audit Compliance';
       const audDesc = document.createElement('div');
       audDesc.style.cssText = 'font-size:12px;font-weight:500;margin-bottom:8px;';
-      audDesc.textContent = 'Last month audit compliance achieved a minimum score of 90% and above.';
+      audDesc.textContent = 'The outlet achieved a score above 90% in the last monthly audit visit.';
       const audRow = document.createElement('div');
       audRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
       const audInput = document.createElement('input');
