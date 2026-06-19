@@ -1045,6 +1045,12 @@ function renderDay() {
     });
   });
 
+  // ── Area Manager evaluation notice (mirrors service.html OIC panel) ──────
+  const amPanel = document.createElement('div');
+  amPanel.style.cssText = 'margin:16px 0 8px;';
+  amPanel.innerHTML = '<div style="padding:14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;text-align:center;"><div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:4px;">📋 Area Manager Evaluation</div><div style="font-size:12px;color:#64748B;">This section is filled by the Area Manager from the<br><strong>Master Dashboard</strong> after you submit.</div></div>';
+  container.appendChild(amPanel);
+
   // ── Submit button ─────────────────────────────────────────────
   if (!isSubmitted) {
     const btn = document.createElement('button');
@@ -1162,11 +1168,15 @@ function doOverwrite() {
 // ── Photo ─────────────────────────────────────────────────────
 function openPhotoModal(tid, label) {
   const data = load();
-  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
-    showToast('Day submitted — cannot change photos', 'error'); return;
+  const dayKey = getTodayKey();
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const isSubmitted = currentShift === 'opening' ? openingDone : closingDone;
+  if (isSubmitted && !ALLOW_OVERWRITE) {
+    showToast('Shift submitted — cannot change photos 🔒', 'error'); return;
   }
   activePhotoTask = tid;
-  document.getElementById('modalLabel').textContent = label;
+  document.getElementById('modalLabel').textContent = label || 'Take a clear photo of this task';
   document.getElementById('photoModal').classList.add('open');
 }
 function closePhotoModal() {
