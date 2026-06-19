@@ -9,7 +9,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260619340000';
+  var v = '20260619360000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -28,8 +28,8 @@
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="20260619340000">
-<meta name="app-version" content="20260619340000">
+<meta http-equiv="Expires" content="20260619360000">
+<meta name="app-version" content="20260619360000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#16A34A">
@@ -207,7 +207,7 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
     const updates = {};
     snap.forEach(child => {
       const sub = child.val();
-      if (sub.role === ROLE && sub.week === getWeekStart() && sub.taskData) {
+      if (sub.role === ROLE && sub.taskData && sub.submittedAt && (new Date() - new Date(sub.submittedAt)) < 8 * 24 * 3600 * 1000) {
         Object.keys(sub.taskData).forEach(k => {
           if (k.endsWith('_' + taskId)) {
             const photoKey2 = (slotIdx === undefined || slotIdx === 0) ? 'photoUrl' : 'photoUrl_' + slotIdx;

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619330000">
+<meta name="app-version" content="20260619350000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619330000';
+  var v = '20260619350000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1813,7 +1813,7 @@ function initSummaryScoring() {
           // openingPct fallback: older KIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'kic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
-          oicEvalPct: null,
+          oicEvalPct: s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null, // Area Chef eval for KIC
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
           days: s.days || null
@@ -1949,8 +1949,8 @@ function ssConsolidateByEmployee(rows) {
     // total always agree, even when a staff member has multiple submissions
     // for the same shift within the selected period.
     // OIC scoring: Opening + Evaluation, Closing + Evaluation, or Opening + Closing + Evaluation
-    // depending on which shifts were submitted that week. oicAvg = Evaluation score.
-    const includeEval = isService || g.role === 'oic';
+    // KIC scoring: same formula — Area Chef fills the evaluation via dashboard
+    const includeEval = isService || g.role === 'oic' || g.role === 'kic';
     const avgComponents = [openingAvg, closingAvg, includeEval ? oicAvg : null].filter(v => v != null);
     const roleTotal = avgComponents.reduce((a,b) => a+b, 0);
     const roleSubmittedCount = avgComponents.length;
@@ -2180,7 +2180,7 @@ function openStaffWeeklyDetail(idx) {
   function roleBlock(r) {
     const rows = [];
     rows.push(['Opening Score', r.openingAvg]);
-    if (r.isService || r.role === 'oic') rows.push(['Evaluation Score', r.oicAvg]);
+    if (r.isService || r.role === 'oic' || r.role === 'kic') rows.push(['Evaluation Score', r.oicAvg]);
     rows.push(['Closing Score', r.closingAvg]);
     const rowsHtml = rows.map(([label, val]) => `
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F1F5F9;">
@@ -3132,7 +3132,6 @@ function openStaffDetail(s) {
               const canVerify =
                 ['training','operations','director','ceo'].includes(currentRole) ||
                 (currentRole === 'kic'          && ['steward','linecook'].includes(subRole)) ||
-                (currentRole === 'oic'          && ['service','bartender','delco'].includes(subRole)) ||
                 (currentRole === 'areachef'     && ['linecook','steward','kic'].includes(subRole)) ||
                 (currentRole === 'areamanager'  && ['oic','service','bartender','delco'].includes(subRole));
               return canVerify;
@@ -7149,9 +7148,13 @@ function loadFOHData() {
       let fohRaw = Object.values(grouped);
       // Role-based visibility filter
       if (currentRole === 'oic') {
-        // OIC sees service, delco, bartender from their outlet only (case-insensitive)
+        // OIC sees service, delco, bartender from their outlet only
         const oicOutlet = (currentOutlet||'').toLowerCase().trim();
-        fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role) && (s.outlet||'').toLowerCase().trim() === oicOutlet);
+        fohRaw = fohRaw.filter(s => {
+          if (!['service','delco','bartender','oic'].includes(s.role)) return false;
+          const sOutlet = (s.outlet||'').toLowerCase().trim();
+          return oicOutlet && (sOutlet === oicOutlet || sOutlet.includes(oicOutlet) || oicOutlet.includes(sOutlet));
+        });
       } else if (currentRole === 'areamanager') {
         // Area Manager sees service, delco, bartender, oic
         fohRaw = fohRaw.filter(s => ['service','delco','bartender','oic'].includes(s.role));
