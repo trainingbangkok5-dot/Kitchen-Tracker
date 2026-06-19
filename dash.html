@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619390000">
+<meta name="app-version" content="20260619400000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619390000';
+  var v = '20260619400000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2111,9 +2111,14 @@ function renderSummaryScoring() {
   let rankCounter = 0;
   employees.forEach(e => { if (e.eligible) { rankCounter++; e.rank = rankCounter; } else { e.rank = null; } });
 
-  // Final display order: by week desc, then rank/name
-  employees.sort((a,b) => (b.week||'').localeCompare(a.week||'') ||
-    (a.rank!=null && b.rank!=null ? a.rank-b.rank : a.staffName.localeCompare(b.staffName)));
+  // Final display order: by week desc, then rank, then latest submittedAt
+  employees.sort((a,b) =>
+    (b.week||'').localeCompare(a.week||'') ||
+    (a.rank!=null && b.rank!=null ? a.rank-b.rank :
+     a.rank!=null ? -1 : b.rank!=null ? 1 :
+     new Date(b.submittedAt||0) - new Date(a.submittedAt||0)) ||
+    a.staffName.localeCompare(b.staffName)
+  );
 
   _ssConsolidatedRows = employees;
 
@@ -7009,12 +7014,8 @@ function renderBOHStaff() {
   const roleLabels = {linecook:'🍳 Line Cook', steward:'🧹 Steward', kic:'👨‍🍳 KIC'};
   const scoreColor = p => p>=95?'#15803D':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
-  // Sort latest first — use submittedAt, then lastUpdated, then week date
-  filtered.sort((a,b) => {
-    const dA = a.submittedAt || a.lastUpdated || a.week || '0';
-    const dB = b.submittedAt || b.lastUpdated || b.week || '0';
-    return new Date(dB) - new Date(dA);
-  });
+  // Sort latest submission first
+  filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||b.week||0) - new Date(a.submittedAt||a.lastUpdated||a.week||0));
   filtered.forEach((staff, idx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
