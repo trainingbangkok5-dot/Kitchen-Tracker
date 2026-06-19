@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619300000';
+  var v = '20260619320000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -814,7 +814,21 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { return localStorage.getItem('kic_info_kic_fWeek') || getDubaiDateStr(); }
+function getWeekStart() {
+  // Always compute Monday of current Dubai week — never store today's date as the week
+  const stored = localStorage.getItem('kic_info_kic_fWeek');
+  // If stored value looks like a Monday (day 1), use it; otherwise compute fresh
+  try {
+    const dubaiStr = getDubaiDateStr(); // YYYY-MM-DD
+    const parts = dubaiStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay(); // 0=Sun, 1=Mon...
+    const diff = (dow === 0) ? -6 : 1 - dow; // days back to Monday
+    d.setDate(d.getDate() + diff);
+    const mon = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    return mon;
+  } catch(e) { return stored || getDubaiDateStr(); }
+}
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; }

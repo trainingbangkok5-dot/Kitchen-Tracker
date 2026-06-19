@@ -825,7 +825,18 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStart() { return localStorage.getItem('kic_info_' + ROLE + '_fWeek') || getDubaiDateStr(); }
+function getWeekStart() {
+  // Always compute Monday of current Dubai week — never return today's date as the week
+  try {
+    const dubaiStr = getDubaiDateStr(); // YYYY-MM-DD
+    const parts = dubaiStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay(); // 0=Sun, 1=Mon...
+    const diff = (dow === 0) ? -6 : 1 - dow; // days back to Monday
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return getDubaiDateStr(); }
+}
 function getStaffName() { return document.getElementById('fName').value.trim(); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; }
