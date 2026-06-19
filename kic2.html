@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619110000';
+  var v = '20260619300000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -651,394 +651,63 @@ function checkOverwritePin(code) {
 }
 
 const SECTIONS = [
+  // ── KIC fills: Opening shift only ────────────────────────────
   {
     title: 'Opening Today',
+    shift: 'opening',
     tasks: [
-      {
-        id: 'o1',
-        owner: 'self',
-        ownerLbl: 'Self-report',
-        text: 'Line Check: Verify that all Line Cook and Steward stations are clean, organized, fully stocked, and ready for operation.',
-        photo: true,
-        translations: {
-          hi: 'सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)',
-          ne: 'सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)',
-          bn: 'সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)',
-          ur: 'تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)',
-          my: 'အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)',
-          th: 'ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)'
-        }
-      },
-      {
-        id: 'o2',
-        owner: 'self',
-        ownerLbl: 'Self-report',
-        text: 'Storage Check: Verify stock levels and check the inventory of high-value items.',
-        photo: true,
-        translations: {
-          hi: 'स्टोरेज जाँच: स्टॉक स्तर, उच्च मूल्य वस्तुओं की इन्वेंट्री',
-          ne: 'भण्डारण जाँच: स्टक स्तर, उच्च मूल्य सामानको इन्भेन्ट्री',
-          bn: 'স্টোরেজ চেক: স্টক লেভেল, মূল্যবান পণ্যের ইনভেন্টরি',
-          ur: 'اسٹوریج چیک: اسٹاک لیول، قیمتی اشیاء کی انوینٹری',
-          my: 'သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ တန်ဖိုးကြီးပစ္စည်းများ',
-          th: 'ตรวจสอบการจัดเก็บ: ระดับสต็อก สินค้ามูลค่าสูง'
-        }
-      },
-      {
-        id: 'o3',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Equipment Check: All equipment is in proper working condition. Report any equipment that is not functioning properly.',
-        photo: true,
-        translations: {
-          hi: 'उपकरण जाँच: सब कुछ सही चलने की स्थिति में',
-          ne: 'उपकरण जाँच: सबै ठीकसँग चल्ने अवस्थामा',
-          bn: 'সরঞ্জাম চেক: সব কিছু সঠিক চালু অবস্থায়',
-          ur: 'آلات کی جانچ: سب کچھ صحیح چلنے کی حالت میں',
-          my: 'စက်ပစ္စည်း စစ်ဆေး: အားလုံး မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ',
-          th: 'ตรวจสอบอุปกรณ์: ทุกอย่างอยู่ในสภาพพร้อมใช้งาน'
-        }
-      },
-      {
-        id: 'o4',
-        owner: 'self',
-        ownerLbl: 'Self-report',
-        text: 'Team briefing was completed on time, with clear delegation of tasks and focus areas discussed with the team.',
-        photo: false,
-        translations: {
-          hi: 'टीम ब्रीफिंग: रचनात्मक, एजेंडा का पालन',
-          ne: 'टिम ब्रिफिङ: रचनात्मक, एजेन्डा पालन',
-          bn: 'টিম ব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ',
-          ur: 'ٹیم بریفنگ: تعمیری، ایجنڈا کی پیروی',
-          my: 'အဖွဲ့ briefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ',
-          th: 'บรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ'
-        }
-      }
+      { id:'o1', owner:'self', ownerLbl:'Self-report', text:'Line Check: Verify that all Line Cook and Steward stations are clean, organized, fully stocked, and ready for operation.', photo:true, translations:{hi:'सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)',ne:'सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)',bn:'সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)',ur:'تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)',my:'အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)',th:'ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)'} },
+      { id:'o2', owner:'self', ownerLbl:'Self-report', text:'Storage Check: Verify stock levels and check the inventory of high-value items.', photo:true, translations:{hi:'स्टोरेज जाँच: स्टॉक स्तर, उच्च मूल्य वस्तुओं की इन्वेंट्री',ne:'भण्डारण जाँच: स्टक स्तर, उच्च मूल्य सामानको इन्भेन्ट्री',bn:'স্টোরেজ চেক: স্টক লেভেল, মূল্যবান পণ্যের ইনভেন্টরি',ur:'اسٹوریج چیک: اسٹاک لیول، قیمتی اشیاء کی انوینٹری',my:'သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ တန်ဖိုးကြီးပစ္စည်းများ',th:'ตรวจสอบการจัดเก็บ: ระดับสต็อก สินค้ามูลค่าสูง'} },
+      { id:'o3', owner:'self', ownerLbl:'Self-report', text:'Equipment Check: All equipment is in proper working condition. Report any equipment that is not functioning properly.', photo:true, translations:{hi:'उपकरण जाँच: सब कुछ सही चलने की स्थिति में',ne:'उपकरण जाँच: सबै ठीकसँग चल्ने अवस्थामा',bn:'সরঞ্জাম চেক: সব কিছু সঠিক চালু অবস্থায়',ur:'آلات کی جانچ: سب کچھ صحیح چلنے کی حالت میں',my:'စက်ပစ္စည်း စစ်ဆေး: အားလုံး မှန်ကန်သောအလုပ်လုပ်နိုင်သောအခြေအနေ',th:'ตรวจสอบอุปกรณ์: ทุกอย่างอยู่ในสภาพพร้อมใช้งาน'} },
+      { id:'o4', owner:'self', ownerLbl:'Self-report', text:'Team briefing was completed on time, with clear delegation of tasks and focus areas discussed with the team.', photo:false, translations:{hi:'टीम ब्रीफिंग: रचनात्मक, एजेंडा का पालन',ne:'टिम ब्रिफिङ: रचनात्मक, एजेन्डा पालन',bn:'টিম ব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ',ur:'ٹیم بریفنگ: تعمیری، ایجنڈا کی پیروی',my:'အဖွဲ့ briefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ',th:'บรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ'} }
     ]
   },
+
+  // ── KIC fills: Closing shift only ────────────────────────────
   {
-    title: 'Closing Yesterday',
+    title: 'Closing Shift',
+    shift: 'closing',
     tasks: [
-      {
-        id: 'cy1',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Line Check: Verify that all Line Cook and Steward sections were properly cleaned, organized, and stocked during the previous closing shift and are ready for operation.',
-        photo: true,
-        translations: {
-          hi: 'सभी सेक्शन की लाइन चेक (लाइन कुक, स्टीवर्ड)',
-          ne: 'सबै सेक्शनको लाइन जाँच (लाइन कुक, स्टुवार्ड)',
-          bn: 'সব সেকশনের লাইন চেক (লাইন কুক, স্টুয়ার্ড)',
-          ur: 'تمام سیکشنز کی لائن چیک (لائن کُک، اسٹیوارڈ)',
-          my: 'အပိုင်းအားလုံး လိုင်းစစ်ဆေးခြင်း (Line Cooks, Stewards)',
-          th: 'ตรวจสอบทุกแผนก (พ่อครัว, สจ๊วต)'
-        }
-      },
-      {
-        id: 'cy2',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Storage Check: Verify stock levels and ensure sufficient stock is available for the day\'s operation.',
-        photo: true,
-        translations: {
-          hi: 'स्टोरेज जाँच: स्टॉक स्तर, अगले दिन स्टॉक उपलब्धता',
-          ne: 'भण्डारण जाँच: स्टक स्तर, भोलिपल्ट स्टक उपलब्धता',
-          bn: 'স্টোরেজ চেক: স্টক লেভেল, পরের দিন স্টক উপলব্ধতা',
-          ur: 'اسٹوریج چیک: اسٹاک لیول، اگلے دن اسٹاک دستیابی',
-          my: 'သိုလှောင်ရေး စစ်ဆေး: စတော့ပမာဏ၊ နောက်တစ်နေ့ စတော့ရရှိနိုင်မှု',
-          th: 'ตรวจสอบการจัดเก็บ: ระดับสต็อก ความพร้อมของสต็อกวันถัดไป'
-        }
-      },
-      {
-        id: 'cy3',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Equipment Check: Check all equipment and report any maintenance issues.',
-        photo: true,
-        translations: {
-          hi: 'उपकरण जाँच: कोई रखरखाव आवश्यक है',
-          ne: 'उपकरण जाँच: कुनै मर्मत आवश्यक छ',
-          bn: 'সরঞ্জাম চেক: কোনো রক্ষণাবেক্ষণ প্রয়োজন',
-          ur: 'آلات کی جانچ: کوئی دیکھ بھال ضروری ہے',
-          my: 'စက်ပစ္စည်း စစ်ဆေး: ပြုပြင်ထိန်းသိမ်းမှု လိုအပ်သည်',
-          th: 'ตรวจสอบอุปกรณ์: ต้องการการซ่อมบำรุงหรือไม่'
-        }
-      },
-      {
-        id: 'cy4',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Team Debriefing: Discuss key issues, guest feedback, and operational improvements with the team before ending the shift.',
-        photo: false,
-        translations: {
-          hi: 'टीम डीब्रीफिंग: रचनात्मक, एजेंडा का पालन',
-          ne: 'टिम डिब्रिफिङ: रचनात्मक, एजेन्डा पालन',
-          bn: 'টিম ডিব্রিফিং: গঠনমূলক, এজেন্ডা অনুসরণ',
-          ur: 'ٹیم ڈی بریفنگ: تعمیری، ایجنڈا کی پیروی',
-          my: 'အဖွဲ့ debriefing: တည်ဆောက်ရေးဆိုင်ရာ၊ agenda လိုက်နာ',
-          th: 'ดีบรีฟทีม: สร้างสรรค์ ปฏิบัติตามวาระ'
-        }
-      }
+      { id:'cy1', owner:'self', ownerLbl:'Self-report', text:'Ensure all cooking stations, utensils, and work surfaces are properly cleaned, sanitized, and ready for the next day operation.', photo:true, translations:{} },
+      { id:'cy2', owner:'self', ownerLbl:'Self-report', text:'Ensure all kitchen equipment, gas, and electrical appliances are properly switched off, cleaned, and secured before closing. Report any issues to maintenance.', photo:true, translations:{} },
+      { id:'cy3', owner:'self', ownerLbl:'Self-report', text:'Ensure all food waste is disposed properly, bins are emptied and cleaned, and hygiene standards are maintained before closing.', photo:true, translations:{} },
+      { id:'cy4', owner:'self', ownerLbl:'Self-report', text:'Ensure all storage areas and walk-in chillers are properly organized, labelled, and secured for the next day operation.', photo:true, translations:{} }
     ]
   },
+
+  // ── Area Chef Evaluation (evalOnly — hidden from KIC) ──
   {
     title: 'Food Consistency Today',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'fc1',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.',
-        photo: true,
-        translations: {
-          hi: 'सभी व्यंजन रेसिपी के अनुसार पकाए गए',
-          ne: 'सबै परिकार रेसिपी अनुसार पकाइएको',
-          bn: 'সব রান্না রেসিপি অনুযায়ী তৈরি',
-          ur: 'تمام پکوان ترکیب کے مطابق پکائے گئے',
-          my: 'ထမင်းသွတ်အားလုံး レシピ အတိုင်း ချက်ပြုတ်',
-          th: 'อาหารทุกจานปรุงตามสูตรที่กำหนด'
-        }
-      },
-      {
-        id: 'fc2',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Food Presentation: Ensure all dishes are plated and presented correctly as per standard.',
-        photo: true,
-        translations: {
-          hi: 'सभी व्यंजन सही प्रस्तुति के अनुसार परोसे गए',
-          ne: 'सबै परिकार सही प्रस्तुतीकरण अनुसार परोसिएको',
-          bn: 'সব রান্না সঠিক উপস্থাপনা অনুযায়ী পরিবেশিত',
-          ur: 'تمام پکوان درست پیشکش کے مطابق پیش کیے گئے',
-          my: 'ထမင်းသွတ်အားလုံး မှန်ကန်သော တင်ဆက်မှုနှင့် အညီ',
-          th: 'อาหารทุกจานจัดวางตามมาตรฐานการนำเสนอ'
-        }
-      },
-      {
-        id: 'fc3',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Ticket Timing: Ensure ticket times are monitored and maintained according to standards.',
-        photo: false,
-        translations: {
-          hi: 'टिकट टाइमिंग मानक के अनुसार',
-          ne: 'टिकट टाइमिङ मानक अनुसार',
-          bn: 'টিকিট টাইমিং মানদণ্ড অনুযায়ী',
-          ur: 'ٹکٹ ٹائمنگ معیار کے مطابق',
-          my: 'Ticket timing စံချိန်အတိုင်း',
-          th: 'เวลาออกตั๋วตามมาตรฐาน'
-        }
-      },
-      {
-        id: 'fc4',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Comments Review: Check all dine-in and delivery comments and take any required action.',
-        photo: false,
-        translations: {
-          hi: 'टिप्पणियाँ पढ़ी और कार्रवाई की गई',
-          ne: 'टिप्पणीहरू पढिएको र कार्यान्वयन गरिएको',
-          bn: 'মন্তব্য পড়া এবং ব্যবস্থা নেওয়া হয়েছে',
-          ur: 'تبصرے پڑھے اور ان پر عمل کیا گیا',
-          my: 'မှတ်ချက်များ ဖတ်ရှုပြီး ဆောင်ရွက်ထား',
-          th: 'อ่านความคิดเห็นและดำเนินการแล้ว'
-        }
-      },
-      {
-        id: 'fc5',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Delivery Check: Ensure orders are packed correctly, customer comments are followed, and all small sides and condiments are included.',
-        photo: false,
-        translations: {
-          hi: 'डिलीवरी: पैकिंग, ग्राहक टिप्पणी, छोटे साइड न छूटें',
-          ne: 'डेलिभरी: प्याकिङ, ग्राहक टिप्पणी, साना साइड नछुटोस्',
-          bn: 'ডেলিভারি: প্যাকিং, গ্রাহকের মন্তব্য, ছোট সাইড মিস না',
-          ur: 'ڈیلیوری: پیکنگ، گاہک کے تبصرے، چھوٹے سائیڈ نہ چھوٹیں',
-          my: 'ပေးပို့ရေး: ထုပ်ပိုး၊ ဖောက်သည်မှတ်ချက်၊ ငယ်သောဘေးများ မပျောက်',
-          th: 'จัดส่ง: การบรรจุ ความคิดเห็นลูกค้า ไม่ลืมของเล็กน้อย'
-        }
-      }
+      { id:'fc1', owner:'areachef', ownerLbl:'Area Chef', text:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.', photo:true, translations:{} },
+      { id:'fc2', owner:'areachef', ownerLbl:'Area Chef', text:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.', photo:false, translations:{} },
+      { id:'fc3', owner:'areachef', ownerLbl:'Area Chef', text:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation before leaving the kitchen.', photo:false, translations:{} },
+      { id:'fc4', owner:'areachef', ownerLbl:'Area Chef', text:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.', photo:false, translations:{} }
     ]
   },
   {
-    title: 'Flow of Operation for the Day (to be submitted before end of shift)',
+    title: 'Flow of Operation for the Day',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'l1',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Operational Control: Ensure the operation runs smoothly throughout the shift.',
-        photo: false,
-        translations: {
-          hi: 'ऑपरेशन प्रवाह का पेशेवर नियंत्रण प्रदर्शित करें',
-          ne: 'अपरेशन प्रवाहको व्यावसायिक नियन्त्रण देखाउनुस्',
-          bn: 'অপারেশন প্রবাহের পেশাদার নিয়ন্ত্রণ প্রদর্শন',
-          ur: 'آپریشن کے بہاؤ کا پیشہ ورانہ کنٹرول ظاہر کریں',
-          my: 'လုပ်ငန်းစီးဆင်းမှု ကျွမ်းကျင်သောထိန်းချုပ်မှု ပြသ',
-          th: 'แสดงการควบคุมการดำเนินงานอย่างมืออาชีพ'
-        }
-      },
-      {
-        id: 'l2',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Communication: Demonstrate clear, professional, and effective communication throughout the shift.',
-        photo: false,
-        translations: {
-          hi: 'कुशल और पेशेवर संचार कौशल प्रदर्शित करें',
-          ne: 'दक्ष र व्यावसायिक संचार सीप देखाउनुस्',
-          bn: 'দক্ষ ও পেশাদার যোগাযোগ দক্ষতা প্রদর্শন',
-          ur: 'موثر اور پیشہ ورانہ مواصلاتی مہارت ظاہر کریں',
-          my: 'ထိရောက်သောနှင့် ကျွမ်းကျင်သောဆက်သွယ်ရေးကျွမ်းကျင်မှု ပြသ',
-          th: 'แสดงทักษะการสื่อสารที่มีประสิทธิภาพและเป็นมืออาชีพ'
-        }
-      },
-      {
-        id: 'l3',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Displays strong culinary knowledge and integrity.',
-        photo: false,
-        translations: {
-          hi: 'पाक ज्ञान और ईमानदारी प्रदर्शित करें',
-          ne: 'पाककला ज्ञान र इमानदारी देखाउनुस्',
-          bn: 'রান্নার জ্ঞান ও সততা প্রদর্শন',
-          ur: 'پکانے کا علم اور دیانت داری ظاہر کریں',
-          my: 'ချက်ပြုတ်ရေးဗဟုသုတနှင့် ဆောင်ရွက်မှုတည်ညီမှု ပြသ',
-          th: 'แสดงความรู้ด้านการทำอาหารและความซื่อสัตย์'
-        }
-      },
-      {
-        id: 'l4',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Cleanliness of all stations, including the steward area, was checked and maintained.',
-        photo: true,
-        translations: {
-          hi: 'स्टीवर्ड क्षेत्र सहित सभी स्टेशनों की सफाई',
-          ne: 'स्टुवार्ड क्षेत्र सहित सबै स्टेशनहरूको सफाई',
-          bn: 'স্টুয়ার্ড এলাকা সহ সব স্টেশনের পরিচ্ছন্নতা',
-          ur: 'اسٹیوارڈ علاقے سمیت تمام اسٹیشنز کی صفائی',
-          my: 'Steward နေရာအပါအဝင် စခန်းအားလုံး သန့်ရှင်းရေး',
-          th: 'ความสะอาดของทุกสถานีรวมถึงพื้นที่ของสจ๊วต'
-        }
-      },
-      {
-        id: 'l5',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Storage area kept clean and items arranged in order.',
-        photo: true,
-        translations: {
-          hi: 'स्टोरेज क्षेत्र साफ और व्यवस्थित, सामान सजाया हुआ',
-          ne: 'भण्डारण क्षेत्र सफा र व्यवस्थित, सामान मिलाइएको',
-          bn: 'স্টোরেজ এলাকা পরিষ্কার, পণ্য সাজানো',
-          ur: 'اسٹوریج علاقہ صاف اور ترتیب سے، اشیاء ترتیب دی گئی',
-          my: 'သိုလှောင်ရေးနေရာ သပ်ရပ်သန့်ရှင်း၊ ပစ္စည်းများ စီစဉ်ထား',
-          th: 'พื้นที่จัดเก็บสะอาดเรียบร้อย สินค้าจัดวางอย่างเป็นระเบียบ'
-        }
-      },
-      {
-        id: 'l6',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'All stations are properly set up and fully filled.',
-        photo: true,
-        translations: {
-          hi: 'सभी स्टेशन सही तरीके से सेट अप और भरे हुए',
-          ne: 'सबै स्टेशनहरू ठीकसँग सेटअप र भरिएको',
-          bn: 'সব স্টেশন সঠিকভাবে সেটআপ ও পূর্ণ',
-          ur: 'تمام اسٹیشنز صحیح طریقے سے ترتیب دیے اور بھرے گئے',
-          my: 'စခန်းအားလုံး မှန်ကန်စွာ ပြင်ဆင်ထားပြီး ဖြည့်ထား',
-          th: 'ทุกสถานีติดตั้งและเติมของครบถ้วนอย่างถูกต้อง'
-        }
-      },
-      {
-        id: 'l7',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Staff are physically prepared, mentally focused, and motivated for the shift.',
-        photo: false,
-        translations: {
-          hi: 'कर्मचारी शारीरिक रूप से तैयार और मानसिक रूप से प्रेरित',
-          ne: 'कर्मचारी शारीरिक रूपमा तयार र मानसिक रूपमा प्रेरित',
-          bn: 'কর্মীরা শারীরিকভাবে প্রস্তুত ও মানসিকভাবে অনুপ্রাণিত',
-          ur: 'عملہ جسمانی طور پر تیار اور ذہنی طور پر حوصلہ افزا',
-          my: 'ဝန်ထမ်းများ ကိုယ်ခန္ဓာအားဖြင့် အဆင်သင့်နှင့် စိတ်ဓာတ်ကောင်း',
-          th: 'พนักงานพร้อมทางกายและมีแรงจูงใจทางจิตใจ'
-        }
-      }
+      { id:'fo1', owner:'areachef', ownerLbl:'Area Chef', text:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.', photo:false, translations:{} },
+      { id:'fo2', owner:'areachef', ownerLbl:'Area Chef', text:'All sections maintained mise en place standards throughout the shift.', photo:false, translations:{} },
+      { id:'fo3', owner:'areachef', ownerLbl:'Area Chef', text:'Communication between FOH and BOH was clear and effective throughout the shift.', photo:false, translations:{} }
     ]
   },
   {
     title: 'Food Cost & Staff',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'cost1',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Day‑to‑day purchasing, receiving, and stock‑on‑hand are being monitored consistently.',
-        photo: false,
-        translations: {
-          hi: 'दिन-प्रतिदिन की खरीद, प्राप्ति और स्टॉक की निगरानी लगातार की जा रही है',
-          ne: 'दैनिक खरिद, प्राप्ति र हातमा रहेको स्टकको निरन्तर निगरानी गरिँदैछ',
-          bn: 'দৈনন্দিন ক্রয়, প্রাপ্তি এবং হাতে থাকা স্টক ধারাবাহিকভাবে পর্যবেক্ষণ করা হচ্ছে',
-          ur: 'روزمرہ کی خریداری، موصولی، اور ہاتھ میں موجود اسٹاک مسلسل نگرانی میں ہے',
-          my: 'နေ့စဉ် ဝယ်ယူမှု၊ လက်ခံမှုနှင့် လက်ကျန်စတော့တို့ကို စဉ်ဆက်မပြတ် စောင့်ကြည့်နေသည်',
-          th: 'การจัดซื้อ การรับสินค้า และสต็อกคงเหลือประจำวันได้รับการติดตามอย่างสม่ำเสมอ'
-        }
-      },
-      {
-        id: 'sp2',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Team performance maintains an overall score above 90% each shift.',
-        photo: false,
-        translations: {
-          hi: 'समग्र टीम स्कोर 90% से ऊपर',
-          ne: 'समग्र टिम स्कोर 90% भन्दा माथि',
-          bn: 'সামগ্রিক টিম স্কোর ৯০% এর উপরে',
-          ur: 'مجموعی ٹیم اسکور 90% سے اوپر',
-          my: 'အဖွဲ့ကုန်းပြားမှတ်အားလုံး 90% အထက်',
-          th: 'คะแนนรวมของทีมสูงกว่า 90%'
-        }
-      },
-      {
-        id: 'cc1',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'If any food‑related customer complaints occur, ensure a photo and a clear explanation are provided.',
-        photo: false,
-        translations: {
-          hi: 'यदि कोई खाद्य संबंधित ग्राहक शिकायत हो तो फोटो और स्पष्ट स्पष्टीकरण प्रदान करें',
-          ne: 'यदि कुनै खाना सम्बन्धित ग्राहक गुनासो आयो भने फोटो र स्पष्ट व्याख्या प्रदान गर्नुस्',
-          bn: 'যদি কোনো খাদ্য সম্পর্কিত গ্রাহক অভিযোগ হয় তাহলে ফটো ও স্পষ্ট ব্যাখ্যা দিন',
-          ur: 'اگر کوئی کھانے سے متعلق گاہک کی شکایت ہو تو فوٹو اور واضح وضاحت فراہم کریں',
-          my: 'အစားအသောက်ဆိုင်ရာ ဖောက်သည်တိုင်ကြားချက် ရှိပါက ဓာတ်ပုံနှင့် ရှင်းလင်းချက် ပေးပါ',
-          th: 'หากมีข้อร้องเรียนจากลูกค้าเกี่ยวกับอาหาร ให้แนบรูปภาพและคำอธิบายที่ชัดเจน'
-        }
-      },
-      {
-        id: 'aud1',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'The outlet achieved a score above 90% in the last monthly audit visit.',
-        photo: false,
-        translations: {
-          hi: 'अंतिम यात्रा पर सेक्शन ऑडिट स्कोर 90% से ऊपर',
-          ne: 'अन्तिम भ्रमणमा सेक्शन अडिट स्कोर 90% भन्दा माथि',
-          bn: 'শেষ পরিদর্শনে সেকশন অডিট স্কোর ৯০% এর উপরে',
-          ur: 'آخری دورے پر سیکشن آڈٹ اسکور 90% سے اوپر',
-          my: 'နောက်ဆုံးသွားရောက်စစ်ဆေးမှုတွင် Section audit မှတ် 90% အထက်',
-          th: 'คะแนนตรวจสอบส่วนในการเยี่ยมครั้งล่าสุดสูงกว่า 90%'
-        }
-      }
+      { id:'cost1', owner:'areachef', ownerLbl:'Area Chef', text:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.', photo:false, translations:{} },
+      { id:'sp2', owner:'areachef', ownerLbl:'Area Chef', text:'Team performance maintains an overall score above 90% each shift.', photo:false, translations:{} },
+      { id:'cc1', owner:'areachef', ownerLbl:'Area Chef', text:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.', photo:false, translations:{} },
+      { id:'aud1', owner:'areachef', ownerLbl:'Area Chef', text:'The outlet achieved a score above 90% in the last monthly audit visit.', photo:false, translations:{} }
     ]
   }
 ];
-
 let currentDay = 1; // Single daily submission — day rail removed
+let currentShift = null; // 'opening' or 'closing'
 let activePhotoTask = null;
 
 // ── Storage ───────────────────────────────────────────────────
@@ -1151,342 +820,352 @@ function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; }
 
 // ── Day rail ──────────────────────────────────────────────────
+function selectShift(shift) {
+  const dayKey = getTodayKey();
+  const data = load();
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const nowH = getDubaiHour();
+  const openingOpen = nowH >= 7 && nowH < 15;
+  const closingOpen = nowH >= 15 || nowH < 2;
+  if (shift === 'opening' && !openingOpen && !openingDone) {
+    showToast('Opening shift is only available 7:00 AM \u2013 3:00 PM', 'warn'); return;
+  }
+  if (shift === 'closing' && !closingOpen && !closingDone) {
+    showToast('Closing shift is only available 3:00 PM \u2013 2:00 AM', 'warn'); return;
+  }
+  currentShift = shift;
+  try { localStorage.setItem('kic_currentShift_' + getTodayKey(), shift); } catch(e) {}
+  renderDay();
+}
+
+function tapYN(tid, val, el) {
+  const dayKey = getTodayKey();
+  const data = load();
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const isSubmitted = currentShift === 'opening' ? openingDone : closingDone;
+  if (isSubmitted && !ALLOW_OVERWRITE) {
+    showToast('Already submitted \u2014 cannot edit \ud83d\udd12', 'error'); return;
+  }
+  setVal(currentDay, tid, 'yn', val);
+  el.closest('.yn-row').querySelectorAll('.yn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  // Update live scores
+  const shiftSec = SECTIONS.filter(s => s.shift === currentShift);
+  let t=0, y=0, oY=0,oM=0,cY=0,cM=0;
+  const _td = load()[dayKey] || {};
+  shiftSec.forEach(s => s.tasks.forEach(tk => {
+    const v = _td[tk.id]?.yn; if(v&&v!=='na'){t++;if(v==='yes')y++;}
+  }));
+  SECTIONS.filter(s=>s.shift==='opening').forEach(s=>s.tasks.forEach(tk=>{
+    const v=_td[tk.id]?.yn; if(v&&v!=='na'){oM++;if(v==='yes')oY++;}
+  }));
+  SECTIONS.filter(s=>s.shift==='closing').forEach(s=>s.tasks.forEach(tk=>{
+    const v=_td[tk.id]?.yn; if(v&&v!=='na'){cM++;if(v==='yes')cY++;}
+  }));
+  const pct=t>0?Math.round((y/t)*100):0;
+  const oPct2=oM>0?Math.round((oY/oM)*100):null;
+  const cPct2=cM>0?Math.round((cY/cM)*100):null;
+  const fill=document.getElementById('scoreFill');
+  const lbl=document.getElementById('scorePct');
+  if(fill){fill.style.width=pct+'%';fill.style.background=pct>=95?'#22C55E':pct>=75?'#F59E0B':'#EF4444';}
+  if(lbl) lbl.textContent=pct+'%';
+  const pFg=v=>v==null?'#94A3B8':v>=95?'#15803D':'#B45309';
+  const oBox=document.getElementById('oScoreBox');
+  const cBox=document.getElementById('cScoreBox');
+  const totBox=document.getElementById('totScoreBox');
+  if(oBox){oBox.textContent=oPct2!=null?oPct2+'%':'—';oBox.style.color=pFg(oPct2);}
+  if(cBox){cBox.textContent=cPct2!=null?cPct2+'%':'—';cBox.style.color=pFg(cPct2);}
+  if(totBox){
+    const avail=[oPct2,cPct2].filter(v=>v!=null);
+    const tot=avail.length?Math.round(avail.reduce((a,b)=>a+b,0)/avail.length):null;
+    totBox.textContent=tot!=null?tot+'%':'—';
+    totBox.style.color=tot!=null?'#fff':'#94A3B8';
+  }
+  // Comment box
+  if(val==='no'){
+    const card=el.closest('.task-card');
+    if(card&&!card.querySelector('.comment-row')){
+      const cr=document.createElement('div');
+      cr.className='comment-row';
+      cr.innerHTML='<input type="text" placeholder="Comment required for NO..." onchange="setVal('+currentDay+',\''+tid+'\',\'comment\',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">';
+      card.appendChild(cr);
+    }
+  } else {
+    const card=el.closest('.task-card');
+    const cr=card?.querySelector('.comment-row');
+    if(cr) cr.remove();
+  }
+}
+
 function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
   const container = document.getElementById('mainContent');
   container.innerHTML = '';
-
-  // Track start time for this day
-  const dayKey = getTodayKey(); // Date-based key
-  const dNow = load();
-  if (!dNow[dayKey]) { dNow[dayKey] = {}; }
-  // _start set at submit time
-
+  const dayKey = getTodayKey();
   const data = load();
-  const _dv = data[dayKey]?._done;
-  const isDone = !!(_dv && (_dv === getDubaiDateStr() || _dv.substring(0,10) === getDubaiDateStr()));
-  const weekStart = getWeekStart();
-  const unlocked = isDayUnlocked(currentDay, weekStart);
-  let total = 0, yes = 0;
+  if (!data[dayKey]) { data[dayKey] = {}; save(data); }
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const nowH = getDubaiHour();
+  const openingOpen = nowH >= 7 && nowH < 15;
+  const closingOpen = nowH >= 15 || nowH < 2;
 
-  // All days accessible — no date lock
+  // Shift picker
+  if (!currentShift) {
+    const screen = document.createElement('div');
+    screen.style.cssText = 'padding:24px 16px;text-align:center;';
+    const openStyle = (openingOpen||openingDone)
+      ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;'
+      : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
+    const openNote = (!openingOpen&&!openingDone) ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;margin-bottom:12px;">Opening shift available 7:00 AM – 3:00 PM only</div>' : '';
+    const closeStyle = (closingOpen||closingDone)
+      ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:4px;background:linear-gradient(135deg,#1A4740,#0D9488);color:#fff;'
+      : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
+    const closeNote = (!closingOpen&&!closingDone) ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Opens at 3:00 PM until 2:00 AM</div>'
+      : (closingOpen&&!closingDone ? '<div style="font-size:11px;color:#0F766E;margin-top:4px;">\u2713 Available now</div>' : '');
+    screen.innerHTML =
+      '<div style="font-size:32px;margin-bottom:8px;">\ud83d\udc4b</div>'
+      +'<h2 style="font-size:16px;font-weight:700;color:#7B2D42;margin-bottom:6px;">Which shift are you on?</h2>'
+      +'<p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>'
+      +'<button onclick="selectShift(\'opening\')" style="'+openStyle+'">\ud83c\udf05 Opening Shift '+(openingDone?'\u2713':'')+'</button>'
+      +openNote
+      +'<button onclick="selectShift(\'closing\')" style="'+closeStyle+'">\ud83c\udf19 Closing Shift '+(closingDone?'\u2713':'')+'</button>'
+      +closeNote
+      +'<div style="font-size:11px;color:#64748B;margin-top:16px;padding:10px;background:#F8FAFC;border-radius:10px;border:1px solid #E0DDD4;">\ud83d\udd12 <b>Evaluation sections</b> are completed by Area Chef only via the dashboard.</div>';
+    container.appendChild(screen);
+    return;
+  }
 
-  SECTIONS.forEach((section, si) => {
-    const hdr = document.createElement('div');
-    hdr.className = 'section-hdr';
-    hdr.textContent = section.title;
+  // Back + Clear buttons
+  const backBtn = document.createElement('button');
+  backBtn.style.cssText = 'display:flex;align-items:center;gap:6px;margin:12px 16px 0;padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;font-weight:600;color:#7B2D42;background:#fff;cursor:pointer;';
+  backBtn.innerHTML = '\u2190 Change Shift';
+  backBtn.onclick = () => { currentShift=null; try{localStorage.removeItem('kic_currentShift_'+getTodayKey());}catch(e){} renderDay(); };
+  const clearBtn = document.createElement('button');
+  clearBtn.style.cssText = 'display:flex;align-items:center;gap:6px;margin:12px 8px 0 0;padding:6px 12px;border:1.5px solid #FCA5A5;border-radius:20px;font-size:12px;font-weight:600;color:#B91C1C;background:#FFF1F0;cursor:pointer;';
+  clearBtn.innerHTML = '\ud83d\uddd1 Clear '+(currentShift==='opening'?'Opening':'Closing');
+  clearBtn.onclick = () => {
+    if(!confirm('Clear all '+(currentShift==='opening'?'opening':'closing')+' shift answers? This cannot be undone.')) return;
+    const d=load(); const dk=getTodayKey();
+    if(d[dk]){ SECTIONS.filter(s=>s.shift===currentShift).flatMap(s=>s.tasks.map(t=>t.id)).forEach(tid=>{delete d[dk][tid];});
+      if(currentShift==='opening') delete d[dk]._openDone; else delete d[dk]._closeDone; save(d); }
+    showToast((currentShift==='opening'?'Opening':'Closing')+' shift cleared \u2713','ok'); renderDay();
+  };
+  const btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;align-items:center;flex-wrap:wrap;';
+  btnRow.appendChild(backBtn); btnRow.appendChild(clearBtn);
+  container.appendChild(btnRow);
+
+  const isSubmitted = currentShift==='opening' ? openingDone : closingDone;
+
+  // Score calculation
+  const _allTd = data[dayKey]||{};
+  let oY=0,oM=0,cY=0,cM=0;
+  SECTIONS.filter(s=>s.shift==='opening').forEach(s=>s.tasks.forEach(t=>{const v=_allTd[t.id]?.yn;if(v&&v!=='na'){oM++;if(v==='yes')oY++;}}));
+  SECTIONS.filter(s=>s.shift==='closing').forEach(s=>s.tasks.forEach(t=>{const v=_allTd[t.id]?.yn;if(v&&v!=='na'){cM++;if(v==='yes')cY++;}}));
+  const shiftSec=SECTIONS.filter(s=>s.shift===currentShift);
+  let t=0,y=0; shiftSec.forEach(s=>s.tasks.forEach(tk=>{const v=_allTd[tk.id]?.yn;if(v&&v!=='na'){t++;if(v==='yes')y++;}}));
+  const pct=t>0?Math.round((y/t)*100):0;
+  const oPct=oM>0?Math.round((oY/oM)*100):null;
+  const cPct=cM>0?Math.round((cY/cM)*100):null;
+  const pBg=v=>v==null?'#F8FAFC':v>=95?'#F0FDF4':'#FFF7ED';
+  const pBd=v=>v==null?'#E2E8F0':v>=95?'#BBF7D0':'#FED7AA';
+  const pFg=v=>v==null?'#94A3B8':v>=95?'#15803D':'#B45309';
+  const showClosing=closingDone||(currentShift==='closing');
+  const parts=[];
+  if(oPct!=null||currentShift==='opening') parts.push('Opening');
+  if(showClosing) parts.push('Closing');
+  parts.push('Evaluation');
+  const fLabel=parts.join(' + ')+' = Total';
+  const avail=[oPct,showClosing?cPct:null].filter(v=>v!=null);
+  const totPct=avail.length?Math.round(avail.reduce((a,b)=>a+b,0)/avail.length):null;
+  const cols=showClosing?'repeat(4,1fr)':'repeat(3,1fr)';
+
+  const scoreCard=document.createElement('div');
+  scoreCard.style.cssText='margin:10px 16px;';
+  scoreCard.innerHTML=
+    '<div style="font-size:10px;font-weight:700;color:#64748B;letter-spacing:.04em;margin-bottom:6px;">'+fLabel+'</div>'
+    +'<div style="display:grid;grid-template-columns:'+cols+';gap:5px;">'
+    +'<div style="background:'+pBg(oPct)+';border:1.5px solid '+pBd(oPct)+';border-radius:10px;padding:7px;text-align:center;">'
+    +'<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;">Opening</div>'
+    +'<div id="oScoreBox" style="font-size:17px;font-weight:700;color:'+pFg(oPct)+'">'+(oPct!=null?oPct+'%':'&mdash;')+'</div>'
+    +'<div style="font-size:9px;color:#94A3B8;">'+(openingDone?'Done':'Live')+'</div></div>'
+    +(showClosing?'<div style="background:'+pBg(cPct)+';border:1.5px solid '+pBd(cPct)+';border-radius:10px;padding:7px;text-align:center;">'
+    +'<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;">Closing</div>'
+    +'<div id="cScoreBox" style="font-size:17px;font-weight:700;color:'+pFg(cPct)+'">'+(cPct!=null?cPct+'%':'&mdash;')+'</div>'
+    +'<div style="font-size:9px;color:#94A3B8;">'+(closingDone?'Done':'Live')+'</div></div>':'')
+    +'<div style="background:#EFF6FF;border:1.5px dashed #BFDBFE;border-radius:10px;padding:7px;text-align:center;">'
+    +'<div style="font-size:9px;font-weight:700;color:#1E40AF;text-transform:uppercase;">Eval</div>'
+    +'<div style="font-size:17px;font-weight:700;color:#94A3B8;">&mdash;</div>'
+    +'<div style="font-size:9px;color:#94A3B8;">By AM</div></div>'
+    +'<div style="background:'+(totPct!=null?'#1A3C5E':'#F8FAFC')+';border:1.5px solid '+(totPct!=null?'#1A3C5E':'#E2E8F0')+';border-radius:10px;padding:7px;text-align:center;">'
+    +'<div style="font-size:9px;font-weight:700;color:'+(totPct!=null?'rgba(255,255,255,.7)':'#64748B')+';text-transform:uppercase;">Total</div>'
+    +'<div id="totScoreBox" style="font-size:17px;font-weight:700;color:'+(totPct!=null?'#fff':'#94A3B8')+'">'+(totPct!=null?totPct+'%':'&mdash;')+'</div>'
+    +'<div style="font-size:9px;color:'+(totPct!=null?'rgba(255,255,255,.6)':'#94A3B8')+';">'+(totPct!=null?(totPct>=95?'Pass':'<95%'):'')+'</div></div>'
+    +'</div>';
+  container.appendChild(scoreCard);
+
+  // Progress bar
+  const scoreBarEl=document.createElement('div');
+  scoreBarEl.style.cssText='margin:6px 16px 4px;';
+  scoreBarEl.innerHTML='<div style="font-size:10px;color:#64748B;margin-bottom:3px;">'+(currentShift==='opening'?'Opening':'Closing')+' progress</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;">'
+    +'<div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
+    +'<div id="scoreFill" style="height:100%;width:'+pct+'%;background:'+(pct>=95?'#22C55E':pct>=75?'#F59E0B':'#EF4444')+';border-radius:3px;transition:width 0.3s;"></div></div>'
+    +'<span id="scorePct" style="font-size:12px;font-weight:700;color:#7C2D12;min-width:36px;">'+pct+'%</span></div>';
+  container.appendChild(scoreBarEl);
+
+  // Lock banner
+  if(isSubmitted&&!ALLOW_OVERWRITE){
+    const lb=document.createElement('div');
+    lb.style.cssText='margin:0 16px 10px;padding:10px 14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;font-size:12px;color:#15803D;font-weight:600;text-align:center;';
+    lb.innerHTML='\u2705 '+(currentShift==='opening'?'Opening':'Closing')+' submitted \u2014 view only';
+    container.appendChild(lb);
+  }
+
+  // Task sections
+  shiftSec.forEach(section => {
+    const hdr=document.createElement('div');
+    hdr.className='section-hdr';
+    hdr.textContent=section.title;
     container.appendChild(hdr);
-
-    section.tasks.forEach((task, ti) => {
-      total++;
-      const val = getVal(currentDay, task.id, 'yn');
-      if (val === 'yes') yes++;
-      const photo = getVal(currentDay, task.id, 'photo');
-
-      const card = document.createElement('div');
-      const isVerifyLocked = task.owner === 'verify' && !ALLOW_OVERWRITE;
-      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '') + (isVerifyLocked ? ' verify-locked' : '');
-      if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
-
-      const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
-      let photoHtml = '';
-      if (task.photo) {
-        const _td2 = (load()[getTodayKey()] || {})[task.id] || {};
-        const _photos = [];
-        let _pi = 0;
-        while (true) {
-          const _k = _pi === 0 ? 'photo' : 'photo_' + _pi;
-          if (_td2[_k]) { _photos.push({ idx: _pi, src: _td2[_k] }); _pi++; } else break;
-        }
-        const _thumbs = _photos.map(p =>
-          '<div style="display:inline-block;text-align:center;vertical-align:top;margin-right:6px;">' +
-          '<img class="photo-thumb" src="' + p.src + '" alt="proof">' +
-          '<button onclick="removePhoto(\'' + task.id + '\',' + p.idx + ')" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>' +
-          '</div>'
-        ).join('');
-        photoHtml = '<div class="photo-row" style="flex-wrap:wrap;gap:8px;">' +
-          '<button class="photo-btn' + (_photos.length ? ' taken' : '') + '" onclick="openPhotoModal(\'' + task.id + '\',\'' + task.text.substring(0,40).replace(/'/g,'') + '\')">' +
-          (_photos.length ? '📷 Add another photo' : '📷 Tap to take photo') +
-          '</button>' + _thumbs + '</div>';
+    section.tasks.forEach(task => {
+      const val=_allTd[task.id]?.yn;
+      const comment=_allTd[task.id]?.comment||'';
+      const photos=(() => {
+        const urls=[],td2=_allTd[task.id]||{};
+        const slots=[['photo_url','photo'],['photo_1_url','photo_1'],['photo_2_url','photo_2'],['photo_3_url','photo_3'],['photo_4_url','photo_4']];
+        slots.forEach(([uk,bk])=>{
+          const url=td2[uk]||td2[uk.replace('_url','Url')]||'';
+          const b64=td2[bk]||'';
+          const best=(url&&url.startsWith('http'))?url:(b64&&b64.startsWith('data:'))?b64:null;
+          if(best&&!urls.includes(best))urls.push(best);
+        });
+        if(td2.photoUrl&&!urls.includes(td2.photoUrl))urls.push(td2.photoUrl);
+        return urls.filter(Boolean);
+      })();
+      const card=document.createElement('div');
+      card.className='task-card';
+      if(isSubmitted&&!ALLOW_OVERWRITE) card.style.opacity='0.85';
+      // Build task card safely using DOM to avoid quote escaping issues
+      const top=document.createElement('div'); top.className='task-top';
+      const otag=document.createElement('span'); otag.className='owner-tag ot-self'; otag.textContent=task.ownerLbl; top.appendChild(otag);
+      const ttxt=document.createElement('span'); ttxt.className='task-text'; ttxt.textContent=task.text; top.appendChild(ttxt);
+      card.appendChild(top);
+      const ynRow=document.createElement('div'); ynRow.className='yn-row';
+      ['yes','no','na'].forEach(v2=>{
+        const b=document.createElement('div');
+        b.className='yn '+(v2==='yes'?'yes':v2==='no'?'no':'na')+(val===v2?' on':'');
+        b.textContent=v2==='yes'?'\u2713 YES':v2==='no'?'\u2717 NO':'N/A';
+        b.onclick=()=>tapYN(task.id,v2,b);
+        ynRow.appendChild(b);
+      });
+      if(task.photo){
+        const pb=document.createElement('button');
+        pb.className='photo-btn'+(photos.length?' taken':'');
+        pb.textContent=photos.length?'\ud83d\udcf7 \u2713':'\ud83d\udcf7';
+        pb.onclick=()=>openPhotoModal(task.id);
+        ynRow.appendChild(pb);
       }
-      const cmnt = getVal(currentDay, task.id, 'comment') || '';
-      card.innerHTML = `
-        <div class="task-top">
-          <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
-          <span class="task-text">${task.text}</span>
-          ${task.translations ? '<div style="margin-top:6px;border-top:1px dashed #E2E8F0;padding-top:6px;">' + Object.entries(task.translations).map(([lang,txt]) => {
-            const flags = {hi:'🇮🇳',ne:'🇳🇵',bn:'🇧🇩',ur:'🇵🇰',my:'🇲🇲',th:'🇹🇭'};
-            const dir = (lang==='ur') ? 'rtl' : 'ltr';
-            return '<div style="font-size:11px;color:#64748B;margin-top:3px;line-height:1.5;direction:'+dir+';text-align:'+(lang==='ur'?'right':'left')+';">'+(flags[lang]||'')+' '+txt+'</div>';
-          }).join('') + '</div>' : ''}
-        </div>
-        <div class="yn-row">
-          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
-          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
-          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">— N/A</div>
-        </div>
-        <textarea class="comment-field" rows="1" placeholder="Add comment (optional)..."
-          onchange="setComment('${task.id}', this.value)"
-          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-        >${cmnt}</textarea>
-        ${photoHtml}`;
+      card.appendChild(ynRow);
+      if(val==='no'){
+        const cr=document.createElement('div'); cr.className='comment-row';
+        const inp=document.createElement('input'); inp.type='text';
+        inp.placeholder='Comment required for NO...';
+        inp.value=comment;
+        inp.style.cssText='width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;';
+        inp.onchange=e=>setVal(currentDay,task.id,'comment',e.target.value);
+        cr.appendChild(inp); card.appendChild(cr);
+      }
+      if(photos.length){
+        const prow=document.createElement('div');
+        prow.style.cssText='display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;';
+        photos.forEach(u=>{ const img=document.createElement('img'); img.src=u; img.style.cssText='width:56px;height:56px;object-fit:cover;border-radius:6px;'; prow.appendChild(img); });
+        card.appendChild(prow);
+      }
       container.appendChild(card);
     });
   });
 
-  // Score
-  const pct = total > 0 ? Math.round((yes/total)*100) : 0;
-  document.getElementById('scoreFill').style.width = pct + '%';
-  document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
-  document.getElementById('scorePct').textContent = pct + '%';
-
-  // Overall — only count submitted days for 6-day score
-  let tY=0, tM=0;
-  const allData = load();
-  for (let d=1;d<=6;d++) {
-    if (!allData[`d${d}`]?._done) continue; // skip unsubmitted days
-    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
-      const v=getVal(d,t.id,'yn');
-      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
-    }));
-  }
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
-  const pass = op>=95;
-
-  // Current day score — only answered tasks
-  const curAnswered = yes > 0 || (isDone);
-  const curScore = total > 0 ? Math.round((yes/total)*100) : 0;
-
-  const sc = document.createElement('div');
-  if (isDone) {
-    // Show this day's score after submission
-    const dayScore = total > 0 ? Math.round((yes/total)*100) : 0;
-    const dayPass = dayScore >= 95;
-    sc.className = `status-card ${dayPass?'pass':'fail'}`;
-    sc.innerHTML = `
-      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:12px;text-align:center;margin-top:10px;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total Score</div>
-        <div style="font-size:36px;font-weight:700;color:${dayPass?'#15803D':'#B91C1C'}">${dayScore}%</div>
-        <div style="font-size:11px;color:${dayPass?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Below target (95%)'}</div>
-      </div>`;
-  } else if (yes > 0) {
-    // Show live current day score while answering
-    const dayPass = curScore>=95;
-    sc.className = `status-card ${dayPass?'pass':'fail'}`;
-    sc.innerHTML = `
-      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:12px;text-align:center;margin-top:10px;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total Score</div>
-        <div style="font-size:36px;font-weight:700;color:${dayPass?'#15803D':'#B91C1C'}">${curScore}%</div>
-        <div style="font-size:11px;color:${dayPass?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Keep going'}</div>
-      </div>`;
-  } else {
-    // No answers yet — show blank
-    sc.className = 'status-card';
-    sc.innerHTML = `<div class="sc-icon">📋</div>
-      <div class="sc-title">Fill your checklist</div>
-      <div class="sc-score" style="color:#94A3B8">0%</div>
-      <div class="sc-sub">Today's score (target: 95%)</div>`;
-  }
-  container.appendChild(sc);
+  // Area Chef notice panel
+  const amPanel=document.createElement('div');
+  amPanel.style.cssText='margin:16px 0 8px;';
+  amPanel.innerHTML='<div style="padding:14px;background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;text-align:center;"><div style="font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:4px;">\ud83d\udccb Area Chef Evaluation</div><div style="font-size:12px;color:#64748B;">This section is filled by the Area Chef from the<br><strong>Master Dashboard</strong> after you submit.</div></div>';
+  container.appendChild(amPanel);
 
   // Submit button
-  const btn = document.createElement('button');
-  btn.className = 'submit-btn';
-  if (isDone && !ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = `✓ Checklist Submitted — Locked`;
-    const msg = document.createElement('div');
-    msg.className = 'synced-msg';
-    msg.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(btn);
-    container.appendChild(msg);
-  } else if (isDone && ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = `✓ Checklist Submitted`;
-    container.appendChild(btn);
-    // Overwrite panel
-    const owp = document.createElement('div');
-    owp.className = 'overwrite-panel';
-    owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
-      <input class="overwrite-input" id="owCode" type="password" placeholder="Enter overwrite code...">
-      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
-    container.appendChild(owp);
-    const msg2 = document.createElement('div');
-    msg2.className = 'synced-msg';
-    msg2.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(msg2);
-  } else {
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'submit-btn';
-    saveBtn.style.cssText = 'background:#E87722;margin-bottom:8px;';
-    saveBtn.textContent = '💾 Save Progress';
-    saveBtn.onclick = function() { showToast('Progress saved ✓', 'ok'); };
-    container.appendChild(saveBtn);
-    btn.textContent = '📋 Submit Checklist';
-    btn.onclick = submitDay;
+  if(!isSubmitted){
+    const btn=document.createElement('button');
+    btn.className='submit-btn';
+    btn.textContent='Submit '+(currentShift==='opening'?'Opening':'Closing')+' Checklist';
+    btn.onclick=submitDay;
     container.appendChild(btn);
   }
 }
 
-// ── Tap YES/NO/NA ─────────────────────────────────────────────
-function setComment(taskId, value) {
-  setVal(currentDay, taskId, 'comment', value);
-}
-
-function tapYN(tid, val, el) {
-  const data = load();
-  const todayData = data[getTodayKey()] || {};
-  // kic2/oic has no shifts — only lock after full submit (_done)
-  if (todayData._done && !ALLOW_OVERWRITE) {
-    showToast('Already submitted — cannot edit 🔒', 'error'); return;
-  }
-  // Lock 'verify' tasks only AFTER submission — Area Chef verifies via dashboard overwrite
-  const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
-  if (taskDef && taskDef.owner === 'verify' && todayData._done && !ALLOW_OVERWRITE) {
-    showToast('Already submitted — manager verifies this via dashboard 🔒', 'error'); return;
-  }
-  setVal(currentDay, tid, 'yn', val);
-  el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  // Update score bar — skip verify tasks, only count answered
-  let t=0, y=0;
-  const _td = load()[getTodayKey()] || {};
-  SECTIONS.forEach(s => s.tasks.forEach(tk => {
-    if (tk.owner === 'verify') return;
-    const v = _td[tk.id]?.yn;
-    if (v && v !== 'na') { t++; if(v==='yes') y++; }
-  }));
-  // Update score bar and single total box live
-  const p = t>0 ? Math.round((y/t)*100) : 0;
-  document.getElementById('scoreFill').style.width=p+'%';
-  document.getElementById('scoreFill').style.background=p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
-  document.getElementById('scorePct').textContent=p+'%';
-  // Update single total score box
-  const scCard = document.querySelector('.status-card');
-  if (scCard && t > 0) {
-    const dayPass = p >= 95;
-    scCard.className = `status-card ${dayPass?'pass':'fail'}`;
-    scCard.innerHTML = `
-      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">🏆 Total Score</div>
-        <div style="font-size:36px;font-weight:700;color:${dayPass?'#15803D':'#B91C1C'}">${p}%</div>
-        <div style="font-size:11px;color:${dayPass?'#15803D':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Below target (95%)'}</div>
-      </div>`;
-  }
-}
-
-
-function fmtDateTime(iso) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
-    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'});
-    return date + ' ' + time;
-  } catch(e) { return iso; }
-}
-function fmtTimeOnly(iso) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'});
-  } catch(e) { return '—'; }
-}
-
-// ── Submit day ────────────────────────────────────────────────
 function submitDay() {
-  const name = getStaffName();
-  const _vn = validateFullName(name);
-  if (!_vn.valid) { showToast(_vn.msg, 'warn'); document.getElementById('fName').focus(); return; }
-  // getWeekStart always returns Dubai date — no block needed
-  const d = load();
-  if (!d[getTodayKey()]) d[getTodayKey()] = {};
-  d[getTodayKey()]._start = new Date().toISOString();
-  d[getTodayKey()]._done = getDubaiDateStr();
+  const name=getStaffName();
+  const _vn=validateFullName(name);
+  if(!_vn.valid){showToast(_vn.msg,'warn');document.getElementById('fName').focus();return;}
+  if(!getOutlet()){showToast('Please select an outlet','warn');return;}
+  if(!currentShift){showToast('Please select a shift first','warn');return;}
+  SK=SK_BASE+'_'+name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  const shiftSec=SECTIONS.filter(s=>s.shift===currentShift);
+  const _tdNow=load()[getTodayKey()]||{};
+  const unanswered=shiftSec.flatMap(s=>s.tasks).filter(t=>!_tdNow[t.id]?.yn);
+  if(unanswered.length){showToast('Please answer all tasks before submitting','warn');return;}
+  const missingComment=shiftSec.flatMap(s=>s.tasks).filter(t=>_tdNow[t.id]?.yn==='no'&&!(_tdNow[t.id]?.comment||'').trim());
+  if(missingComment.length){showToast('Comment required for every NO answer','warn');return;}
+  const d=load(); const dayKey=getTodayKey();
+  if(!d[dayKey])d[dayKey]={};
+  d[dayKey]._start=d[dayKey]._start||new Date().toISOString();
+  if(currentShift==='opening')d[dayKey]._openDone=new Date().toISOString();
+  else d[dayKey]._closeDone=new Date().toISOString();
   save(d);
-
-  // Calc overall
-  // Read score directly from today's date key
-  let tY=0, tM=0;
-  const _sd = load()[getTodayKey()] || {};
-  SECTIONS.forEach(s => s.tasks.forEach(t => {
-    if (t.owner === 'verify') return;
-    const v = _sd[t.id]?.yn;
-    if (v && v !== 'na') { tM++; if(v==='yes') tY++; }
-  }));
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
-
-  // Push to master dashboard
-  const _fbRecord = {
-    staffName:  name,
-    role:       ROLE,
-    roleLabel:  ROLE_LABEL,
-    outlet:     getOutlet(),
-    week:       getWeekStart(), // Actual week-starting date (fixed — was today's date)
-    verifiedBy: getVerified(),
-    overallPct: op,
-    openingPct: op,
-    closingPct: null,
-    qualified:  op>=95,
-    day:        currentDay,
-    startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
-    submittedDates: trackSubmittedDate(getWeekStart()),
-    photos: (function() {
-      const photos = {};
-      SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const url = getVal(currentDay, t.id, 'photoUrl');
-        if (url) photos[t.id + '_day' + currentDay] = url;
+  let tY=0,tM=0;
+  shiftSec.forEach(s=>s.tasks.forEach(t=>{const v=d[dayKey][t.id]?.yn;if(v&&v!=='na'){tM++;if(v==='yes')tY++;}}));
+  const op=tM>0?Math.round((tY/tM)*100):0;
+  const outlet=getOutlet(); const weekStart=getWeekStart();
+  const _fbRecord={
+    staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:weekStart,
+    verifiedBy:getVerified(), overallPct:op,
+    openingPct:currentShift==='opening'?op:null,
+    closingPct:currentShift==='closing'?op:null,
+    oicEvalPct:null, qualified:op>=95,
+    day:currentDay, shift:currentShift,
+    startedAt:d[dayKey]._start, submittedAt:new Date().toISOString(),
+    lastUpdated:new Date().toISOString(),
+    submittedDates:trackSubmittedDate(weekStart),
+    taskData:(function(){
+      const tasks={};
+      SECTIONS.forEach(s=>s.tasks.forEach(t=>{
+        const td=d[dayKey][t.id]||{}; const yn=td.yn;
+        const photoUrls=[];
+        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k=>{const u=td[k];if(u&&u.startsWith('http')&&!photoUrls.includes(u))photoUrls.push(u);});
+        if(yn||photoUrls.length) tasks[t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn:yn||'',photoUrl:photoUrls[0]||'',photoUrls,hasPhoto:photoUrls.length>0};
       }));
-      return photos;
-    })(),
-    taskData: (function() {
-      const tasks = {};
-      const data = load();
-      // Build day-number → date-key mapping using week start
-      const weekStartStr = localStorage.getItem('kic_info_kic_fWeek') || getDubaiDateStr();
-      const weekStart = new Date(weekStartStr + 'T00:00:00');
-      for (let dd=1; dd<=6; dd++) {
-        // Calculate the actual date for this day number
-        const dayDate = new Date(weekStart);
-        dayDate.setDate(weekStart.getDate() + (dd - 1));
-        const dateStr = dayDate.getFullYear() + '-' +
-          String(dayDate.getMonth()+1).padStart(2,'0') + '-' +
-          String(dayDate.getDate()).padStart(2,'0');
-        const dateKey = 'dt' + dateStr;
-        const dayData = data[dateKey] || {};
-        SECTIONS.forEach(s => s.tasks.forEach(t => {
-          const td    = dayData[t.id] || {};
-          const yn    = td.yn;
-          const pUrl  = td.photoUrl || td.photo_url;
-          const base64 = td.photo;
-          if (yn || pUrl || base64) {
-            tasks[`d${dd}_${t.id}`] = {
-              day: dd,
-              section: s.title,
-              task: t.text,
-              owner: t.ownerLbl,
-              yn: yn||'',
-              photoUrl: (pUrl && pUrl.startsWith('http')) ? pUrl : (base64 && base64.startsWith('data:')) ? base64 : '',
-            };
-          }
-        }));
-      }
       return tasks;
     })(),
-    submittedAt:new Date().toISOString(),
-    lastUpdated:new Date().toISOString(),
   };
   pushToMasterDashboard(_fbRecord);
   pushToFirebase(_fbRecord);
-
-  showToast('✓ Checklist submitted!', 'ok');
-  // Use setTimeout to ensure _done is saved before re-render
-  setTimeout(function() {
-    buildDayRail();
-    renderDay();
-  }, 100);
+  try {
+    const _dayDate=getTodayKey().replace('dt','');
+    const _dayData={submittedAt:new Date().toISOString()};
+    if(currentShift==='opening')_dayData.openingPct=op; else _dayData.closingPct=op;
+    if(_db){
+      const _key=name.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ROLE+'_'+outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+weekStart.replace(/[^a-zA-Z0-9]/g,'_');
+      _db.ref('submissions/'+_key+'_'+currentShift+'/days/'+_dayDate).update(_dayData);
+    }
+  } catch(e){console.warn('Daily score write failed:',e);}
+  showToast('\u2713 '+(currentShift==='opening'?'Opening':'Closing')+' checklist submitted!','ok');
+  setTimeout(()=>{buildDayRail();renderDay();},100);
 }
+
 
 // ── Overwrite (KIC/Area Chef) ─────────────────────────────────
 function doOverwrite() {
@@ -1503,11 +1182,15 @@ function doOverwrite() {
 // ── Photo ─────────────────────────────────────────────────────
 function openPhotoModal(tid, label) {
   const data = load();
-  if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
-    showToast('Day submitted — cannot change photos', 'error'); return;
+  const dayKey = getTodayKey();
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const isSubmitted = currentShift === 'opening' ? openingDone : closingDone;
+  if (isSubmitted && !ALLOW_OVERWRITE) {
+    showToast('Shift submitted \u2014 cannot change photos \ud83d\udd12', 'error'); return;
   }
   activePhotoTask = tid;
-  document.getElementById('modalLabel').textContent = label;
+  document.getElementById('modalLabel').textContent = label || 'Take a clear photo of this task';
   document.getElementById('photoModal').classList.add('open');
 }
 function closePhotoModal() {
@@ -1566,6 +1249,12 @@ window.addEventListener('DOMContentLoaded', () => {
   const galIn = document.getElementById('galInput');
   if (camIn) camIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
   if (galIn) galIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+
+  // Restore currentShift so photo re-renders stay on the correct shift tab
+  try {
+    const _saved = localStorage.getItem('kic_currentShift_' + getTodayKey());
+    if (_saved === 'opening' || _saved === 'closing') currentShift = _saved;
+  } catch(e) {}
 
   // Auto-set Dubai date — locked, no user input
   const _dubaiToday = getDubaiDateStr();
