@@ -13,7 +13,7 @@
 <meta name="application-name" content="Culex Kitchen">
 <script>
 (function() {
-  var v = '20260619100000';
+  var v = '20260619340000';
   var stored = localStorage.getItem('app_version_delco');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -248,8 +248,17 @@ function getTodayKey() {
   } catch(e){ return 'dt'+new Date().toISOString().split('T')[0]; }
 }
 function getWeekStart() {
-  const v = document.getElementById('fWeek')?.value;
-  return v && v.length===10 ? v : getDubaiDateStr();
+  // Always compute Monday of current Dubai week to ensure consistent week grouping
+  // regardless of what today's date is or what is stored in fWeek
+  try {
+    const dubaiStr = getDubaiDateStr();
+    const parts = dubaiStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay(); // 0=Sun, 1=Mon
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return getDubaiDateStr(); }
 }
 
 // ── Storage ──────────────────────────────────────────────────

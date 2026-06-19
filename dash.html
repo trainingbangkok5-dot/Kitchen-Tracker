@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619240000">
+<meta name="app-version" content="20260619330000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619240000';
+  var v = '20260619330000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1572,6 +1572,22 @@ function getCurrentWeekStart() {
   return monday.toISOString().split('T')[0];
 }
 
+// Convert any YYYY-MM-DD date to the Monday of its week.
+// This normalizes KIC/OIC records that stored today's date as the week
+// instead of the week-starting Monday.
+function normalizeWeek(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return dateStr;
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay(); // 0=Sun, 1=Mon...
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return dateStr; }
+}
+
 function getWeekOptions() {
   // Generate last 8 weeks
   const options = [];
@@ -1629,7 +1645,7 @@ function loadData() {
     const dedupBOH = {};
     rawFiltered.forEach(s => {
       if (!s.staffName) return;
-      const subDate = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
+      const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
         const rec = {...s};
@@ -1683,7 +1699,7 @@ function loadData() {
     const dedupMap = {};
     combined.forEach(s => {
       if (!s.staffName) return;
-      const subDate = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
+      const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
       const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key]) {
         const rec2 = {...s};
@@ -1793,14 +1809,14 @@ function initSummaryScoring() {
         }
         if (isOutletRole && currentRole === 'oic') return;
         _ssData.push({
-          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week||''),
           // openingPct fallback: older KIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'kic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
-          days: s.days || null // NEW: per-date breakdown (may be absent on older records)
+          days: s.days || null
         });
       });
       done();
@@ -1819,14 +1835,14 @@ function initSummaryScoring() {
         }
         if (isOutletRole && currentRole === 'kic') return;
         _ssData.push({
-          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week||''),
           // openingPct fallback: older OIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: (s.role === 'service' || s.role === 'oic') ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
-          days: s.days || null // NEW: per-date breakdown (may be absent on older records)
+          days: s.days || null
         });
       });
       done();
