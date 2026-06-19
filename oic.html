@@ -846,6 +846,8 @@ function selectShift(shift) {
     showToast('Closing shift is only available 3:00 PM \u2013 2:00 AM', 'warn'); return;
   }
   currentShift = shift;
+  // Persist so renderDay() after photo upload doesn't lose shift context
+  try { localStorage.setItem('oic_currentShift_' + getTodayKey(), shift); } catch(e) {}
   renderDay();
 }
 
@@ -861,19 +863,41 @@ function tapYN(tid, val, el) {
   setVal(currentDay, tid, 'yn', val);
   el.closest('.yn-row').querySelectorAll('.yn').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
-  // Update live score bar (opening/closing tasks only, not evalOnly)
   const shiftSections = SECTIONS.filter(s => s.shift === currentShift);
   let t = 0, y = 0;
+  let oY2=0,oM2=0,cY2=0,cM2=0;
   const _td = load()[dayKey] || {};
   shiftSections.forEach(s => s.tasks.forEach(tk => {
     const v = _td[tk.id]?.yn;
     if (v && v !== 'na') { t++; if (v === 'yes') y++; }
   }));
+  SECTIONS.filter(s=>s.shift==='opening').forEach(s=>s.tasks.forEach(tk=>{
+    const v=_td[tk.id]?.yn; if(v&&v!=='na'){oM2++;if(v==='yes')oY2++;}
+  }));
+  SECTIONS.filter(s=>s.shift==='closing').forEach(s=>s.tasks.forEach(tk=>{
+    const v=_td[tk.id]?.yn; if(v&&v!=='na'){cM2++;if(v==='yes')cY2++;}
+  }));
   const pct = t > 0 ? Math.round((y / t) * 100) : 0;
+  const oPct2 = oM2>0?Math.round((oY2/oM2)*100):null;
+  const cPct2 = cM2>0?Math.round((cY2/cM2)*100):null;
+  // Update score bar
   const fill = document.getElementById('scoreFill');
   const lbl  = document.getElementById('scorePct');
-  if (fill) { fill.style.width = pct + '%'; }
+  if (fill) { fill.style.width = pct + '%'; fill.style.background = pct>=95?'#22C55E':pct>=75?'#F59E0B':'#EF4444'; }
   if (lbl)  { lbl.textContent = pct + '%'; }
+  // Update score boxes live
+  const pFg2=v=>v==null?'#94A3B8':v>=95?'#15803D':'#B45309';
+  const oBox=document.getElementById('oScoreBox');
+  const cBox=document.getElementById('cScoreBox');
+  const totBox=document.getElementById('totScoreBox');
+  if(oBox){ oBox.textContent=oPct2!=null?oPct2+'%':'—'; oBox.style.color=pFg2(oPct2); }
+  if(cBox){ cBox.textContent=cPct2!=null?cPct2+'%':'—'; cBox.style.color=pFg2(cPct2); }
+  if(totBox){
+    const avail3=[oPct2,cPct2].filter(v=>v!=null);
+    const tot3=avail3.length?Math.round(avail3.reduce((a,b)=>a+b,0)/avail3.length):null;
+    totBox.textContent=tot3!=null?tot3+'%':'—';
+    totBox.style.color=tot3!=null?'#fff':'#94A3B8';
+  }
   // Comment box
   if (val === 'no') {
     const card = el.closest('.task-card');
@@ -939,63 +963,107 @@ function renderDay() {
     return;
   }
 
-  // ── Back button ───────────────────────────────────────────────
+  // ── Back button + Clear shift button ─────────────────────────
   const backBtn = document.createElement('button');
   backBtn.style.cssText = 'display:flex;align-items:center;gap:6px;margin:12px 16px 0;padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;font-weight:600;color:#7B2D42;background:#fff;cursor:pointer;';
   backBtn.innerHTML = '\u2190 Change Shift';
-  backBtn.onclick = () => { currentShift = null; renderDay(); };
-  container.appendChild(backBtn);
+  backBtn.onclick = () => {
+    currentShift = null;
+    try { localStorage.removeItem('oic_currentShift_' + getTodayKey()); } catch(e) {}
+    renderDay();
+  };
+
+  const clearBtn = document.createElement('button');
+  clearBtn.style.cssText = 'display:flex;align-items:center;gap:6px;margin:12px 8px 0 0;padding:6px 12px;border:1.5px solid #FCA5A5;border-radius:20px;font-size:12px;font-weight:600;color:#B91C1C;background:#FFF1F0;cursor:pointer;';
+  clearBtn.innerHTML = '🗑 Clear ' + (currentShift === 'opening' ? 'Opening' : 'Closing');
+  clearBtn.onclick = () => {
+    if (!confirm('Clear all ' + (currentShift === 'opening' ? 'opening' : 'closing') + ' shift answers and photos? This cannot be undone.')) return;
+    const d = load();
+    const dayKey = getTodayKey();
+    if (d[dayKey]) {
+      // Clear only tasks for current shift
+      const shiftTaskIds = SECTIONS.filter(s => s.shift === currentShift).flatMap(s => s.tasks.map(t => t.id));
+      shiftTaskIds.forEach(tid => { delete d[dayKey][tid]; });
+      // Clear shift-done flag
+      if (currentShift === 'opening') delete d[dayKey]._openDone;
+      else delete d[dayKey]._closeDone;
+      save(d);
+    }
+    showToast((currentShift === 'opening' ? 'Opening' : 'Closing') + ' shift cleared \u2713', 'ok');
+    renderDay();
+  };
+
+  const btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;align-items:center;flex-wrap:wrap;';
+  btnRow.appendChild(backBtn);
+  btnRow.appendChild(clearBtn);
+  container.appendChild(btnRow);
 
   const isSubmitted = currentShift === 'opening' ? openingDone : closingDone;
 
-  // ── Score boxes ───────────────────────────────────────────────
+  // Score: Opening+Eval / Closing+Eval / Opening+Closing+Eval
   const _allTd = data[dayKey] || {};
-  let oY = 0, oM = 0, cY = 0, cM = 0;
-  SECTIONS.filter(s => s.shift === 'opening').forEach(s => s.tasks.forEach(t => {
-    const v = _allTd[t.id]?.yn; if (v && v !== 'na') { oM++; if (v === 'yes') oY++; }
+  let oY=0,oM=0,cY=0,cM=0;
+  SECTIONS.filter(s=>s.shift==='opening').forEach(s=>s.tasks.forEach(t=>{
+    const v=_allTd[t.id]?.yn; if(v&&v!=='na'){oM++;if(v==='yes')oY++;}
   }));
-  SECTIONS.filter(s => s.shift === 'closing').forEach(s => s.tasks.forEach(t => {
-    const v = _allTd[t.id]?.yn; if (v && v !== 'na') { cM++; if (v === 'yes') cY++; }
+  SECTIONS.filter(s=>s.shift==='closing').forEach(s=>s.tasks.forEach(t=>{
+    const v=_allTd[t.id]?.yn; if(v&&v!=='na'){cM++;if(v==='yes')cY++;}
   }));
-  const oPct = oM > 0 ? Math.round((oY / oM) * 100) : null;
-  const cPct = cM > 0 ? Math.round((cY / cM) * 100) : null;
-  const pctColor = v => v == null ? '#94A3B8' : v >= 95 ? '#15803D' : v >= 75 ? '#B45309' : '#B91C1C';
-
-  const scoreCard = document.createElement('div');
-  scoreCard.style.cssText = 'margin:10px 16px;';
-  scoreCard.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div style="background:${oPct!=null?(oPct>=95?'#F0FDF4':'#FFF7ED'):'#F8FAFC'};border:1.5px solid ${oPct!=null?(oPct>=95?'#BBF7D0':'#FED7AA'):'#E2E8F0'};border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">Opening</div>
-        <div style="font-size:22px;font-weight:700;color:${pctColor(oPct)}">${oPct!=null?oPct+'%':'\u2014'}</div>
-        <div style="font-size:10px;color:#94A3B8;margin-top:2px;">${openingDone?'Submitted':'Pending'}</div>
-      </div>
-      <div style="background:${cPct!=null?(cPct>=95?'#F0FDF4':'#FFF7ED'):'#F8FAFC'};border:1.5px solid ${cPct!=null?(cPct>=95?'#BBF7D0':'#FED7AA'):'#E2E8F0'};border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">Closing</div>
-        <div style="font-size:22px;font-weight:700;color:${pctColor(cPct)}">${cPct!=null?cPct+'%':'\u2014'}</div>
-        <div style="font-size:10px;color:#94A3B8;margin-top:2px;">${closingDone?'Submitted':'Pending'}</div>
-      </div>
-    </div>
-  `;
+  const shiftSec=SECTIONS.filter(s=>s.shift===currentShift);
+  let t=0,y=0;
+  shiftSec.forEach(s=>s.tasks.forEach(tk=>{
+    const v=_allTd[tk.id]?.yn; if(v&&v!=='na'){t++;if(v==='yes')y++;}
+  }));
+  const pct=t>0?Math.round((y/t)*100):0;
+  const oPct=oM>0?Math.round((oY/oM)*100):null;
+  const cPct=cM>0?Math.round((cY/cM)*100):null;
+  const pBg=v=>v==null?'#F8FAFC':v>=95?'#F0FDF4':'#FFF7ED';
+  const pBd=v=>v==null?'#E2E8F0':v>=95?'#BBF7D0':'#FED7AA';
+  const pFg=v=>v==null?'#94A3B8':v>=95?'#15803D':'#B45309';
+  const showClosing=closingDone||(currentShift==='closing');
+  const parts2=[];
+  if(oPct!=null||currentShift==='opening') parts2.push('Opening');
+  if(showClosing) parts2.push('Closing');
+  parts2.push('Evaluation');
+  const fLabel=parts2.join(' + ')+' = Total';
+  const avail2=[oPct,showClosing?cPct:null].filter(v=>v!=null);
+  const totPct=avail2.length?Math.round(avail2.reduce((a,b)=>a+b,0)/avail2.length):null;
+  const cols2=showClosing?'repeat(4,1fr)':'repeat(3,1fr)';
+  const scoreCard=document.createElement('div');
+  scoreCard.style.cssText='margin:10px 16px;';
+  scoreCard.innerHTML=
+    '<div style="font-size:10px;font-weight:700;color:#64748B;letter-spacing:.04em;margin-bottom:6px;">'+fLabel+'</div>'
+   +'<div id="scoreBoxes" style="display:grid;grid-template-columns:'+cols2+';gap:5px;">'
+   +'<div style="background:'+pBg(oPct)+';border:1.5px solid '+pBd(oPct)+';border-radius:10px;padding:7px;text-align:center;">'
+   +'<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;">Opening</div>'
+   +'<div id="oScoreBox" style="font-size:17px;font-weight:700;color:'+pFg(oPct)+'">'+(oPct!=null?oPct+'%':'&mdash;')+'</div>'
+   +'<div style="font-size:9px;color:#94A3B8;">'+(openingDone?'Done':'Live')+'</div></div>'
+   +(showClosing
+     ?'<div style="background:'+pBg(cPct)+';border:1.5px solid '+pBd(cPct)+';border-radius:10px;padding:7px;text-align:center;">'
+      +'<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;">Closing</div>'
+      +'<div id="cScoreBox" style="font-size:17px;font-weight:700;color:'+pFg(cPct)+'">'+(cPct!=null?cPct+'%':'&mdash;')+'</div>'
+      +'<div style="font-size:9px;color:#94A3B8;">'+(closingDone?'Done':'Live')+'</div></div>'
+     :'')
+   +'<div style="background:#EFF6FF;border:1.5px dashed #BFDBFE;border-radius:10px;padding:7px;text-align:center;">'
+   +'<div style="font-size:9px;font-weight:700;color:#1E40AF;text-transform:uppercase;">Eval</div>'
+   +'<div style="font-size:17px;font-weight:700;color:#94A3B8;">&mdash;</div>'
+   +'<div style="font-size:9px;color:#94A3B8;">By AM</div></div>'
+   +'<div style="background:'+(totPct!=null?'#1A3C5E':'#F8FAFC')+';border:1.5px solid '+(totPct!=null?'#1A3C5E':'#E2E8F0')+';border-radius:10px;padding:7px;text-align:center;">'
+   +'<div style="font-size:9px;font-weight:700;color:'+(totPct!=null?'rgba(255,255,255,.7)':'#64748B')+';text-transform:uppercase;">Total</div>'
+   +'<div id="totScoreBox" style="font-size:17px;font-weight:700;color:'+(totPct!=null?'#fff':'#94A3B8')+'">'+(totPct!=null?totPct+'%':'&mdash;')+'</div>'
+   +'<div style="font-size:9px;color:'+(totPct!=null?'rgba(255,255,255,.6)':'#94A3B8')+'">'+(totPct!=null?(totPct>=95?'Pass':'<95%'):'')+'</div></div>'
+   +'</div>';
   container.appendChild(scoreCard);
 
-  // ── Score bar ─────────────────────────────────────────────────
-  const shiftSections = SECTIONS.filter(s => s.shift === currentShift);
-  let t = 0, y = 0;
-  shiftSections.forEach(s => s.tasks.forEach(tk => {
-    const v = _allTd[tk.id]?.yn; if (v && v !== 'na') { t++; if (v === 'yes') y++; }
-  }));
-  const pct = t > 0 ? Math.round((y / t) * 100) : 0;
-  const scoreBarEl = document.createElement('div');
-  scoreBarEl.style.cssText = 'margin:0 16px 10px;';
-  scoreBarEl.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;">
-      <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">
-        <div id="scoreFill" style="height:100%;width:${pct}%;background:${pct>=95?'#22C55E':pct>=75?'#F59E0B':'#EF4444'};border-radius:3px;transition:width 0.3s;"></div>
-      </div>
-      <span id="scorePct" style="font-size:12px;font-weight:700;color:#7C2D12;min-width:36px;">${pct}%</span>
-    </div>
-  `;
+  // Live score bar for current shift
+  const scoreBarEl=document.createElement('div');
+  scoreBarEl.style.cssText='margin:6px 16px 4px;';
+  scoreBarEl.innerHTML='<div style="font-size:10px;color:#64748B;margin-bottom:3px;">'+(currentShift==='opening'?'Opening':'Closing')+' progress</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;">'
+    +'<div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">'
+    +'<div id="scoreFill" style="height:100%;width:'+pct+'%;background:'+(pct>=95?'#22C55E':pct>=75?'#F59E0B':'#EF4444')+';border-radius:3px;transition:width 0.3s;"></div></div>'
+    +'<span id="scorePct" style="font-size:12px;font-weight:700;color:#7C2D12;min-width:36px;">'+pct+'%</span></div>';
   container.appendChild(scoreBarEl);
 
   // ── Lock banner if submitted ──────────────────────────────────
@@ -1007,7 +1075,7 @@ function renderDay() {
   }
 
   // ── OIC shift tasks (self-fillable) ───────────────────────────
-  shiftSections.forEach(section => {
+  shiftSec.forEach(section => {
     const hdr = document.createElement('div');
     hdr.className = 'section-hdr';
     hdr.textContent = section.title;
@@ -1019,10 +1087,18 @@ function renderDay() {
       const locked = isSubmitted && !ALLOW_OVERWRITE;
       const photos = (() => {
         const urls = [], td2 = _allTd[task.id] || {};
-        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k => {
-          const u = td2[k]; if (u && u.startsWith('http') && !urls.includes(u)) urls.push(u);
+        // Check Cloudinary URL slots first (photo_url, photo_1_url...)
+        // then fall back to local base64 (photo, photo_1...) for instant display
+        const slots = [['photo_url','photo'], ['photo_1_url','photo_1'], ['photo_2_url','photo_2'], ['photo_3_url','photo_3'], ['photo_4_url','photo_4']];
+        slots.forEach(([urlKey, b64Key]) => {
+          const url = td2[urlKey] || td2[urlKey.replace('_url','Url')] || td2['photoUrl'] || '';
+          const b64 = td2[b64Key] || '';
+          const best = (url && url.startsWith('http')) ? url : (b64 && b64.startsWith('data:')) ? b64 : null;
+          if (best && !urls.includes(best)) urls.push(best);
         });
-        return urls;
+        // Also check legacy photoUrl field
+        if (td2.photoUrl && !urls.includes(td2.photoUrl)) urls.push(td2.photoUrl);
+        return urls.filter(Boolean);
       })();
 
       const card = document.createElement('div');
@@ -1238,6 +1314,15 @@ window.addEventListener('DOMContentLoaded', () => {
   const galIn = document.getElementById('galInput');
   if (camIn) camIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
   if (galIn) galIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+
+  // Restore currentShift from localStorage — so photo upload re-render
+  // doesn't drop back to shift picker after handlePhotoFile calls renderDay()
+  try {
+    const _savedShift = localStorage.getItem('oic_currentShift_' + getTodayKey());
+    if (_savedShift === 'opening' || _savedShift === 'closing') {
+      currentShift = _savedShift;
+    }
+  } catch(e) {}
 
   // Auto-set Dubai date — locked, no user input
   const _dubaiToday = getDubaiDateStr();
