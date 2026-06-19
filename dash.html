@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619350000">
+<meta name="app-version" content="20260619360000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619350000';
+  var v = '20260619360000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3132,6 +3132,7 @@ function openStaffDetail(s) {
               const canVerify =
                 ['training','operations','director','ceo'].includes(currentRole) ||
                 (currentRole === 'kic'          && ['steward','linecook'].includes(subRole)) ||
+                (currentRole === 'oic'          && ['service','bartender','delco'].includes(subRole)) ||
                 (currentRole === 'areachef'     && ['linecook','steward','kic'].includes(subRole)) ||
                 (currentRole === 'areamanager'  && ['oic','service','bartender','delco'].includes(subRole));
               return canVerify;
@@ -6749,17 +6750,22 @@ function saveVerification() {
   const firebaseRef = isFOH ? fohDb : db;
   if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
 
-  // Find and update the matching submission
+  // Find and update the matching submission — match by staffName + role + submittedAt date
+  // (not by week, since week normalization may differ between old records and current value)
+  const sDate = s.submittedAt ? s.submittedAt.substring(0,10) : '';
   firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
     if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
     const updateMap = {};
     snap.forEach(child => {
       const v = child.val();
-      if (v.role === s.role && v.week === s.week) {
+      const vDate = v.submittedAt ? v.submittedAt.substring(0,10) : '';
+      // Match by role + submittedAt date (robust against week format differences)
+      const weekMatch = v.week === s.week || normalizeWeek(v.week||'') === normalizeWeek(s.week||'');
+      const dateMatch = sDate && vDate && vDate === sDate;
+      if (v.role === s.role && (weekMatch || dateMatch)) {
         updateMap['submissions/' + child.key + '/verifiedBy'] = name;
         updateMap['submissions/' + child.key + '/verifiedAt'] = now;
         updateMap['submissions/' + child.key + '/lastUpdated'] = now;
-        // Mark as qualified when OIC verifies
         if (!v.qualified) {
           updateMap['submissions/' + child.key + '/qualified'] = true;
         }
@@ -7818,7 +7824,7 @@ function saveFOHVerifiedBy() {
   const staff = _fohFiltered[_fohDetailIdx];
   if (!staff) return;
   const name = document.getElementById('fohVerifiedByInput')?.value?.trim();
-  if (!name) { showToast('Please enter OIC name', 'warn'); return; }
+  if (!name) { showToast('Please enter your name to verify', 'warn'); return; }
   if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
   fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap => {
     if (!snap.exists()) return;
