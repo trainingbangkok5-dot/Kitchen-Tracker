@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619180000">
+<meta name="app-version" content="20260619190000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619180000';
+  var v = '20260619190000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2029,9 +2029,19 @@ let _ssConsolidatedRows = [];
 function ssClearDateRange() {
   document.getElementById('ssDateFrom').value = '';
   document.getElementById('ssDateTo').value = '';
+  // CRITICAL: re-render immediately so the table reflects single-week mode right away.
+  // Without this, the table kept showing stale date-range-consolidated rows after
+  // clearing the range, and selecting/deleting from those stale rows could match
+  // and delete far more Firebase records than intended.
+  renderSummaryScoring();
 }
 
 function renderSummaryScoring() {
+  // Safety: exit select mode and clear any checked rows whenever the table
+  // re-renders (filter change, date range change, etc.) — prevents stale
+  // checkbox selections from an old view being used against new/different data.
+  if (typeof toggleSSSelectMode === 'function') toggleSSSelectMode(false);
+
   const weekF   = document.getElementById('ssWeekFilter').value;
   const outF    = document.getElementById('ssOutletFilter').value;
   const roleF   = document.getElementById('ssRoleFilter').value;
