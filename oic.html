@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619110000';
+  var v = '20260619230000';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -211,14 +211,6 @@ function pushToFirebase(record) {
       console.warn('Firebase write failed:', e);
       showToast('⚠ Sync failed: ' + e.message, 'error');
     });
-    // Also write per-day score to days/{date} node for daily breakdown report
-    try {
-      const _dayDate = getTodayKey().replace('dt', '');
-      const _dayData = { submittedAt: new Date().toISOString() };
-      if (record.overallPct != null) _dayData.openingPct = record.overallPct;
-      if (record.oicEvalPct != null) _dayData.oicEvalPct = record.oicEvalPct;
-      _db.ref('submissions/' + key + '/days/' + _dayDate).update(_dayData);
-    } catch(e) { console.warn('Daily score write failed:', e); }
   } catch(e) {
     console.warn('Firebase error:', e);
     showToast('⚠ Firebase error: ' + e.message, 'error');
@@ -641,237 +633,91 @@ function checkOverwritePin(code) {
 }
 
 const SECTIONS = [
+  // ── OIC fills: Opening shift only ───────────────────────────
   {
     title: '🌅 Opening Today',
+    shift: 'opening',
     tasks: [
-      {
-        id: 'o1',
-        owner: 'self',
-        ownerLbl: 'Self-report',
-        text: 'Line check conducted across all fronts‑of‑house sections, including Stations, Cashier, Bar, and Dining Area.',
-        photo: true,
-        translations: {}
-      },
-      {
-        id: 'o2',
-        owner: 'self',
-        ownerLbl: 'Self-report',
-        text: 'FOH Inventory Check: operating supplies, printed menus, promo collateral, bar stock level — all verified.',
-        photo: true,
-        translations: {}
-      },
-      {
-        id: 'o3',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Equipment Check: POS, AC units, music system, lighting, bar equipment — all functioning properly.',
-        photo: true,
-        translations: {}
-      },
-      {
-        id: 'o4',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Service Team Briefing conducted, covering grooming checks, target allocation, constructive points, and team motivation.',
-        photo: true,
-        translations: {}
-      }
+      { id:'o1', owner:'self', ownerLbl:'Self-report', text:'Line check conducted across all fronts‑of‑house sections, including Stations, Cashier, Bar, and Dining Area.', photo:true, translations:{} },
+      { id:'o2', owner:'self', ownerLbl:'Self-report', text:'FOH Inventory Check: operating supplies, printed menus, promo collateral, bar stock level — all verified.', photo:true, translations:{} },
+      { id:'o3', owner:'self', ownerLbl:'Self-report', text:'Equipment Check: POS, AC units, music system, lighting, bar equipment — all functioning properly.', photo:true, translations:{} },
+      { id:'o4', owner:'self', ownerLbl:'Self-report', text:'Service Team Briefing conducted, covering grooming checks, target allocation, constructive points, and team motivation.', photo:true, translations:{} }
     ]
   },
+
+  // ── OIC fills: Closing shift only ───────────────────────────
   {
-    title: '🌙 Closing Yesterday',
+    title: '🌙 Closing Shift',
+    shift: 'closing',
     tasks: [
-      {
-        id: 'c1',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Line check conducted across all FOH sections, including side stations, outdoor setup, and clean‑and‑reset areas.',
-        photo: true,
-        translations: {}
-      },
-      {
-        id: 'c2',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'All closing side‑duties were completed, POS settlement was fully reconciled, and the cash drop was secured without any variance.',
-        photo: true,
-        translations: {}
-      },
-      {
-        id: 'c3',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'FOH equipment check conducted to ensure all systems were switched off safely and any maintenance issues were reported.',
-        photo: true,
-        translations: {}
-      },
-      {
-        id: 'c4',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Team debriefing conducted, covering top sellers, service‑gap resolutions, and verification of operational feedback.',
-        photo: true,
-        translations: {}
-      }
+      { id:'c1', owner:'self', ownerLbl:'Self-report', text:'Line check conducted across all FOH sections, including side stations, outdoor setup, and clean‑and‑reset areas.', photo:true, translations:{} },
+      { id:'c2', owner:'self', ownerLbl:'Self-report', text:'All closing side‑duties were completed, POS settlement was fully reconciled, and the cash drop was secured without any variance.', photo:true, translations:{} },
+      { id:'c3', owner:'self', ownerLbl:'Self-report', text:'FOH equipment check conducted to ensure all systems were switched off safely and any maintenance issues were reported.', photo:true, translations:{} },
+      { id:'c4', owner:'self', ownerLbl:'Self-report', text:'The handover book was filled for the co-OIC, the notice board was updated for the next day briefing, and all bags were checked before staff left the restaurant and properly recorded.', photo:true, translations:{} }
     ]
   },
+
+  // ── Area Manager Evaluation (locked for OIC — shown in both shifts as read-only) ──
   {
     title: '⭐ Service Standards & Speed Today',
+    evalOnly: true,
     tasks: [
-      {
-        id: 's1',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Full sequence of service was followed consistently and in line with brand standards across all tables.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 's2',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Table turnover and ticket timing for both food and beverage orders are within expected performance standards.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 's3',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'All guest complaints were addressed on the floor without delay, supported by clear resolution actions and measurable follow‑up metrics.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 's4',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Delivery/Takeaway: secure packing, correct modifiers, zero missed items — all verified.',
-        photo: false,
-        translations: {}
-      }
+      { id:'s1', owner:'areamanager', ownerLbl:'Area Manager', text:'Full sequence of service was followed consistently and in line with brand standards across all tables.', photo:false, translations:{} },
+      { id:'s2', owner:'areamanager', ownerLbl:'Area Manager', text:'Table turnover and ticket timing for both food and beverage orders are within expected performance standards.', photo:false, translations:{} },
+      { id:'s3', owner:'areamanager', ownerLbl:'Area Manager', text:'All guest complaints were addressed on the floor without delay, supported by clear resolution actions and measurable follow‑up metrics.', photo:false, translations:{} },
+      { id:'s4', owner:'areamanager', ownerLbl:'Area Manager', text:'Delivery/Takeaway: secure packing, correct modifiers, zero missed items — all verified.', photo:false, translations:{} }
     ]
   },
   {
     title: '👥 Manpower & Labour Management',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'm1',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'FOH: attendance logged; deployment matched to peak hours.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 'm2',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Cross‑Training: team allocation optimized for productivity and minimal overtime.',
-        photo: false,
-        translations: {}
-      }
+      { id:'m1', owner:'areamanager', ownerLbl:'Area Manager', text:'FOH: attendance logged; deployment matched to peak hours.', photo:false, translations:{} },
+      { id:'m2', owner:'areamanager', ownerLbl:'Area Manager', text:'Cross‑Training: team allocation optimized for productivity and minimal overtime.', photo:false, translations:{} }
     ]
   },
   {
     title: '💰 Sales Targets & Upselling Last Week',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'u1',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Daily sales targets were assigned to the team and successfully achieved.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 'u2',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Daily upselling items were actively pushed, with top‑performing staff identified and tracked for consistency.',
-        photo: false,
-        translations: {}
-      }
+      { id:'u1', owner:'areamanager', ownerLbl:'Area Manager', text:'Daily sales targets were assigned to the team and successfully achieved.', photo:false, translations:{} },
+      { id:'u2', owner:'areamanager', ownerLbl:'Area Manager', text:'Daily upselling items were actively pushed, with top‑performing staff identified and tracked for consistency.', photo:false, translations:{} }
     ]
   },
   {
     title: '📊 FOH Wastage & Cost Control Last Week',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'w1',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Beverage and FOH consumable wastage was recorded accurately and maintained within the approved target limits.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 'w2',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Operating supplies and chemical dilution ratios were checked and maintained within standards to avoid unnecessary cost leakage.',
-        photo: false,
-        translations: {}
-      }
+      { id:'w1', owner:'areamanager', ownerLbl:'Area Manager', text:'Beverage and FOH consumable wastage was recorded accurately and maintained within the approved target limits.', photo:false, translations:{} },
+      { id:'w2', owner:'areamanager', ownerLbl:'Area Manager', text:'Operating supplies and chemical dilution ratios were checked and maintained within standards to avoid unnecessary cost leakage.', photo:false, translations:{} }
     ]
   },
   {
     title: '📋 Staff Performance Last Week',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'p1',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'FOH staff performance was monitored accurately, with fair scoring recorded through the digital platform.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 'p2',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'The service team’s overall weekly performance score consistently remains above 90%.',
-        photo: false,
-        translations: {}
-      }
+      { id:'p1', owner:'areamanager', ownerLbl:'Area Manager', text:'FOH staff performance was monitored accurately, with fair scoring recorded through the digital platform.', photo:false, translations:{} },
+      { id:'p2', owner:'areamanager', ownerLbl:'Area Manager', text:'The service team’s overall weekly performance score consistently remains above 90%.', photo:false, translations:{} }
     ]
   },
   {
     title: '📅 Manpower Planning This Month',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'mp1',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'FOH shift roster structured to match operational needs and forecasted peak‑day demand.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 'mp2',
-        owner: 'record',
-        ownerLbl: 'Record',
-        text: 'Scheduled manpower remained within target headcount parameters, supporting effective labor budget control.',
-        photo: false,
-        translations: {}
-      }
+      { id:'mp1', owner:'areamanager', ownerLbl:'Area Manager', text:'FOH shift roster structured to match operational needs and forecasted peak‑day demand.', photo:false, translations:{} },
+      { id:'mp2', owner:'areamanager', ownerLbl:'Area Manager', text:'Scheduled manpower remained within target headcount parameters, supporting effective labor budget control.', photo:false, translations:{} }
     ]
   },
   {
     title: '🔍 Auditor Verification',
+    evalOnly: true,
     tasks: [
-      {
-        id: 'a1',
-        owner: 'auditor',
-        ownerLbl: 'auditor',
-        text: 'FOH audit score on the last visit is above 90%',
-        photo: false,
-        translations: {}
-      }
+      { id:'a1', owner:'areamanager', ownerLbl:'Area Manager', text:'FOH audit score on the last visit is above 90%', photo:false, translations:{} }
     ]
   }
 ];
 let currentDay = 1; // Single daily submission — day rail removed
+let currentShift = null; // 'opening' or 'closing' — null shows shift picker
 let activePhotoTask = null;
 
 // ── Storage ───────────────────────────────────────────────────
@@ -985,6 +831,65 @@ function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; }
 
 // ── Day rail ──────────────────────────────────────────────────
+function selectShift(shift) {
+  const dayKey = getTodayKey();
+  const data = load();
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const nowH = getDubaiHour();
+  const openingOpen = nowH >= 7 && nowH < 15;
+  const closingOpen = nowH >= 15 || nowH < 2;
+  if (shift === 'opening' && !openingOpen && !openingDone) {
+    showToast('Opening shift is only available 7:00 AM \u2013 3:00 PM', 'warn'); return;
+  }
+  if (shift === 'closing' && !closingOpen && !closingDone) {
+    showToast('Closing shift is only available 3:00 PM \u2013 2:00 AM', 'warn'); return;
+  }
+  currentShift = shift;
+  renderDay();
+}
+
+function tapYN(tid, val, el) {
+  const dayKey = getTodayKey();
+  const data = load();
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const isSubmitted = currentShift === 'opening' ? openingDone : closingDone;
+  if (isSubmitted && !ALLOW_OVERWRITE) {
+    showToast('Already submitted \u2014 cannot edit \U0001f512', 'error'); return;
+  }
+  setVal(currentDay, tid, 'yn', val);
+  el.closest('.yn-row').querySelectorAll('.yn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  // Update live score bar (opening/closing tasks only, not evalOnly)
+  const shiftSections = SECTIONS.filter(s => s.shift === currentShift);
+  let t = 0, y = 0;
+  const _td = load()[dayKey] || {};
+  shiftSections.forEach(s => s.tasks.forEach(tk => {
+    const v = _td[tk.id]?.yn;
+    if (v && v !== 'na') { t++; if (v === 'yes') y++; }
+  }));
+  const pct = t > 0 ? Math.round((y / t) * 100) : 0;
+  const fill = document.getElementById('scoreFill');
+  const lbl  = document.getElementById('scorePct');
+  if (fill) { fill.style.width = pct + '%'; }
+  if (lbl)  { lbl.textContent = pct + '%'; }
+  // Comment box
+  if (val === 'no') {
+    const card = el.closest('.task-card');
+    if (card && !card.querySelector('.comment-row')) {
+      const cr = document.createElement('div');
+      cr.className = 'comment-row';
+      cr.innerHTML = '<input type="text" placeholder="Comment required for NO..." onchange="setVal('+currentDay+',\''+tid+'\',\'comment\',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">';
+      card.appendChild(cr);
+    }
+  } else {
+    const card = el.closest('.task-card');
+    const cr = card?.querySelector('.comment-row');
+    if (cr) cr.remove();
+  }
+}
+
 function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Render day ────────────────────────────────────────────────
@@ -992,335 +897,255 @@ function renderDay() {
   const container = document.getElementById('mainContent');
   container.innerHTML = '';
 
-  // Track start time for this day
-  const dayKey = getTodayKey(); // Date-based key
-  const dNow = load();
-  if (!dNow[dayKey]) { dNow[dayKey] = {}; }
-  // _start set at submit time
-
+  const dayKey = getTodayKey();
   const data = load();
-  const _dv = data[dayKey]?._done;
-  const isDone = !!(_dv && (_dv === getDubaiDateStr() || _dv.substring(0,10) === getDubaiDateStr()));
-  const weekStart = getWeekStart();
-  const unlocked = isDayUnlocked(currentDay, weekStart);
-  let total = 0, yes = 0;
+  if (!data[dayKey]) { data[dayKey] = {}; save(data); }
 
-  // All days accessible — no date lock
+  const openingDone = !!data[dayKey]?._openDone;
+  const closingDone = !!data[dayKey]?._closeDone;
+  const nowH = getDubaiHour();
+  const openingOpen = nowH >= 7 && nowH < 15;
+  const closingOpen = nowH >= 15 || nowH < 2;
 
-  SECTIONS.forEach((section, si) => {
+  // ── Shift picker ──────────────────────────────────────────────
+  if (!currentShift) {
+    const screen = document.createElement('div');
+    screen.style.cssText = 'padding:24px 16px;text-align:center;';
+    const minsLeft = openingOpen ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+
+    const openStyle = (openingOpen || openingDone)
+      ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;'
+      : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
+    const openNote = (!openingOpen && !openingDone)
+      ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;margin-bottom:12px;">Opening shift available 7:00 AM \u2013 3:00 PM only \u{1f550}</div>' : '';
+
+    const closeStyle = (closingOpen || closingDone)
+      ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:4px;background:linear-gradient(135deg,#1A4740,#0D9488);color:#fff;'
+      : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
+    const closeNote = (!closingOpen && !closingDone)
+      ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Opening at 3:00 PM until 2:00 AM</div>'
+      : (closingOpen && !closingDone ? '<div style="font-size:11px;color:#0F766E;margin-top:4px;">\u2713 Available now</div>' : '');
+
+    screen.innerHTML = `
+      <div style="font-size:32px;margin-bottom:8px;">\u{1f44b}</div>
+      <h2 style="font-size:16px;font-weight:700;color:#7B2D42;margin-bottom:6px;">Which shift are you on?</h2>
+      <p style="font-size:13px;color:#64748B;margin-bottom:20px;">Tap your shift to load the correct tasks</p>
+      <button onclick="selectShift('opening')" style="${openStyle}">\u{1f305} Opening Shift ${openingDone ? '\u2713' : ''}</button>
+      ${openNote}
+      <button onclick="selectShift('closing')" style="${closeStyle}">\u{1f319} Closing Shift ${closingDone ? '\u2713' : ''}</button>
+      ${closeNote}
+    `;
+    container.appendChild(screen);
+    return;
+  }
+
+  // ── Back button ───────────────────────────────────────────────
+  const backBtn = document.createElement('button');
+  backBtn.style.cssText = 'display:flex;align-items:center;gap:6px;margin:12px 16px 0;padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;font-weight:600;color:#7B2D42;background:#fff;cursor:pointer;';
+  backBtn.innerHTML = '\u2190 Change Shift';
+  backBtn.onclick = () => { currentShift = null; renderDay(); };
+  container.appendChild(backBtn);
+
+  const isSubmitted = currentShift === 'opening' ? openingDone : closingDone;
+
+  // ── Score boxes ───────────────────────────────────────────────
+  const _allTd = data[dayKey] || {};
+  let oY = 0, oM = 0, cY = 0, cM = 0;
+  SECTIONS.filter(s => s.shift === 'opening').forEach(s => s.tasks.forEach(t => {
+    const v = _allTd[t.id]?.yn; if (v && v !== 'na') { oM++; if (v === 'yes') oY++; }
+  }));
+  SECTIONS.filter(s => s.shift === 'closing').forEach(s => s.tasks.forEach(t => {
+    const v = _allTd[t.id]?.yn; if (v && v !== 'na') { cM++; if (v === 'yes') cY++; }
+  }));
+  const oPct = oM > 0 ? Math.round((oY / oM) * 100) : null;
+  const cPct = cM > 0 ? Math.round((cY / cM) * 100) : null;
+  const pctColor = v => v == null ? '#94A3B8' : v >= 95 ? '#15803D' : v >= 75 ? '#B45309' : '#B91C1C';
+
+  const scoreCard = document.createElement('div');
+  scoreCard.style.cssText = 'margin:10px 16px;';
+  scoreCard.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div style="background:${oPct!=null?(oPct>=95?'#F0FDF4':'#FFF7ED'):'#F8FAFC'};border:1.5px solid ${oPct!=null?(oPct>=95?'#BBF7D0':'#FED7AA'):'#E2E8F0'};border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">Opening</div>
+        <div style="font-size:22px;font-weight:700;color:${pctColor(oPct)}">${oPct!=null?oPct+'%':'\u2014'}</div>
+        <div style="font-size:10px;color:#94A3B8;margin-top:2px;">${openingDone?'Submitted':'Pending'}</div>
+      </div>
+      <div style="background:${cPct!=null?(cPct>=95?'#F0FDF4':'#FFF7ED'):'#F8FAFC'};border:1.5px solid ${cPct!=null?(cPct>=95?'#BBF7D0':'#FED7AA'):'#E2E8F0'};border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">Closing</div>
+        <div style="font-size:22px;font-weight:700;color:${pctColor(cPct)}">${cPct!=null?cPct+'%':'\u2014'}</div>
+        <div style="font-size:10px;color:#94A3B8;margin-top:2px;">${closingDone?'Submitted':'Pending'}</div>
+      </div>
+    </div>
+  `;
+  container.appendChild(scoreCard);
+
+  // ── Score bar ─────────────────────────────────────────────────
+  const shiftSections = SECTIONS.filter(s => s.shift === currentShift);
+  let t = 0, y = 0;
+  shiftSections.forEach(s => s.tasks.forEach(tk => {
+    const v = _allTd[tk.id]?.yn; if (v && v !== 'na') { t++; if (v === 'yes') y++; }
+  }));
+  const pct = t > 0 ? Math.round((y / t) * 100) : 0;
+  const scoreBarEl = document.createElement('div');
+  scoreBarEl.style.cssText = 'margin:0 16px 10px;';
+  scoreBarEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;height:6px;background:#E2E8F0;border-radius:3px;overflow:hidden;">
+        <div id="scoreFill" style="height:100%;width:${pct}%;background:${pct>=95?'#22C55E':pct>=75?'#F59E0B':'#EF4444'};border-radius:3px;transition:width 0.3s;"></div>
+      </div>
+      <span id="scorePct" style="font-size:12px;font-weight:700;color:#7C2D12;min-width:36px;">${pct}%</span>
+    </div>
+  `;
+  container.appendChild(scoreBarEl);
+
+  // ── Lock banner if submitted ──────────────────────────────────
+  if (isSubmitted && !ALLOW_OVERWRITE) {
+    const lockBanner = document.createElement('div');
+    lockBanner.style.cssText = 'margin:0 16px 10px;padding:10px 14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:10px;font-size:12px;color:#15803D;font-weight:600;text-align:center;';
+    lockBanner.innerHTML = '\u2705 ' + (currentShift === 'opening' ? 'Opening' : 'Closing') + ' submitted \u2014 view only';
+    container.appendChild(lockBanner);
+  }
+
+  // ── OIC shift tasks (self-fillable) ───────────────────────────
+  shiftSections.forEach(section => {
     const hdr = document.createElement('div');
     hdr.className = 'section-hdr';
     hdr.textContent = section.title;
     container.appendChild(hdr);
 
-    section.tasks.forEach((task, ti) => {
-      total++;
-      const val = getVal(currentDay, task.id, 'yn');
-      if (val === 'yes') yes++;
-      const photo = getVal(currentDay, task.id, 'photo');
+    section.tasks.forEach(task => {
+      const val = _allTd[task.id]?.yn;
+      const comment = _allTd[task.id]?.comment || '';
+      const locked = isSubmitted && !ALLOW_OVERWRITE;
+      const photos = (() => {
+        const urls = [], td2 = _allTd[task.id] || {};
+        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k => {
+          const u = td2[k]; if (u && u.startsWith('http') && !urls.includes(u)) urls.push(u);
+        });
+        return urls;
+      })();
 
       const card = document.createElement('div');
-      const isVerifyLocked = task.owner === 'verify' && !ALLOW_OVERWRITE;
-      card.className = 'task-card' + (isDone && !ALLOW_OVERWRITE ? ' locked-card' : '') + (isVerifyLocked ? ' verify-locked' : '');
-      if (ti === section.tasks.length - 1) card.style.borderRadius = '0 0 10px 10px';
-
-      const ownerCls = {self:'ot-self',verify:'ot-verify',monitor:'ot-monitor',record:'ot-record',auditor:'ot-auditor'}[task.owner]||'ot-self';
-      let photoHtml = '';
-      if (task.photo) {
-        // Collect all photos for this task
-        const photos = [];
-        const taskData = load()[getTodayKey()]?.[task.id] || {};
-        if (taskData.photo) photos.push(taskData.photo);
-        let i = 1;
-        while (taskData['photo_' + i]) { photos.push(taskData['photo_' + i]); i++; }
-
-        const thumbsHtml = photos.map((p, idx) => `
-          <div style="display:inline-block;text-align:center;vertical-align:top;margin-right:4px;">
-            <img class="photo-thumb" src="${p}" alt="proof ${idx+1}">
-            <button onclick="removePhoto('${task.id}',${idx})" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑</button>
-          </div>`).join('');
-
-        photoHtml = `<div class="photo-row">
-          <button class="photo-btn ${photos.length?'taken':''}" onclick="openPhotoModal('${task.id}','${task.text.substring(0,40).replace(/'/g,"")}')">
-            ${photos.length ? `📷 ${photos.length} photo${photos.length>1?'s':''} — tap to add more` : '📷 Tap to take photo'}
-          </button>
-          ${thumbsHtml}
-        </div>`;
-      }
-      const cmnt = getVal(currentDay, task.id, 'comment') || '';
+      card.className = 'task-card' + (locked ? ' locked-card' : '');
       card.innerHTML = `
         <div class="task-top">
-          <span class="owner-tag ${ownerCls}">${task.ownerLbl}</span>
+          <span class="owner-tag ot-self">${task.ownerLbl}</span>
           <span class="task-text">${task.text}</span>
-          ${task.translations ? '<div style="margin-top:6px;border-top:1px dashed #E2E8F0;padding-top:6px;">' + Object.entries(task.translations).map(([lang,txt]) => {
-            const flags = {hi:'🇮🇳',ne:'🇳🇵',bn:'🇧🇩',ur:'🇵🇰',my:'🇲🇲',th:'🇹🇭'};
-            const dir = (lang==='ur') ? 'rtl' : 'ltr';
-            return '<div style="font-size:11px;color:#64748B;margin-top:3px;line-height:1.5;direction:'+dir+';text-align:'+(lang==='ur'?'right':'left')+';">'+(flags[lang]||'')+' '+txt+'</div>';
-          }).join('') + '</div>' : ''}
         </div>
         <div class="yn-row">
-          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">✓ YES</div>
-          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">✗ NO</div>
-          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">— N/A</div>
+          <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">\u2713 YES</div>
+          <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">\u2717 NO</div>
+          <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">N/A</div>
+          ${task.photo ? ('<button class="photo-btn '+(photos.length?'taken':'')+'" onclick="openPhotoModal(\''+task.id+'\')">'+(photos.length?'\u{1f4f7} \u2713':'\u{1f4f7}')+'</button>') : ''}
         </div>
-        <textarea class="comment-field" rows="1" placeholder="Add comment (optional)..."
-          onchange="setComment('${task.id}', this.value)"
-          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
-        >${cmnt}</textarea>
-        ${photoHtml}`;
+        ${val==='no'?`<div class="comment-row"><input type="text" placeholder="Comment required for NO..." value="${comment.replace(/"/g,'&quot;')}" onchange="setVal(${currentDay},'${task.id}','comment',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;"></div>`:''}
+        ${photos.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;">${photos.map(u=>`<img src="${u}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">`).join('')}</div>`:''}
+      `;
       container.appendChild(card);
     });
   });
 
-  // Score
-  const pct = total > 0 ? Math.round((yes/total)*100) : 0;
-  document.getElementById('scoreFill').style.width = pct + '%';
-  document.getElementById('scoreFill').style.background = pct>=95?'#22C55E':pct>=70?'#F59E0B':'#3B82F6';
-  document.getElementById('scorePct').textContent = pct + '%';
-
-  // Overall — only count submitted days for 6-day score
-  let tY=0, tM=0;
-  const allData = load();
-  for (let d=1;d<=6;d++) {
-    if (!allData[`d${d}`]?._done) continue; // skip unsubmitted days
-    SECTIONS.forEach(s=>s.tasks.forEach(t=>{
-      const v=getVal(d,t.id,'yn');
-      if(v&&v!=='na'){tM++;if(v==='yes')tY++;}
-    }));
-  }
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
-  const pass = op>=95;
-
-  // Current day score — only answered tasks
-  const curAnswered = yes > 0 || (isDone);
-  const curScore = total > 0 ? Math.round((yes/total)*100) : 0;
-
-  // Calculate Opening/Closing/Total scores
-  let oY2=0,oM2=0,cY2=0,cM2=0;
-  SECTIONS.forEach((s,si)=>{
-    s.tasks.forEach(t=>{
-      const v=getVal(currentDay,t.id,'yn');
-      if(v&&v!=='na'){
-        if(si===0){oM2++;if(v==='yes')oY2++;}
-        else{cM2++;if(v==='yes')cY2++;}
-      }
-    });
-  });
-  const oPct2=oM2>0?Math.round((oY2/oM2)*100):null;
-  const cPct2=cM2>0?Math.round((cY2/cM2)*100):null;
-  const tM2=oM2+cM2,tY2=oY2+cY2;
-  const totalPct2=tM2>0?Math.round((tY2/tM2)*100):(total>0?Math.round((yes/total)*100):0);
-  const totalPass2=totalPct2>=95;
-
-  const sc = document.createElement('div');
-  sc.className = `status-card ${totalPct2>0?(totalPass2?'pass':'fail'):''}`;
-  sc.innerHTML = `
-    <div style="background:${tM2===0?'#F8FAFC':totalPass2?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM2===0?'#E2E8F0':totalPass2?'#22C55E':'#EF4444'};border-radius:12px;padding:14px;text-align:center;margin-top:12px;">
-      <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">🏆 Total Score</div>
-      <div style="font-size:36px;font-weight:700;color:${tM2===0?'#94A3B8':totalPass2?'#0F766E':'#B91C1C'}">${tM2>0?totalPct2+'%':'—'}</div>
-      <div style="font-size:11px;color:${tM2===0?'#94A3B8':totalPass2?'#0F766E':'#B91C1C'};margin-top:4px;font-weight:600;">${tM2===0?'No data yet':totalPass2?'✓ Qualified for incentive':'✗ Below target (95%)'}</div>
-    </div>
-  `;
-  container.appendChild(sc);
-
-  // Submit button
-  const btn = document.createElement('button');
-  btn.className = 'submit-btn';
-  if (isDone && !ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = '✓ Checklist Submitted — Locked';
-    const msg = document.createElement('div');
-    msg.className = 'synced-msg';
-    msg.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(btn);
-    container.appendChild(msg);
-    // Tip for multi-outlet OIC
-    const tipDiv = document.createElement('div');
-    tipDiv.style.cssText = 'margin-top:10px;padding:10px 12px;background:rgba(255,255,255,0.1);border-radius:8px;font-size:12px;color:rgba(255,255,255,0.7);text-align:center;';
-    tipDiv.textContent = '💡 To submit for another outlet — just change the outlet above and fill again.';
-    container.appendChild(tipDiv);
-  } else if (isDone && ALLOW_OVERWRITE) {
-    btn.disabled = true;
-    btn.textContent = '✓ Checklist Submitted';
-    container.appendChild(btn);
-    // Overwrite panel
-    const owp = document.createElement('div');
-    owp.className = 'overwrite-panel';
-    owp.innerHTML = `<div class="overwrite-title">🔓 Overwrite Access — Enter your role PIN</div>
-      <input class="overwrite-input" id="owCode" type="password" placeholder="Enter overwrite code...">
-      <button class="overwrite-btn" onclick="doOverwrite()">Unlock to Edit Day ${currentDay}</button>`;
-    container.appendChild(owp);
-    const msg2 = document.createElement('div');
-    msg2.className = 'synced-msg';
-    msg2.textContent = '✓ Submitted and synced to dashboard';
-    container.appendChild(msg2);
-  } else {
-    btn.textContent = '📋 Submit Checklist';
+  // ── Submit button ─────────────────────────────────────────────
+  if (!isSubmitted) {
+    const btn = document.createElement('button');
+    btn.className = 'submit-btn';
+    btn.textContent = 'Submit ' + (currentShift === 'opening' ? 'Opening' : 'Closing') + ' Checklist';
     btn.onclick = submitDay;
     container.appendChild(btn);
   }
 }
 
-// ── Tap YES/NO/NA ─────────────────────────────────────────────
-function setComment(taskId, value) {
-  setVal(currentDay, taskId, 'comment', value);
-}
-
-function tapYN(tid, val, el) {
-  // Ensure SK is current before reading data
-  const _n = document.getElementById('fName')?.value?.trim();
-  if (_n) SK = SK_BASE + '_' + _n.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
-  else SK = SK_BASE;
-
-  const data = load();
-  const todayData = data[getTodayKey()] || {};
-  // kic2/oic has no shifts — only lock after full submit (_done)
-  if (todayData._done && !ALLOW_OVERWRITE) {
-    showToast('Already submitted — cannot edit 🔒', 'error'); return;
-  }
-  // Lock 'verify' tasks only AFTER submission — Area Manager verifies via dashboard overwrite
-  const taskDef = SECTIONS.flatMap(s=>s.tasks).find(t=>t.id===tid);
-  if (taskDef && taskDef.owner === 'verify' && todayData._done && !ALLOW_OVERWRITE) {
-    showToast('Already submitted — manager verifies this via dashboard 🔒', 'error'); return;
-  }
-  setVal(currentDay, tid, 'yn', val);
-  el.closest('.yn-row').querySelectorAll('.yn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  // Update score bar and single total box live
-  let t=0, y=0;
-  const _td = load()[getTodayKey()] || {};
-  SECTIONS.forEach(s => {
-    if (s.oicOnly) return;
-    s.tasks.forEach(tk => {
-      if (tk.owner === 'verify') return;
-      const v = _td[tk.id]?.yn;
-      if (v && v !== 'na') { t++; if(v==='yes') y++; }
-    });
-  });
-  const p = t>0 ? Math.round((y/t)*100) : 0;
-  document.getElementById('scoreFill').style.width=p+'%';
-  document.getElementById('scoreFill').style.background=p>=95?'#22C55E':p>=70?'#F59E0B':'#3B82F6';
-  document.getElementById('scorePct').textContent=p+'%';
-  // Update single total score box
-  const scCard = document.querySelector('.status-card');
-  if (scCard && t > 0) {
-    const dayPass = p >= 95;
-    scCard.className = `status-card ${dayPass?'pass':'fail'}`;
-    scCard.innerHTML = `
-      <div style="background:${dayPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${dayPass?'#22C55E':'#EF4444'};border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">🏆 Total Score</div>
-        <div style="font-size:36px;font-weight:700;color:${dayPass?'#0F766E':'#B91C1C'}">${p}%</div>
-        <div style="font-size:11px;color:${dayPass?'#0F766E':'#B91C1C'};margin-top:4px;font-weight:600;">${dayPass?'✓ Qualified for incentive':'✗ Below target (95%)'}</div>
-      </div>`;
-  }
-}
-
-
-function fmtDateTime(iso) {
-  if (!iso) return '—';
-  try {
-    const d = new Date(iso);
-    const date = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
-    const time = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
-    return date + ' ' + time;
-  } catch(e) { return iso; }
-}
-function fmtTimeOnly(iso) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:true});
-  } catch(e) { return '—'; }
-}
-
-// ── Submit day ────────────────────────────────────────────────
 function submitDay() {
   const name = getStaffName();
   const _vn = validateFullName(name);
   if (!_vn.valid) { showToast(_vn.msg, 'warn'); document.getElementById('fName').focus(); return; }
-  // Update SK from name only (outlet handled in Firebase key)
+  if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
+  if (!currentShift) { showToast('Please select a shift first', 'warn'); return; }
+
   SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
-  // getWeekStart always returns Dubai date as fallback
+
+  const shiftSections = SECTIONS.filter(s => s.shift === currentShift);
+  const _tdNow = load()[getTodayKey()] || {};
+  const unanswered = shiftSections.flatMap(s => s.tasks).filter(t => !_tdNow[t.id]?.yn);
+  if (unanswered.length) { showToast('Please answer all tasks before submitting', 'warn'); return; }
+  const missingComment = shiftSections.flatMap(s => s.tasks).filter(t => _tdNow[t.id]?.yn === 'no' && !(_tdNow[t.id]?.comment||'').trim());
+  if (missingComment.length) { showToast('Comment required for every NO answer', 'warn'); return; }
+
   const d = load();
-  if (!d[getTodayKey()]) d[getTodayKey()] = {};
-  d[getTodayKey()]._start = new Date().toISOString();
-  d[getTodayKey()]._done = getDubaiDateStr();
+  const dayKey = getTodayKey();
+  if (!d[dayKey]) d[dayKey] = {};
+  d[dayKey]._start = d[dayKey]._start || new Date().toISOString();
+  if (currentShift === 'opening') d[dayKey]._openDone = new Date().toISOString();
+  else d[dayKey]._closeDone = new Date().toISOString();
   save(d);
 
-  // Calc overall
-  // Calculate score from today's data directly
-  let tY=0, tM=0;
-  const _todaySubmitData = load()[getTodayKey()] || {};
-  SECTIONS.forEach(s => s.tasks.forEach(t => {
-    if (s.oicOnly) return; // skip OIC eval tasks from self-score
-    const v = _todaySubmitData[t.id]?.yn;
-    if (v && v !== 'na') { tM++; if(v==='yes') tY++; }
+  // Score — current shift tasks only (not evalOnly)
+  let tY = 0, tM = 0;
+  shiftSections.forEach(s => s.tasks.forEach(t => {
+    const v = d[dayKey][t.id]?.yn;
+    if (v && v !== 'na') { tM++; if (v === 'yes') tY++; }
   }));
-  const op = tM>0 ? Math.round((tY/tM)*100) : 0;
+  const op = tM > 0 ? Math.round((tY / tM) * 100) : 0;
 
-  // Push to master dashboard
+  const outlet = getOutlet();
+  const weekStart = getWeekStart();
+
   const _fbRecord = {
     staffName:  name,
     role:       ROLE,
     roleLabel:  ROLE_LABEL,
-    outlet:     getOutlet(),
-    week:       getWeekStart(), // Actual week-starting date (fixed — was today's date)
+    outlet:     outlet,
+    week:       weekStart,
     verifiedBy: getVerified(),
     overallPct: op,
-    openingPct: op,
-    closingPct: null,
-    qualified:  op>=95,
+    openingPct: currentShift === 'opening' ? op : null,
+    closingPct: currentShift === 'closing' ? op : null,
+    oicEvalPct: null,
+    qualified:  op >= 95,
     day:        currentDay,
-    startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
-    submittedAt:new Date().toISOString(),
-    lastUpdated:new Date().toISOString(),
-    submittedDates: trackSubmittedDate(getWeekStart()),
+    shift:      currentShift,
+    status:     currentShift === 'opening' ? 'opening_submitted' : 'closing_submitted',
+    startedAt:  d[dayKey]._start,
+    submittedAt: new Date().toISOString(),
+    lastUpdated: new Date().toISOString(),
+    submittedDates: trackSubmittedDate(weekStart),
     taskData: (function() {
       const tasks = {};
-      const _td = load()[getTodayKey()] || {};
+      // Save both shift tasks AND current evalOnly answers (if any from AM)
       SECTIONS.forEach(s => s.tasks.forEach(t => {
-        const td = _td[t.id] || {};
+        const td = d[dayKey][t.id] || {};
         const yn = td.yn;
-        // Collect all photos — prefer _url (Cloudinary) over base64
         const photoUrls = [];
-        let i = 0;
-        while (true) {
-          const slot     = i === 0 ? 'photo'     : 'photo_'     + i;
-          const slotUrl  = i === 0 ? 'photo_url' : 'photo_'     + i + '_url';
-          const base64   = td[slot];
-          const httpUrl  = td[slotUrl];
-          if (!base64 && !httpUrl) break;
-          const best = (httpUrl && httpUrl.startsWith('http')) ? httpUrl : (base64 && base64.startsWith('data:')) ? base64 : null;
-          if (best) photoUrls.push(best);
-          i++;
-          if (i > 10) break;
-        }
-        // Also check legacy photoUrl field
-        if (td.photoUrl && !photoUrls.includes(td.photoUrl)) photoUrls.push(td.photoUrl);
+        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k => {
+          const u = td[k]; if (u && u.startsWith('http') && !photoUrls.includes(u)) photoUrls.push(u);
+        });
         if (yn || photoUrls.length) {
-          tasks[t.id] = {
-            day: currentDay,
-            section: s.title,
-            task: t.text,
-            owner: t.ownerLbl,
-            yn: yn||'',
-            photoUrl: photoUrls[0] || '',
-            photoUrls: photoUrls,
-          };
+          tasks[t.id] = { day: currentDay, section: s.title, task: t.text, owner: t.ownerLbl, yn: yn||'', photoUrl: photoUrls[0]||'', photoUrls, hasPhoto: photoUrls.length > 0 };
         }
       }));
       return tasks;
     })(),
   };
+
   pushToMasterDashboard(_fbRecord);
   pushToFirebase(_fbRecord);
 
-  showToast('✓ Checklist submitted!', 'ok');
-  // Use setTimeout to ensure _done is saved before re-render
-  setTimeout(function() {
-    buildDayRail();
-    renderDay();
-  }, 100);
+  // Write days/ node for daily breakdown
+  try {
+    const _dayDate = getTodayKey().replace('dt','');
+    const _dayData = { submittedAt: new Date().toISOString() };
+    if (currentShift === 'opening') _dayData.openingPct = op;
+    else _dayData.closingPct = op;
+    if (_db) {
+      const _key = name.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ROLE+'_'+outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+weekStart.replace(/[^a-zA-Z0-9]/g,'_');
+      _db.ref('submissions/'+_key+'_'+currentShift+'/days/'+_dayDate).update(_dayData);
+    }
+  } catch(e) { console.warn('Daily score write failed:', e); }
+
+  showToast('\u2713 ' + (currentShift==='opening'?'Opening':'Closing') + ' checklist submitted!', 'ok');
+  setTimeout(() => { buildDayRail(); renderDay(); }, 100);
 }
+
 
 // ── Overwrite (Area Manager/Admin) ────────────────────────────
 function doOverwrite() {

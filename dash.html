@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619190000">
+<meta name="app-version" content="20260619240000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619190000';
+  var v = '20260619240000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1823,7 +1823,7 @@ function initSummaryScoring() {
           // openingPct fallback: older OIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
-          oicEvalPct: s.role === 'service' ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
+          oicEvalPct: (s.role === 'service' || s.role === 'oic') ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
           days: s.days || null // NEW: per-date breakdown (may be absent on older records)
@@ -1924,7 +1924,7 @@ function ssConsolidateByEmployee(rows) {
 
   // Per-role summary (used in the detail breakdown)
   const roleSummaries = Object.values(byRole).map(g => {
-    const isService = g.role === 'service';
+    const isService = g.role === 'service' || g.role === 'oic'; // both roles use evaluation score
     const openingAvg = g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null;
     const closingAvg = g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null;
     const oicAvg     = g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null;
@@ -1932,7 +1932,10 @@ function ssConsolidateByEmployee(rows) {
     // not from raw accumulated sums — so the displayed scores and the combined
     // total always agree, even when a staff member has multiple submissions
     // for the same shift within the selected period.
-    const avgComponents = [openingAvg, closingAvg, isService ? oicAvg : null].filter(v => v != null);
+    // OIC scoring: Opening + Evaluation, Closing + Evaluation, or Opening + Closing + Evaluation
+    // depending on which shifts were submitted that week. oicAvg = Evaluation score.
+    const includeEval = isService || g.role === 'oic';
+    const avgComponents = [openingAvg, closingAvg, includeEval ? oicAvg : null].filter(v => v != null);
     const roleTotal = avgComponents.reduce((a,b) => a+b, 0);
     const roleSubmittedCount = avgComponents.length;
     return {
@@ -2161,7 +2164,7 @@ function openStaffWeeklyDetail(idx) {
   function roleBlock(r) {
     const rows = [];
     rows.push(['Opening Score', r.openingAvg]);
-    if (r.isService) rows.push(['Evaluation Score', r.oicAvg]);
+    if (r.isService || r.role === 'oic') rows.push(['Evaluation Score', r.oicAvg]);
     rows.push(['Closing Score', r.closingAvg]);
     const rowsHtml = rows.map(([label, val]) => `
       <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F1F5F9;">
