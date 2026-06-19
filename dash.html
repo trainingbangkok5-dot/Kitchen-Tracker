@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619120000">
+<meta name="app-version" content="20260619180000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619120000';
+  var v = '20260619180000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -728,6 +728,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div id="archiveStatus" style="font-size:12px;color:#94A3B8;margin-bottom:10px;"></div>
+
+    <!-- PHOTO CLEANUP TOOL -->
+    <div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div>
+          <h3 style="font-size:14px;font-weight:700;color:#9A3412;">📷 Photo Storage Cleanup</h3>
+          <p style="font-size:11px;color:#B45309;margin-top:2px;">Permanently delete old photos from Cloudinary to free up storage. Checklist data, scores, and reports are <strong>never affected</strong> — only the image files are removed.</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <label style="font-size:12px;color:#9A3412;font-weight:600;">Delete photos older than:</label>
+        <select id="photoCleanupDays" style="padding:6px 10px;border:1px solid #FED7AA;border-radius:8px;font-size:12px;">
+          <option value="30">30 days</option>
+          <option value="60" selected>60 days</option>
+          <option value="90">90 days</option>
+          <option value="180">180 days</option>
+        </select>
+        <button onclick="scanOldPhotos()" style="padding:6px 14px;background:#fff;border:1.5px solid #EA580C;color:#EA580C;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🔍 Scan for Old Photos</button>
+        <button id="deleteOldPhotosBtn" onclick="deleteOldPhotos()" style="display:none;padding:6px 14px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗑️ Delete These Photos</button>
+      </div>
+      <div id="photoCleanupStatus" style="font-size:12px;color:#9A3412;margin-top:10px;"></div>
+      <div id="photoCleanupList" style="max-height:240px;overflow-y:auto;margin-top:10px;"></div>
+    </div>
+
+
     <div id="archiveList"></div>
   </div>
 
@@ -8887,6 +8912,145 @@ async function autoArchiveOldSubmissions() {
   } catch(e) {}
 
   if (archived > 0) console.log(`Auto-archived ${archived} submissions older than 60 days`);
+}
+
+// ── Photo Storage Cleanup ───────────────────────────────────────
+// Worker config — Cloudflare proxy that securely deletes Cloudinary images
+const CLOUDINARY_DELETE_WORKER = 'https://cloudinary-delete-proxy.trainingbangkok5.workers.dev/';
+const CLOUDINARY_DELETE_SECRET = 'Sunshinejade';
+
+let _photoCleanupCandidates = []; // [{ fbPath, photoField, publicId, date, staffName }]
+
+// Extract Cloudinary public_id from a secure_url
+// e.g. https://res.cloudinary.com/db94rgiil/image/upload/v1234567/culex_uploads/abc123.jpg
+// → public_id = "culex_uploads/abc123"
+function extractCloudinaryPublicId(url) {
+  if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) return null;
+  try {
+    const afterUpload = url.split('/upload/')[1];
+    if (!afterUpload) return null;
+    // Strip version prefix (v1234567/) if present, then strip file extension
+    const withoutVersion = afterUpload.replace(/^v\d+\//, '');
+    const withoutExt = withoutVersion.replace(/\.[a-zA-Z0-9]+$/, '');
+    return withoutExt || null;
+  } catch(e) { return null; }
+}
+
+async function scanOldPhotos() {
+  const days = parseInt(document.getElementById('photoCleanupDays').value, 10);
+  const statusEl = document.getElementById('photoCleanupStatus');
+  const listEl = document.getElementById('photoCleanupList');
+  const deleteBtn = document.getElementById('deleteOldPhotosBtn');
+
+  statusEl.textContent = '🔍 Scanning Firebase for old photos…';
+  listEl.innerHTML = '';
+  deleteBtn.style.display = 'none';
+  _photoCleanupCandidates = [];
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const photoFields = ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'];
+
+  async function scanDb(dbRef, label) {
+    if (!dbRef) return;
+    const snap = await dbRef.ref('submissions').once('value');
+    if (!snap.exists()) return;
+    snap.forEach(child => {
+      const rec = child.val();
+      const submittedAt = rec.submittedAt ? new Date(rec.submittedAt) : null;
+      if (!submittedAt || submittedAt >= cutoff) return; // only older-than-cutoff records
+
+      // Top-level photoUrl fields
+      photoFields.forEach(pf => {
+        const url = rec[pf];
+        const publicId = extractCloudinaryPublicId(url);
+        if (publicId) {
+          _photoCleanupCandidates.push({
+            fbPath: `${label}/submissions/${child.key}/${pf}`,
+            publicId, date: submittedAt.toISOString().substring(0,10),
+            staffName: rec.staffName || 'Unknown', role: rec.role || ''
+          });
+        }
+      });
+      // taskData photo URLs (per-task photos)
+      if (rec.taskData) {
+        Object.entries(rec.taskData).forEach(([tid, t]) => {
+          const urls = [];
+          if (t.photoUrl) urls.push(['photoUrl', t.photoUrl]);
+          if (Array.isArray(t.photoUrls)) t.photoUrls.forEach((u,i) => urls.push(['photoUrls/'+i, u]));
+          urls.forEach(([field, url]) => {
+            const publicId = extractCloudinaryPublicId(url);
+            if (publicId) {
+              _photoCleanupCandidates.push({
+                fbPath: `${label}/submissions/${child.key}/taskData/${tid}/${field}`,
+                publicId, date: submittedAt.toISOString().substring(0,10),
+                staffName: rec.staffName || 'Unknown', role: rec.role || ''
+              });
+            }
+          });
+        });
+      }
+    });
+  }
+
+  try {
+    await scanDb(db, 'BOH');
+    await scanDb(fohDb, 'FOH');
+  } catch(e) {
+    statusEl.textContent = '❌ Scan failed: ' + e.message;
+    return;
+  }
+
+  if (!_photoCleanupCandidates.length) {
+    statusEl.textContent = `✅ No photos found older than ${days} days. Nothing to clean up.`;
+    return;
+  }
+
+  statusEl.innerHTML = `Found <strong>${_photoCleanupCandidates.length} photo(s)</strong> older than ${days} days, from records that will otherwise remain untouched.`;
+  listEl.innerHTML = _photoCleanupCandidates.slice(0, 50).map(c =>
+    `<div style="font-size:11px;padding:4px 8px;border-bottom:1px solid #FED7AA;color:#7C2D12;">${c.date} — ${c.staffName} (${c.role}) — <span style="font-family:monospace;color:#94A3B8;">${c.publicId}</span></div>`
+  ).join('') + (_photoCleanupCandidates.length > 50 ? `<div style="font-size:11px;padding:4px 8px;color:#94A3B8;">…and ${_photoCleanupCandidates.length - 50} more</div>` : '');
+  deleteBtn.style.display = 'inline-block';
+}
+
+async function deleteOldPhotos() {
+  if (!_photoCleanupCandidates.length) return;
+  const count = _photoCleanupCandidates.length;
+  if (!confirm(`Permanently delete ${count} photo(s) from Cloudinary?\n\nThis CANNOT be undone. Checklist scores, dates, and reports will NOT be affected — only the image files will be removed.`)) return;
+
+  const statusEl = document.getElementById('photoCleanupStatus');
+  statusEl.textContent = `🗑️ Deleting ${count} photo(s) from Cloudinary…`;
+
+  const publicIds = _photoCleanupCandidates.map(c => c.publicId);
+
+  try {
+    const resp = await fetch(CLOUDINARY_DELETE_WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: CLOUDINARY_DELETE_SECRET, publicIds })
+    });
+    const result = await resp.json();
+    if (!resp.ok || result.error) throw new Error(result.error || 'Worker returned an error');
+
+    // Clear the photo URL fields in Firebase — leave everything else untouched
+    const bohUpdates = {};
+    const fohUpdates = {};
+    _photoCleanupCandidates.forEach(c => {
+      const isBoh = c.fbPath.startsWith('BOH/');
+      const path = c.fbPath.replace(/^(BOH|FOH)\//, '');
+      if (isBoh) bohUpdates[path] = null; else fohUpdates[path] = null;
+    });
+    if (Object.keys(bohUpdates).length && db) await db.ref().update(bohUpdates);
+    if (Object.keys(fohUpdates).length && fohDb) await fohDb.ref().update(fohUpdates);
+
+    statusEl.innerHTML = `✅ Deleted ${count} photo(s) from Cloudinary. Checklist data and scores remain fully intact.`;
+    document.getElementById('photoCleanupList').innerHTML = '';
+    document.getElementById('deleteOldPhotosBtn').style.display = 'none';
+    _photoCleanupCandidates = [];
+  } catch(e) {
+    statusEl.textContent = '❌ Deletion failed: ' + e.message + ' — no changes were made.';
+  }
 }
 
 // ── Archive System (60-day retention) ────────────────────────
