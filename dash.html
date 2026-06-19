@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619410000">
+<meta name="app-version" content="20260619420000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619410000';
+  var v = '20260619420000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6664,6 +6664,7 @@ function loadBOHData() {
         const sub = child.val();
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : (sub.lastUpdated ? sub.lastUpdated.substring(0,10) : new Date().toISOString().substring(0,10));
+        sub.week = normalizeWeek(sub.week); // ensure always Monday of that week
         const bohRoles = ['linecook','steward','kic'];
         if (!bohRoles.includes(sub.role)) return;
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
@@ -7073,6 +7074,7 @@ function loadFOHData() {
         sub._fbKey = child.key; // CRITICAL: set _fbKey so opening/closing detection works
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : 'unknown';
+        sub.week = normalizeWeek(sub.week); // ensure always Monday of that week
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
           grouped[gKey] = {
