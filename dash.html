@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619400000">
+<meta name="app-version" content="20260619410000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619400000';
+  var v = '20260619410000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -7092,9 +7092,9 @@ function loadFOHData() {
           Object.assign(grouped[gKey].taskData, sub.taskData);
         }
         grouped[gKey]._subs.push(sub);
-        // Store latest timestamps
-        if (sub.submittedAt) grouped[gKey].submittedAt = sub.submittedAt;
-        if (sub.lastUpdated) grouped[gKey].lastUpdated = sub.lastUpdated;
+        // Store LATEST timestamps — don't overwrite with an older value
+        if (sub.submittedAt && (!grouped[gKey].submittedAt || sub.submittedAt > grouped[gKey].submittedAt)) grouped[gKey].submittedAt = sub.submittedAt;
+        if (sub.lastUpdated && (!grouped[gKey].lastUpdated || sub.lastUpdated > grouped[gKey].lastUpdated)) grouped[gKey].lastUpdated = sub.lastUpdated;
         // Store day score — use sub.day (1-6) directly
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
           grouped[gKey].days[sub.day] = sub.overallPct || 0;
