@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619420000">
+<meta name="app-version" content="20260619440000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619420000';
+  var v = '20260619440000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -6664,7 +6664,6 @@ function loadBOHData() {
         const sub = child.val();
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : (sub.lastUpdated ? sub.lastUpdated.substring(0,10) : new Date().toISOString().substring(0,10));
-        sub.week = normalizeWeek(sub.week); // ensure always Monday of that week
         const bohRoles = ['linecook','steward','kic'];
         if (!bohRoles.includes(sub.role)) return;
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
@@ -6729,11 +6728,7 @@ function loadBOHData() {
         }
       });
       allBOHData = Object.values(grouped);
-      allBOHData.sort((a,b) => {
-        const dA = a.submittedAt || a.lastUpdated || a.week || '0';
-        const dB = b.submittedAt || b.lastUpdated || b.week || '0';
-        return new Date(dB) - new Date(dA);
-      });
+      allBOHData.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
     }
     document.getElementById('bohStatus').textContent = '✅ ' + allBOHData.length + ' records';
     renderBOHStaff();
@@ -7016,7 +7011,7 @@ function renderBOHStaff() {
   const scoreColor = p => p>=95?'#15803D':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
   // Sort latest submission first
-  filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||b.week||0) - new Date(a.submittedAt||a.lastUpdated||a.week||0));
+  filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
   filtered.forEach((staff, idx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
@@ -7032,7 +7027,7 @@ function renderBOHStaff() {
       <td style="padding:8px 12px;font-size:12px;font-weight:600">${staff.staffName}</td>
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
-      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.submittedAt ? new Date(staff.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : staff.week}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
       <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}</td>
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
@@ -7074,7 +7069,6 @@ function loadFOHData() {
         sub._fbKey = child.key; // CRITICAL: set _fbKey so opening/closing detection works
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : 'unknown';
-        sub.week = normalizeWeek(sub.week); // ensure always Monday of that week
         const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
           grouped[gKey] = {
@@ -7260,7 +7254,7 @@ function renderFOHStaff() {
       <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#7B2D42;cursor:pointer;text-decoration:underline;" onclick="openFOHDetail(${staffIdx})">${staff.staffName}</td>
       <td style="padding:8px 12px;font-size:11px">${roleLabels[staff.role]||staff.role}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
-      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.week}</td>
+      <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.submittedAt ? new Date(staff.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : staff.week}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
       <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}</td>
       <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
