@@ -260,6 +260,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
   <!-- Report Tabs -->
   <div style="display:flex;gap:2px;margin-bottom:0;">
     <button id="rtab-log" onclick="setReportTab('log')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:#7F1D1D;color:#fff;border-radius:8px 8px 0 0;cursor:pointer;">📋 Log</button>
+    <button id="rtab-completed" onclick="setReportTab('completed')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">✅ Completed</button>
     <button id="rtab-weekly" onclick="setReportTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
     <button id="rtab-monthly" onclick="setReportTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
     <button id="rtab-outsourced" onclick="setReportTab('outsourced')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🏗️ Outsourced</button>
@@ -671,6 +672,7 @@ function loadLogs() {
     updateStats();
     // Re-render whatever tab is currently active
     if (currentReportTab === 'outsourced') renderOutsourcedTab();
+    else if (currentReportTab === 'completed') renderCompletedTab();
     else renderTable();
     showNewIssuesAlert();
   });
@@ -698,7 +700,7 @@ function renderTable() {
   let filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
   // OIC/KIC: show logs they submitted OR from their outlet
   if (staffOnly) {
-    const _myOutlet = (window._staffOutlet || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    const _myOutlet = (window._staffOutlet || (function(){try{return sessionStorage.getItem('maint_outlet')||''}catch(e){return ''}})() || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
     filtered = filtered.filter(l => {
       const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
       const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
@@ -1251,13 +1253,13 @@ function exportIssuePDF() {
 let currentReportTab = 'log';
 
 function setReportTab(tab) {
-  // Access control — OIC/KIC can only see log and preventive (view only)
+  // Access control — OIC/KIC: view-only on log, completed, outsourced, preventive. Weekly/Monthly hidden.
   const staffOnly = ['kic','oic'].includes(currentRole);
-  const allowed = staffOnly ? ['log','preventive'] : ['log','weekly','monthly','preventive','outsourced'];
+  const allowed = staffOnly ? ['log','completed','preventive','outsourced'] : ['log','completed','weekly','monthly','preventive','outsourced'];
   if (!allowed.includes(tab)) return;
 
   currentReportTab = tab;
-  ['log','weekly','monthly','preventive','outsourced'].forEach(t => {
+  ['log','completed','weekly','monthly','preventive','outsourced'].forEach(t => {
     const btn = document.getElementById('rtab-'+t);
     if (btn) {
       btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
@@ -1267,6 +1269,7 @@ function setReportTab(tab) {
   });
   const titles = {
     log:        '📋 Maintenance Log',
+    completed:  '✅ Completed Records',
     weekly:     '📆 Weekly Report',
     monthly:    '📅 Monthly Report',
     preventive: '🔧 Monthly Preventive Maintenance',
@@ -1304,9 +1307,35 @@ function applyTabAccess() {
 
 function renderCurrentTab() {
   if (currentReportTab === 'log') renderTable();
+  else if (currentReportTab === 'completed') renderCompletedTab();
   else if (currentReportTab === 'weekly') renderWeeklyReport();
   else if (currentReportTab === 'monthly') renderMonthlyReport();
   else if (currentReportTab === 'outsourced') renderOutsourcedTab();
+}
+
+function renderCompletedTab() {
+  if (!db) return;
+  if (!allLogs.length && db) {
+    const tb = document.getElementById('tableBody');
+    if (tb) tb.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading records...</td></tr>';
+    document.getElementById('tableEmpty').style.display = 'none';
+    return;
+  }
+  const staffOnly = ['kic','oic'].includes(currentRole);
+  // Completed tab shows ONLY completed records
+  let filtered = getFilteredByDate(allLogs).filter(l => l.status === 'Yes' || l.status === 'Done' || l.status === 'Resolved' || l.status === 'Completed');
+  if (staffOnly) {
+    const _myOutlet = (window._staffOutlet || (function(){try{return sessionStorage.getItem('maint_outlet')||''}catch(e){return ''}})() || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    filtered = filtered.filter(l => {
+      const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
+      const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
+      return sameReporter || sameOutlet;
+    });
+  }
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  document.getElementById('tableEmpty').style.display = filtered.length ? 'none' : 'block';
+  filtered.forEach(log => renderLogRow(log, tbody));
 }
 
 function getFilteredByDate(logs) {
@@ -1435,10 +1464,13 @@ function renderLogRow(log, tbody) {
     </td>
     <td style="padding:8px 10px"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;background:${stsColors[log.status]||'#FEF3C7;color:#D97706'}">${log.status||'—'}</span></td>
     <td style="padding:8px 10px;max-width:140px;">
-      <input type="text" value="${log.remarks||''}" placeholder="Add remarks..."
-        style="width:100%;padding:4px 7px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;outline:none;"
-        onblur="updateRemarks('${log._key}', this.value)"
-        onkeydown="if(event.key==='Enter') this.blur()">
+      ${canManage
+        ? `<input type="text" value="${log.remarks||''}" placeholder="Add remarks..."
+            style="width:100%;padding:4px 7px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;outline:none;"
+            onblur="updateRemarks('${log._key}', this.value)"
+            onkeydown="if(event.key==='Enter') this.blur()">`
+        : `<span style="font-size:11px;color:#475569;">${log.remarks||'—'}</span>`
+      }
     </td>
     <td style="padding:8px 10px;font-size:11px;white-space:nowrap;color:#64748B">${log.dateResolved||'—'}</td>
     <td style="padding:8px 10px">
@@ -1468,13 +1500,22 @@ function renderLogRow(log, tbody) {
   actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
   const actionDiv = document.createElement('div');
   actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
-  if (log.status !== 'Yes') {
-    const doneBtn = document.createElement('button');
-    doneBtn.textContent = '✅';
-    doneBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;';
-    doneBtn.onclick = () => markDone(log._key);
-    actionDiv.appendChild(doneBtn);
-  } else {
+  // Done button — only for roles that can manage (NOT OIC/KIC view-only)
+  if (canManage) {
+    if (log.status !== 'Yes') {
+      const doneBtn = document.createElement('button');
+      doneBtn.textContent = '✅';
+      doneBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;';
+      doneBtn.onclick = () => markDone(log._key);
+      actionDiv.appendChild(doneBtn);
+    } else {
+      const doneSpan = document.createElement('span');
+      doneSpan.textContent = '✓';
+      doneSpan.style.cssText = 'font-size:10px;color:#15803D;font-weight:600;';
+      actionDiv.appendChild(doneSpan);
+    }
+  } else if (log.status === 'Yes') {
+    // View-only roles still see a completed checkmark indicator
     const doneSpan = document.createElement('span');
     doneSpan.textContent = '✓';
     doneSpan.style.cssText = 'font-size:10px;color:#15803D;font-weight:600;';
@@ -1784,7 +1825,7 @@ function renderOutsourcedTab() {
 
   // OIC/KIC: only their own submissions or their outlet
   if (staffOnly) {
-    const _myOutlet = (window._staffOutlet || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    const _myOutlet = (window._staffOutlet || (function(){try{return sessionStorage.getItem('maint_outlet')||''}catch(e){return ''}})() || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
     outsourced = outsourced.filter(l => {
       const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
       const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
