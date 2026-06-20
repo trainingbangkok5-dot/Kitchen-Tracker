@@ -474,6 +474,11 @@ function selectShift(shift) {
 
 
 function renderDay() {
+  // Always restore currentShift first — survives any page reload path
+  if (!currentShift) {
+    var _rs = localStorage.getItem('bartender_currentShift_' + getTodayKey());
+    if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
+  }
   const name=getStaffName(), outlet=getOutlet();
   const container=document.getElementById('mainContent');
   if(!container) return;

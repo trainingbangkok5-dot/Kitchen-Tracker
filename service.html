@@ -1132,6 +1132,11 @@ function selectShift(shift) {
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
+  // Always restore currentShift first — survives any page reload path
+  if (!currentShift) {
+    var _rs = localStorage.getItem('service_currentShift_' + getTodayKey());
+    if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
+  }
   const container = document.getElementById('mainContent');
   container.innerHTML = '';
 
