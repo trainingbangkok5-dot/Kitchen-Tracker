@@ -1902,6 +1902,9 @@ function ssPctColor(v) {
 // zero-filled, per explicit requirement. Returns [] if no row has `days` data
 // (i.e. legacy records only), so callers can fall back to the old calculation.
 function ssBuildDailyBreakdown(rowsForEmployee) {
+  // Determine role from rows (all rows for one employee share the same role)
+  const role = rowsForEmployee.length > 0 ? (rowsForEmployee[0].role || '') : '';
+  const hasEval = ['service','oic','kic'].includes(role);
   const dateMap = {};
   let hasAnyDaysNode = false;
   rowsForEmployee.forEach(s => {
@@ -1914,12 +1917,18 @@ function ssBuildDailyBreakdown(rowsForEmployee) {
       });
     });
   });
-  if (!hasAnyDaysNode) return null; // signal "no daily data available — use legacy calc"
+  if (!hasAnyDaysNode) return null;
 
-  const dates = Object.keys(dateMap).sort(); // YYYY-MM-DD sorts chronologically as a string
+  const dates = Object.keys(dateMap).sort();
   return dates.map(date => {
     const v = dateMap[date];
-    const components = [v.openingPct, v.closingPct, v.oicEvalPct].filter(x => x != null);
+    // Role-aware formula: service/oic/kic = opening+eval+closing, others = opening+closing
+    let components;
+    if (hasEval) {
+      components = [v.openingPct, v.oicEvalPct, v.closingPct].filter(x => x != null);
+    } else {
+      components = [v.openingPct, v.closingPct].filter(x => x != null);
+    }
     const dayPct = components.length > 0
       ? Math.round(components.reduce((a,b) => a+b, 0) / components.length)
       : null;
@@ -1965,7 +1974,7 @@ function ssConsolidateByEmployee(rows) {
 
   // Per-role summary (used in the detail breakdown)
   const roleSummaries = Object.values(byRole).map(g => {
-    const isService = g.role === 'service' || g.role === 'oic'; // both roles use evaluation score
+    const isService = g.role === 'service'; // only service uses OIC eval label in reports
     const openingAvg = g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null;
     const closingAvg = g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null;
     const oicAvg     = g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null;
@@ -1975,8 +1984,11 @@ function ssConsolidateByEmployee(rows) {
     // for the same shift within the selected period.
     // OIC scoring: Opening + Evaluation, Closing + Evaluation, or Opening + Closing + Evaluation
     // KIC scoring: same formula — Area Chef fills the evaluation via dashboard
-    const includeEval = isService || g.role === 'oic' || g.role === 'kic';
-    const avgComponents = [openingAvg, closingAvg, includeEval ? oicAvg : null].filter(v => v != null);
+    // Roles with evaluation: service, oic, kic
+    // Roles without evaluation: bartender, delco, linecook, steward
+    const includeEval = ['service','oic','kic'].includes(g.role);
+    // Formula: opening + eval + closing (÷3) for eval roles, opening + closing (÷2) for others
+    const avgComponents = [openingAvg, includeEval ? oicAvg : null, closingAvg].filter(v => v != null);
     const roleTotal = avgComponents.reduce((a,b) => a+b, 0);
     const roleSubmittedCount = avgComponents.length;
     return {
@@ -2179,92 +2191,82 @@ function openStaffWeeklyDetail(idx) {
   const e = _ssConsolidatedRows[idx];
   if (!e) return;
 
-  document.getElementById('ssDetailName').textContent = e.staffName;
+  const role0 = e.roles && e.roles[0] ? e.roles[0].role : '';
+  const roleName = e.roles && e.roles[0] ? ssRoleLabel(e.roles[0].role) : '';
   const isRange = (e.week||'').includes(' to ');
-  document.getElementById('ssDetailSub').textContent = `${e.outlet||'—'} · ${isRange ? e.week : 'Week of ' + (e.week||'—')}`;
+  const weekLabel = isRange ? e.week : 'Week of ' + (e.week||'—');
+  document.getElementById('ssDetailName').textContent = e.staffName;
+  document.getElementById('ssDetailSub').textContent = roleName + ' · ' + (e.outlet||'—') + ' · ' + weekLabel;
 
   function ssFormatDateLabel(dateStr) {
-    // '2026-06-15' -> '15 June 2026'
-    try {
-      const d = new Date(dateStr + 'T00:00:00');
-      return d.toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-    } catch(err) { return dateStr; }
+    try { const d = new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}); } catch(err){return dateStr;}
   }
+  function pctC(v){return v==null?'#94A3B8':v>=90?'#15803D':v>=75?'#D97706':'#B91C1C';}
 
-  // Daily Breakdown — one line per calendar date, showing exactly which
-  // shifts were submitted that day and the resulting day score. Only
-  // rendered when days/ data exists for this employee's week; older
-  // records without it simply skip this block (role cards below still show).
+  // Daily Breakdown
+  const hasEvalRole = ['service','oic','kic'].includes(role0);
+  const evalLabel = role0==='kic'?'AC Eval':role0==='oic'?'AM Eval':'OIC Eval';
   let dailyBreakdownHtml = '';
   if (e.dailyBreakdown && e.dailyBreakdown.length) {
     const dailyRowsHtml = e.dailyBreakdown.map(d => {
       const parts = [];
       if (d.openingPct != null) parts.push('Opening ' + d.openingPct + '%');
+      if (hasEvalRole) { if (d.oicEvalPct!=null) parts.push(evalLabel+' '+d.oicEvalPct+'%'); else parts.push('<span style="color:#D97706;">'+evalLabel+' pending</span>'); }
       if (d.closingPct != null) parts.push('Closing ' + d.closingPct + '%');
-      if (d.oicEvalPct != null) parts.push((e.roles && e.roles.some(r=>r.role==='kic') ? 'AC Eval' : 'OIC Eval') + ' ' + d.oicEvalPct + '%');
-      return `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #F1F5F9;">
-          <div>
-            <span style="font-size:12.5px;font-weight:600;color:#1A3C5E;">${ssFormatDateLabel(d.date)}</span>
-            <span style="font-size:10.5px;color:#94A3B8;margin-left:8px;">${parts.join(' · ')}</span>
-          </div>
-          <span style="padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700;background:${ssPctColor(d.dayPct)}22;color:${ssPctColor(d.dayPct)};">${d.dayPct}%</span>
-        </div>`;
+      const bC = pctC(d.dayPct);
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid #F1F5F9;">'+
+        '<div><div style="font-size:13px;font-weight:600;color:#1A3C5E;">'+ssFormatDateLabel(d.date)+'</div>'+
+        '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">'+parts.join(' · ')+'</div></div>'+
+        '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<div style="width:60px;height:5px;background:#F1F5F9;border-radius:99px;overflow:hidden;"><div style="width:'+Math.min(d.dayPct||0,100)+'%;height:100%;background:'+bC+';border-radius:99px;"></div></div>'+
+        '<span style="font-size:12px;font-weight:700;color:'+bC+';min-width:34px;text-align:right;">'+d.dayPct+'%</span></div></div>';
     }).join('');
-    dailyBreakdownHtml = `
-      <div style="margin-bottom:16px;background:#F8FAFC;border:1px solid #E0DDD4;border-radius:10px;padding:12px 14px;">
-        <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:8px;">🗓️ Daily Breakdown</div>
-        ${dailyRowsHtml}
-      </div>`;
+    dailyBreakdownHtml = '<div style="margin-bottom:12px;background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;">'+
+      '<div style="padding:10px 14px;border-bottom:0.5px solid #F1F5F9;font-size:12px;font-weight:700;color:#1A3C5E;">📅 Daily Breakdown</div>'+
+      '<div style="padding:0 14px;">'+dailyRowsHtml+'<div style="height:4px;"></div></div></div>';
   }
 
+  // Score Breakdown
   function roleBlock(r) {
-    const rows = [];
-    rows.push(['Opening Score', r.openingAvg]);
-    if (r.isService || r.role === 'oic' || r.role === 'kic') rows.push([r.role === 'kic' ? 'AC Evaluation' : 'OIC Evaluation', r.oicAvg]);
-    rows.push(['Closing Score', r.closingAvg]);
-    const rowsHtml = rows.map(([label, val]) => `
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F1F5F9;">
-        <span style="font-size:12px;color:#64748B;">${label}</span>
-        <span style="font-size:12px;font-weight:700;color:${ssPctColor(val)};">${val!=null?val+'%':'—'}</span>
-      </div>`).join('');
-    return `
-      <div style="margin-bottom:14px;background:#F8FAFC;border:1px solid #E0DDD4;border-radius:10px;padding:12px;">
-        <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:6px;">${ssRoleLabel(r.role)}</div>
-        ${rowsHtml}
-        <div style="display:flex;justify-content:space-between;padding-top:6px;margin-top:4px;border-top:1px solid #E0DDD4;">
-          <span style="font-size:12px;font-weight:700;color:#1A3C5E;">Average Score</span>
-          <span style="padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:${ssPctColor(r.roleAvg)}22;color:${ssPctColor(r.roleAvg)};">${r.roleAvg!=null?r.roleAvg+'%':'—'}</span>
-        </div>
-      </div>`;
+    const hasEval = ['service','oic','kic'].includes(r.role);
+    const evalLbl = r.role==='kic'?'AC Evaluation':r.role==='oic'?'AM Evaluation':'OIC Evaluation';
+    const evalPending = hasEval && r.oicAvg==null;
+    const weeklyNote = evalPending?' <span style="font-size:10px;opacity:0.7;">(excl. eval)</span>':'';
+    function sRow(label,val,bold,pending){
+      const right = pending
+        ? '<span style="background:#FEF3C7;color:#B45309;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;">Pending</span>'
+        : '<span style="font-size:12px;font-weight:700;color:'+pctC(val)+'">'+(val!=null?val+'%':'—')+'</span>';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #F1F5F9;">'+
+        '<span style="font-size:12px;'+(bold?'font-weight:700;color:#1A3C5E;':'color:#64748B;')+'">'+label+'</span>'+right+'</div>';
+    }
+    let rows = sRow('Opening average',r.openingAvg,false,false);
+    if (hasEval) rows += sRow(evalLbl,r.oicAvg,false,evalPending);
+    rows += sRow('Closing average',r.closingAvg,false,false);
+    const avgRight = r.roleAvg!=null
+      ? '<span style="background:'+pctC(r.roleAvg)+'22;color:'+pctC(r.roleAvg)+';font-size:12px;font-weight:700;padding:2px 9px;border-radius:20px;">'+r.roleAvg+'%'+weeklyNote+'</span>'
+      : '<span style="font-size:12px;color:#94A3B8;">—</span>';
+    rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">'+
+      '<span style="font-size:12px;font-weight:700;color:#1A3C5E;">Weekly average</span>'+avgRight+'</div>';
+    return '<div style="margin-bottom:12px;background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;">'+
+      '<div style="padding:10px 14px;border-bottom:0.5px solid #F1F5F9;font-size:12px;font-weight:700;color:#1A3C5E;">📋 Score Breakdown — '+ssRoleLabel(r.role)+'</div>'+
+      '<div style="padding:0 14px;">'+rows+'<div style="height:4px;"></div></div></div>';
   }
 
-  const weeklySummaryHtml = `
-    <div style="margin-bottom:16px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:14px;">
-      <div style="font-size:13px;font-weight:700;color:#1A3C5E;margin-bottom:10px;">📋 Weekly Summary</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-        <div><span style="color:#64748B;">Total Days Submitted:</span> <strong style="color:${e.daysSubmitted>=4?'#15803D':'#D97706'};">${e.daysSubmitted}</strong></div>
-        <div><span style="color:#64748B;">Total Weekly Score (sum):</span> <strong>${e.combinedScore}</strong></div>
-        <div style="grid-column:1 / -1;"><span style="color:#64748B;">Weekly Average Score:</span> <strong style="font-size:14px;color:${ssPctColor(e.combinedAvg)};">${e.combinedAvg!=null?e.combinedAvg+'%':'—'}</strong></div>
-        <div><span style="color:#64748B;">Ranking Position:</span> <strong>${e.rank!=null?'#'+e.rank:'Not ranked'}</strong></div>
-        <div><span style="color:#64748B;">Eligibility:</span> <strong style="color:${e.eligible?'#15803D':'#B91C1C'};">${e.eligible?'✅ Eligible':'❌ Not Eligible'}</strong></div>
-      </div>
-    </div>`;
+  // Weekly Summary
+  const eligibleHtml = e.eligible
+    ? '<div style="width:32px;height:32px;border-radius:50%;background:#DCFCE7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">✅</div><div><div style="font-size:13px;font-weight:700;color:#15803D;">Eligible for incentive</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Weekly average meets the 95% target.</div></div>'
+    : '<div style="width:32px;height:32px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">❌</div><div><div style="font-size:13px;font-weight:700;color:#B91C1C;">Not eligible</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Weekly average is below the 95% target.</div></div>';
+  const weeklySummaryHtml =
+    '<div style="margin-bottom:12px;background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:0.5px solid #F1F5F9;">'+
+      '<div style="padding:12px;text-align:center;border-right:0.5px solid #F1F5F9;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Weekly avg</div><div style="font-size:22px;font-weight:700;color:'+pctC(e.combinedAvg)+'">'+(e.combinedAvg!=null?e.combinedAvg+'%':'—')+'</div></div>'+
+      '<div style="padding:12px;text-align:center;border-right:0.5px solid #F1F5F9;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Days submitted</div><div style="font-size:22px;font-weight:700;color:'+(e.daysSubmitted>=4?'#15803D':'#D97706')+'">'+e.daysSubmitted+'</div></div>'+
+      '<div style="padding:12px;text-align:center;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Ranking</div><div style="font-size:22px;font-weight:700;color:#1A3C5E;">'+(e.rank!=null?'#'+e.rank:'—')+'</div></div>'+
+    '</div>'+
+    '<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;">'+eligibleHtml+'</div></div>';
 
   const roleBlocksHtml = e.roles.map(roleBlock).join('');
-
-  const overallHtml = `
-    <div style="background:#1A3C5E;border-radius:10px;padding:14px;color:#fff;">
-      <div style="font-size:13px;font-weight:700;margin-bottom:10px;">🏆 Overall Performance</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-        <div><span style="color:#B8C9DC;">Combined Weekly Score:</span> <strong>${e.combinedScore}</strong></div>
-        <div><span style="color:#B8C9DC;">Combined Weekly Average:</span> <strong>${e.combinedAvg!=null?e.combinedAvg+'%':'—'}</strong></div>
-        <div><span style="color:#B8C9DC;">Total Checklists Submitted:</span> <strong>${e.combinedChecklists}</strong></div>
-        <div><span style="color:#B8C9DC;">Total Days Present:</span> <strong>${e.daysSubmitted}</strong></div>
-      </div>
-    </div>`;
-
-  document.getElementById('ssDetailBody').innerHTML = dailyBreakdownHtml + weeklySummaryHtml + roleBlocksHtml + overallHtml;
+  document.getElementById('ssDetailBody').innerHTML = dailyBreakdownHtml + weeklySummaryHtml + roleBlocksHtml;
   document.getElementById('ssDetailModal').style.display = 'flex';
 }
 
