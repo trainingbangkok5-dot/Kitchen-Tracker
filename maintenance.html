@@ -158,6 +158,8 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <option value="training">Admin</option>
       <option value="maintenance">Maintenance Team</option>
       <option value="maintsupervisor">Maintenance Supervisor</option>
+      <option value="cksupervisor">CK Supervisor</option>
+      <option value="ckqa">CK-QA</option>
     </select>
 
     <div class="pin-row" id="pinRow">
@@ -410,7 +412,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     </table>
   </div>
   <div id="outsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">
-    No outsourced preventive tasks found.<br>Tasks with Preventive priority assigned to external contractors will appear here automatically.
+    No outsourced tasks found.<br>Logs assigned to external contractors will appear here automatically.
   </div>
 </div>
 
@@ -491,10 +493,11 @@ let logCounter = 1;
 
 const DEFAULT_PINS = {
   areachef:'CHEF2025', areamanager:'AMGR2025', operations:'OPS2025',
-  director:'DRI2025', ceo:'CEO2025', training:'TRAIN2025'
+  director:'DRI2025', ceo:'CEO2025', training:'TRAIN2025',
+  cksupervisor:'CKSUP2025', ckqa:'CKQA2025'
 };
 let ROLE_PINS = {...DEFAULT_PINS};
-const PIN_ROLES = ['areachef','areamanager','operations','director','ceo','training'];
+const PIN_ROLES = ['areachef','areamanager','operations','director','ceo','training','cksupervisor','ckqa'];
 
 const OUTLETS = ['Head Office','Central Kitchen','Accommodation','THE RED DOOR','LBKK RAK','LBKK Tower','LBKK JLT','SB DEIRA','LBKK OM','LBKK MTC','LBKK Hills','LBKK DSO','SB PAV'];
 const TEAM = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned'];
@@ -543,7 +546,7 @@ function doLogin() {
   const dashLnk = document.getElementById('dashLink');
   if (dashLnk) dashLnk.style.display = 'block';
   const staffRoles = ['kic','oic'];
-  const maintRoles = ['maintenance','maintsupervisor'];
+  const maintRoles = ['maintenance','maintsupervisor','cksupervisor','ckqa'];
   if (staffRoles.includes(role)) {
     // KIC/OIC — show both submit form AND log view
     document.getElementById('staffScreen').style.display = 'block';
@@ -1370,7 +1373,7 @@ function renderMonthlyReport() {
 }
 
 function renderLogRow(log, tbody) {
-  const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
+  const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor','cksupervisor','ckqa'].includes(currentRole);
   const canSetPriority = ['director','maintsupervisor'].includes(currentRole);
   const canAssign = ['director','maintsupervisor'].includes(currentRole);
   const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
@@ -1755,11 +1758,11 @@ function renderOutsourcedTab() {
 
   const staffOnly = ['kic','oic'].includes(currentRole);
 
-  // Filter: Preventive priority AND assigned to non-internal person
+  // Filter: ANY log assigned to external contractor (not internal team)
   // OIC/KIC: only see their own submitted logs
   let outsourced = allLogs.filter(l => {
-    if (l.priority !== 'Preventive') return false;
     const assigned = (l.assignedTo || '').trim();
+    if (!assigned) return false;
     return !INTERNAL_TEAM.includes(assigned);
   });
 
@@ -1824,8 +1827,9 @@ function checkReminders() {
   const urgent  = pending.filter(l => l.priority === 'Urgent');
   const overdue = pending.filter(l => { const d = daysPending(l.dateReported, null); return d !== null && d >= 3; });
   const outsourced = pending.filter(l => {
-    if (l.priority !== 'Preventive') return false;
-    return !INTERNAL_TEAM.includes((l.assignedTo||'').trim());
+    const assigned = (l.assignedTo||'').trim();
+    if (!assigned) return false;
+    return !INTERNAL_TEAM.includes(assigned);
   });
 
   // Only show reminder if there's something to flag

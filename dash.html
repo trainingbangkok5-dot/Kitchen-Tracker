@@ -6719,9 +6719,11 @@ function dashRenderOutsourced() {
   const emptyEl = document.getElementById('dashOutsourcedEmpty');
   if (!tbody) return;
   const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
+  // Show ALL logs assigned to external contractors (any priority)
   const outsourced = (allMaintenanceLogs||[]).filter(l => {
-    if (l.priority !== 'Preventive') return false;
-    return !INTERNAL.includes((l.assignedTo||'').trim());
+    const assigned = (l.assignedTo||'').trim();
+    if (!assigned) return false; // skip unassigned
+    return !INTERNAL.includes(assigned);
   }).sort((a,b)=>(b.dateReported||'').localeCompare(a.dateReported||''));
   tbody.innerHTML = '';
   if (!outsourced.length) { if(emptyEl) emptyEl.style.display='block'; return; }
@@ -6849,7 +6851,7 @@ function setMaintTab(tab) {
   if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
   if (outsPanel) outsPanel.style.display = tab==='outsourced' ? 'block' : 'none';
   if (tab==='preventive') { dashLoadPreventive(); return; }
-  if (tab==='outsourced') { dashRenderOutsourced(); return; }
+  if (tab==='outsourced') { renderMaintenanceLogs(); dashRenderOutsourced(); return; }
   renderMaintCurrentTab();
 }
 
@@ -9070,11 +9072,15 @@ function loadMaintenanceLogs() {
 }
 
 function renderMaintenanceLogs() {
-  // Update stats
-  document.getElementById('mStatTotal').textContent = allMaintenanceLogs.length;
-  document.getElementById('mStatUrgent').textContent = allMaintenanceLogs.filter(l=>l.priority==='Urgent').length;
-  document.getElementById('mStatPending').textContent = allMaintenanceLogs.filter(l=>l.status!=='Yes'&&l.status!=='Completed').length;
-  document.getElementById('mStatDone').textContent = allMaintenanceLogs.filter(l=>l.status==='Yes'||l.status==='Completed').length;
+  // Update stats — count from outsourced only when on outsourced tab
+  const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
+  const statsSource = currentMaintTab === 'outsourced'
+    ? (allMaintenanceLogs||[]).filter(l => { const a=(l.assignedTo||'').trim(); return a && !INTERNAL.includes(a); })
+    : allMaintenanceLogs;
+  document.getElementById('mStatTotal').textContent = statsSource.length;
+  document.getElementById('mStatUrgent').textContent = statsSource.filter(l=>l.priority==='Urgent').length;
+  document.getElementById('mStatPending').textContent = statsSource.filter(l=>l.status!=='Yes'&&l.status!=='Completed').length;
+  document.getElementById('mStatDone').textContent = statsSource.filter(l=>l.status==='Yes'||l.status==='Completed').length;
 
   // Log tab shows ONLY active (non-completed) issues
   const activeLogs = getMaintFiltered().filter(l => l.status !== 'Yes' && l.status !== 'Completed');
