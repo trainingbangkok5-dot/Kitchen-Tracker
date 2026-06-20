@@ -1064,24 +1064,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
     </div>
     <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <table style="width:100%;border-collapse:collapse;min-width:900px;font-size:12px;">
         <thead>
           <tr style="background:#F8F7F2;">
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Issue / Task</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned To</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;">Issue</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Priority</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date Resolved</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Verified By</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Action</th>
           </tr>
         </thead>
         <tbody id="dashOutsourcedTbody"></tbody>
       </table>
       <div id="dashOutsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No outsourced preventive tasks found.</div>
     </div>
-  </div> style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
+  </div>
+
+  <!-- Preventive Maintenance Panel -->
+  <div id="dashPreventivePanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
     <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🔧 Preventive Maintenance Schedule</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -6719,24 +6726,8 @@ function dashRenderOutsourced() {
   tbody.innerHTML = '';
   if (!outsourced.length) { if(emptyEl) emptyEl.style.display='block'; return; }
   if (emptyEl) emptyEl.style.display='none';
-  outsourced.forEach(log => {
-    const d = log.dateReported ? Math.floor((new Date()-new Date(log.dateReported))/(1000*60*60*24)) : null;
-    const daysCls = log.status==='Yes'?'#15803D':d>=6?'#7F1D1D':d>=3?'#B91C1C':'#D97706';
-    const statusStyle = log.status==='Yes'?'background:#DCFCE7;color:#15803D':'background:#FEF3C7;color:#D97706';
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '0.5px solid #F1F5F9';
-    tr.innerHTML = `
-      <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#7C3AED;">${log.logId||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.dateReported||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.outlet||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;max-width:200px;">${log.description||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#1A3C5E;">${log.assignedTo||'—'}</td>
-      <td style="padding:8px 12px;"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;${statusStyle}">${log.status==='Yes'?'✅ Done':'⏳ Pending'}</span></td>
-      <td style="padding:8px 12px;font-size:11px;font-weight:700;color:${daysCls};">${d!==null?d+'d':'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;color:#64748B;">${log.reportedBy||'—'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  // Use renderMaintRow for same layout + Edit/Delete/Save as Log tab
+  outsourced.forEach(log => renderMaintRow(log, tbody));
 }
 
 async function dashLoadPreventive() {
@@ -6867,6 +6858,7 @@ function renderMaintCurrentTab() {
   else if (currentMaintTab === 'completed') renderMaintCompleted();
   else if (currentMaintTab === 'weekly') renderMaintWeekly();
   else if (currentMaintTab === 'monthly') renderMaintMonthly();
+  else if (currentMaintTab === 'outsourced') dashRenderOutsourced();
 }
 
 function getMaintFiltered() {

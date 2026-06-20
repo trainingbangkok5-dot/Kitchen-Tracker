@@ -229,7 +229,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     </div>
     <button onclick="submitStaffReport()" style="width:100%;padding:13px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">📝 Submit Report</button>
     <button onclick="viewMyLogs()" style="width:100%;padding:10px;background:#fff;color:#7F1D1D;border:1.5px solid #7F1D1D;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">📋 View My Submitted Requests</button>
-    <button onclick="document.getElementById('staffScreen').style.display='none';document.getElementById('appScreen').style.display='block';loadLogs();setReportTab('preventive');" style="width:100%;padding:10px;background:#fff;color:#1A3C5E;border:1.5px solid #1A3C5E;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">🔧 View Preventive Schedule</button>
+    <button onclick="viewMyPreventive()" style="width:100%;padding:10px;background:#fff;color:#1A3C5E;border:1.5px solid #1A3C5E;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">🔧 View Preventive Schedule</button>
   </div>
 
 
@@ -274,7 +274,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <span id="tabTitle">📋 Maintenance Log</span>
     <button class="add-btn" id="addRowBtn" onclick="addRow()">+ Add New Issue</button>
   </div>
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" id="mainTblWrap">
     <table id="mainTable">
       <thead>
         <tr>
@@ -384,17 +384,26 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
   </div>
   <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <table id="outsourcedTable" style="width:100%;border-collapse:collapse;">
       <thead>
-        <tr style="background:#F8F7F2;">
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Issue / Task</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned To</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days Pending</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+        <tr>
+          <th>Ref #</th>
+          <th>Ref #</th>
+          <th>Date Created</th>
+          <th>Reported By</th>
+          <th>Outlet / Location</th>
+          <th>Issue / Description</th>
+          <th>Photo (Before)</th>
+          <th>Priority</th>
+          <th>Assigned To</th>
+          <th>Completed?</th>
+          <th>Reason / Remarks</th>
+          <th>Date Resolved</th>
+          <th>Days Pending</th>
+          <th>Photo (After)</th>
+          <th>Action</th>
+          <th>Date Resolved</th>
+          <th>Verified By</th>
         </tr>
       </thead>
       <tbody id="outsourcedTbody"></tbody>
@@ -672,7 +681,12 @@ function renderTable() {
   let filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
   // OIC/KIC: show only logs they submitted
   if (staffOnly) {
-    filtered = filtered.filter(l => (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim());
+    const _myOutlet = (window._staffOutlet || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    filtered = filtered.filter(l => {
+      const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
+      const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
+      return sameReporter || sameOutlet;
+    });
   }
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
@@ -1220,9 +1234,11 @@ function exportIssuePDF() {
 let currentReportTab = 'log';
 
 function setReportTab(tab) {
-  // Access control — OIC/KIC can only see log and preventive (view only)
+  // Access control
   const staffOnly = ['kic','oic'].includes(currentRole);
-  const allowed = staffOnly ? ['log','preventive'] : ['log','weekly','monthly','preventive','outsourced'];
+  const allowed = staffOnly
+    ? ['log','preventive','outsourced']   // OIC/KIC can see all 3 — view only
+    : ['log','weekly','monthly','preventive','outsourced'];
   if (!allowed.includes(tab)) return;
 
   currentReportTab = tab;
@@ -1246,7 +1262,7 @@ function setReportTab(tab) {
   if (addBtn) addBtn.style.display = tab==='log' && !staffOnly ? 'block' : 'none';
 
   // Show/hide panels
-  const tblWrap = document.querySelector('.tbl-wrap');
+  const tblWrap = document.getElementById('mainTblWrap');
   const prevPanel = document.getElementById('preventivePanel');
   const outsPanel = document.getElementById('outsourcedPanel');
   if (tblWrap) tblWrap.style.display = (tab==='preventive'||tab==='outsourced') ? 'none' : '';
@@ -1261,11 +1277,10 @@ function setReportTab(tab) {
 // Hide tabs OIC/KIC cannot access
 function applyTabAccess() {
   const staffOnly = ['kic','oic'].includes(currentRole);
-  ['weekly','monthly','outsourced'].forEach(t => {
+  ['weekly','monthly'].forEach(t => {
     const btn = document.getElementById('rtab-'+t);
     if (btn) btn.style.display = staffOnly ? 'none' : '';
   });
-  // OIC/KIC: log is view-only — hide add row button
   const addBtn = document.getElementById('addRowBtn');
   if (addBtn && staffOnly) addBtn.style.display = 'none';
 }
@@ -1685,6 +1700,7 @@ function submitStaffReport() {
   const date     = document.getElementById('sr_date').value || getDubaiDate();
   const reporter = document.getElementById('sr_reporter').value.trim() || currentName;
   const outlet   = document.getElementById('sr_outlet').value;
+  if (outlet) { window._staffOutlet = outlet; try { sessionStorage.setItem('maint_outlet', outlet); } catch(e) {} }
   const desc     = document.getElementById('sr_desc').value.trim();
   const remarks  = document.getElementById('sr_remarks').value.trim();
 
@@ -1716,6 +1732,9 @@ function resetStaffForm() {
   srPriority = ''; srPhoto = '';
   document.getElementById('sr_date').value = getDubaiDate();
   document.getElementById('sr_reporter').value = currentName;
+  // Restore outlet filter from saved session
+  const _savedOutlet = sessionStorage.getItem('maint_outlet');
+  if (_savedOutlet) { window._staffOutlet = _savedOutlet; const sel = document.getElementById('sr_outlet'); if(sel) sel.value = _savedOutlet; }
   document.getElementById('sr_outlet').value = '';
   document.getElementById('sr_desc').value = '';
   document.getElementById('sr_remarks').value = '';
@@ -1734,12 +1753,26 @@ function renderOutsourcedTab() {
   const emptyEl = document.getElementById('outsourcedEmpty');
   if (!tbody) return;
 
+  const staffOnly = ['kic','oic'].includes(currentRole);
+
   // Filter: Preventive priority AND assigned to non-internal person
-  const outsourced = allLogs.filter(l => {
+  // OIC/KIC: only see their own submitted logs
+  let outsourced = allLogs.filter(l => {
     if (l.priority !== 'Preventive') return false;
     const assigned = (l.assignedTo || '').trim();
     return !INTERNAL_TEAM.includes(assigned);
-  }).sort((a,b) => (b.dateReported||'').localeCompare(a.dateReported||''));
+  });
+
+  if (staffOnly) {
+    const _myOutlet = (window._staffOutlet || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    outsourced = outsourced.filter(l => {
+      const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
+      const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
+      return sameReporter || sameOutlet;
+    });
+  }
+
+  outsourced = outsourced.sort((a,b) => (b.dateReported||'').localeCompare(a.dateReported||''));
 
   tbody.innerHTML = '';
   if (!outsourced.length) {
@@ -1748,33 +1781,28 @@ function renderOutsourcedTab() {
   }
   if (emptyEl) emptyEl.style.display = 'none';
 
-  const priColors = {Urgent:'#B91C1C',High:'#D97706',Medium:'#0891B2',Low:'#15803D',Preventive:'#7C3AED'};
-  outsourced.forEach(log => {
-    const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
-    const daysCls = log.status==='Yes' ? 'days-done' : days >= 6 ? 'days-crit' : days >= 3 ? 'days-warn' : 'days-ok';
-    const daysLbl = days !== null ? days+'d' : '—';
-    const statusStyle = log.status==='Yes' ? 'background:#DCFCE7;color:#15803D' : 'background:#FEF3C7;color:#D97706';
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '0.5px solid #F1F5F9';
-    tr.innerHTML = `
-      <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#7C3AED;white-space:nowrap;">${log.logId||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.dateReported||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.outlet||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;max-width:200px;">${log.description||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#1A3C5E;">${log.assignedTo||'—'}</td>
-      <td style="padding:8px 12px;"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;${statusStyle}">${log.status==='Yes'?'✅ Done':'⏳ Pending'}</span></td>
-      <td style="padding:8px 12px;"><span class="days-badge ${daysCls}">${daysLbl}</span></td>
-      <td style="padding:8px 12px;font-size:12px;color:#64748B;">${log.reportedBy||'—'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  // Use renderLogRow for same layout/functionality as Log tab
+  outsourced.forEach(log => renderLogRow(log, tbody));
 }
 
 // ── OIC/KIC — View My Submitted Logs ─────────────────────────
 function viewMyLogs() {
   document.getElementById('staffScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
+  // Save outlet for filtering
+  const outlet = document.getElementById('sr_outlet')?.value || '';
+  if (outlet) window._staffOutlet = outlet;
+  if (!allLogs.length) loadLogs();
   setReportTab('log');
+}
+
+function viewMyPreventive() {
+  document.getElementById('staffScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  const outlet = document.getElementById('sr_outlet')?.value || '';
+  if (outlet) window._staffOutlet = outlet;
+  if (!allLogs.length) loadLogs();
+  setReportTab('preventive');
 }
 
 // ── Reminder Alerts ───────────────────────────────────────────
