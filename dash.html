@@ -9056,15 +9056,19 @@ function loadMaintenanceLogs() {
     return;
   }
   document.getElementById('maintStatus').textContent = '⏳ Loading...';
-  // Load last 200 records ordered by date — enough for any active period
-  maintenanceDb.ref('maintenanceLogs').limitToLast(200).once('value', snap => {
+  // Load all records — NO orderByChild (it drops records missing the field); fall back to dateReported for sort
+  maintenanceDb.ref('maintenanceLogs').limitToLast(500).once('value', snap => {
     allMaintenanceLogs = [];
     if (snap.exists()) {
       snap.forEach(child => {
         const v = child.val(); v._key = child.key;
         allMaintenanceLogs.push(v);
       });
-      allMaintenanceLogs.sort((a,b) => new Date(b.loggedAt||0) - new Date(a.loggedAt||0));
+      allMaintenanceLogs.sort((a,b) => {
+        const ta = new Date(a.loggedAt || a.dateReported || 0).getTime();
+        const tb = new Date(b.loggedAt || b.dateReported || 0).getTime();
+        return tb - ta;
+      });
     }
     document.getElementById('maintStatus').textContent = '✅ ' + allMaintenanceLogs.length + ' records';
     renderMaintCurrentTab();

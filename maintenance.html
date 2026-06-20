@@ -158,6 +158,8 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <option value="training">Admin</option>
       <option value="maintenance">Maintenance Team</option>
       <option value="maintsupervisor">Maintenance Supervisor</option>
+      <option value="cksupervisor">CK Supervisor</option>
+      <option value="ckqa">CK-QA</option>
     </select>
 
     <div class="pin-row" id="pinRow">
@@ -542,7 +544,7 @@ function doLogin() {
   const dashLnk = document.getElementById('dashLink');
   if (dashLnk) dashLnk.style.display = 'block';
   const staffRoles = ['kic','oic'];
-  const maintRoles = ['maintenance','maintsupervisor'];
+  const maintRoles = ['maintenance','maintsupervisor','cksupervisor','ckqa'];
   if (staffRoles.includes(role)) {
     // KIC/OIC — show both submit form AND log view
     document.getElementById('staffScreen').style.display = 'block';
@@ -1385,7 +1387,7 @@ function renderMonthlyReport() {
 }
 
 function renderLogRow(log, tbody) {
-  const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor'].includes(currentRole);
+  const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor','cksupervisor','ckqa'].includes(currentRole);
   const canSetPriority = ['director','maintsupervisor'].includes(currentRole);
   const canAssign = ['director','maintsupervisor'].includes(currentRole);
   const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
