@@ -562,11 +562,12 @@ function doLogin() {
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('staffScreen').style.display = 'none';
     loadLogs();
-    setReportTab('preventive');
+    setReportTab('log');
   } else {
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('staffScreen').style.display = 'none';
     loadLogs();
+    setReportTab('log');
   }
   applyTabAccess();
   if (['maintsupervisor','director','ceo','training','operations','areachef','areamanager'].includes(currentRole)) {
