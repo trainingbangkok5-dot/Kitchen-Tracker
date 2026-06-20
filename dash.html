@@ -1670,7 +1670,7 @@ function loadData() {
     rawFiltered.forEach(s => {
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
+      const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
         const rec = {...s};
         // Opening-only record — clear any stale closingPct
@@ -1724,7 +1724,7 @@ function loadData() {
     combined.forEach(s => {
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      const key = (s.staffName||'') + '_' + (s.role||'') + '_' + subDate;
+      const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key]) {
         const rec2 = {...s};
         // Opening-only record — clear any stale closingPct
@@ -1935,9 +1935,10 @@ function ssBuildDailyBreakdown(rowsForEmployee) {
 
 // Consolidate raw role-level records into one record per employee per week
 function ssConsolidateByEmployee(rows) {
+  const normN = n => (n||'').toLowerCase().trim().replace(/\s+/g,' ');
   const byRole = {};
   rows.forEach(s => {
-    const roleKey = s.staffName + '_' + s.role + '_' + s.outlet + '_' + s.week;
+    const roleKey = normN(s.staffName) + '_' + s.role + '_' + (s.outlet||'').toLowerCase().trim() + '_' + s.week;
     if (!byRole[roleKey]) {
       byRole[roleKey] = {
         staffName: s.staffName, role: s.role, outlet: s.outlet, week: s.week,
@@ -1993,7 +1994,7 @@ function ssConsolidateByEmployee(rows) {
   // Group role summaries by employee + outlet + week
   const byEmployee = {};
   roleSummaries.forEach(rs => {
-    const empKey = rs.staffName + '_' + rs.outlet + '_' + rs.week;
+    const empKey = (rs.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (rs.outlet||'').toLowerCase().trim() + '_' + rs.week;
     if (!byEmployee[empKey]) {
       byEmployee[empKey] = {
         staffName: rs.staffName, outlet: rs.outlet, week: rs.week,
