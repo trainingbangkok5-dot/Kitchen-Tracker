@@ -258,11 +258,9 @@ function pushToFirebase(record) {
       lastUpdated: new Date().toISOString()
     }).then(() => {
       showToast('✓ Synced to dashboard', 'ok');
-      hideSyncError();
     }).catch(e => {
       console.warn('Firebase write failed:', e);
-      showSyncError('Sync failed — will retry automatically. (' + e.message + ')');
-      queueRetry(record);
+      showToast('⚠ Sync failed: ' + e.message, 'error');
     });
     // Also write per-day score to days/{date} node for daily breakdown report
     try {
@@ -275,42 +273,8 @@ function pushToFirebase(record) {
     } catch(e) { console.warn('Daily score write failed:', e); }
   } catch(e) {
     console.warn('Firebase error:', e);
-    showSyncError('Firebase error — will retry. (' + e.message + ')');
-    queueRetry(record);
+    showToast('⚠ Firebase error: ' + e.message, 'error');
   }
-}
-
-function showSyncError(msg) {
-  let el = document.getElementById('syncErrorBanner');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'syncErrorBanner';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
-    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
-    document.body.prepend(el);
-  }
-  document.getElementById('syncErrorMsg').textContent = '⚠️ ' + msg;
-  el.style.display = 'flex';
-}
-function hideSyncError() {
-  const el = document.getElementById('syncErrorBanner');
-  if (el) el.style.display = 'none';
-}
-const _retryQueue = [];
-function queueRetry(record) {
-  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
-    _retryQueue.push(record);
-  }
-  setTimeout(retryPendingSync, 30000);
-}
-function retryPendingSync() {
-  if (!_retryQueue.length) return;
-  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
-  [..._retryQueue].forEach(record => {
-    const idx = _retryQueue.indexOf(record);
-    pushToFirebase(record);
-    _retryQueue.splice(idx, 1);
-  });
 }
 
 
@@ -656,6 +620,7 @@ function clearAllData() {
   localStorage.removeItem(SK);
   showToast('Data cleared — fresh start ✓', 'ok');
   currentShift = null;
+  try { localStorage.removeItem('steward_currentShift_' + getTodayKey()); } catch(e) {}
   buildDayRail();
   renderDay();
 }
@@ -797,17 +762,6 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
-function getWeekStartFromDate(dubaiDateStr) {
-  try {
-    const parts = dubaiDateStr.split('-');
-    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-    const dow = d.getDay();
-    const diff = (dow === 0) ? -6 : 1 - dow;
-    d.setDate(d.getDate() + diff);
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  } catch(e) { return null; }
-}
-
 function getWeekStart() {
   // Always compute Monday of current Dubai week to ensure consistent week grouping
   // regardless of what today's date is or what is stored in fWeek
@@ -853,6 +807,7 @@ function selectShift(shift) {
     }
   }
   currentShift = shift;
+  try { localStorage.setItem('steward_currentShift_' + getTodayKey(), shift); } catch(e) {}
   window._selectShiftReady = null;
   window._pendingShift = null;
   const _shiftHour = getDubaiHour();
@@ -891,15 +846,7 @@ function renderDay() {
   const isDone = !!data[dayKey]?._closeDone || !!data[dayKey]?._done;
   const openingDone2 = !!data[dayKey]?._openDone;
   const closingDone  = !!data[dayKey]?._closeDone;
-  // For closing shift submitted after midnight, use opening shift's week
-  let weekStart = getWeekStart();
-  if (currentShift === 'closing' && d[dayKey] && d[dayKey]._openDone) {
-    try {
-      const _openDt = new Date(d[dayKey]._openDone).toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
-      const _openWk = getWeekStartFromDate(_openDt);
-      if (_openWk) weekStart = _openWk;
-    } catch(e) {}
-  }
+  const weekStart = getWeekStart();
   const unlocked  = !weekStart || isDayUnlocked(currentDay, weekStart);
   let total = 0, yes = 0;
 
@@ -1240,7 +1187,7 @@ function submitOpening() {
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
   // Mandatory photo check
-  const hasPhotoForTask = (tid) => !!(getVal(currentDay, tid, 'photo') || getVal(currentDay, tid, 'photo_0') || getVal(currentDay, tid, 'photoUrl'));
+  const hasPhotoForTask = (tid) => !!(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => !!getVal(currentDay, tid, pk)));
   const missingPhoto = openingTasks.filter(t => t.photo && !hasPhotoForTask(t.id));
   if (missingPhoto.length > 0) { showToast('📷 Photo required for all opening tasks before submitting', 'warn'); return; }
   const d = load();
@@ -1307,7 +1254,7 @@ function submitDay() {
   const closingTasks = SECTIONS[1].tasks;
   const unanswered = closingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Closing Tasks first', 'warn'); return; }
-  const hasPhotoForClosingTask = (tid) => !!(getVal(currentDay, tid, 'photo') || getVal(currentDay, tid, 'photo_0') || getVal(currentDay, tid, 'photoUrl'));
+  const hasPhotoForClosingTask = (tid) => !!(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => !!getVal(currentDay, tid, pk)));
   const missingClosingPhoto = closingTasks.filter(t => t.photo && !hasPhotoForClosingTask(t.id));
   if (missingClosingPhoto.length > 0) { showToast('📷 Photo required for all closing tasks before submitting', 'warn'); return; }
   const d = load();
@@ -1533,6 +1480,12 @@ window.addEventListener('DOMContentLoaded', () => {
       btnC.textContent = `🌙 Closing (opens 3PM)`;
     }
   })();
+
+  // Restore currentShift — survives photo-triggered page reload
+  const _savedShift = localStorage.getItem('steward_currentShift_' + getTodayKey());
+  if (_savedShift === 'opening' || _savedShift === 'closing') {
+    currentShift = _savedShift;
+  }
 
   try { renderDay(); } catch(e) {
     document.getElementById('mainContent').innerHTML = '<div style="padding:20px;color:red;font-size:12px;background:#fff;">Error: ' + e.message + '<br>' + e.stack + '</div>';
