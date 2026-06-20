@@ -382,25 +382,34 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🏗️ Outsourced Preventive Maintenance</div>
     <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
   </div>
-  <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+  <div class="tbl-wrap" style="overflow-x:auto;">
+    <table id="outsourcedTable">
       <thead>
-        <tr style="background:#F8F7F2;">
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Issue / Task</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned To</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days Pending</th>
-          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+        <tr>
+          <th>Ref #</th>
+          <th>Ref #</th>
+          <th>Date Created</th>
+          <th>Reported By</th>
+          <th>Outlet / Location</th>
+          <th>Issue / Description</th>
+          <th>Photo (Before)</th>
+          <th>Priority</th>
+          <th>Assigned To</th>
+          <th>Completed?</th>
+          <th>Reason / Remarks</th>
+          <th>Date Resolved</th>
+          <th>Days Pending</th>
+          <th>Photo (After)</th>
+          <th>Action</th>
+          <th>Date Resolved</th>
+          <th>Verified By</th>
         </tr>
       </thead>
       <tbody id="outsourcedTbody"></tbody>
     </table>
   </div>
   <div id="outsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">
-    No outsourced preventive tasks found.<br>Tasks with Preventive priority assigned to external contractors will appear here automatically.
+    No outsourced tasks found.<br>Logs with Preventive priority assigned to external contractors will appear here automatically.
   </div>
 </div>
 
@@ -674,12 +683,25 @@ function updateStats() {
 
 // ── Render Table ─────────────────────────────────────────────
 function renderTable() {
+  if (!db) return;
+  // Show loading while Firebase responds
+  if (!allLogs.length && db) {
+    const tb = document.getElementById('tableBody');
+    if (tb) tb.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading records...</td></tr>';
+    document.getElementById('tableEmpty').style.display = 'none';
+    return;
+  }
   // Log tab shows only non-completed — completed items go to Completed tab
   const staffOnly = ['kic','oic'].includes(currentRole);
   let filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
-  // OIC/KIC: show only logs they submitted
+  // OIC/KIC: show logs they submitted OR from their outlet
   if (staffOnly) {
-    filtered = filtered.filter(l => (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim());
+    const _myOutlet = (window._staffOutlet || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    filtered = filtered.filter(l => {
+      const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
+      const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
+      return sameReporter || sameOutlet;
+    });
   }
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
@@ -1268,7 +1290,8 @@ function setReportTab(tab) {
 // Hide tabs OIC/KIC cannot access
 function applyTabAccess() {
   const staffOnly = ['kic','oic'].includes(currentRole);
-  ['weekly','monthly','outsourced'].forEach(t => {
+  // OIC/KIC see Log, Outsourced, Monthly Preventive (view only) — only Weekly/Monthly reports hidden
+  ['weekly','monthly'].forEach(t => {
     const btn = document.getElementById('rtab-'+t);
     if (btn) btn.style.display = staffOnly ? 'none' : '';
   });
@@ -1740,13 +1763,34 @@ function renderOutsourcedTab() {
   const tbody = document.getElementById('outsourcedTbody');
   const emptyEl = document.getElementById('outsourcedEmpty');
   if (!tbody) return;
+  // Show loading while Firebase responds
+  if (!allLogs.length && db) {
+    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading records...</td></tr>';
+    if (emptyEl) emptyEl.style.display = 'none';
+    return;
+  }
 
-  // Filter: Preventive priority AND assigned to non-internal person
-  const outsourced = allLogs.filter(l => {
+  const staffOnly = ['kic','oic'].includes(currentRole);
+
+  // Filter: Preventive priority + external contractor + active (not completed)
+  let outsourced = allLogs.filter(l => {
     if (l.priority !== 'Preventive') return false;
     const assigned = (l.assignedTo || '').trim();
-    return !INTERNAL_TEAM.includes(assigned);
-  }).sort((a,b) => (b.dateReported||'').localeCompare(a.dateReported||''));
+    if (!assigned || INTERNAL_TEAM.includes(assigned)) return false;
+    return l.status !== 'Yes' && l.status !== 'Completed'; // completed go to Completed tab
+  });
+
+  // OIC/KIC: only their own submissions or their outlet
+  if (staffOnly) {
+    const _myOutlet = (window._staffOutlet || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
+    outsourced = outsourced.filter(l => {
+      const sameReporter = (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim();
+      const sameOutlet = _myOutlet && (l.outlet||'').toLowerCase().trim() === _myOutlet;
+      return sameReporter || sameOutlet;
+    });
+  }
+
+  outsourced = outsourced.sort((a,b) => (b.dateReported||'').localeCompare(a.dateReported||''));
 
   tbody.innerHTML = '';
   if (!outsourced.length) {
@@ -1755,32 +1799,19 @@ function renderOutsourcedTab() {
   }
   if (emptyEl) emptyEl.style.display = 'none';
 
-  const priColors = {Urgent:'#B91C1C',High:'#D97706',Medium:'#0891B2',Low:'#15803D',Preventive:'#7C3AED'};
-  outsourced.forEach(log => {
-    const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
-    const daysCls = log.status==='Yes' ? 'days-done' : days >= 6 ? 'days-crit' : days >= 3 ? 'days-warn' : 'days-ok';
-    const daysLbl = days !== null ? days+'d' : '—';
-    const statusStyle = log.status==='Yes' ? 'background:#DCFCE7;color:#15803D' : 'background:#FEF3C7;color:#D97706';
-    const tr = document.createElement('tr');
-    tr.style.borderBottom = '0.5px solid #F1F5F9';
-    tr.innerHTML = `
-      <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#7C3AED;white-space:nowrap;">${log.logId||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.dateReported||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.outlet||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;max-width:200px;">${log.description||'—'}</td>
-      <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#1A3C5E;">${log.assignedTo||'—'}</td>
-      <td style="padding:8px 12px;"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;${statusStyle}">${log.status==='Yes'?'✅ Done':'⏳ Pending'}</span></td>
-      <td style="padding:8px 12px;"><span class="days-badge ${daysCls}">${daysLbl}</span></td>
-      <td style="padding:8px 12px;font-size:12px;color:#64748B;">${log.reportedBy||'—'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  // Same layout + Edit/Save/Delete as Log tab
+  outsourced.forEach(log => renderLogRow(log, tbody));
 }
 
 // ── OIC/KIC — View My Submitted Logs ─────────────────────────
 function viewMyLogs() {
   document.getElementById('staffScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
+  // Save outlet for filtering
+  const outlet = document.getElementById('sr_outlet')?.value || '';
+  if (outlet) { window._staffOutlet = outlet; try { sessionStorage.setItem('maint_outlet', outlet); } catch(e) {} }
+  // Always (re)load logs so records appear
+  if (db) loadLogs();
   setReportTab('log');
 }
 
