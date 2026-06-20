@@ -724,18 +724,6 @@ function renderTable() {
   // Log tab shows only non-completed — completed items go to Completed tab
   const staffOnly = ['kic','oic'].includes(currentRole);
   let filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
-  // On-screen diagnostic — shows why records may be hidden
-  try {
-    var _dbg = document.getElementById('renderDebug');
-    if (!_dbg) {
-      _dbg = document.createElement('div');
-      _dbg.id = 'renderDebug';
-      _dbg.style.cssText = 'font-size:10px;color:#94A3B8;padding:4px 16px;background:#FFFBEB;border-bottom:1px solid #FDE68A;';
-      const wrap = document.getElementById('mainTblWrap');
-      if (wrap && wrap.parentElement) wrap.parentElement.insertBefore(_dbg, wrap);
-    }
-    _dbg.textContent = 'Diagnostic: total=' + allLogs.length + ' · role=' + (currentRole||'?') + ' · afterStatusFilter=' + filtered.length + (staffOnly ? ' · staffMode(name='+currentName+')' : ' · fullAccess');
-  } catch(e) {}
   // OIC/KIC: show logs they submitted OR from their outlet
   if (staffOnly) {
     const _myOutlet = (window._staffOutlet || (function(){try{return sessionStorage.getItem('maint_outlet')||''}catch(e){return ''}})() || document.getElementById('sr_outlet')?.value || '').toLowerCase().trim();
