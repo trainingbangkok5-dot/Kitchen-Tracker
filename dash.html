@@ -1673,7 +1673,22 @@ function loadData() {
       s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
+      // For closing shifts that crossed midnight into next week, map back to previous week
+      const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
+      let effectiveDate = subDate;
+      if (_isClosing && subDate) {
+        try {
+          const _d = new Date(subDate + 'T00:00:00');
+          const _dow = _d.getDay(); // 1=Monday = start of week
+          if (_dow === 1) { // subDate IS a Monday = closing rolled into next week
+            _d.setDate(_d.getDate() - 7);
+            effectiveDate = _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
+            effectiveDate = normalizeWeek(effectiveDate);
+          }
+        } catch(e) {}
+      }
+      const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + effectiveDate;
+
       if (!dedupBOH[key]) {
         const rec = {...s};
         // Normalize week at load time so all records use consistent YYYY-MM-DD format
@@ -1732,7 +1747,22 @@ function loadData() {
       s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
+      // For closing shifts that crossed midnight into next week, map back to previous week
+      const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
+      let effectiveDate = subDate;
+      if (_isClosing && subDate) {
+        try {
+          const _d = new Date(subDate + 'T00:00:00');
+          const _dow = _d.getDay(); // 1=Monday = start of week
+          if (_dow === 1) { // subDate IS a Monday = closing rolled into next week
+            _d.setDate(_d.getDate() - 7);
+            effectiveDate = _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
+            effectiveDate = normalizeWeek(effectiveDate);
+          }
+        } catch(e) {}
+      }
+      const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + effectiveDate;
+
       if (!dedupMap[key]) {
         const rec2 = {...s};
         // Normalize week at load time
@@ -2859,7 +2889,8 @@ function openMonthlyDetail(staffName, allSubs) {
       if (!sub.taskData) return;
       Object.entries(sub.taskData).forEach(([k,t]) => {
         t.taskKey = k;
-        if (!t.yn || t.yn === '') return;
+        const hasContent = t.yn || (t.photoUrls && t.photoUrls.length) || t.photoUrl || t.hasPhoto;
+        if (!hasContent) return;
         const d = t.day||1;
         if (!byDay[d]) byDay[d] = [];
         if (!byDay[d].find(x => x.taskKey === k)) byDay[d].push(t);
@@ -3119,9 +3150,10 @@ function openStaffDetail(s) {
   const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
   // Force closingPct=null for opening-only records
   // A record is opening-only if: status=opening_submitted OR key ends with _opening OR no status but has openingPct
-  const _isOpeningOnly = s.status === 'opening_submitted' 
-    || (s._fbKey && s._fbKey.endsWith('_opening'))
-    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  // Opening-only: only if closingPct is genuinely null/missing
+  // Don't rely solely on status — closing submitted at 1AM may merge with opening record
+  const _isOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
+    && (s.closingPct == null || s.closingPct === undefined);
   const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   // Clean stale closingPct from Firebase permanently
   if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
@@ -4832,9 +4864,10 @@ async function exportDetailPDF() {
   const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
   // Force closingPct=null for opening-only records
   // A record is opening-only if: status=opening_submitted OR key ends with _opening OR no status but has openingPct
-  const _isOpeningOnly = s.status === 'opening_submitted' 
-    || (s._fbKey && s._fbKey.endsWith('_opening'))
-    || (!s.status && s.openingPct != null && s.shift !== 'closing');
+  // Opening-only: only if closingPct is genuinely null/missing
+  // Don't rely solely on status — closing submitted at 1AM may merge with opening record
+  const _isOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
+    && (s.closingPct == null || s.closingPct === undefined);
   const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   // Clean stale closingPct from Firebase permanently
   if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
@@ -6287,10 +6320,9 @@ function updateLiveScore() {
     else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
   const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
-  // For closing: only show if closing tasks actually answered in this record
-  const _lsIsOpeningOnly = (s.status === 'opening_submitted'
-    || (s._fbKey && s._fbKey.endsWith('_opening') && s.closingPct == null)
-    || (!s.status && s.openingPct != null && s.shift !== 'closing' && s.closingPct == null));
+  // Opening-only only if closingPct is genuinely absent
+  const _lsIsOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
+    && (s.closingPct == null || s.closingPct === undefined);
   const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
   const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
   // Total score formula:
@@ -6543,7 +6575,10 @@ async function saveOverwrite(s) {
   } else if (s.status === 'opening_submitted') {
     await _saveDb.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
   }
-  if (ePct !== null) updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
+  if (ePct !== null) {
+    updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
+    s.oicEvalPct = ePct; // update in-memory immediately so badge disappears right away
+  }
 
   try {
     await _saveDb.ref().update(updates);
@@ -6574,6 +6609,8 @@ async function saveOverwrite(s) {
     } else {
       openStaffDetail(s);
     }
+    // Re-render table so AC/AM Eval Needed badge disappears immediately
+    if (_isFOHRecord) renderFOHStaff(); else renderBOHStaff();
   } catch(e) {
     alert('Save failed: ' + e.message + '. Please try again.');
     console.error('saveOverwrite error:', e);
@@ -7793,21 +7830,40 @@ function openFOHDetail(idx) {
       document.getElementById('fohChecklistArea').innerHTML = '<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;">No checklist data found for this week.</div>';
       return;
     }
-    // Deduplicate subs — for each unique date keep only the most recent submission
+    // Merge ALL subs — for each date merge opening + closing taskData together
     const subsByDate = {};
     subs.forEach(sub => {
       const d = sub.submittedAt ? sub.submittedAt.substring(0,10) : (sub.week || 'unknown');
-      if (!subsByDate[d] || sub.submittedAt > subsByDate[d].submittedAt) {
-        subsByDate[d] = sub;
+      if (!subsByDate[d]) {
+        subsByDate[d] = {...sub, taskData: {...(sub.taskData||{})}};
+      } else {
+        // Merge taskData — opening + closing tasks combined
+        Object.entries(sub.taskData||{}).forEach(([k,t]) => {
+          if (!subsByDate[d].taskData[k]) subsByDate[d].taskData[k] = t;
+          else {
+            // Merge: keep yn if set, merge photos
+            const existing = subsByDate[d].taskData[k];
+            if (!existing.yn && t.yn) existing.yn = t.yn;
+            if (!existing.photoUrls && t.photoUrls) existing.photoUrls = t.photoUrls;
+            else if (t.photoUrls) existing.photoUrls = [...(existing.photoUrls||[]), ...t.photoUrls].filter((u,i,a)=>a.indexOf(u)===i);
+            if (!existing.photoUrl && t.photoUrl) existing.photoUrl = t.photoUrl;
+            if (!existing.comment && t.comment) existing.comment = t.comment;
+          }
+        });
+        // Merge scores
+        if (!subsByDate[d].closingPct && sub.closingPct) subsByDate[d].closingPct = sub.closingPct;
+        if (!subsByDate[d].openingPct && sub.openingPct) subsByDate[d].openingPct = sub.openingPct;
+        if (sub.submittedAt > (subsByDate[d].submittedAt||'')) subsByDate[d].submittedAt = sub.submittedAt;
       }
     });
     const dedupedSubs = Object.values(subsByDate);
-    // Group taskData by day then section
+    // Group taskData by day then section — include tasks with photos even without yn
     const byDay = {};
     dedupedSubs.forEach(sub => {
       if (!sub.taskData) return;
       Object.entries(sub.taskData).forEach(([k, t]) => {
-        if (!t.yn || t.yn === '') return;
+        const hasContent = t.yn || (t.photoUrls && t.photoUrls.length) || t.photoUrl || t.hasPhoto;
+        if (!hasContent) return;
         const d = t.day || 1;
         if (!byDay[d]) byDay[d] = [];
         if (!byDay[d].find(x => x._key === k)) byDay[d].push({...t, _key: k});
@@ -8705,6 +8761,8 @@ async function saveFOHOverwrite(staff) {
     }
     // Reopen immediately with updated data
     openFOHDetail(_fohDetailIdx);
+    // Re-render table so AM/OIC Eval Needed badge disappears immediately
+    renderFOHStaff();
     // Also reload in background for next open
     setTimeout(() => loadFOHData(), 3000);
   } catch(e) {

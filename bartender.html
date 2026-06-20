@@ -246,6 +246,17 @@ function getTodayKey() {
     return 'dt'+getDubaiDateStr();
   } catch(e){ return 'dt'+new Date().toISOString().split('T')[0]; }
 }
+function getWeekStartFromDate(dubaiDateStr) {
+  try {
+    const parts = dubaiDateStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay();
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return null; }
+}
+
 function getWeekStart() {
   // Always compute Monday of current Dubai week to ensure consistent week grouping
   // regardless of what today's date is or what is stored in fWeek
@@ -804,8 +815,14 @@ function submitDay() {
       photoUrl:_allPhotos[0]||'',photoUrls:_allPhotos,hasPhoto:_allPhotos.length>0||_hasLocal};
   }));
 
+  // For closing shift submitted after midnight, use opening shift's week
+  const _dayData2 = _d[getTodayKey()]||{};
+  let _weekStart2 = getWeekStart();
+  if (currentShift==='closing' && _dayData2._openDone) {
+    try { const _od=new Date(_dayData2._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)_weekStart2=_ow; } catch(e){}
+  }
   const record={
-    staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:getWeekStart(),
+    staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:_weekStart2,
     verifiedBy: '', // Filled by OIC via dashboard
     shift:currentShift, day:currentDay, overallPct:pct, qualified:pct>=95,
     status: currentShift==='opening' ? 'opening_submitted' : 'closing_submitted',

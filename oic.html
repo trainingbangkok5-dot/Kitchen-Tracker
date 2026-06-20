@@ -864,6 +864,17 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
+function getWeekStartFromDate(dubaiDateStr) {
+  try {
+    const parts = dubaiDateStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay();
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return null; }
+}
+
 function getWeekStart() {
   // Always compute Monday of current Dubai week — never return today's date as the week
   try {
@@ -1220,7 +1231,18 @@ function submitDay() {
   const op = tM > 0 ? Math.round((tY / tM) * 100) : 0;
 
   const outlet = getOutlet();
-  const weekStart = getWeekStart();
+  // For closing shift submitted after midnight (1AM etc.), use the week of the opening shift
+  // so opening + closing always share the same week key and merge correctly in the dashboard
+  let weekStart = getWeekStart();
+  if (currentShift === 'closing' && d[dayKey]._openDone) {
+    try {
+      const openDate = new Date(d[dayKey]._openDone);
+      // Convert opening time to Dubai date string
+      const dubaiOpenStr = openDate.toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
+      const openWeek = getWeekStartFromDate(dubaiOpenStr);
+      if (openWeek) weekStart = openWeek;
+    } catch(e) {}
+  }
 
   const _fbRecord = {
     staffName:  name,

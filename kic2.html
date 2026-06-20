@@ -861,6 +861,17 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
+function getWeekStartFromDate(dubaiDateStr) {
+  try {
+    const parts = dubaiDateStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay();
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return null; }
+}
+
 function getWeekStart() {
   // Always compute Monday of current Dubai week — never store today's date as the week
   const stored = localStorage.getItem('kic_info_kic_fWeek');
@@ -1190,7 +1201,16 @@ function submitDay() {
   let tY=0,tM=0;
   shiftSec.forEach(s=>s.tasks.forEach(t=>{const v=d[dayKey][t.id]?.yn;if(v&&v!=='na'){tM++;if(v==='yes')tY++;}}));
   const op=tM>0?Math.round((tY/tM)*100):0;
-  const outlet=getOutlet(); const weekStart=getWeekStart();
+  const outlet=getOutlet();
+  // For closing shift submitted after midnight, use opening shift's week so records merge correctly
+  let weekStart = getWeekStart();
+  if (currentShift === 'closing' && d[dayKey]._openDone) {
+    try {
+      const _openDt = new Date(d[dayKey]._openDone).toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
+      const _openWk = getWeekStartFromDate(_openDt);
+      if (_openWk) weekStart = _openWk;
+    } catch(e) {}
+  }
   const _fbRecord={
     staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:weekStart,
     verifiedBy:getVerified(), overallPct:op,
