@@ -497,7 +497,7 @@ const DEFAULT_PINS = {
   cksupervisor:'CKSUP2025', ckqa:'CKQA2025'
 };
 let ROLE_PINS = {...DEFAULT_PINS};
-const PIN_ROLES = ['areachef','areamanager','operations','director','ceo','training','cksupervisor','ckqa'];
+const PIN_ROLES = ['areachef','areamanager','operations','director','ceo','training'];
 
 const OUTLETS = ['Head Office','Central Kitchen','Accommodation','THE RED DOOR','LBKK RAK','LBKK Tower','LBKK JLT','SB DEIRA','LBKK OM','LBKK MTC','LBKK Hills','LBKK DSO','SB PAV'];
 const TEAM = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned'];
@@ -1758,12 +1758,13 @@ function renderOutsourcedTab() {
 
   const staffOnly = ['kic','oic'].includes(currentRole);
 
-  // Filter: ANY log assigned to external contractor (not internal team)
+  // Filter: Preventive priority + external contractor + active (not completed)
   // OIC/KIC: only see their own submitted logs
   let outsourced = allLogs.filter(l => {
+    if (l.priority !== 'Preventive') return false;
     const assigned = (l.assignedTo || '').trim();
-    if (!assigned) return false;
-    return !INTERNAL_TEAM.includes(assigned);
+    if (!assigned || INTERNAL_TEAM.includes(assigned)) return false;
+    return l.status !== 'Yes' && l.status !== 'Completed'; // completed go to Completed tab
   });
 
   if (staffOnly) {

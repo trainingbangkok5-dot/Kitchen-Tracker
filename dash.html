@@ -6719,16 +6719,18 @@ function dashRenderOutsourced() {
   const emptyEl = document.getElementById('dashOutsourcedEmpty');
   if (!tbody) return;
   const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
-  // Show ALL logs assigned to external contractors (any priority)
+  // Outsourced = Preventive priority + assigned to external contractor + NOT completed
   const outsourced = (allMaintenanceLogs||[]).filter(l => {
+    if (l.priority !== 'Preventive') return false;
     const assigned = (l.assignedTo||'').trim();
-    if (!assigned) return false; // skip unassigned
-    return !INTERNAL.includes(assigned);
+    if (!assigned) return false;
+    if (INTERNAL.includes(assigned)) return false;
+    // Completed records go to Completed tab
+    return l.status !== 'Yes' && l.status !== 'Completed';
   }).sort((a,b)=>(b.dateReported||'').localeCompare(a.dateReported||''));
   tbody.innerHTML = '';
   if (!outsourced.length) { if(emptyEl) emptyEl.style.display='block'; return; }
   if (emptyEl) emptyEl.style.display='none';
-  // Use renderMaintRow for same layout + Edit/Delete/Save as Log tab
   outsourced.forEach(log => renderMaintRow(log, tbody));
 }
 
@@ -6852,6 +6854,7 @@ function setMaintTab(tab) {
   if (outsPanel) outsPanel.style.display = tab==='outsourced' ? 'block' : 'none';
   if (tab==='preventive') { dashLoadPreventive(); return; }
   if (tab==='outsourced') { renderMaintenanceLogs(); dashRenderOutsourced(); return; }
+  if (tab==='completed') { renderMaintenanceLogs(); renderMaintCompleted(); return; }
   renderMaintCurrentTab();
 }
 
@@ -9074,9 +9077,19 @@ function loadMaintenanceLogs() {
 function renderMaintenanceLogs() {
   // Update stats — count from outsourced only when on outsourced tab
   const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
-  const statsSource = currentMaintTab === 'outsourced'
-    ? (allMaintenanceLogs||[]).filter(l => { const a=(l.assignedTo||'').trim(); return a && !INTERNAL.includes(a); })
-    : allMaintenanceLogs;
+  // Stats reflect the active tab's dataset
+  let statsSource;
+  if (currentMaintTab === 'outsourced') {
+    statsSource = (allMaintenanceLogs||[]).filter(l => {
+      if (l.priority !== 'Preventive') return false;
+      const a = (l.assignedTo||'').trim();
+      return a && !INTERNAL.includes(a);
+    });
+  } else if (currentMaintTab === 'completed') {
+    statsSource = (allMaintenanceLogs||[]).filter(l => l.status === 'Yes' || l.status === 'Completed');
+  } else {
+    statsSource = allMaintenanceLogs;
+  }
   document.getElementById('mStatTotal').textContent = statsSource.length;
   document.getElementById('mStatUrgent').textContent = statsSource.filter(l=>l.priority==='Urgent').length;
   document.getElementById('mStatPending').textContent = statsSource.filter(l=>l.status!=='Yes'&&l.status!=='Completed').length;
@@ -9094,7 +9107,23 @@ function renderMaintenanceLogs() {
 }
 
 function renderMaintCompleted() {
-  const completedLogs = getMaintFiltered().filter(l => l.status === 'Yes' || l.status === 'Completed');
+  const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
+  // Include completed outsourced preventive records
+  const completedOutsourced = (allMaintenanceLogs||[]).filter(l => {
+    if (l.priority !== 'Preventive') return false;
+    const a = (l.assignedTo||'').trim();
+    if (!a || INTERNAL.includes(a)) return false;
+    return l.status === 'Yes' || l.status === 'Completed';
+  });
+  const completedRegular = getMaintFiltered().filter(l => l.status === 'Yes' || l.status === 'Completed');
+  // Merge and deduplicate by _key
+  const seen = new Set();
+  const completedLogs = [...completedRegular, ...completedOutsourced].filter(l => {
+    const k = l._key || l.logId;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).sort((a,b)=>(b.dateReported||'').localeCompare(a.dateReported||''));
   const tbody = document.getElementById('maintTableBody');
   tbody.innerHTML = '';
   const emptyEl = document.getElementById('maintEmpty');
