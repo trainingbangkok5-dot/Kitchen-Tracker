@@ -228,6 +228,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <input class="f-inp" id="sr_remarks" type="text" placeholder="Any additional notes..." style="margin-bottom:0">
     </div>
     <button onclick="submitStaffReport()" style="width:100%;padding:13px;background:#7F1D1D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">📝 Submit Report</button>
+    <button onclick="viewMyLogs()" style="width:100%;padding:10px;background:#fff;color:#7F1D1D;border:1.5px solid #7F1D1D;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">📋 View My Submitted Requests</button>
     <button onclick="document.getElementById('staffScreen').style.display='none';document.getElementById('appScreen').style.display='block';loadLogs();setReportTab('preventive');" style="width:100%;padding:10px;background:#fff;color:#1A3C5E;border:1.5px solid #1A3C5E;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:8px;">🔧 View Preventive Schedule</button>
   </div>
 
@@ -260,7 +261,8 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <button id="rtab-log" onclick="setReportTab('log')" style="padding:7px 14px;font-size:12px;font-weight:600;border:none;background:#7F1D1D;color:#fff;border-radius:8px 8px 0 0;cursor:pointer;">📋 Log</button>
     <button id="rtab-weekly" onclick="setReportTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
     <button id="rtab-monthly" onclick="setReportTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
-    <button id="rtab-preventive" onclick="setReportTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Preventive</button>
+    <button id="rtab-outsourced" onclick="setReportTab('outsourced')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🏗️ Outsourced</button>
+    <button id="rtab-preventive" onclick="setReportTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Monthly Preventive</button>
     <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;gap:6px;padding:4px;">
       <input type="date" id="filterFrom" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;" onchange="renderCurrentTab()">
       <span style="font-size:11px;color:#64748B">to</span>
@@ -372,6 +374,34 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       </div>
     </div>
     <div id="issueDetailBody" style="padding:16px;"></div>
+  </div>
+</div>
+
+<!-- Outsourced Preventive Panel -->
+<div id="outsourcedPanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
+  <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+    <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🏗️ Outsourced Preventive Maintenance</div>
+    <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#F8F7F2;">
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Issue / Task</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned To</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days Pending</th>
+          <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+        </tr>
+      </thead>
+      <tbody id="outsourcedTbody"></tbody>
+    </table>
+  </div>
+  <div id="outsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">
+    No outsourced preventive tasks found.<br>Tasks with Preventive priority assigned to external contractors will appear here automatically.
   </div>
 </div>
 
@@ -505,8 +535,8 @@ function doLogin() {
   if (dashLnk) dashLnk.style.display = 'block';
   const staffRoles = ['kic','oic'];
   const maintRoles = ['maintenance','maintsupervisor'];
-  const maintTeamRoles = ['maintenance'];
   if (staffRoles.includes(role)) {
+    // KIC/OIC — show both submit form AND log view
     document.getElementById('staffScreen').style.display = 'block';
     document.getElementById('appScreen').style.display = 'none';
     document.getElementById('sr_date').value = getDubaiDate();
@@ -516,10 +546,8 @@ function doLogin() {
     document.getElementById('sr_priorityBtns').style.display = canSetPriority ? 'flex' : 'none';
     document.getElementById('sr_priorityLockedMsg').style.display = canSetPriority ? 'none' : 'block';
     if (!canSetPriority) srPriority = 'Unassigned';
-    // Load logs to get correct logCounter
     setTimeout(() => { if (db) loadLogs(); }, 1000);
   } else if (maintRoles.includes(role)) {
-    // Maintenance team: show appScreen with preventive tab active
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('staffScreen').style.display = 'none';
     loadLogs();
@@ -528,6 +556,10 @@ function doLogin() {
     document.getElementById('appScreen').style.display = 'block';
     document.getElementById('staffScreen').style.display = 'none';
     loadLogs();
+  }
+  applyTabAccess();
+  if (['maintsupervisor','director','ceo','training','operations','areachef','areamanager'].includes(currentRole)) {
+    scheduleReminders();
   }
 }
 
@@ -636,8 +668,12 @@ function updateStats() {
 // ── Render Table ─────────────────────────────────────────────
 function renderTable() {
   // Log tab shows only non-completed — completed items go to Completed tab
-  const filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
-  const canManage = ['areachef','areamanager','operations','director','ceo','training'].includes(currentRole);
+  const staffOnly = ['kic','oic'].includes(currentRole);
+  let filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
+  // OIC/KIC: show only logs they submitted
+  if (staffOnly) {
+    filtered = filtered.filter(l => (l.reportedBy||'').toLowerCase().trim() === currentName.toLowerCase().trim());
+  }
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   document.getElementById('tableEmpty').style.display = filtered.length ? 'none' : 'block';
@@ -1184,8 +1220,13 @@ function exportIssuePDF() {
 let currentReportTab = 'log';
 
 function setReportTab(tab) {
+  // Access control — OIC/KIC can only see log and preventive (view only)
+  const staffOnly = ['kic','oic'].includes(currentRole);
+  const allowed = staffOnly ? ['log','preventive'] : ['log','weekly','monthly','preventive','outsourced'];
+  if (!allowed.includes(tab)) return;
+
   currentReportTab = tab;
-  ['log','weekly','monthly','preventive'].forEach(t => {
+  ['log','weekly','monthly','preventive','outsourced'].forEach(t => {
     const btn = document.getElementById('rtab-'+t);
     if (btn) {
       btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
@@ -1193,24 +1234,47 @@ function setReportTab(tab) {
       btn.style.fontWeight = t===tab ? '600' : '500';
     }
   });
-  const titles = {log:'📋 Maintenance Log', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report', preventive:'🔧 Preventive Maintenance'};
-  const titleEl = document.getElementById('tabTitle');
-  if (titleEl) titleEl.textContent = titles[tab]||'';
+  const titles = {
+    log:        '📋 Maintenance Log',
+    weekly:     '📆 Weekly Report',
+    monthly:    '📅 Monthly Report',
+    preventive: '🔧 Monthly Preventive Maintenance',
+    outsourced: '🏗️ Outsourced Preventive Maintenance'
+  };
+  const titleEl = document.querySelector('.sec-title span') || document.getElementById('reportTitle');
   const addBtn = document.getElementById('addRowBtn');
-  if (addBtn) addBtn.style.display = tab==='log' ? 'block' : 'none';
-  // Show/hide table and preventive panel
+  if (addBtn) addBtn.style.display = tab==='log' && !staffOnly ? 'block' : 'none';
+
+  // Show/hide panels
   const tblWrap = document.querySelector('.tbl-wrap');
   const prevPanel = document.getElementById('preventivePanel');
-  if (tblWrap) tblWrap.style.display = tab==='preventive' ? 'none' : '';
+  const outsPanel = document.getElementById('outsourcedPanel');
+  if (tblWrap) tblWrap.style.display = (tab==='preventive'||tab==='outsourced') ? 'none' : '';
   if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
+  if (outsPanel) outsPanel.style.display = tab==='outsourced' ? 'block' : 'none';
+
   if (tab==='preventive') { loadPreventiveSchedule(); return; }
+  if (tab==='outsourced') { renderOutsourcedTab(); return; }
   renderCurrentTab();
+}
+
+// Hide tabs OIC/KIC cannot access
+function applyTabAccess() {
+  const staffOnly = ['kic','oic'].includes(currentRole);
+  ['weekly','monthly','outsourced'].forEach(t => {
+    const btn = document.getElementById('rtab-'+t);
+    if (btn) btn.style.display = staffOnly ? 'none' : '';
+  });
+  // OIC/KIC: log is view-only — hide add row button
+  const addBtn = document.getElementById('addRowBtn');
+  if (addBtn && staffOnly) addBtn.style.display = 'none';
 }
 
 function renderCurrentTab() {
   if (currentReportTab === 'log') renderTable();
   else if (currentReportTab === 'weekly') renderWeeklyReport();
   else if (currentReportTab === 'monthly') renderMonthlyReport();
+  else if (currentReportTab === 'outsourced') renderOutsourcedTab();
 }
 
 function getFilteredByDate(logs) {
@@ -1661,6 +1725,113 @@ function resetStaffForm() {
   // form already visible - just clear fields
 }
 
+// ── Outsourced Preventive Tab ─────────────────────────────────
+// Internal team members — logs assigned to anyone NOT in this list go to outsourced tab
+const INTERNAL_TEAM = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
+
+function renderOutsourcedTab() {
+  const tbody = document.getElementById('outsourcedTbody');
+  const emptyEl = document.getElementById('outsourcedEmpty');
+  if (!tbody) return;
+
+  // Filter: Preventive priority AND assigned to non-internal person
+  const outsourced = allLogs.filter(l => {
+    if (l.priority !== 'Preventive') return false;
+    const assigned = (l.assignedTo || '').trim();
+    return !INTERNAL_TEAM.includes(assigned);
+  }).sort((a,b) => (b.dateReported||'').localeCompare(a.dateReported||''));
+
+  tbody.innerHTML = '';
+  if (!outsourced.length) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const priColors = {Urgent:'#B91C1C',High:'#D97706',Medium:'#0891B2',Low:'#15803D',Preventive:'#7C3AED'};
+  outsourced.forEach(log => {
+    const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
+    const daysCls = log.status==='Yes' ? 'days-done' : days >= 6 ? 'days-crit' : days >= 3 ? 'days-warn' : 'days-ok';
+    const daysLbl = days !== null ? days+'d' : '—';
+    const statusStyle = log.status==='Yes' ? 'background:#DCFCE7;color:#15803D' : 'background:#FEF3C7;color:#D97706';
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    tr.innerHTML = `
+      <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#7C3AED;white-space:nowrap;">${log.logId||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.dateReported||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.outlet||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;max-width:200px;">${log.description||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#1A3C5E;">${log.assignedTo||'—'}</td>
+      <td style="padding:8px 12px;"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;${statusStyle}">${log.status==='Yes'?'✅ Done':'⏳ Pending'}</span></td>
+      <td style="padding:8px 12px;"><span class="days-badge ${daysCls}">${daysLbl}</span></td>
+      <td style="padding:8px 12px;font-size:12px;color:#64748B;">${log.reportedBy||'—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── OIC/KIC — View My Submitted Logs ─────────────────────────
+function viewMyLogs() {
+  document.getElementById('staffScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  setReportTab('log');
+}
+
+// ── Reminder Alerts ───────────────────────────────────────────
+let _reminderTimer = null;
+function scheduleReminders() {
+  if (_reminderTimer) clearInterval(_reminderTimer);
+  // Check every 60 minutes
+  _reminderTimer = setInterval(checkReminders, 60 * 60 * 1000);
+  // Also check immediately on login
+  setTimeout(checkReminders, 3000);
+}
+
+function checkReminders() {
+  const canReceive = ['maintsupervisor','director','ceo','training','operations','areachef','areamanager'].includes(currentRole);
+  if (!canReceive || !allLogs.length) return;
+
+  const now = new Date();
+  const pending = allLogs.filter(l => l.status === 'Pending');
+  const urgent  = pending.filter(l => l.priority === 'Urgent');
+  const overdue = pending.filter(l => { const d = daysPending(l.dateReported, null); return d !== null && d >= 3; });
+  const outsourced = pending.filter(l => {
+    if (l.priority !== 'Preventive') return false;
+    return !INTERNAL_TEAM.includes((l.assignedTo||'').trim());
+  });
+
+  // Only show reminder if there's something to flag
+  if (!urgent.length && !overdue.length && !outsourced.length) return;
+
+  const lines = [];
+  if (urgent.length)     lines.push(urgent.length + ' urgent issue' + (urgent.length>1?'s':'') + ' pending');
+  if (overdue.length)    lines.push(overdue.length + ' issue' + (overdue.length>1?'s':'') + ' overdue (3+ days)');
+  if (outsourced.length) lines.push(outsourced.length + ' outsourced preventive task' + (outsourced.length>1?'s':'') + ' pending');
+
+  showToast('⚠️ Reminder: ' + lines.join(' · '), 'warn');
+
+  // Push notification for supervisors
+  if (['maintsupervisor','director','ceo'].includes(currentRole)) {
+    sendReminderPush(lines.join(' · '), pending.length);
+  }
+}
+
+async function sendReminderPush(summary, totalPending) {
+  try {
+    await fetch('https://onesignal-proxy.trainingbangkok5.workers.dev', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        app_id: '00b1008a-43c6-4035-9b22-4f8258d9b975',
+        included_segments: ['All'],
+        headings: {en: '🔧 Maintenance Reminder'},
+        contents: {en: summary + ' · ' + totalPending + ' total pending. Open app to review.'},
+        priority: 7
+      })
+    });
+  } catch(e) { console.warn('Push failed:', e); }
+}
+
 // ── Preventive Maintenance Schedule ──────────────────────────
 
 const JUNE_2026_SCHEDULE = [
@@ -1953,6 +2124,7 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('logoutBtn').style.display = 'block';
     const dashLink = document.getElementById('dashLink');
     if (dashLink) dashLink.style.display = 'block';
+    applyTabAccess();
     // Show notification button for eligible roles
     if (['director','maintsupervisor','training','operations','ceo'].includes(currentRole)) {
       document.getElementById('notifBtn').style.display = 'inline-block';

@@ -982,7 +982,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="mtab-completed" onclick="setMaintTab('completed')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">✅ Completed</button>
       <button id="mtab-weekly" onclick="setMaintTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
       <button id="mtab-monthly" onclick="setMaintTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
-      <button id="mtab-preventive" onclick="setMaintTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Preventive</button>
+      <button id="mtab-outsourced" onclick="setMaintTab('outsourced')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🏗️ Outsourced</button>
+      <button id="mtab-preventive" onclick="setMaintTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Monthly Preventive</button>
       <div style="display:flex;align-items:center;gap:6px;padding:4px;margin-left:auto;">
         <select id="mFilterOutlet" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;background:#fff;" onchange="renderMaintCurrentTab()">
           <option value="">All Outlets</option>
@@ -1056,8 +1057,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 
-  <!-- Preventive Maintenance Panel -->
-  <div id="dashPreventivePanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
+  <!-- Outsourced Preventive Panel -->
+  <div id="dashOutsourcedPanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
+    <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🏗️ Outsourced Preventive Maintenance</div>
+      <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead>
+          <tr style="background:#F8F7F2;">
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Issue / Task</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned To</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
+            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+          </tr>
+        </thead>
+        <tbody id="dashOutsourcedTbody"></tbody>
+      </table>
+      <div id="dashOutsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No outsourced preventive tasks found.</div>
+    </div>
+  </div> style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
     <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🔧 Preventive Maintenance Schedule</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -6683,6 +6707,38 @@ function dashCanEditPrev() {
   return ['director','maintsupervisor','training','operations','ceo'].includes(currentRole);
 }
 
+function dashRenderOutsourced() {
+  const tbody = document.getElementById('dashOutsourcedTbody');
+  const emptyEl = document.getElementById('dashOutsourcedEmpty');
+  if (!tbody) return;
+  const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
+  const outsourced = (allMaintenanceLogs||[]).filter(l => {
+    if (l.priority !== 'Preventive') return false;
+    return !INTERNAL.includes((l.assignedTo||'').trim());
+  }).sort((a,b)=>(b.dateReported||'').localeCompare(a.dateReported||''));
+  tbody.innerHTML = '';
+  if (!outsourced.length) { if(emptyEl) emptyEl.style.display='block'; return; }
+  if (emptyEl) emptyEl.style.display='none';
+  outsourced.forEach(log => {
+    const d = log.dateReported ? Math.floor((new Date()-new Date(log.dateReported))/(1000*60*60*24)) : null;
+    const daysCls = log.status==='Yes'?'#15803D':d>=6?'#7F1D1D':d>=3?'#B91C1C':'#D97706';
+    const statusStyle = log.status==='Yes'?'background:#DCFCE7;color:#15803D':'background:#FEF3C7;color:#D97706';
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '0.5px solid #F1F5F9';
+    tr.innerHTML = `
+      <td style="padding:8px 12px;font-size:12px;font-weight:700;color:#7C3AED;">${log.logId||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.dateReported||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;white-space:nowrap;">${log.outlet||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;max-width:200px;">${log.description||'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;font-weight:600;color:#1A3C5E;">${log.assignedTo||'—'}</td>
+      <td style="padding:8px 12px;"><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;${statusStyle}">${log.status==='Yes'?'✅ Done':'⏳ Pending'}</span></td>
+      <td style="padding:8px 12px;font-size:11px;font-weight:700;color:${daysCls};">${d!==null?d+'d':'—'}</td>
+      <td style="padding:8px 12px;font-size:12px;color:#64748B;">${log.reportedBy||'—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 async function dashLoadPreventive() {
   const month = document.getElementById('dashPrevMonthSelect').value;
   document.getElementById('dashPrevStatus').textContent = '⏳ Loading...';
@@ -6777,7 +6833,7 @@ async function dashSavePreventive() {
 
 function setMaintTab(tab) {
   currentMaintTab = tab;
-  ['log','completed','weekly','monthly','preventive'].forEach(t => {
+  ['log','completed','weekly','monthly','preventive','outsourced'].forEach(t => {
     const btn = document.getElementById('mtab-'+t);
     if (btn) {
       btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
@@ -6785,14 +6841,24 @@ function setMaintTab(tab) {
       btn.style.fontWeight = t===tab ? '600' : '500';
     }
   });
-  const titles = {log:'🔧 Active Issues', completed:'✅ Completed Issues', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report', preventive:'🔧 Preventive Schedule'};
+  const titles = {
+    log:        '🔧 Active Issues',
+    completed:  '✅ Completed Issues',
+    weekly:     '📆 Weekly Report',
+    monthly:    '📅 Monthly Report',
+    preventive: '🔧 Monthly Preventive Schedule',
+    outsourced: '🏗️ Outsourced Preventive'
+  };
   const el = document.getElementById('maintTabTitle');
   if (el) el.textContent = titles[tab]||'';
   const maintWrap = document.getElementById('maintLogTableWrap');
   const prevPanel = document.getElementById('dashPreventivePanel');
-  if (maintWrap) maintWrap.style.display = tab==='preventive' ? 'none' : '';
+  const outsPanel = document.getElementById('dashOutsourcedPanel');
+  if (maintWrap) maintWrap.style.display = (tab==='preventive'||tab==='outsourced') ? 'none' : '';
   if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
+  if (outsPanel) outsPanel.style.display = tab==='outsourced' ? 'block' : 'none';
   if (tab==='preventive') { dashLoadPreventive(); return; }
+  if (tab==='outsourced') { dashRenderOutsourced(); return; }
   renderMaintCurrentTab();
 }
 
