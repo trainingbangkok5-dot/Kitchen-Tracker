@@ -209,10 +209,9 @@ function pushToFirebase(record) {
       lastUpdated: new Date().toISOString()
     }).then(() => {
       showToast('✓ Synced to dashboard', 'ok');
-      hideSyncError();
     }).catch(e => {
       console.warn('Firebase write failed:', e);
-      showSyncError('Sync failed — retrying. (' + e.message + ')');
+      showSyncError('Sync failed — will retry. (' + e.message + ')');
       queueRetry(record);
     });
   } catch(e) {
@@ -1231,11 +1230,18 @@ function submitDay() {
         const td = d[dayKey][t.id] || {};
         const yn = td.yn;
         const photoUrls = [];
-        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k => {
+        // Cloudinary URLs are stored as photo_url, photo_1_url, photo_2_url... (slot + '_url')
+        // Also check legacy photoUrl, photoUrl_1 format
+        ['photo_url','photo_1_url','photo_2_url','photo_3_url','photo_4_url',
+         'photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k => {
           const u = td[k]; if (u && u.startsWith('http') && !photoUrls.includes(u)) photoUrls.push(u);
         });
-        if (yn || photoUrls.length) {
-          tasks[t.id] = { day: currentDay, section: s.title, task: t.text, owner: t.ownerLbl, yn: yn||'', photoUrl: photoUrls[0]||'', photoUrls, hasPhoto: photoUrls.length > 0 };
+        // Also include local base64 photos as fallback if no Cloudinary URL yet
+        const hasLocalPhoto = ['photo','photo_1','photo_2','photo_3','photo_4'].some(k => {
+          const u = td[k]; return u && u.startsWith('data:');
+        });
+        if (yn || photoUrls.length || hasLocalPhoto) {
+          tasks[t.id] = { day: currentDay, section: s.title, task: t.text, owner: t.ownerLbl, yn: yn||'', photoUrl: photoUrls[0]||'', photoUrls, hasPhoto: photoUrls.length > 0 || hasLocalPhoto };
         }
       }));
       return tasks;
@@ -1444,7 +1450,7 @@ function showSyncError(msg) {
     el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
     document.body.prepend(el);
   }
-  document.getElementById('syncErrorMsg').textContent = '\u26a0\ufe0f ' + msg;
+  document.getElementById('syncErrorMsg').textContent = '⚠️ ' + msg;
   el.style.display = 'flex';
 }
 function hideSyncError() {
