@@ -1661,7 +1661,7 @@ function loadData() {
   // Auto-archive submissions older than 60 days on every load
   // autoArchiveOldSubmissions(); // Disabled — run manually via Archive tab only
   // Load all submissions — no week filter (week formats differ between files)
-  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(2000);
+  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(3000);
   bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     // Deduplicate BOH — keep latest per staffName+role+week
@@ -1673,6 +1673,8 @@ function loadData() {
       const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
         const rec = {...s};
+        // Normalize week at load time so all records use consistent YYYY-MM-DD format
+        rec.week = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
         // Opening-only record — clear any stale closingPct
         if (rec.status === 'opening_submitted') rec.closingPct = null;
         // Set overallPct = whichever shift score exists
@@ -1727,6 +1729,8 @@ function loadData() {
       const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupMap[key]) {
         const rec2 = {...s};
+        // Normalize week at load time
+        rec2.week = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
         // Opening-only record — clear any stale closingPct
         if (rec2.status === 'opening_submitted') rec2.closingPct = null;
         // Set overallPct = whichever shift score exists
@@ -2395,11 +2399,12 @@ function renderStaff() {
 
   // ── Normalize name helper ──
   const normName = n => (n||'').toLowerCase().trim().replace(/\s+/g,' ');
+  const normW    = w => normalizeWeek(w || '');
   // ── Build submission lookup: name+role+week -> merge opening+closing ──
   const subMap = {};
   allStaff.forEach(s => {
     if (!s.staffName) return;
-    const k = normName(s.staffName) + '|' + (s.role||'') + '|' + (s.week||'');
+    const k = normName(s.staffName) + '|' + (s.role||'') + '|' + normW(s.week);
     if (!subMap[k]) {
       subMap[k] = {...s};
     } else {
@@ -2413,6 +2418,16 @@ function renderStaff() {
       if (scores.length > 1) merged.overallPct = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
       else if (s.overallPct != null && parseFloat(s.overallPct) > (parseFloat(merged.overallPct)||0)) merged.overallPct = s.overallPct;
       subMap[k] = merged;
+    }
+  });
+  // ── Direct name lookup — fallback for any subMap miss ──
+  // Groups allStaff by normName+role, keeps latest submission
+  const directLookup = {};
+  allStaff.forEach(s => {
+    if (!s.staffName) return;
+    const dk = normName(s.staffName) + '|' + (s.role||'');
+    if (!directLookup[dk] || new Date(s.submittedAt||0) > new Date(directLookup[dk].submittedAt||0)) {
+      directLookup[dk] = s;
     }
   });
 
@@ -2454,11 +2469,13 @@ function renderStaff() {
   // ── Render registry staff first ──
   regStaff.sort((a,b) => (a.name||'').localeCompare(b.name||'')).forEach(r => {
     const k   = r.name.toLowerCase().trim() + '|' + (r.role||'');
-    // Find best matching submission (latest week)
-    const regK = Object.keys(subMap).filter(sk => sk.startsWith(k + '|')).sort().pop() || (k + '|');
-    const s   = subMap[regK] || subMap[k]; // submission if exists
+    // Find best matching submission — week-filtered first, then latest
+    let regK = Object.keys(subMap).filter(sk => sk.startsWith(k + '|'));
+    if (weekF) regK = regK.filter(sk => sk.endsWith('|' + weekF));
+    regK = regK.sort().pop() || '';
+    let s = subMap[regK] || directLookup[k]; // fallback to latest submission regardless of week key format
     // Apply week filter to submission
-    if (weekF && s && s.week !== weekF) return;
+    if (weekF && s && normW(s.week) !== normW(weekF)) s = null;
     if (weekF && !s) return; // if week filter set, only show those with a matching submission
 
     const role    = ROLES[r.role] || {label:r.role, icon:'', cls:'pill-lc'};
@@ -3339,7 +3356,7 @@ function openStaffDetail(s) {
           html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-taskkey="${taskKey}">
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
-              <div style="font-size:12px;font-weight:500;">${t.task||''}</div>
+              <div style="font-size:12px;font-weight:500;">${t.task||t.text||_bohTextMap[baseTaskId]||''}</div>
               ${t.comment?`<div style="font-size:11px;color:#64748B;margin-top:3px;font-style:italic;">💬 ${t.comment}</div>`:''}
               ${buildPhotoHtml(t, s ? s.role : (staff ? staff.role : ""))}
             </div>
@@ -8031,6 +8048,42 @@ function triggerFOHPhoto(taskKey, withCapture) {
 }
 
 let _fohPhotoUploading = false;
+// ── BOH Task Text Map — fallback for older records where t.task is empty ──
+const _bohTextMap = {
+  // Line Cook — Opening
+  o1: 'Tools: cooking & measuring utensils readiness, knives sharpened',
+  o2: 'Station: all ingredients filled, FIFOed, clean and tidy',
+  o3: 'Cheat sheet: visible, completed, and used',
+  o4: 'Equipment: in proper working condition',
+  // Line Cook — Closing
+  c1: 'Tools: cleaned, organized, and properly stored after use',
+  c2: 'Station: all ingredients covered, labeled, FIFOed, clean and tidy',
+  c3: 'Checklist: closing checklist completed and endorsed properly',
+  c4: 'Equipment: cleaned, switched off, and in proper condition before closing',
+  // KIC — Opening
+  ko1: 'Line Check: Verify that all Line Cook and Steward stations are clean, organized, fully stocked, and ready for operation.',
+  ko2: 'Storage Check: Verify stock levels and check the inventory of high-value items.',
+  ko3: 'Equipment Check: All equipment is in proper working condition. Report any equipment that is not functioning properly.',
+  ko4: 'Team briefing was completed on time, with clear delegation of tasks and focus areas discussed with the team.',
+  // KIC — Closing
+  cy1: 'Ensure all cooking stations, utensils, and work surfaces are properly cleaned, sanitized, and ready for the next day operation.',
+  cy2: 'Ensure all kitchen equipment, gas, and electrical appliances are properly switched off, cleaned, and secured before closing.',
+  cy3: 'Ensure all food waste is disposed properly, bins are emptied and cleaned, and hygiene standards are maintained before closing.',
+  cy4: 'Ensure all storage areas and walk-in chillers are properly organized, labelled, and secured for the next day operation.',
+  // KIC — Eval (Area Chef)
+  fc1: 'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.',
+  fc2: 'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.',
+  fc3: 'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation before leaving the kitchen.',
+  fc4: 'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.',
+  fo1: 'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.',
+  fo2: 'All sections maintained mise en place standards throughout the shift.',
+  fo3: 'Communication between FOH and BOH was clear and effective throughout the shift.',
+  cost1: 'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.',
+  sp2:  'Team performance maintains an overall score above 90% each shift.',
+  cc1:  'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.',
+  aud1: 'The outlet achieved a score above 90% in the last monthly audit visit.',
+};
+
 const _oicTextMap = {
   u1: 'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.',
   s1: 'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.',
