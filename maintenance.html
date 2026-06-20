@@ -711,7 +711,7 @@ function renderTable() {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   document.getElementById('tableEmpty').style.display = filtered.length ? 'none' : 'block';
-  filtered.forEach(log => renderLogRow(log, tbody));
+  filtered.forEach(log => { try { renderLogRow(log, tbody); } catch(e) { console.warn('Row skipped:', log.logId, e.message); } });
 }
 
 // ── Add Row (inline form) ────────────────────────────────────
@@ -1337,7 +1337,7 @@ function renderCompletedTab() {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
   document.getElementById('tableEmpty').style.display = filtered.length ? 'none' : 'block';
-  filtered.forEach(log => renderLogRow(log, tbody));
+  filtered.forEach(log => { try { renderLogRow(log, tbody); } catch(e) { console.warn('Row skipped:', log.logId, e.message); } });
 }
 
 function getFilteredByDate(logs) {
@@ -1382,7 +1382,7 @@ function renderWeeklyReport() {
       ${pending > 0 ? '<span style="margin-left:8px;background:#B91C1C;padding:2px 8px;border-radius:10px;font-size:10px;">'+pending+' unresolved</span>' : ''}
     </td>`;
     tbody.appendChild(hdr);
-    logs.forEach(log => renderLogRow(log, tbody));
+    logs.forEach(log => { try { renderLogRow(log, tbody); } catch(e) { console.warn('Row skipped:', log.logId, e.message); } });
   });
 }
 
@@ -1413,7 +1413,7 @@ function renderMonthlyReport() {
       <span style="margin-left:12px;font-size:11px;font-weight:400;">${logs.length} total • ${resolved} resolved • ${pending} pending • ${urgent} urgent</span>
     </td>`;
     tbody.appendChild(hdr);
-    logs.forEach(log => renderLogRow(log, tbody));
+    logs.forEach(log => { try { renderLogRow(log, tbody); } catch(e) { console.warn('Row skipped:', log.logId, e.message); } });
   });
 }
 
@@ -1845,7 +1845,7 @@ function renderOutsourcedTab() {
   if (emptyEl) emptyEl.style.display = 'none';
 
   // Same layout + Edit/Save/Delete as Log tab
-  outsourced.forEach(log => renderLogRow(log, tbody));
+  outsourced.forEach(log => { try { renderLogRow(log, tbody); } catch(e) { console.warn('Row skipped:', log.logId, e.message); } });
 }
 
 // ── OIC/KIC — View My Submitted Logs ─────────────────────────
