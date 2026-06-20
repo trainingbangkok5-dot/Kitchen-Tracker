@@ -2015,9 +2015,19 @@ function ssConsolidateByEmployee(rows) {
       };
     }
     const e = byEmployee[empKey];
-    e.roles.push(rs);
-    e.combinedScore += rs.roleTotal;
-    e.combinedChecklists += rs.roleSubmittedCount;
+    // Deduplicate roles — only add a role if no existing role of the same type exists
+    // If same role already exists (different week-merge), merge scores instead of adding
+    const existingRole = e.roles.find(r => r.role === rs.role);
+    if (!existingRole) {
+      e.roles.push(rs);
+      e.combinedScore += rs.roleTotal;
+      e.combinedChecklists += rs.roleSubmittedCount;
+    } else {
+      // Merge — take best of the two records
+      if ((rs.openingAvg||0) > (existingRole.openingAvg||0)) existingRole.openingAvg = rs.openingAvg;
+      if ((rs.closingAvg||0) > (existingRole.closingAvg||0)) existingRole.closingAvg = rs.closingAvg;
+      if ((rs.oicAvg||0) > (existingRole.oicAvg||0)) existingRole.oicAvg = rs.oicAvg;
+    }
     rs.submittedDates.forEach(d => e.allDatesSet.add(d));
     e.rawRows.push(...rs.rawRows);
   });
@@ -2063,7 +2073,7 @@ function ssConsolidateByEmployee(rows) {
         roleNames: e.roles.map(r => ssRoleLabel(r.role)),
         dailyBreakdown,
         daysSubmitted,
-        eligible: daysSubmitted >= 4 && !invalidWeek,
+        eligible: combinedAvg != null && combinedAvg >= 95 && !invalidWeek,
         combinedScore: Math.round(combinedScore * 10) / 10,
         combinedChecklists: e.combinedChecklists,
         combinedAvg,
@@ -2082,7 +2092,7 @@ function ssConsolidateByEmployee(rows) {
       roleNames: e.roles.map(r => ssRoleLabel(r.role)),
       dailyBreakdown: null, // signals "no daily list available for this week"
       daysSubmitted,
-      eligible: daysSubmitted >= 4 && !invalidWeek,
+      eligible: combinedAvg != null && combinedAvg >= 95 && !invalidWeek,
       combinedScore: Math.round(e.combinedScore * 10) / 10,
       combinedChecklists: e.combinedChecklists,
       combinedAvg,
@@ -2174,7 +2184,7 @@ function renderSummaryScoring() {
       <td style="padding:8px 10px;color:#475569;font-size:11px;">${e.roleNames.join(', ')}</td>
       <td style="padding:8px 10px;color:#475569;">${e.outlet||'—'}</td>
       <td style="padding:8px 10px;text-align:center;color:${e.invalidWeek?'#B45309':'#475569'};">${e.invalidWeek?'⚠️ Invalid week data':(e.week||'—')}</td>
-      <td style="padding:8px 10px;text-align:center;color:${e.daysSubmitted>=4?'#15803D':'#D97706'};font-weight:700;">${e.daysSubmitted}</td>
+      <td style="padding:8px 10px;text-align:center;color:#1A3C5E;font-weight:700;">${e.daysSubmitted}</td>
       <td style="padding:8px 10px;text-align:center;color:#475569;">${e.combinedChecklists}</td>
       <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1A3C5E;">${e.combinedScore}</td>
       <td style="padding:8px 10px;text-align:center;">
@@ -2260,7 +2270,7 @@ function openStaffWeeklyDetail(idx) {
     '<div style="margin-bottom:12px;background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;">'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:0.5px solid #F1F5F9;">'+
       '<div style="padding:12px;text-align:center;border-right:0.5px solid #F1F5F9;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Weekly avg</div><div style="font-size:22px;font-weight:700;color:'+pctC(e.combinedAvg)+'">'+(e.combinedAvg!=null?e.combinedAvg+'%':'—')+'</div></div>'+
-      '<div style="padding:12px;text-align:center;border-right:0.5px solid #F1F5F9;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Days submitted</div><div style="font-size:22px;font-weight:700;color:'+(e.daysSubmitted>=4?'#15803D':'#D97706')+'">'+e.daysSubmitted+'</div></div>'+
+      '<div style="padding:12px;text-align:center;border-right:0.5px solid #F1F5F9;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Days submitted</div><div style="font-size:22px;font-weight:700;color:#1A3C5E;">'+e.daysSubmitted+'</div></div>'+
       '<div style="padding:12px;text-align:center;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;">Ranking</div><div style="font-size:22px;font-weight:700;color:#1A3C5E;">'+(e.rank!=null?'#'+e.rank:'—')+'</div></div>'+
     '</div>'+
     '<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;">'+eligibleHtml+'</div></div>';
