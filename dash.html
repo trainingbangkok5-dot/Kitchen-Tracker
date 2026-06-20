@@ -1669,6 +1669,9 @@ function loadData() {
     const dedupBOH = {};
     rawFiltered.forEach(s => {
       if (!s.staffName) return;
+      // Sanitize staffName
+      s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
+      if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
       const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
       if (!dedupBOH[key]) {
@@ -1718,12 +1721,15 @@ function loadData() {
                   allAuditTypes.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
-        fohDb.ref('submissions').once('value', fohSnap => {
+        fohDb.ref('submissions').orderByChild('submittedAt').limitToLast(3000).once('value', fohSnap => {
           const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
           // Deduplicate — keep latest submission per staffName+role+week
-    const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role)];
+    const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role && ['service','oic','bartender','delco'].includes(s.role))];
     const dedupMap = {};
     combined.forEach(s => {
+      if (!s.staffName) return;
+      // Sanitize staffName — remove extra whitespace and non-printable characters
+      s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
       const key = (s.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (s.role||'') + '_' + subDate;
@@ -5427,6 +5433,37 @@ function populateRegOutlets() {
   const cur = sel.value;
   sel.innerHTML = '<option value="">All outlets</option>' + outlets.map(o => `<option value="${o}" ${o===cur?'selected':''}>${o}</option>`).join('');
 }
+
+// ── Debug: diagnose why a staff name is missing ─────────────
+// Usage in browser console: debugStaff('Jidapa Johnny')
+window.debugStaff = function(name) {
+  const nm = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
+  console.group('🔍 debugStaff: ' + name);
+  const inReg = Object.values(_registry||{}).filter(r => r.name && r.name.toLowerCase().trim() === nm);
+  console.log('1. Registry entries:', inReg.length, inReg.map(r => r.name+'|'+r.role+'|'+r.outlet+'|'+r.status));
+  const inAll = (allStaff||[]).filter(s => s.staffName && s.staffName.toLowerCase().trim().replace(/\s+/g,' ') === nm);
+  console.log('2. allStaff entries:', inAll.length, inAll.map(s => s.staffName+'|'+s.role+'|'+s.week+'|'+s.overallPct+'%'));
+  if (fohDb) {
+    fohDb.ref('submissions').orderByChild('staffName').equalTo(name).once('value', snap => {
+      const hits = snap.val() ? Object.values(snap.val()) : [];
+      console.log('3. FOH Firebase hits (exact):', hits.length, hits.map(s => s.staffName+'|'+s.role+'|'+s.week+'|'+s.overallPct+'%'));
+      const trimmed = name.trim();
+      if (trimmed !== name) {
+        fohDb.ref('submissions').orderByChild('staffName').equalTo(trimmed).once('value', snap2 => {
+          const hits2 = snap2.val() ? Object.values(snap2.val()) : [];
+          console.log('4. FOH Firebase hits (trimmed):', hits2.length, hits2.map(s => s.staffName+'|'+s.role+'|'+s.week));
+        });
+      }
+    });
+  }
+  if (db) {
+    db.ref('submissions').orderByChild('staffName').equalTo(name).once('value', snap => {
+      const hits = snap.val() ? Object.values(snap.val()) : [];
+      console.log('5. BOH Firebase hits:', hits.length, hits.map(s => s.staffName+'|'+s.role+'|'+s.week+'|'+s.overallPct+'%'));
+    });
+  }
+  console.groupEnd();
+};
 
 function renderRegistry() {
   const search = (document.getElementById('regSearch')||{}).value||'';

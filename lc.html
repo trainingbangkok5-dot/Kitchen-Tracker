@@ -294,9 +294,11 @@ function pushToFirebase(record) {
       lastUpdated: new Date().toISOString()
     }).then(() => {
       showToast('✓ Synced to dashboard', 'ok');
+      hideSyncError();
     }).catch(e => {
       console.warn('Firebase write failed:', e);
-      showToast('⚠ Sync failed: ' + e.message, 'error');
+      showSyncError('Sync failed — will retry automatically. (' + e.message + ')');
+      queueRetry(record);
     });
     // Also write per-day score to days/{date} node for daily breakdown report
     try {
@@ -309,8 +311,42 @@ function pushToFirebase(record) {
     } catch(e) { console.warn('Daily score write failed:', e); }
   } catch(e) {
     console.warn('Firebase error:', e);
-    showToast('⚠ Firebase error: ' + e.message, 'error');
+    showSyncError('Firebase error — will retry. (' + e.message + ')');
+    queueRetry(record);
   }
+}
+
+function showSyncError(msg) {
+  let el = document.getElementById('syncErrorBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncErrorBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
+    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
+    document.body.prepend(el);
+  }
+  document.getElementById('syncErrorMsg').textContent = '⚠️ ' + msg;
+  el.style.display = 'flex';
+}
+function hideSyncError() {
+  const el = document.getElementById('syncErrorBanner');
+  if (el) el.style.display = 'none';
+}
+const _retryQueue = [];
+function queueRetry(record) {
+  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
+    _retryQueue.push(record);
+  }
+  setTimeout(retryPendingSync, 30000);
+}
+function retryPendingSync() {
+  if (!_retryQueue.length) return;
+  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
+  [..._retryQueue].forEach(record => {
+    const idx = _retryQueue.indexOf(record);
+    pushToFirebase(record);
+    _retryQueue.splice(idx, 1);
+  });
 }
 
 

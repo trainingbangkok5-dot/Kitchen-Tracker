@@ -805,8 +805,8 @@ function submitDay() {
   if(_db){
     const key=name.replace(/[^a-zA-Z0-9]/g,'_')+'_'+ROLE+'_'+(outlet||getOutlet()||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+getWeekStart().replace(/[^a-zA-Z0-9]/g,'_')+'_'+currentShift;
     _db.ref('submissions/'+key).set(record)
-      .then(()=>showToast('Submitted ✓','ok'))
-      .catch(e=>showToast('Submit failed: '+e.message,'error'));
+      .then(()=>{ showToast('Submitted ✓','ok'); hideSyncError(); })
+      .catch(e=>{ showSyncError('Sync failed — will retry. ('+e.message+')'); queueRetry(record); });
     // Also write per-day score to days/{date} node for daily breakdown report
     try {
       const _dayDate = getTodayKey().replace('dt','');
@@ -945,6 +945,46 @@ window.addEventListener('beforeunload', function(e) {
     return e.returnValue;
   }
 });
+
+function showSyncError(msg) {
+  let el = document.getElementById('syncErrorBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncErrorBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
+    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
+    document.body.prepend(el);
+  }
+  document.getElementById('syncErrorMsg').textContent = '⚠️ ' + msg;
+  el.style.display = 'flex';
+}
+function hideSyncError() {
+  const el = document.getElementById('syncErrorBanner');
+  if (el) el.style.display = 'none';
+}
+const _retryQueue = [];
+function queueRetry(record) {
+  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
+    _retryQueue.push(record);
+  }
+  setTimeout(retryPendingSync, 30000);
+}
+function retryPendingSync() {
+  if (!_retryQueue.length) return;
+  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
+  [..._retryQueue].forEach(record => {
+    const idx = _retryQueue.indexOf(record);
+    if (typeof pushToFirebase === 'function') pushToFirebase(record);
+    else if (typeof _db !== 'undefined' && _db) {
+      const safeStr = s => (s||'').replace(/[^a-zA-Z0-9]/g,'_');
+      const key = safeStr(record.staffName)+'_'+safeStr(record.role)+'_'+safeStr(record.outlet)+'_'+safeStr(record.week)+'_'+(record.shift||record.status||'opening');
+      _db.ref('submissions/'+key).set({...record, lastUpdated: new Date().toISOString()})
+        .then(()=>{ showToast('✓ Synced to dashboard','ok'); hideSyncError(); })
+        .catch(e=>{ showToast('Retry failed: '+e.message,'error'); });
+    }
+    _retryQueue.splice(idx, 1);
+  });
+}
 </script>
 
 <div style="margin-top:32px;padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-top:1.5px solid #1A3C5E;font-family:sans-serif;">
