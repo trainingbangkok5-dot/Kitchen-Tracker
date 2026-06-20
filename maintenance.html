@@ -276,7 +276,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     <span id="tabTitle">📋 Maintenance Log</span>
     <button class="add-btn" id="addRowBtn" onclick="addRow()">+ Add New Issue</button>
   </div>
-  <div class="tbl-wrap">
+  <div class="tbl-wrap" id="mainTblWrap">
     <table id="mainTable">
       <thead>
         <tr>
@@ -1279,11 +1279,12 @@ function setReportTab(tab) {
   const addBtn = document.getElementById('addRowBtn');
   if (addBtn) addBtn.style.display = tab==='log' && !staffOnly ? 'block' : 'none';
 
-  // Show/hide panels
-  const tblWrap = document.querySelector('.tbl-wrap');
+  // Show/hide panels — use specific IDs (there are multiple .tbl-wrap elements now)
+  const tblWrap = document.getElementById('mainTblWrap');
   const prevPanel = document.getElementById('preventivePanel');
   const outsPanel = document.getElementById('outsourcedPanel');
-  if (tblWrap) tblWrap.style.display = (tab==='preventive'||tab==='outsourced') ? 'none' : '';
+  // Main log table (tableBody) is used by log, completed, weekly, monthly — show for all those
+  if (tblWrap) tblWrap.style.display = (tab==='preventive' || tab==='outsourced') ? 'none' : '';
   if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
   if (outsPanel) outsPanel.style.display = tab==='outsourced' ? 'block' : 'none';
 
