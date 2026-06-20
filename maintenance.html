@@ -162,6 +162,17 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
       <option value="ckqa">CK-QA</option>
     </select>
 
+    <div id="loginOutletRow" style="display:none;">
+      <label class="f-lbl">Your Outlet</label>
+      <select class="f-inp" id="loginOutlet">
+        <option value="">Select outlet...</option>
+        <option>Head Office</option><option>Central Kitchen</option><option>Accommodation</option>
+        <option>THE RED DOOR</option><option>LBKK RAK</option><option>LBKK Tower</option>
+        <option>LBKK JLT</option><option>SB DEIRA</option><option>LBKK OM</option>
+        <option>LBKK MTC</option><option>LBKK Hills</option><option>LBKK DSO</option><option>SB PAV</option>
+      </select>
+    </div>
+
     <div class="pin-row" id="pinRow">
       <label class="f-lbl">PIN</label>
       <input class="f-inp" id="loginPin" type="password" placeholder="Enter PIN...">
@@ -520,6 +531,9 @@ function initFirebase() {
 function togglePin() {
   const role = document.getElementById('loginRole').value;
   document.getElementById('pinRow').className = PIN_ROLES.includes(role) ? 'pin-row show' : 'pin-row';
+  // Show outlet selector for OIC/KIC (they are outlet-restricted)
+  const outletRow = document.getElementById('loginOutletRow');
+  if (outletRow) outletRow.style.display = ['kic','oic'].includes(role) ? 'block' : 'none';
 }
 
 function doLogin() {
@@ -527,6 +541,17 @@ function doLogin() {
   const role = document.getElementById('loginRole').value;
   if (!name) { showToast('Please enter your name','warn'); return; }
   if (!role) { showToast('Please select your role','warn'); return; }
+  // Capture outlet for OIC/KIC (used to filter their view to own outlet)
+  if (['kic','oic'].includes(role)) {
+    const loginOutlet = document.getElementById('loginOutlet')?.value || '';
+    if (loginOutlet) {
+      window._staffOutlet = loginOutlet;
+      try { sessionStorage.setItem('maint_outlet', loginOutlet); } catch(e) {}
+      // Also pre-fill the submit form outlet
+      const srOutlet = document.getElementById('sr_outlet');
+      if (srOutlet) srOutlet.value = loginOutlet;
+    }
+  }
   if (PIN_ROLES.includes(role)) {
     const pin = document.getElementById('loginPin').value;
     if (pin !== ROLE_PINS[role] && pin !== DEFAULT_PINS[role]) { showToast('Wrong PIN','error'); return; }
