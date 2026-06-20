@@ -748,8 +748,13 @@ function checkAutoReset() {
   if (empNoField && savedEmpNo) empNoField.value = savedEmpNo;
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
 
+  // Restore currentShift before renderDay — survives photo reload
+  (function(){
+    var _ss = localStorage.getItem('service_currentShift_' + getTodayKey());
+    if (_ss === 'opening' || _ss === 'closing') currentShift = _ss;
+  })();
   buildDayRail();
-  renderDay();
+  try { renderDay(); } catch(e) {}
 }
 
 

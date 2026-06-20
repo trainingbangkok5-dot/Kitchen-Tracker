@@ -917,7 +917,12 @@ window.addEventListener('DOMContentLoaded', () => {
   // Set SK per staff name on load
   const savedName = localStorage.getItem('delco_info_fName') || '';
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
-  renderDay();
+  // Restore currentShift before renderDay — survives photo reload
+  (function(){
+    var _ss = localStorage.getItem('delco_currentShift_' + getTodayKey());
+    if (_ss === 'opening' || _ss === 'closing') currentShift = _ss;
+  })();
+  try { renderDay(); } catch(e) {}
 });
 
 // ── Midnight auto-reset (Dubai UTC+4) ───────────────────────
