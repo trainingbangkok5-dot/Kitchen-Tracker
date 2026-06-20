@@ -475,7 +475,7 @@ function selectShift(shift) {
 
 
 function renderDay() {
-  // Always restore currentShift first — survives any page reload path
+  // Always restore currentShift first — permanent fix
   if (!currentShift) {
     var _rs = localStorage.getItem('delco_currentShift_' + getTodayKey());
     if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
@@ -922,12 +922,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Set SK per staff name on load
   const savedName = localStorage.getItem('delco_info_fName') || '';
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
-  // Restore currentShift before renderDay — survives photo reload
-  (function(){
-    var _ss = localStorage.getItem('delco_currentShift_' + getTodayKey());
-    if (_ss === 'opening' || _ss === 'closing') currentShift = _ss;
-  })();
-  try { renderDay(); } catch(e) {}
+  renderDay();
 });
 
 // ── Midnight auto-reset (Dubai UTC+4) ───────────────────────

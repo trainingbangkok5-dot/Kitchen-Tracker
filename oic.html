@@ -199,12 +199,11 @@ function pushToFirebase(record) {
   if (!_db) { setTimeout(()=>pushToFirebase(record), 500); return; }
   try {
     const safeStr = s => (s||'').replace(/[^a-zA-Z0-9]/g,'_');
-    const shiftSuffix = record.shift === 'closing' ? '_closing' : '_opening';
     const key = safeStr(record.staffName)
               + '_' + safeStr(record.role)
               + '_' + safeStr(record.outlet)
               + '_' + safeStr(record.week)
-              + shiftSuffix;
+              + '_' + (record.shift || 'opening');
     _db.ref('submissions/' + key).set({
       ...record,
       lastUpdated: new Date().toISOString()
@@ -213,47 +212,13 @@ function pushToFirebase(record) {
       hideSyncError();
     }).catch(e => {
       console.warn('Firebase write failed:', e);
-      showSyncError('Sync failed — will retry automatically. (' + e.message + ')');
+      showSyncError('Sync failed — retrying. (' + e.message + ')');
       queueRetry(record);
     });
   } catch(e) {
     console.warn('Firebase error:', e);
-    showSyncError('Firebase error — will retry. (' + e.message + ')');
-    queueRetry(record);
+    showToast('⚠ Firebase error: ' + e.message, 'error');
   }
-}
-
-function showSyncError(msg) {
-  let el = document.getElementById('syncErrorBanner');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'syncErrorBanner';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
-    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
-    document.body.prepend(el);
-  }
-  document.getElementById('syncErrorMsg').textContent = '⚠️ ' + msg;
-  el.style.display = 'flex';
-}
-function hideSyncError() {
-  const el = document.getElementById('syncErrorBanner');
-  if (el) el.style.display = 'none';
-}
-const _retryQueue = [];
-function queueRetry(record) {
-  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
-    _retryQueue.push(record);
-  }
-  setTimeout(retryPendingSync, 30000);
-}
-function retryPendingSync() {
-  if (!_retryQueue.length) return;
-  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
-  [..._retryQueue].forEach(record => {
-    const idx = _retryQueue.indexOf(record);
-    pushToFirebase(record);
-    _retryQueue.splice(idx, 1);
-  });
 }
 
 
@@ -874,7 +839,6 @@ function getWeekStartFromDate(dubaiDateStr) {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   } catch(e) { return null; }
 }
-
 function getWeekStart() {
   // Always compute Monday of current Dubai week — never return today's date as the week
   try {
@@ -979,6 +943,11 @@ function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
+  // Always restore currentShift first — permanent fix
+  if (!currentShift) {
+    var _rs = localStorage.getItem('oic_currentShift_' + getTodayKey());
+    if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
+  }
   const container = document.getElementById('mainContent');
   container.innerHTML = '';
 
@@ -1231,17 +1200,9 @@ function submitDay() {
   const op = tM > 0 ? Math.round((tY / tM) * 100) : 0;
 
   const outlet = getOutlet();
-  // For closing shift submitted after midnight (1AM etc.), use the week of the opening shift
-  // so opening + closing always share the same week key and merge correctly in the dashboard
   let weekStart = getWeekStart();
-  if (currentShift === 'closing' && d[dayKey]._openDone) {
-    try {
-      const openDate = new Date(d[dayKey]._openDone);
-      // Convert opening time to Dubai date string
-      const dubaiOpenStr = openDate.toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
-      const openWeek = getWeekStartFromDate(dubaiOpenStr);
-      if (openWeek) weekStart = openWeek;
-    } catch(e) {}
+  if (currentShift==='closing' && d[dayKey] && d[dayKey]._openDone) {
+    try { const _od=new Date(d[dayKey]._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)weekStart=_ow; } catch(e){}
   }
 
   const _fbRecord = {
@@ -1472,6 +1433,40 @@ window.addEventListener('beforeunload', function(e) {
     return e.returnValue;
   }
 });
+
+// ── Sync error banner + retry ────────────────────────────────
+function showSyncError(msg) {
+  let el = document.getElementById('syncErrorBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncErrorBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
+    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
+    document.body.prepend(el);
+  }
+  document.getElementById('syncErrorMsg').textContent = '\u26a0\ufe0f ' + msg;
+  el.style.display = 'flex';
+}
+function hideSyncError() {
+  const el = document.getElementById('syncErrorBanner');
+  if (el) el.style.display = 'none';
+}
+const _retryQueue = [];
+function queueRetry(record) {
+  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
+    _retryQueue.push(record);
+  }
+  setTimeout(retryPendingSync, 30000);
+}
+function retryPendingSync() {
+  if (!_retryQueue.length) return;
+  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
+  [..._retryQueue].forEach(record => {
+    const idx = _retryQueue.indexOf(record);
+    if (typeof pushToFirebase === 'function') pushToFirebase(record);
+    _retryQueue.splice(idx, 1);
+  });
+}
 </script>
 
 <div style="margin-top:32px;padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-top:1.5px solid #1A3C5E;font-family:sans-serif;">

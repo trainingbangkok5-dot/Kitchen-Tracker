@@ -410,9 +410,11 @@ function pushToFirebase(record) {
       lastUpdated: new Date().toISOString()
     }).then(() => {
       showToast('✓ Synced to dashboard', 'ok');
+      hideSyncError();
     }).catch(e => {
       console.warn('Firebase write failed:', e);
-      showToast('⚠ Sync failed: ' + e.message, 'error');
+      showSyncError('Sync failed — retrying. (' + e.message + ')');
+      queueRetry(record);
     });
     // Also write per-day score to days/{date} node for daily breakdown report
     try {
@@ -748,13 +750,8 @@ function checkAutoReset() {
   if (empNoField && savedEmpNo) empNoField.value = savedEmpNo;
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
 
-  // Restore currentShift before renderDay — survives photo reload
-  (function(){
-    var _ss = localStorage.getItem('service_currentShift_' + getTodayKey());
-    if (_ss === 'opening' || _ss === 'closing') currentShift = _ss;
-  })();
   buildDayRail();
-  try { renderDay(); } catch(e) {}
+  renderDay();
 }
 
 
@@ -1066,6 +1063,16 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
+function getWeekStartFromDate(dubaiDateStr) {
+  try {
+    const parts = dubaiDateStr.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+    const dow = d.getDay();
+    const diff = (dow === 0) ? -6 : 1 - dow;
+    d.setDate(d.getDate() + diff);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  } catch(e) { return null; }
+}
 function getWeekStart() {
   // Always compute Monday of current Dubai week to ensure consistent week grouping
   // regardless of what today's date is or what is stored in fWeek
@@ -1132,7 +1139,7 @@ function selectShift(shift) {
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
-  // Always restore currentShift first — survives any page reload path
+  // Always restore currentShift first — permanent fix
   if (!currentShift) {
     var _rs = localStorage.getItem('service_currentShift_' + getTodayKey());
     if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
@@ -1149,7 +1156,10 @@ function renderDay() {
   const isDone     = !!data[dayKey]?._openDone && !!data[dayKey]?._closeDone;
   const openingDone = !!data[dayKey]?._openDone;
   const closingDone = !!data[dayKey]?._closeDone;
-  const weekStart  = getWeekStart();
+  let weekStart = getWeekStart();
+  if (currentShift==='closing' && d[dayKey] && d[dayKey]._openDone) {
+    try { const _od=new Date(d[dayKey]._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)weekStart=_ow; } catch(e){}
+  }
   const unlocked   = !weekStart || isDayUnlocked(currentDay, weekStart);
 
   if (!unlocked) {
@@ -2012,6 +2022,40 @@ window.addEventListener('beforeunload', function(e) {
     return e.returnValue;
   }
 });
+
+// ── Sync error banner + retry ────────────────────────────────
+function showSyncError(msg) {
+  let el = document.getElementById('syncErrorBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncErrorBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
+    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
+    document.body.prepend(el);
+  }
+  document.getElementById('syncErrorMsg').textContent = '\u26a0\ufe0f ' + msg;
+  el.style.display = 'flex';
+}
+function hideSyncError() {
+  const el = document.getElementById('syncErrorBanner');
+  if (el) el.style.display = 'none';
+}
+const _retryQueue = [];
+function queueRetry(record) {
+  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
+    _retryQueue.push(record);
+  }
+  setTimeout(retryPendingSync, 30000);
+}
+function retryPendingSync() {
+  if (!_retryQueue.length) return;
+  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
+  [..._retryQueue].forEach(record => {
+    const idx = _retryQueue.indexOf(record);
+    if (typeof pushToFirebase === 'function') pushToFirebase(record);
+    _retryQueue.splice(idx, 1);
+  });
+}
 </script>
 
 <div style="margin-top:32px;padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-top:1.5px solid #1A3C5E;font-family:sans-serif;">

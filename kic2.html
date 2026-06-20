@@ -208,15 +208,12 @@ initFirebase();
 function pushToFirebase(record) {
   if (!_db) { setTimeout(()=>pushToFirebase(record), 500); return; }
   try {
-    // Deterministic key — name+role+outlet+week+shift so re-submitting overwrites cleanly
-    // and opening/closing shifts for the same staff are separate but predictable records
     const safeStr = s => (s||'').replace(/[^a-zA-Z0-9]/g,'_');
     const key = safeStr(record.staffName)
               + '_' + safeStr(record.role)
               + '_' + safeStr(record.outlet)
               + '_' + safeStr(record.week)
               + '_' + (record.shift || 'opening');
-
     _db.ref('submissions/' + key).set({
       ...record,
       lastUpdated: new Date().toISOString()
@@ -225,60 +222,20 @@ function pushToFirebase(record) {
       hideSyncError();
     }).catch(e => {
       console.warn('Firebase write failed:', e);
-      showSyncError('Sync failed — will retry automatically. (' + e.message + ')');
-      // Queue for retry
+      showSyncError('Sync failed — retrying. (' + e.message + ')');
       queueRetry(record);
     });
     // Also write per-day score to days/{date} node for daily breakdown report
     try {
       const _dayDate = getTodayKey().replace('dt', '');
       const _dayData = { submittedAt: new Date().toISOString() };
-      if (record.openingPct != null) _dayData.openingPct = record.openingPct;
-      if (record.closingPct != null) _dayData.closingPct = record.closingPct;
+      if (record.overallPct != null) _dayData.openingPct = record.overallPct;
       _db.ref('submissions/' + key + '/days/' + _dayDate).update(_dayData);
     } catch(e) { console.warn('Daily score write failed:', e); }
   } catch(e) {
     console.warn('Firebase error:', e);
-    showSyncError('Firebase error — will retry. (' + e.message + ')');
-    queueRetry(record);
+    showToast('⚠ Firebase error: ' + e.message, 'error');
   }
-}
-
-// ── Sync error banner (persistent until resolved) ─────────────
-function showSyncError(msg) {
-  let el = document.getElementById('syncErrorBanner');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'syncErrorBanner';
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
-    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
-    document.body.prepend(el);
-  }
-  document.getElementById('syncErrorMsg').textContent = '⚠️ ' + msg;
-  el.style.display = 'flex';
-}
-function hideSyncError() {
-  const el = document.getElementById('syncErrorBanner');
-  if (el) el.style.display = 'none';
-}
-
-// ── Retry queue ────────────────────────────────────────────────
-const _retryQueue = [];
-function queueRetry(record) {
-  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
-    _retryQueue.push(record);
-  }
-  // Auto-retry after 30 seconds
-  setTimeout(retryPendingSync, 30000);
-}
-function retryPendingSync() {
-  if (!_retryQueue.length) return;
-  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
-  [..._retryQueue].forEach(record => {
-    const idx = _retryQueue.indexOf(record);
-    pushToFirebase(record);
-    _retryQueue.splice(idx, 1);
-  });
 }
 
 
@@ -871,7 +828,6 @@ function getWeekStartFromDate(dubaiDateStr) {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   } catch(e) { return null; }
 }
-
 function getWeekStart() {
   // Always compute Monday of current Dubai week — never store today's date as the week
   const stored = localStorage.getItem('kic_info_kic_fWeek');
@@ -975,6 +931,11 @@ function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
+  // Always restore currentShift first — permanent fix
+  if (!currentShift) {
+    var _rs = localStorage.getItem('kic_currentShift_' + getTodayKey());
+    if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
+  }
   const container = document.getElementById('mainContent');
   container.innerHTML = '';
   const dayKey = getTodayKey();
@@ -1202,14 +1163,9 @@ function submitDay() {
   shiftSec.forEach(s=>s.tasks.forEach(t=>{const v=d[dayKey][t.id]?.yn;if(v&&v!=='na'){tM++;if(v==='yes')tY++;}}));
   const op=tM>0?Math.round((tY/tM)*100):0;
   const outlet=getOutlet();
-  // For closing shift submitted after midnight, use opening shift's week so records merge correctly
   let weekStart = getWeekStart();
-  if (currentShift === 'closing' && d[dayKey]._openDone) {
-    try {
-      const _openDt = new Date(d[dayKey]._openDone).toLocaleDateString('en-CA', {timeZone:'Asia/Dubai'});
-      const _openWk = getWeekStartFromDate(_openDt);
-      if (_openWk) weekStart = _openWk;
-    } catch(e) {}
+  if (currentShift==='closing' && d[dayKey] && d[dayKey]._openDone) {
+    try { const _od=new Date(d[dayKey]._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)weekStart=_ow; } catch(e){}
   }
   const _fbRecord={
     staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:weekStart,
@@ -1427,6 +1383,40 @@ window.addEventListener('beforeunload', function(e) {
     return e.returnValue;
   }
 });
+
+// ── Sync error banner + retry ────────────────────────────────
+function showSyncError(msg) {
+  let el = document.getElementById('syncErrorBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'syncErrorBanner';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#B91C1C;color:#fff;font-size:13px;font-weight:600;padding:10px 16px;text-align:center;display:flex;align-items:center;justify-content:center;gap:10px;';
+    el.innerHTML = '<span id="syncErrorMsg"></span><button onclick="retryPendingSync()" style="padding:4px 12px;background:#fff;color:#B91C1C;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Retry Now</button>';
+    document.body.prepend(el);
+  }
+  document.getElementById('syncErrorMsg').textContent = '\u26a0\ufe0f ' + msg;
+  el.style.display = 'flex';
+}
+function hideSyncError() {
+  const el = document.getElementById('syncErrorBanner');
+  if (el) el.style.display = 'none';
+}
+const _retryQueue = [];
+function queueRetry(record) {
+  if (!_retryQueue.find(r => r.staffName===record.staffName && r.shift===record.shift && r.week===record.week)) {
+    _retryQueue.push(record);
+  }
+  setTimeout(retryPendingSync, 30000);
+}
+function retryPendingSync() {
+  if (!_retryQueue.length) return;
+  showToast('Retrying sync (' + _retryQueue.length + ' pending)...', 'ok');
+  [..._retryQueue].forEach(record => {
+    const idx = _retryQueue.indexOf(record);
+    if (typeof pushToFirebase === 'function') pushToFirebase(record);
+    _retryQueue.splice(idx, 1);
+  });
+}
 </script>
 
 <div style="margin-top:32px;padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-top:1.5px solid #1A3C5E;font-family:sans-serif;">

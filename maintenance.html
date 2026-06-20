@@ -665,7 +665,9 @@ function loadLogs() {
       allLogs.sort((a,b) => new Date(b.loggedAt||0) - new Date(a.loggedAt||0));
     }
     updateStats();
-    renderTable();
+    // Re-render whatever tab is currently active
+    if (currentReportTab === 'outsourced') renderOutsourcedTab();
+    else renderTable();
     showNewIssuesAlert();
   });
 }
@@ -679,6 +681,15 @@ function updateStats() {
 
 // ── Render Table ─────────────────────────────────────────────
 function renderTable() {
+  // Don't render if Firebase hasn't loaded yet
+  if (!db) return;
+  // If allLogs not yet populated, show loading and wait
+  if (!allLogs.length && db) {
+    const tbody = document.getElementById('tableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading records...</td></tr>';
+    document.getElementById('tableEmpty').style.display = 'none';
+    return;
+  }
   // Log tab shows only non-completed — completed items go to Completed tab
   const staffOnly = ['kic','oic'].includes(currentRole);
   let filtered = getFilteredByDate(allLogs).filter(l => l.status !== 'Yes' && l.status !== 'Done' && l.status !== 'Resolved');
@@ -1755,6 +1766,12 @@ function renderOutsourcedTab() {
   const tbody = document.getElementById('outsourcedTbody');
   const emptyEl = document.getElementById('outsourcedEmpty');
   if (!tbody) return;
+  // If allLogs not yet populated, show loading
+  if (!allLogs.length && db) {
+    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:20px;color:#94A3B8;font-size:13px;">⏳ Loading records...</td></tr>';
+    if (emptyEl) emptyEl.style.display = 'none';
+    return;
+  }
 
   const staffOnly = ['kic','oic'].includes(currentRole);
 
