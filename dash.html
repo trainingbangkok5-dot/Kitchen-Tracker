@@ -5041,7 +5041,7 @@ async function exportDetailPDF() {
       doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
       doc.text(box.label.toUpperCase(), x+bw/2, y+5, {align:'center'});
       doc.setFontSize(13); doc.setFont('helvetica','bold');
-      doc.setTextColor(v!=null?scoreColor(v):[150,150,150]);
+      doc.setTextColor(...(v!=null?scoreColor(v):[150,150,150]));
       doc.text(v!=null?v+'%':'-', x+bw/2, y+12, {align:'center'});
     });
     y += 20;
@@ -7376,7 +7376,15 @@ function loadBOHData() {
         grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
         if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
-        if (sub.verificationLog && (!grouped[gKey].verificationLog || sub.verificationLog.length > (grouped[gKey].verificationLog||[]).length)) grouped[gKey].verificationLog = sub.verificationLog;
+        // Always prefer the most recent submission's verificationLog (closing > opening)
+        if (sub.verificationLog) {
+          const _subIsClosing = sub.status === 'closing_submitted' || (sub._fbKey && sub._fbKey.endsWith('_closing'));
+          const _groupedIsClosing = grouped[gKey]._vlogFromClosing;
+          if (_subIsClosing || !_groupedIsClosing) {
+            grouped[gKey].verificationLog = sub.verificationLog;
+            grouped[gKey]._vlogFromClosing = _subIsClosing;
+          }
+        }
         if (sub.submittedAt) {
           if (!grouped[gKey].submittedAt || sub.submittedAt > grouped[gKey].submittedAt) grouped[gKey].submittedAt = sub.submittedAt;
         }
@@ -7441,10 +7449,15 @@ function deleteVerificationEntry(btn, idx) {
   const last = log[log.length - 1];
   function _doDelete(key) {
     const upd = {};
-    upd['submissions/' + key + '/verificationLog'] = log;
-    upd['submissions/' + key + '/verifiedBy'] = last ? last.by : null;
-    upd['submissions/' + key + '/verifiedByRole'] = last ? last.role : null;
-    upd['submissions/' + key + '/verifiedAt'] = last ? last.at : null;
+    // Update BOTH _opening and _closing keys so the log stays consistent
+    const _baseKey = key.replace(/_opening$|_closing$/, '');
+    ['', '_opening', '_closing'].forEach(function(sfx) {
+      const _k = sfx ? _baseKey + sfx : key;
+      upd['submissions/' + _k + '/verificationLog'] = log;
+      upd['submissions/' + _k + '/verifiedBy'] = last ? last.by : null;
+      upd['submissions/' + _k + '/verifiedByRole'] = last ? last.role : null;
+      upd['submissions/' + _k + '/verifiedAt'] = last ? last.at : null;
+    });
     fbRef.ref().update(upd).then(() => {
       s.verificationLog = log;
       s.verifiedBy = last ? last.by : null;
