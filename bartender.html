@@ -839,7 +839,7 @@ function submitDay() {
     status: currentShift==='opening' ? 'opening_submitted' : 'closing_submitted',
     openingPct: currentShift==='opening' ? pct : null,
     closingPct: currentShift==='closing' ? pct : null,
-    taskData, submittedAt:new Date().toISOString(), lastUpdated:new Date().toISOString(),
+    taskData, startedAt:new Date().toISOString(), submittedAt:new Date().toISOString(), lastUpdated:new Date().toISOString(),
     submittedDates: trackSubmittedDate(getWeekStart()),
   };
 

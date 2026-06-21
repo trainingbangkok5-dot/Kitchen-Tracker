@@ -3249,7 +3249,7 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtDT(s.startedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtDT(s.submittedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
-      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
+      <div id="bohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${s.verifiedBy
           ? `<div>${renderVerificationLog(s)}</div>`
@@ -6248,12 +6248,13 @@ function toggleEditMode(s) {
   cancelBtn.textContent = '✕ Cancel Edit';
   cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; _editPhotoChanges = {}; openStaffDetail(s); };
 
-  // Verification log panel
-  const vbyDiv = document.createElement('div');
-  vbyDiv.style.cssText = 'margin-top:8px;';
-  vbyDiv.innerHTML = buildVerifyEditPanel(s);
-  // Append vbyDiv before cancelBtn so KIC section (which inserts before #cancelEditBtn) goes in right position
-  body.appendChild(vbyDiv);
+  // Inject verification edit panel into the VERIFIED BY card (in-place, not at bottom)
+  const _bohVbyCard = document.getElementById('bohVerifiedByCard');
+  if (_bohVbyCard) {
+    _bohVbyCard.style.background = '#F0FDF4'; // subtle green tint in edit mode
+    _bohVbyCard.innerHTML = '<div style="font-size:10px;font-weight:700;color:#15803D;margin-bottom:6px;">👤 VERIFIED BY</div>'
+      + buildVerifyEditPanel(s);
+  }
   body.appendChild(cancelBtn);
 
   // ── OIC Observation injection (Area Manager overwriting service staff record via BOH modal) ──
@@ -8870,19 +8871,28 @@ function toggleFOHEditMode() {
       if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
       const editSec = document.querySelector('#oicEditSection');
       if (editSec) editSec.remove();
+      // Restore fohVerifiedBy to display mode
+      const _fohVbyEl2 = document.getElementById('fohVerifiedBy');
+      if (_fohVbyEl2 && _fohVbyEl2.dataset.origHtml) {
+        _fohVbyEl2.innerHTML = _fohVbyEl2.dataset.origHtml;
+        _fohVbyEl2.style.cssText = 'font-size:11px;opacity:0.8;margin-top:4px;';
+        delete _fohVbyEl2.dataset.origHtml;
+      }
       openFOHDetail(_fohDetailIdx);
     };
     area.appendChild(cancelBtn);
   }
-  // Verification log panel — always refresh so it shows latest history
-  // Remove stale panel and rebuild with current staff data
+  // Inject verification edit panel into the existing VERIFIED BY section in the modal header
+  const _fohVbyEl = document.getElementById('fohVerifiedBy');
+  if (_fohVbyEl) {
+    // Save original content so cancel can restore it
+    if (!_fohVbyEl.dataset.origHtml) _fohVbyEl.dataset.origHtml = _fohVbyEl.innerHTML;
+    _fohVbyEl.innerHTML = buildVerifyEditPanel(staff);
+    _fohVbyEl.style.cssText = 'margin-top:4px;';
+  }
+  // Also remove any stale bottom panel from a previous session
   const _oldVbyDiv = area.querySelector('#fohVerifiedByDiv');
   if (_oldVbyDiv) _oldVbyDiv.remove();
-  const fohVbyDiv = document.createElement('div');
-  fohVbyDiv.id = 'fohVerifiedByDiv';
-  fohVbyDiv.style.cssText = 'margin-top:8px;';
-  fohVbyDiv.innerHTML = buildVerifyEditPanel(staff);
-  area.insertBefore(fohVbyDiv, cancelBtn);
 }
 
 async function saveFOHOverwrite(staff) {
