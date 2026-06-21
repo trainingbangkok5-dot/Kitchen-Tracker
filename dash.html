@@ -2899,7 +2899,7 @@ function openMonthlyDetail(staffName, allSubs) {
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
       const tasks = byDay[day];
       const bySec = {};
-      const _oicObsIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+      const _oicObsIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
       tasks.forEach(t => {
         // Filter out OIC observation tasks — they render in the dedicated OIC Observation panel below
         const _tKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
@@ -3034,7 +3034,7 @@ function openWeeklyDetail(staffName, week) {
     const bySec = {};
     tasks.forEach(t => {
       // Filter OIC observation tasks — shown in dedicated panel
-      const _wkOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+      const _wkOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
       const _wkKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
       if (_wkOicIds.includes(_wkKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
       const sec = t.section||'Tasks';
@@ -8243,7 +8243,7 @@ function openFOHDetail(idx) {
 
       // Group by section — skip OIC observation tasks (rendered separately below)
       // Exception: for oic role, ALL tasks are the main checklist — don't filter any out
-      const oicObsIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+      const oicObsIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
       const isOICRole = (staff.role === 'oic');
       const bySec = {};
       tasks.forEach(t => {
@@ -9300,7 +9300,7 @@ async function exportFOHDetailPDF() {
             const bySec = {};
             tasks.forEach(t => {
               // Filter OIC observation tasks from FOH PDF export
-              const _fohPdfOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+              const _fohPdfOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
               const _fohPdfKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
               if (_fohPdfOicIds.includes(_fohPdfKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
               const sec = t.section||'Tasks';
@@ -9363,7 +9363,7 @@ async function exportFOHDetailPDF() {
               y = doc.lastAutoTable.finalY + 2;
 
               // Render photos for tasks in this section
-              const photoTasksFoh = secTasks.filter(t => t.photoUrl && t.photoUrl.startsWith('data:'));
+              const photoTasksFoh = secTasks.filter(t => t.photoUrl && (t.photoUrl.startsWith('data:') || t.photoUrl.startsWith('https://')));
               if (photoTasksFoh.length > 0) {
                 if (y > H - 50) { doc.addPage(); y = 16; }
                 doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
