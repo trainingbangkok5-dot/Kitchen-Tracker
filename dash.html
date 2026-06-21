@@ -515,8 +515,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Progress</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Actions</th>
             </tr>
           </thead>
@@ -616,8 +615,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Outlet</th>
               <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Week</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Overall</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Status</th>
-              <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Verification</th>
+              <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Progress</th>
               <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;">Action</th>
             </tr>
           </thead>
@@ -7528,6 +7526,76 @@ function openBOHDetailFull(s) {
   }).catch(() => openStaffDetail(s));
 }
 
+
+// ── Progress cell builder (Option 1 — checkbox list) ──────────────────
+function buildProgressCell(staff) {
+  const op = staff.overallPct || 0;
+  const role = staff.role || '';
+
+  // Colors
+  const clrDone = 'color:#27500A;';
+  const clrPend = 'color:#854F0B;';
+  const clrWait = 'color:#5F5E5A;';
+  const chkDone = '&#9745;'; // ☑
+  const chkOpen = '&#9744;'; // ☐
+
+  // Step 1: Opening submitted
+  const openDone = staff.openingPct != null || op > 0;
+
+  // Step 2: Closing submitted (all roles that have closing shifts)
+  // closingPct is null when status='opening_submitted', a number when closing was submitted
+  const hasClosing = staff.closingPct != null;
+
+  // Step 3: Eval (AM Eval for OIC, AC Eval for KIC only)
+  const needsEval = ['oic','kic'].includes(role);
+  const isOIC = role === 'oic';
+  const isKIC = role === 'kic';
+  const evalLabel = isOIC ? 'AM Evaluation' : isKIC ? 'AC Evaluation' : '';
+  const evalDone = needsEval
+    ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
+    : true;
+
+  // Step 4: Signed off
+  const verDone = !!staff.verifiedBy;
+
+  let html = '<div style="line-height:1.8;text-align:left;">';
+
+  // ☑ Opening submitted
+  html += '<div style="font-size:11px;' + (openDone ? clrDone : clrPend) + '">'
+    + '<span style="margin-right:5px;">' + (openDone ? chkDone : chkOpen) + '</span>'
+    + 'Opening submitted'
+    + '</div>';
+
+  // ☑ Closing submitted
+  const clrClose = !openDone ? clrWait : hasClosing ? clrDone : clrPend;
+  html += '<div style="font-size:11px;' + clrClose + '">'
+    + '<span style="margin-right:5px;">' + (hasClosing ? chkDone : chkOpen) + '</span>'
+    + 'Closing submitted' + (hasClosing ? '' : !openDone ? ' — waiting' : ' — pending')
+    + '</div>';
+
+  // ☑ Eval (OIC/KIC only)
+  if (needsEval) {
+    const evalColor = !openDone ? clrWait : evalDone ? clrDone : clrPend;
+    html += '<div style="font-size:11px;' + evalColor + '">'
+      + '<span style="margin-right:5px;">' + (evalDone ? chkDone : chkOpen) + '</span>'
+      + evalLabel + (evalDone ? ' — done' : !openDone ? ' — waiting' : ' — pending')
+      + '</div>';
+  }
+
+  // ☑ Signed off
+  const verColor = !openDone || (needsEval && !evalDone) ? clrWait : verDone ? clrDone : clrPend;
+  const verLabel = verDone
+    ? 'Signed off — ' + staff.verifiedBy
+    : !openDone || (needsEval && !evalDone) ? 'Sign-off — waiting' : 'Sign-off pending';
+  html += '<div style="font-size:11px;' + verColor + '">'
+    + '<span style="margin-right:5px;">' + (verDone ? chkDone : chkOpen) + '</span>'
+    + verLabel
+    + '</div>';
+
+  html += '</div>';
+  return html;
+}
+
 function renderBOHStaff() {
   const bohChecked = Array.from(document.querySelectorAll('#bohOutletBtn ~ div input:checked')).map(c=>c.value);
   const outlet = '';  // replaced by multi-select below
@@ -7593,13 +7661,7 @@ function renderBOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.submittedAt ? new Date(staff.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : fmtWeekRange(staff.week)}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}${staff.role==='kic'&&(staff.oicEvalPct==null||staff.oicEvalPct===undefined)?'<br><span style="background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;margin-top:3px;display:inline-block;">⚠️ AC Eval Needed</span>':''}</td>
-      <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
-        ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
-        : op > 0
-          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">⚪ Not Verified</span>`
-          : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
-      }</td>
+      <td style="padding:8px 12px;">${buildProgressCell(staff)}</td>
       <td style="padding:6px 8px;text-align:center;">
         <button class="boh-view-btn" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
         ${canOW ? `<button class="boh-edit-btn" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
@@ -7845,13 +7907,7 @@ function renderFOHStaff() {
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.outlet}</td>
       <td style="padding:8px 12px;font-size:11px;color:#64748B">${staff.submittedAt ? new Date(staff.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : fmtWeekRange(staff.week)}</td>
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
-      <td style="padding:8px 12px;text-align:center;">${staff.qualified?'<span style="background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">✅ Completed</span>':op>0?'<span style="background:#FEE2E2;color:#B91C1C;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">❌ Pending</span>':'<span style="background:#FEF9C3;color:#92400E;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;">⏳ Pending</span>'}${staff.role==='oic'&&(staff.oicEvalPct==null||staff.oicEvalPct===undefined)?'<br><span style="background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:700;margin-top:3px;display:inline-block;">⚠️ AM Eval Needed</span>':''}</td>
-      <td style="padding:6px 8px;text-align:center;">${staff.verifiedBy
-        ? `<span style="background:#DCFCE7;color:#15803D;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">✅ Verified<br><span style="font-weight:400;font-size:9px;">${staff.verifiedBy}</span></span>`
-        : op > 0
-          ? `<span style="background:#FEF9C3;color:#854D0E;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">⚪ Not Verified</span>`
-          : `<span style="background:#FEE2E2;color:#B91C1C;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;">❌ Not Verified</span>`
-      }</td>
+      <td style="padding:8px 12px;">${buildProgressCell(staff)}</td>
       <td style="padding:8px 12px;text-align:center;">
         <div style="display:flex;gap:4px;justify-content:center;">
           <button onclick="openFOHDetail(${staffIdx})" style="font-size:11px;padding:4px 8px;background:#FFF1F0;color:#7B2D42;border:1px solid #C4533A;border-radius:6px;cursor:pointer;">👁 View</button>
