@@ -7532,65 +7532,74 @@ function buildProgressCell(staff) {
   const op = staff.overallPct || 0;
   const role = staff.role || '';
 
-  // Colors
-  const clrDone = 'color:#27500A;';
-  const clrPend = 'color:#854F0B;';
-  const clrWait = 'color:#5F5E5A;';
-  const chkDone = '&#9745;'; // ☑
-  const chkOpen = '&#9744;'; // ☐
+  // ── Styles ──────────────────────────────────────────────────
+  const BASE = 'display:flex;align-items:baseline;gap:6px;font-size:11px;font-weight:700;line-height:1.9;';
+  // Done  — dark green bold
+  const S_DONE = BASE + 'color:#166534;';
+  // Action needed — amber bold (eval or sign-off truly expected but missing)
+  const S_NEED = BASE + 'color:#92400E;';
+  // Not submitted / neutral — grey normal weight (no alarm, shift may not apply)
+  const S_GREY = BASE + 'color:#6B7280;font-weight:400;';
+  // Waiting on prior step — lighter grey
+  const S_WAIT = BASE + 'color:#9CA3AF;font-weight:400;';
 
-  // Step 1: Opening submitted
-  const openDone = staff.openingPct != null || op > 0;
+  const CHK = '<span style="font-size:13px;">&#9745;</span>'; // ☑ green
+  const BOX = '<span style="font-size:13px;">&#9744;</span>'; // ☐ empty
 
-  // Step 2: Closing submitted (all roles that have closing shifts)
-  // closingPct is null when status='opening_submitted', a number when closing was submitted
-  const hasClosing = staff.closingPct != null;
-
-  // Step 3: Eval (AM Eval for OIC, AC Eval for KIC only)
-  const needsEval = ['oic','kic'].includes(role);
-  const isOIC = role === 'oic';
-  const isKIC = role === 'kic';
-  const evalLabel = isOIC ? 'AM Evaluation' : isKIC ? 'AC Evaluation' : '';
-  const evalDone = needsEval
-    ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
-    : true;
-
-  // Step 4: Signed off
-  const verDone = !!staff.verifiedBy;
-
-  let html = '<div style="line-height:1.8;text-align:left;">';
-
-  // ☑ Opening submitted
-  html += '<div style="font-size:11px;' + (openDone ? clrDone : clrPend) + '">'
-    + '<span style="margin-right:5px;">' + (openDone ? chkDone : chkOpen) + '</span>'
-    + 'Opening submitted'
-    + '</div>';
-
-  // ☑ Closing submitted
-  const clrClose = !openDone ? clrWait : hasClosing ? clrDone : clrPend;
-  html += '<div style="font-size:11px;' + clrClose + '">'
-    + '<span style="margin-right:5px;">' + (hasClosing ? chkDone : chkOpen) + '</span>'
-    + 'Closing submitted' + (hasClosing ? '' : !openDone ? ' — waiting' : ' — pending')
-    + '</div>';
-
-  // ☑ Eval (OIC/KIC only)
-  if (needsEval) {
-    const evalColor = !openDone ? clrWait : evalDone ? clrDone : clrPend;
-    html += '<div style="font-size:11px;' + evalColor + '">'
-      + '<span style="margin-right:5px;">' + (evalDone ? chkDone : chkOpen) + '</span>'
-      + evalLabel + (evalDone ? ' — done' : !openDone ? ' — waiting' : ' — pending')
-      + '</div>';
+  function row(style, icon, label) {
+    return '<div style="' + style + '">' + icon + '<span>' + label + '</span></div>';
   }
 
-  // ☑ Signed off
-  const verColor = !openDone || (needsEval && !evalDone) ? clrWait : verDone ? clrDone : clrPend;
-  const verLabel = verDone
-    ? 'Signed off — ' + staff.verifiedBy
-    : !openDone || (needsEval && !evalDone) ? 'Sign-off — waiting' : 'Sign-off pending';
-  html += '<div style="font-size:11px;' + verColor + '">'
-    + '<span style="margin-right:5px;">' + (verDone ? chkDone : chkOpen) + '</span>'
-    + verLabel
-    + '</div>';
+  // ── Data ────────────────────────────────────────────────────
+  const openDone   = staff.openingPct != null && staff.openingPct > 0;
+  const closeDone  = staff.closingPct != null;  // null = not submitted
+  const needsEval  = ['oic','kic'].includes(role);
+  const evalLabel  = role === 'oic' ? 'AM Evaluation' : 'AC Evaluation';
+  const evalDone   = needsEval
+    ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
+    : true;
+  const verDone    = !!staff.verifiedBy;
+
+  let html = '<div style="padding:2px 0;">';
+
+  // ── Opening ─────────────────────────────────────────────────
+  html += row(
+    openDone ? S_DONE : S_NEED,
+    openDone ? CHK : BOX,
+    openDone ? 'Opening — ' + staff.openingPct + '%' : 'Opening — not submitted'
+  );
+
+  // ── Closing ─────────────────────────────────────────────────
+  // Grey (not amber) — we don't know if this staff works closing shift
+  html += row(
+    closeDone ? S_DONE : S_GREY,
+    closeDone ? CHK : BOX,
+    closeDone ? 'Closing — ' + staff.closingPct + '%' : 'Closing — not submitted'
+  );
+
+  // ── Eval (OIC / KIC only) ───────────────────────────────────
+  if (needsEval) {
+    const evalStyle = !openDone ? S_WAIT : evalDone ? S_DONE : S_NEED;
+    html += row(
+      evalStyle,
+      evalDone ? CHK : BOX,
+      evalDone
+        ? evalLabel + ' — ' + staff.oicEvalPct + '%'
+        : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — needed'
+    );
+  }
+
+  // ── Sign-off ─────────────────────────────────────────────────
+  // Amber only when opening is done AND eval is done (or not needed) — sign-off is genuinely expected
+  const verExpected = openDone && (!needsEval || evalDone);
+  const verStyle = verDone ? S_DONE : verExpected ? S_NEED : S_WAIT;
+  html += row(
+    verStyle,
+    verDone ? CHK : BOX,
+    verDone
+      ? 'Signed off — ' + staff.verifiedBy
+      : verExpected ? 'Sign-off — needed' : 'Sign-off — waiting'
+  );
 
   html += '</div>';
   return html;
