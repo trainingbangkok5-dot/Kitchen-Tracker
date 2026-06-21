@@ -538,7 +538,7 @@ function renderDay() {
   const backBtn=document.createElement('button');
   backBtn.style.cssText='display:flex;align-items:center;gap:6px;margin:12px 16px 0;padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;font-weight:600;color:#1A3C5E;background:#fff;cursor:pointer;';
   backBtn.innerHTML='← Change Shift';
-  backBtn.onclick=()=>{ currentShift=null; renderDay(); };
+  backBtn.onclick=()=>{ currentShift=null; try{localStorage.removeItem('delco_currentShift_'+getTodayKey());}catch(e){} renderDay(); };
   container.appendChild(backBtn);
 
   const shiftSections = SECTIONS.filter(s=>s.shift===currentShift);

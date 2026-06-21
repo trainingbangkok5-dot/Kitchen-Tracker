@@ -2540,7 +2540,7 @@ function renderStaff() {
 
     if (isAdmin && s && fbKey) {
       const delBtn = document.createElement('button');
-      delBtn.textContent = '🗑 Delete this record (' + (s.week||'') + ')';
+      delBtn.textContent = '🗑 Delete';
       delBtn.style.cssText = 'display:block;width:100%;padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
       delBtn.onclick = function(e) { e.stopPropagation(); confirmDelete(fbKey, r.name, s.week||''); };
       wrapper.appendChild(delBtn);
@@ -2581,7 +2581,7 @@ function renderStaff() {
 
     if (isAdmin) {
       const delBtn = document.createElement('button');
-      delBtn.textContent = '🗑 Delete this record (' + (s.week||'') + ')';
+      delBtn.textContent = '🗑 Delete';
       delBtn.style.cssText = 'display:block;width:100%;padding:5px 12px;margin:0;background:#FEE2E2;border:none;border-top:1px solid #FCA5A5;color:#B91C1C;font-size:11px;font-weight:600;cursor:pointer;text-align:left;';
       delBtn.onclick = function(e) { e.stopPropagation(); confirmDelete(fbKey, s.staffName||'', s.week||''); };
       wrapper.appendChild(delBtn);
@@ -3701,7 +3701,7 @@ function openStaffDetail(s) {
   if (currentRole === 'training') {
     html += `<button onclick="confirmDelete('${s._fbKey||''}','${s.staffName||''}','${s.week||''}')"
       style="width:100%;margin-top:14px;padding:10px;background:#FEE2E2;border:1.5px solid #FCA5A5;color:#B91C1C;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">
-      🗑 Delete this record (${s.week||''})
+      🗑 Delete
     </button>`;
   }
 
