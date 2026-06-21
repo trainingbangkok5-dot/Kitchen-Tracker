@@ -3251,7 +3251,17 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
       <div id="bohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
-        ${renderVerificationLog(s)}
+        ${(function() {
+          const subRole = s.role || '';
+          const canVerify =
+            ['training','operations','director','ceo'].includes(currentRole) ||
+            (currentRole==='kic' && ['steward','linecook'].includes(subRole)) ||
+            (currentRole==='areachef' && ['linecook','steward','kic'].includes(subRole)) ||
+            (currentRole==='areamanager' && ['linecook','steward','kic','oic','service','bartender','delco'].includes(subRole));
+          return buildVerifyEditPanel(s) + (canVerify
+            ? '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>'
+            : '');
+        })()}
       </div>
     </div>`;
 
@@ -3829,7 +3839,7 @@ function exportStaffMonthlyPDF(s, staffSubs) {
     doc.rect(14, y-3, pageW-28, 8, 'F');
     doc.setTextColor(255,255,255);
     doc.setFontSize(9); doc.setFont('helvetica','bold');
-    doc.text('Week of ' + (sub.week||'—') + '   |   Score: ' + (sc2>0?sc2+'%':'—') + '   |   ' + (p3?'QUALIFIED':'NOT QUALIFIED'), 16, y+2);
+    doc.text('Week of ' + (sub.week||'-') + '   |   Score: ' + (sc2>0?sc2+'%':'-') + '   |   ' + (p3?'QUALIFIED':'NOT QUALIFIED'), 16, y+2);
     y += 9;
 
     // Group by day
@@ -4451,7 +4461,7 @@ function generateAuditPDF(a) {
   doc.setFillColor(26,60,94); doc.rect(0,0,210,32,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(15); doc.setFont('helvetica','bold');
-  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Audit Report', margin, 13);
+  doc.text((a.outlet||'Outlet')+' - '+(a.auditType||'')+' Audit Report', margin, 13);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
   doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
@@ -4478,7 +4488,7 @@ function generateAuditPDF(a) {
   doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont('helvetica','bold');
   doc.text(a.score+'%', card1X + card1W/2, y+14, {align:'center'});
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Grade '+grade+' — '+compliance, card1X + card1W/2, y+24, {align:'center'});
+  doc.text('Grade '+grade+' - '+compliance, card1X + card1W/2, y+24, {align:'center'});
 
   // Card 2 — Points Scored
   doc.setFillColor(240,246,255); doc.rect(card2X, y, card2W, cardH, 'F');
@@ -4613,7 +4623,7 @@ function generateAuditPDF(a) {
   doc.setFillColor(26,60,94); doc.rect(0,0,210,32,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text((a.outlet||'Outlet')+' — '+(a.auditType||'')+' Full Audit Detail', margin, 13);
+  doc.text((a.outlet||'Outlet')+' - '+(a.auditType||'')+' Full Audit Detail', margin, 13);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', margin, 21);
   doc.text('Generated: '+new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}), pageW-margin, 21, {align:'right'});
@@ -4634,7 +4644,7 @@ function generateAuditPDF(a) {
     checkPage(14);
     doc.setFillColor(26,60,94); doc.rect(margin,y,colW,9,'F');
     doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.text('FULL AUDIT REPORT — SECTION BY SECTION', margin+3, y+6);
+    doc.text('FULL AUDIT REPORT - SECTION BY SECTION', margin+3, y+6);
     y += 13;
 
     a.sectionBreakdown.forEach((s,si) => {
@@ -4709,9 +4719,9 @@ function generateAuditPDF(a) {
       doc.setFillColor(254,242,242); doc.rect(margin,y,colW,28,'F');
       doc.setDrawColor(185,28,28); doc.setLineWidth(0.8); doc.line(margin,y,margin,y+28); doc.setLineWidth(0.1);
       doc.setTextColor(120,80,80); doc.setFontSize(8); doc.setFont('helvetica','normal');
-      doc.text((ca.section||'—')+' — Item '+(ca.item||''), margin+4, y+5);
+      doc.text((ca.section||'-')+' - Item '+(ca.item||''), margin+4, y+5);
       doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont('helvetica','bold');
-      doc.text('x '+(ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), margin+4, y+11, {maxWidth:colW-8});
+      doc.text('x '+(ca.criteria||'-').replace(/[^\x00-\x7F]/g,'').trim(), margin+4, y+11, {maxWidth:colW-8});
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(70,70,70);
       if(ca.observation) doc.text('Observation: '+ca.observation, margin+4, y+17, {maxWidth:colW-8});
       if(ca.correctiveAction){doc.setTextColor(185,28,28); doc.text('Action: '+ca.correctiveAction, margin+4, y+22, {maxWidth:colW-8});}
@@ -4722,7 +4732,7 @@ function generateAuditPDF(a) {
 
   // Footer on every page
   const totalPages = doc.internal.getNumberOfPages();
-  for(let p=1;p<=totalPages;p++){doc.setPage(p);doc.setDrawColor(200,200,200);doc.line(margin,285,pageW-margin,285);doc.setTextColor(150,150,150);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Culex Hospitality Operations — Internal Audit Report — Confidential',margin,290);doc.text('Page '+p+' of '+totalPages,pageW-margin,290,{align:'right'});}
+  for(let p=1;p<=totalPages;p++){doc.setPage(p);doc.setDrawColor(200,200,200);doc.line(margin,285,pageW-margin,285);doc.setTextColor(150,150,150);doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('Culex Hospitality Operations - Internal Audit Report - Confidential',margin,290);doc.text('Page '+p+' of '+totalPages,pageW-margin,290,{align:'right'});}
 
   const fn=(a.outlet||'Outlet').replace(/\s+/g,'_')+'_'+(a.auditType||'')+'_Audit_'+(a.auditDate||new Date().toISOString().split('T')[0])+'.pdf';
   doc.save(fn);
@@ -4853,7 +4863,7 @@ function showDeleteToast(msg) {
 // Fetch a Cloudinary (https://) URL and return a base64 data URL for jsPDF addImage
 async function _urlToBase64(url) {
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(url, {mode:'cors', credentials:'omit'});
     const blob = await resp.blob();
     return await new Promise((res, rej) => {
       const r = new FileReader();
@@ -4930,9 +4940,9 @@ async function exportDetailPDF() {
   doc.rect(0,0,W,20,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('BOH Performance Report — ' + (s.staffName||'—'), 14, 9);
+  doc.text('BOH Performance Report - ' + (s.staffName||'-'), 14, 9);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text(role.label.toUpperCase() + ' • ' + (s.outlet||'—') + ' • Week of ' + (fmtWeekRange(s.week)||'—'), 14, 15);
+  doc.text(role.label.toUpperCase() + ' | ' + (s.outlet||'-') + ' | Week of ' + (fmtWeekRange(s.week)||'-'), 14, 15);
   doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), W-14, 15, {align:'right'});
 
   let y = 28;
@@ -4963,7 +4973,7 @@ async function exportDetailPDF() {
   doc.rect(14,y,W-28,18,'F');
   doc.setFontSize(26); doc.setFont('helvetica','bold');
   doc.setTextColor(...scoreColor(sc));
-  doc.text(sc>0?sc+'%':'—', W/2, y+13, {align:'center'});
+  doc.text(sc>0?sc+'%':'-', W/2, y+13, {align:'center'});
   doc.setFontSize(9); doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
   doc.text('Weekly Overall Score (Target: 95%)', W/2, y+17, {align:'center'});
   y += 26;
@@ -5017,7 +5027,7 @@ async function exportDetailPDF() {
       doc.text(box.label.toUpperCase(), x+bw/2, y+5, {align:'center'});
       doc.setFontSize(13); doc.setFont('helvetica','bold');
       doc.setTextColor(v!=null?scoreColor(v):[150,150,150]);
-      doc.text(v!=null?v+'%':'—', x+bw/2, y+12, {align:'center'});
+      doc.text(v!=null?v+'%':'-', x+bw/2, y+12, {align:'center'});
     });
     y += 20;
   }
@@ -5070,9 +5080,9 @@ async function exportDetailPDF() {
             (t.yn||'').toUpperCase()||'—',
           ]),
           columnStyles:{
-            0:{cellWidth:28,fontSize:8,textColor:[100,100,100]},
-            1:{cellWidth:120,fontSize:9},
-            2:{cellWidth:22,halign:'center',fontStyle:'bold'},
+            0:{cellWidth:24,fontSize:8,textColor:[100,100,100]},
+            1:{cellWidth:112,fontSize:9},
+            2:{cellWidth:20,halign:'center',fontStyle:'bold'},
           },
           didParseCell:(data)=>{
             if(data.column.index===2&&data.section==='body'){
@@ -5102,6 +5112,7 @@ async function exportDetailPDF() {
           for (const photoData of taskPhotos) {
             if (y > H-42) { doc.addPage(); y=16; px=14; }
             try {
+              if (!photoData || !photoData.startsWith('data:image/')) { px += 49; continue; }
               const fmt = photoData.startsWith('data:image/png')?'PNG':'JPEG';
               doc.addImage(photoData, fmt, px, y, 45, 34);
               px += 49;
@@ -5320,7 +5331,7 @@ async function exportDetailPDF() {
     doc.setFontSize(10); doc.setFont('helvetica','bold');
     doc.text(tierName, W/2, y+5, {align:'center'});
     doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(71,85,105);
-    doc.text('Evaluation Period: '+(s.period||'—'), W/2, y+10, {align:'center'});
+    doc.text('Evaluation Period: '+(s.period||'-'), W/2, y+10, {align:'center'});
     y += 18;
 
     // Section 2: In-Charge Rollup
@@ -6149,55 +6160,65 @@ function fmtWeekRange(weekStr) {
   } catch(e) { return weekStr; }
 }
 
-function renderVerificationLog(s) {
-  var log = Array.isArray(s.verificationLog) ? [].concat(s.verificationLog) : [];
+function renderVerificationLog(s, allowDelete) {
+  var rawLog = s.verificationLog;
+  var log = Array.isArray(rawLog) ? [].concat(rawLog)
+    : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
   if (!log.length && s.verifiedBy) {
     log.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
   }
-  if (!log.length) return '';
+  if (!log.length) return '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
   var roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
     ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC',
     maintsupervisor:'Maintenance Sup.' };
-  return log.map(function(entry, idx) {
+  return log.map(function(entry, i) {
     var dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
       day:'2-digit', month:'short', year:'numeric',
       hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
     }) : '\u2014';
     var rl = roleLabel[entry.role] || entry.role || '';
-    var border = idx > 0 ? 'border-top:.5px solid #E0DDD4;margin-top:3px;' : '';
+    var border = i > 0 ? 'border-top:.5px solid #E0DDD4;margin-top:3px;' : '';
+    var delBtn = allowDelete
+      ? '<button onclick="deleteVerificationEntry(this,' + i + ')" title="Remove" style="background:none;border:none;cursor:pointer;color:#B91C1C;font-size:13px;padding:0 4px;line-height:1;">&times;</button>'
+      : '';
     return '<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;' + border + '">'
       + '<div style="flex:1;">'
       + '<div style="font-size:12px;font-weight:700;color:#15803D;">\u2705 ' + (entry.by || '\u2014') + '</div>'
       + (rl ? '<div style="font-size:10px;color:#64748B;">' + rl + '</div>' : '')
       + '<div style="font-size:10px;color:#94A3B8;">\ud83d\udcc5 ' + dt + '</div>'
-      + '</div></div>';
+      + '</div>' + delBtn + '</div>';
   }).join('');
 }
 
 // Build the verifiedBy edit panel (used in both BOH toggleEditMode and FOH edit)
 function buildVerifyEditPanel(s) {
-  const log = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
+  var rawVLog = s.verificationLog;
+  const log = Array.isArray(rawVLog) ? [...rawVLog]
+    : (rawVLog && typeof rawVLog === 'object') ? Object.values(rawVLog) : [];
   if (!log.length && s.verifiedBy) {
     log.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
   }
   const roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
     ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC' };
   // Build history HTML using string concat (no nested template literals)
-  const historyHtml = log.map(function(entry) {
+  const historyHtml = log.map(function(entry, _hi) {
     const dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
       day:'2-digit', month:'short', year:'numeric',
       hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
     }) : '\u2014';
     const rl = roleLabel[entry.role] || entry.role || '';
-    return '<div style="padding:5px 8px;background:#F0FDF4;border-radius:6px;margin-bottom:4px;font-size:11px;">'
+    return '<div style="display:flex;align-items:flex-start;gap:4px;padding:5px 8px;background:#F0FDF4;border-radius:6px;margin-bottom:4px;font-size:11px;">'
+      + '<div style="flex:1;">'
       + '<span style="font-weight:700;color:#15803D;">\u2705 ' + (entry.by||'\u2014') + '</span>'
       + (rl ? ' <span style="color:#64748B;font-size:10px;">(' + rl + ')</span>' : '')
       + '<div style="color:#94A3B8;font-size:10px;">\ud83d\udcc5 ' + dt + '</div>'
+      + '</div>'
+      + '<button onclick="deleteVerificationEntry(this,' + _hi + ')" title="Remove" style="background:none;border:none;cursor:pointer;color:#B91C1C;font-size:14px;padding:0 2px;line-height:1;flex-shrink:0;">&times;</button>'
       + '</div>';
   }).join('');
 
   const noVerify = '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
-  const nameVal = (currentName||'').replace(/"/g,'&quot;');
+  const nameVal = '';  // blank in edit mode — user types to verify
   const roleNote = 'Your role (' + currentRole + ') and timestamp will be added automatically';
   return '<div style="margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;">'
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
@@ -6213,6 +6234,7 @@ function buildVerifyEditPanel(s) {
 }
 
 function toggleEditMode(s) {
+  const _isKIC = s.role === 'kic';
   _editMode = true;
   // Force closingPct=null for opening-only records in edit mode too
   const _editIsOpeningOnly = s.status === 'opening_submitted'
@@ -6273,7 +6295,7 @@ function toggleEditMode(s) {
     extraDiv.style.cssText = 'flex-basis:100%;padding:10px;background:#F8FAFC;border-radius:0 0 8px 8px;border-top:1px solid #E0DDD4;';
     row.style.flexWrap = 'wrap';
     extraDiv.innerHTML = `
-      <div style="font-size:10px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:8px;">${_isKIC ? "✏️ KIC Notes" : "✏️ OIC Notes"}</div>
+      <div style="font-size:10px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:8px;">${['linecook','steward'].includes(s.role) ? '✏️ KIC Notes' : s.role === 'kic' ? '✏️ AC Notes' : '✏️ OIC Notes'}</div>
       <div style="margin-bottom:8px;">
         <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Comment</label>
         <textarea class="edit-comment" data-taskkey="${taskKey}" placeholder="${_isKIC ? 'Add KIC/AC comment...' : 'Add OIC comment...'}" rows="2"
@@ -6634,6 +6656,7 @@ function _editTakePhoto(taskKey, withCapture) {
 }
 
 async function saveOverwrite(s) {
+  const _isKIC = s.role === 'kic';
   if (!s) { showToast('⚠ No record loaded. Please close and reopen.', 'warn'); return; }
   const verifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
   // Check for any comment changes
@@ -6642,9 +6665,9 @@ async function saveOverwrite(s) {
     const orig = (s.taskData && s.taskData[k] && s.taskData[k].comment) || '';
     return el.value.trim() !== orig;
   });
-  const hasChanges = Object.keys(_editChanges).length > 0 || Object.keys(_editPhotoChanges).length > 0 || commentChanges || verifiedBy !== (s.verifiedBy||'');
+  const hasChanges = Object.keys(_editChanges).length > 0 || Object.keys(_editPhotoChanges).length > 0 || commentChanges;
 
-  if (!hasChanges) { showToast('⚠ No changes detected — tap YES/NO on a task first, then Save.', 'warn'); return; }
+  if (!hasChanges) { showToast('⚠ No changes detected. Tap YES / NO / N·A on a task first.', 'warn'); return; }
 
   // Determine correct Firebase — FOH roles use fohDb, BOH roles use db
   const _isFOHRecord = s._isFOH || ['service','oic','delco','bartender'].includes(s.role);
@@ -7193,7 +7216,7 @@ function exportMaintPDF() {
   doc.rect(0,0,297,18,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('Culex Hospitality — '+title, 14, 8);
+  doc.text('Culex Hospitality - '+title, 14, 8);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
   doc.text('Period: '+dateRange+'  |  Generated: '+new Date().toLocaleDateString('en-GB'), 14, 14);
   doc.text('Total: '+logs.length+'  Pending: '+logs.filter(l=>l.status==='Pending').length+'  Resolved: '+logs.filter(l=>l.status==='Yes').length, 200, 14);
@@ -7217,7 +7240,7 @@ function exportMaintPDF() {
   for(let i=1;i<=pages;i++){
     doc.setPage(i);
     doc.setFontSize(7); doc.setTextColor(150,150,150);
-    doc.text('Page '+i+' of '+pages+' — Culex Hospitality Maintenance — Confidential',148,205,{align:'center'});
+    doc.text('Page '+i+' of '+pages+' - Culex Hospitality Maintenance - Confidential',148,205,{align:'center'});
   }
   doc.save('Maintenance_'+new Date().toLocaleDateString('en-CA')+'.pdf');
 }
@@ -7369,6 +7392,70 @@ function setBOHSub(sub) {
 // Current staff detail record reference
 let _currentDetailStaff = null;
 
+
+function deleteVerificationEntry(btn, idx) {
+  // Support both BOH (_currentDetailStaff/_currentStaffData) and FOH (_fohFiltered)
+  const s = _currentDetailStaff || _currentStaffData || _fohFiltered[_fohDetailIdx];
+  if (!s) return;
+  var rawLog = s.verificationLog;
+  var log = Array.isArray(rawLog) ? [...rawLog]
+    : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
+  if (!log.length && s.verifiedBy) log.push({ by: s.verifiedBy, role: s.verifiedByRole||''});
+  if (idx < 0 || idx >= log.length) return;
+  if (!confirm('Remove verification by ' + (log[idx].by||'?') + '?')) return;
+  log.splice(idx, 1);
+  const isFOH = ['service','oic','delco','bartender'].includes(s.role);
+  const fbRef = isFOH ? fohDb : db;
+  if (!fbRef) { showToast('Firebase not connected', 'error'); return; }
+  const last = log[log.length - 1];
+  function _doDelete(key) {
+    const upd = {};
+    upd['submissions/' + key + '/verificationLog'] = log;
+    upd['submissions/' + key + '/verifiedBy'] = last ? last.by : null;
+    upd['submissions/' + key + '/verifiedByRole'] = last ? last.role : null;
+    upd['submissions/' + key + '/verifiedAt'] = last ? last.at : null;
+    fbRef.ref().update(upd).then(() => {
+      s.verificationLog = log;
+      s.verifiedBy = last ? last.by : '';
+      showToast('Verification removed', 'ok');
+      // Refresh display
+      const isFOH = ['service','oic','delco','bartender'].includes(s.role);
+      if (isFOH) {
+        const hEl = document.getElementById('fohVerifiedBy');
+        if (hEl) hEl.innerHTML = log.length
+          ? '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + log.length + ')</span>'
+          : '<span style="color:#94A3B8;font-size:11px;">Pending</span>';
+        const card = document.getElementById('fohVerifiedByCard');
+        if (card) {
+          const _cv = ['training','operations','director','ceo'].includes(currentRole)
+            || (currentRole==='oic' && ['service','bartender','delco'].includes(s.role))
+            || (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(s.role));
+          card.innerHTML = '<div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>'
+            + buildVerifyEditPanel(s)
+            + (_cv ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>' : '');
+        }
+      } else {
+        openStaffDetail(s);
+      }
+    }).catch(e => showToast('Failed: ' + e.message, 'error'));
+  }
+  if (s._fbKey) {
+    _doDelete(s._fbKey);
+  } else {
+    // Look up key by staffName + role + submittedAt date
+    const sDate = s.submittedAt ? s.submittedAt.substring(0,10) : '';
+    fbRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+      let foundKey = null;
+      snap.forEach(child => {
+        const v = child.val();
+        if (v.role === s.role && (!sDate || (v.submittedAt||''). substring(0,10) === sDate)) foundKey = child.key;
+      });
+      if (foundKey) { s._fbKey = foundKey; _doDelete(foundKey); }
+      else showToast('Record not found in Firebase', 'warn');
+    });
+  }
+}
+
 function saveBOHVerification() {
   const name = (document.getElementById('verifiedByInput')?.value || '').trim();
   if (!name) { showToast('Please enter your name', 'warn'); return; }
@@ -7383,6 +7470,9 @@ function saveBOHVerification() {
   if (s.verifiedBy && !existingLog.length) {
     existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
   }
+  // Prevent duplicate: skip if same name verified within last 10 seconds
+  const _recentDup = existingLog.some(e => e.by === name && (Date.now() - new Date(e.at||0).getTime()) < 10000);
+  if (_recentDup) { showToast('Already saved', 'warn'); return; }
   existingLog.push(newEntry);
   const sDate = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
   firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
@@ -8104,9 +8194,12 @@ function openFOHDetail(idx) {
   // Show verifiedBy in FOH detail
   const fohVerEl = document.getElementById('fohVerifiedBy');
   if (fohVerEl) {
-    fohVerEl.innerHTML = (staff.verifiedBy || (Array.isArray(staff.verificationLog) && staff.verificationLog.length))
-      ? renderVerificationLog(staff)
-      : '<span style="color:#94A3B8;font-style:italic;">Pending verification</span>';
+    const _vlog = Array.isArray(staff.verificationLog) ? staff.verificationLog
+      : (staff.verificationLog && typeof staff.verificationLog === 'object') ? Object.values(staff.verificationLog) : [];
+    const _vc = _vlog.length || (staff.verifiedBy ? 1 : 0);
+    fohVerEl.innerHTML = _vc
+      ? '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + _vc + ')</span>'
+      : '<span style="color:#94A3B8;font-style:italic;font-size:11px;">Pending</span>';
   }
 
   const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
@@ -8187,16 +8280,17 @@ function openFOHDetail(idx) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtFohDT(staff.submittedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${fmtFohDate(staff.submittedAt)}</div>
       <div id="fohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
-        <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
-        ${staff.verifiedBy
-          ? `<div>${renderVerificationLog(staff)}</div>`
-          : `<div style="display:flex;gap:6px;margin-top:2px;">
-               <input id="fohVerifiedByInput" type="text" placeholder="${staff.role==='oic'?'Enter Area Manager name...':'Enter OIC name...'}" value=""
-                 style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
-               <button onclick="saveFOHVerifiedBy()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✓ Verify</button>
-             </div>
-             <div style="font-size:10px;color:#D97706;margin-top:3px;">🟡 Pending verification</div>`
-        }
+        <div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
+        ${(function(){
+          const _sr = staff.role || '';
+          const _cv =
+            ['training','operations','director','ceo'].includes(currentRole) ||
+            (currentRole==='oic' && ['service','bartender','delco'].includes(_sr)) ||
+            (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(_sr));
+          return buildVerifyEditPanel(staff) + (_cv
+            ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>'
+            : '');
+        })()}
       </div>
     </div>
 
@@ -8737,6 +8831,60 @@ function handleFOHEditPhoto(input, cardEl) {
     }
   };
   reader.readAsDataURL(file);
+}
+
+function saveFOHMultiVerify() {
+  const staff = _fohFiltered[_fohDetailIdx];
+  if (!staff) return;
+  const name = (document.getElementById('verifiedByInput')?.value || '').trim();
+  if (!name) { showToast('Please enter your name', 'warn'); return; }
+  if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
+  const now = new Date().toISOString();
+  const newEntry = { by: name, role: currentRole, at: now };
+  var rawLog = staff.verificationLog;
+  const log = Array.isArray(rawLog) ? [...rawLog]
+    : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
+  if (staff.verifiedBy && !log.length) log.push({ by: staff.verifiedBy, role: staff.verifiedByRole||''});
+  // Prevent duplicate: skip if same name verified within last 10 seconds
+  const _fohRecentDup = log.some(e => e.by === name && (Date.now() - new Date(e.at||0).getTime()) < 10000);
+  if (_fohRecentDup) { showToast('Already saved', 'warn'); return; }
+  log.push(newEntry);
+  const sDate = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
+  fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap => {
+    if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      const vDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : '';
+      if (sub.role === staff.role && (sub.week === staff.week || (sDate && vDate === sDate))) {
+        updates['submissions/' + child.key + '/verificationLog'] = log;
+        updates['submissions/' + child.key + '/verifiedBy'] = name;
+        updates['submissions/' + child.key + '/verifiedByRole'] = currentRole;
+        updates['submissions/' + child.key + '/verifiedAt'] = now;
+      }
+    });
+    if (!Object.keys(updates).length) { showToast('No matching record', 'warn'); return; }
+    fohDb.ref().update(updates).then(() => {
+      staff.verifiedBy = name; staff.verifiedByRole = currentRole;
+      staff.verifiedAt = now; staff.verificationLog = log;
+      allFOHData.forEach(r => {
+        if (r.staffName===staff.staffName && r.role===staff.role && r.week===staff.week)
+          Object.assign(r, {verifiedBy:name, verifiedByRole:currentRole, verificationLog:log});
+      });
+      const hEl = document.getElementById('fohVerifiedBy');
+      if (hEl) hEl.innerHTML = '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + log.length + ')</span>';
+      const card = document.getElementById('fohVerifiedByCard');
+      if (card) {
+        const _cv = ['training','operations','director','ceo'].includes(currentRole)
+          || (currentRole==='oic' && ['service','bartender','delco'].includes(staff.role))
+          || (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(staff.role));
+        card.innerHTML = '<div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>'
+          + buildVerifyEditPanel(staff)
+          + (_cv ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>' : '');
+      }
+      showToast('Verified by ' + name + ' \u2713', 'ok');
+    }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+  });
 }
 
 function saveFOHVerifiedBy() {
@@ -9316,9 +9464,9 @@ async function exportFOHDetailPDF() {
   doc.rect(0,0,W,20,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('FOH Performance Report — ' + staff.staffName, 14, 9);
+  doc.text('FOH Performance Report - ' + staff.staffName, 14, 9);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text(staff.role.toUpperCase() + ' • ' + staff.outlet + ' • Week of ' + fmtWeekRange(staff.week), 14, 15);
+  doc.text(staff.role.toUpperCase() + ' | ' + staff.outlet + ' | Week of ' + fmtWeekRange(staff.week), 14, 15);
   doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), W-14, 15, {align:'right'});
 
   let y = 28;
@@ -9505,6 +9653,7 @@ async function exportFOHDetailPDF() {
                 for (const photoData of taskPhotos) {
                   if (y > H-42) { doc.addPage(); y=16; px=14; }
                   try {
+                    if (!photoData || !photoData.startsWith('data:image/')) { px += 49; continue; }
                     const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
                     doc.addImage(photoData, fmt, px, y, 45, 34);
                     px += 49;
@@ -9529,7 +9678,7 @@ async function exportFOHDetailPDF() {
     doc.setFillColor(245,243,238);
     doc.rect(0,H-8,W,8,'F');
     doc.setTextColor(120,120,120); doc.setFontSize(7);
-    doc.text('Culex Hospitality FOH Report — Confidential', 14, H-2);
+    doc.text('Culex Hospitality FOH Report - Confidential', 14, H-2);
     doc.text('Page '+i+' of '+tp, W-14, H-2, {align:'right'});
   }
 
