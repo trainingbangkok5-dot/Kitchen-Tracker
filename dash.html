@@ -6474,7 +6474,6 @@ async function saveOverwrite(s) {
   }
 
   // Build updates
-  const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
     if (k === 'aud1_score') {
       // Save raw audit score to taskData/aud1/audScore
@@ -6482,6 +6481,14 @@ async function saveOverwrite(s) {
       return;
     }
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
+    // Store task text/section/owner for new eval tasks so full report shows correct text
+    const tid = k.replace(/^d[0-9]+_/, '');
+    if (!s.taskData || s.taskData[k] === undefined) {
+      if (_evalTaskTextMap[tid]) updates['submissions/' + fbKey + '/taskData/' + k + '/task'] = _evalTaskTextMap[tid];
+      if (_evalSectionMap[tid]) updates['submissions/' + fbKey + '/taskData/' + k + '/section'] = _evalSectionMap[tid];
+      updates['submissions/' + fbKey + '/taskData/' + k + '/owner'] = _evalOwner;
+      updates['submissions/' + fbKey + '/taskData/' + k + '/day'] = s.day || 1;
+    }
   });
 
   // Preserve all existing photos — never delete staff photos during overwrite
@@ -6532,14 +6539,68 @@ async function saveOverwrite(s) {
   const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
   Object.entries(_editChanges).forEach(([k, yn]) => {
     if (k === 'aud1_score') return; // raw score stored separately, not a yn task
+    const tid = k.replace(/^d[0-9]+_/, '');
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
-    else updatedTaskData[k] = {yn}; // new task (e.g. KIC eval task not in original submission)
+    else updatedTaskData[k] = {
+      yn,
+      task: _evalTaskTextMap[tid] || '',
+      section: _evalSectionMap[tid] || 'Evaluation',
+      owner: _evalOwner,
+      day: s.day || 1,
+    };
   });
 
   // Use task ID to identify opening/closing/eval — based on actual checklist task IDs
   // OIC: opening=o1-o4, closing=c1-c4, eval=s1-s4,m1-m2,u1-u2,w1-w2,p1-p2,mp1-mp2,a1
   // KIC: opening=o1-o4, closing=cy1-cy4, eval=fc1-fc4,fo1-fo3,cost1,sp2,cc1,aud1
   const _isKIC = s.role === 'kic';
+
+  // Task text lookup — so full checklist report shows text instead of "—"
+  const _evalTaskTextMap = {
+    // KIC eval (Area Chef)
+    fc1:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.',
+    fc2:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.',
+    fc3:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation.',
+    fc4:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.',
+    fo1:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.',
+    fo2:'All sections maintained mise en place standards throughout the shift.',
+    fo3:'Communication between FOH and BOH was clear and effective throughout the shift.',
+    cost1:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.',
+    sp2:'Team performance maintains an overall score above 90% each shift.',
+    cc1:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.',
+    aud1:'The outlet achieved a score above 90% in the last monthly audit visit.',
+    // OIC eval (Area Manager)
+    s1:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.',
+    s2:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.',
+    s3:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.',
+    s4:'Service leadership: OIC leads by example and maintains service standards throughout the shift.',
+    m1:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.',
+    m2:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.',
+    u1:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.',
+    u2:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.',
+    w1:'Waste Management: Food and material waste is minimized and properly handled.',
+    w2:'Stock Control: Stock levels are monitored and controlled effectively.',
+    p1:'Team Performance: Overall team performance meets or exceeds the 90% target.',
+    p2:'Staff Punctuality: All staff arrive on time and are ready for their shifts.',
+    mp1:'Compliance: All SOPs and policies are followed consistently during the shift.',
+    mp2:'Reporting: All incidents, issues, and observations are reported accurately.',
+    a1:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.',
+  };
+
+  const _evalSectionMap = _isKIC ? {
+    fc1:'🍲 Food Consistency Today', fc2:'🍲 Food Consistency Today', fc3:'🍲 Food Consistency Today', fc4:'🍲 Food Consistency Today',
+    fo1:'⚙️ Flow of Operation', fo2:'⚙️ Flow of Operation', fo3:'⚙️ Flow of Operation',
+    cost1:'💰 Food Cost & Staff', sp2:'💰 Food Cost & Staff', cc1:'💰 Food Cost & Staff', aud1:'💰 Food Cost & Staff',
+  } : {
+    s1:'⭐ Service Standards', s2:'⭐ Service Standards', s3:'⭐ Service Standards', s4:'⭐ Service Standards',
+    m1:'🔧 Maintenance & Cleanliness', m2:'🔧 Maintenance & Cleanliness',
+    u1:'💰 Upselling', u2:'💰 Upselling',
+    w1:'♻️ Waste & Stock', w2:'♻️ Waste & Stock',
+    p1:'🤝 Team & Attendance', p2:'🤝 Team & Attendance',
+    mp1:'📋 Compliance', mp2:'📋 Compliance', a1:'📋 Compliance',
+  };
+
+  const _evalOwner = _isKIC ? 'Area Chef' : 'Area Manager';
   const _evalIds  = _isKIC
     ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
@@ -8659,9 +8720,29 @@ async function saveFOHOverwrite(staff) {
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
         if (changes && changes.oicPhotoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/oicPhotoUrl'] = changes.oicPhotoUrl;
         if (changes && changes.audScore != null) updates['submissions/' + child.key + '/taskData/' + taskKey + '/audScore'] = changes.audScore;
-        // Also store task metadata for new OIC tasks
+        // Also store task metadata for new OIC tasks — include task text so full report shows it
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
-          updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = 'OIC Observation';
+          const _tid = taskKey.replace(/^d[0-9]+_/, '');
+          // FOH OIC task text map
+          const _fohTaskText = {
+            u1:'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.',
+            s1:'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.',
+            s2:'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.',
+            s3:'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.',
+            f1:'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.',
+            f2:'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.',
+            t1:'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.',
+            t2:'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.',
+            t3:'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.',
+            t4:'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.',
+          };
+          const _fohSecText = {
+            u1:'💰 Upselling', s1:'⭐ Service Standards', s2:'⭐ Service Standards', s3:'⭐ Service Standards',
+            f1:'📝 Customer Feedback', f2:'📝 Customer Feedback',
+            t1:'🤝 Team Player', t2:'🤝 Team Player', t3:'🤝 Team Player', t4:'🤝 Team Player',
+          };
+          if (_fohTaskText[_tid]) updates['submissions/' + child.key + '/taskData/' + taskKey + '/task'] = _fohTaskText[_tid];
+          updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = _fohSecText[_tid] || 'OIC Observation';
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/owner'] = 'OIC Only';
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/day'] = sub.day || 1;
         }
@@ -8676,8 +8757,21 @@ async function saveFOHOverwrite(staff) {
         if (updatedTasks[k]) {
           updatedTasks[k] = {...updatedTasks[k], yn};
         } else {
-          // New OIC task not in original submission
-          updatedTasks[k] = {yn, section:'OIC Observation', owner:'OIC Only', day: sub.day||1, _key: k};
+          // New OIC task not in original submission — store with full text
+          const _tid2 = k.replace(/^d[0-9]+_/, '');
+          const _fohText2 = {
+            u1:'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.',
+            s1:'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.',
+            s2:'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.',
+            s3:'Service Awareness: Demonstrates good awareness of guest needs and responds promptly.',
+            f1:'Complaints Handling: Manages guest complaints promptly and professionally.',
+            f2:'Grooming: Presents a well-groomed and professional appearance.',
+            t1:'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues.',
+            t2:'Attitude: Shows a helpful, positive attitude.',
+            t3:'Follow Instruction: Listens carefully and follows instructions from the OIC.',
+            t4:'Attendance: Arrives on time, is present for the full shift.',
+          };
+          updatedTasks[k] = {yn, task: _fohText2[_tid2]||'', section:'OIC Observation', owner:'OIC Only', day: sub.day||1, _key: k};
         }
       });
       // Calculate opening, closing, oic scores separately
