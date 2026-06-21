@@ -3378,7 +3378,14 @@ function openStaffDetail(s) {
     });
     // Group by section
     const bySec = {};
+    // Eval task IDs — shown in dedicated eval panel below, exclude from main checklist
+    const _kicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1'];
+    const _oicEvalIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+    const _allEvalIds = _isKIC ? _kicEvalIds : _oicEvalIds;
     Object.values(deduped).forEach(t => {
+      // Skip eval tasks — they render in the dedicated eval panel below
+      const _tk = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+      if (_allEvalIds.includes(_tk)) return;
       const sec = t.section||'Tasks';
       if (!bySec[sec]) bySec[sec] = [];
       bySec[sec].push(t);
@@ -4985,8 +4992,11 @@ async function exportDetailPDF() {
       tasks.forEach(t => {
         // Filter OIC observation tasks from PDF export
         const _pdfOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+        // Filter KIC/OIC eval tasks — shown in dedicated eval section below
+        const _pdfKicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1'];
         const _pdfKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
         if (_pdfOicIds.includes(_pdfKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
+        if (_pdfKicEvalIds.includes(_pdfKey)) return;
         const sec = t.section||'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -6201,10 +6211,10 @@ function toggleEditMode(s) {
     extraDiv.style.cssText = 'flex-basis:100%;padding:10px;background:#F8FAFC;border-radius:0 0 8px 8px;border-top:1px solid #E0DDD4;';
     row.style.flexWrap = 'wrap';
     extraDiv.innerHTML = `
-      <div style="font-size:10px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:8px;">✏️ OIC Notes</div>
+      <div style="font-size:10px;font-weight:700;color:#7B2D42;text-transform:uppercase;margin-bottom:8px;">${_isKIC ? "✏️ KIC Notes" : "✏️ OIC Notes"}</div>
       <div style="margin-bottom:8px;">
         <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:3px;text-transform:uppercase;">Comment</label>
-        <textarea class="edit-comment" data-taskkey="${taskKey}" placeholder="Add OIC comment..." rows="2"
+        <textarea class="edit-comment" data-taskkey="${taskKey}" placeholder="${_isKIC ? 'Add KIC/AC comment...' : 'Add OIC comment...'}" rows="2"
           style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box;">${existingComment}</textarea>
       </div>
       <div>
