@@ -2342,12 +2342,7 @@ function showTab(el,id) {
       const rawA = snap.val() ? Object.values(snap.val()) : [];
       allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole))
         ? rawA : rawA.filter(a => a.outlet === currentOutlet);
-      // Auto-select current month on first load
-      const monthSel = document.getElementById('auditMonthFilter');
-      if (monthSel && !monthSel.value) {
-        const now = new Date();
-        monthSel.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-      }
+      // Show ALL audits by default — don't auto-filter to current month (was hiding older audits)
       renderAudits();
     });
   }
@@ -4103,8 +4098,12 @@ function renderAudits() {
   let filtered = [...allAudits];
   if (typeFilter)   filtered = filtered.filter(a => a.auditType === typeFilter);
   if (outletFilter) filtered = filtered.filter(a => a.outlet === outletFilter);
-  if (monthFilter)  filtered = filtered.filter(a => (a.auditDate||'').startsWith(monthFilter));
-  if (outletFilter) filtered = filtered.filter(a => (a.outlet||'') === outletFilter);
+  if (monthFilter)  filtered = filtered.filter(a => {
+    // Use auditDate, fall back to submittedAt — so audits without auditDate aren't dropped
+    let d = a.auditDate || '';
+    if (!d && a.submittedAt) { try { d = new Date(a.submittedAt).toISOString().substring(0,10); } catch(e) {} }
+    return d.startsWith(monthFilter);
+  });
 
   // Populate outlet dropdown
   const outletSel = document.getElementById('auditOutletFilter');
