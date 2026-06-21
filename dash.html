@@ -7583,7 +7583,13 @@ function buildProgressCell(staff) {
     closeDone ? 'Closing — ' + staff.closingPct + '%' : 'Closing — not submitted'
   );
 
-  // ── Eval (OIC / KIC only) ───────────────────────────────────
+  // ── Eval: OIC/KIC get AM/AC Eval; service/bartender/delco get OIC Observation ──
+  const needsObservation = ['service','bartender','delco'].includes(role);
+  const obsDone = needsObservation
+    ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
+    : false;
+  const obsLabel = 'OIC/AM Observation';
+
   if (needsEval) {
     html += row(
       evalDone ? PILL_DONE : !openDone ? PILL_WAIT : PILL_NEED,
@@ -7594,8 +7600,18 @@ function buildProgressCell(staff) {
     );
   }
 
+  if (needsObservation) {
+    html += row(
+      obsDone ? PILL_DONE : !openDone ? PILL_WAIT : PILL_NEED,
+      obsDone ? CHK : BOX,
+      obsDone
+        ? obsLabel + ' — ' + staff.oicEvalPct + '%'
+        : !openDone ? obsLabel + ' — waiting' : obsLabel + ' — needed'
+    );
+  }
+
   // ── Sign-off ─────────────────────────────────────────────────
-  const verExpected = openDone && (!needsEval || evalDone);
+  const verExpected = openDone && (!needsEval || evalDone) && (!needsObservation || obsDone);
   html += row(
     verDone ? PILL_DONE : verExpected ? PILL_NEED : PILL_WAIT,
     verDone ? CHK : BOX,
