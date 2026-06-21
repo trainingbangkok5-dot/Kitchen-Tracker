@@ -857,6 +857,7 @@ function clearTodayData() {
   const d=load(),k=getTodayKey();
   if(d[k]){delete d[k];save(d);}
   currentShift=null;
+  try{localStorage.removeItem('delco_currentShift_'+getTodayKey());}catch(e){}
   showToast('Today\'s checklist cleared ✓','ok');
   document.getElementById('shiftScreen').style.display='';
   renderDay();

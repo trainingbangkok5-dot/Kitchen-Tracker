@@ -1162,8 +1162,8 @@ function renderDay() {
   const openingDone = !!data[dayKey]?._openDone;
   const closingDone = !!data[dayKey]?._closeDone;
   let weekStart = getWeekStart();
-  if (currentShift==='closing' && d[dayKey] && d[dayKey]._openDone) {
-    try { const _od=new Date(d[dayKey]._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)weekStart=_ow; } catch(e){}
+  if (currentShift==='closing' && dNow[dayKey] && dNow[dayKey]._openDone) {
+    try { const _od=new Date(dNow[dayKey]._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)weekStart=_ow; } catch(e){}
   }
   const unlocked   = !weekStart || isDayUnlocked(currentDay, weekStart);
 
@@ -1741,6 +1741,17 @@ async function submitDay() {
   const op=opC!==null?opC:0;
 
   // Push to master dashboard
+  // CRITICAL: closing must use same week as opening so they merge in dashboard
+  let _closingWeek = getWeekStart();
+  try {
+    const _dLocal = load();
+    const _openDoneTs = (_dLocal[getTodayKey()]||{})._openDone;
+    if (_openDoneTs) {
+      const _openDate = new Date(_openDoneTs).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
+      const _openWeek = getWeekStartFromDate(_openDate);
+      if (_openWeek) _closingWeek = _openWeek;
+    }
+  } catch(e) {}
   const _fbRecord = {
     staffName:    closerName,
     empNo:        document.getElementById('fEmpNo')?.value || localStorage.getItem('kic_info_' + ROLE + '_fEmpNo') || '',
@@ -1748,7 +1759,7 @@ async function submitDay() {
     role:         ROLE,
     roleLabel:    ROLE_LABEL,
     outlet:       getOutlet(),
-    week:         getWeekStart(),
+    week:         _closingWeek,
     verifiedBy:   getVerified(),
     overallPct:   op,
     openingPct:   null,

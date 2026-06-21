@@ -611,6 +611,17 @@ function checkAutoReset() {
 // ── Role config ───────────────────────────────────────────────
 const ROLE       = 'steward';
 
+function clearTodayData() {
+  if (!confirm("Clear today's answers and photos?\n\nYour name and outlet will be kept.\nThis cannot be undone.")) return;
+  const d = load();
+  const todayKey = getTodayKey();
+  if (d[todayKey]) { delete d[todayKey]; save(d); }
+  currentShift = null;
+  try { localStorage.removeItem('steward_currentShift_' + getTodayKey()); } catch(e) {}
+  showToast("Today's checklist cleared ✓", 'ok');
+  buildDayRail(); renderDay();
+}
+
 function clearAllData() {
   const pin = prompt('Enter Training PIN to reset checklist:');
   if (pin === null) return; // cancelled
@@ -1302,20 +1313,32 @@ function submitDay() {
   const op = opC !== null ? opC : 0;
   const opO = null;
 
+  // CRITICAL: closing must use same week as opening so dashboard merges correctly
+  let _closingWeek = getWeekStart();
+  try {
+    const _dClose = load();
+    const _openTs = (_dClose[getTodayKey()]||{})._openDone;
+    if (_openTs) {
+      const _openDate = new Date(_openTs).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
+      const _openWeek = getWeekStartFromDate(_openDate);
+      if (_openWeek) _closingWeek = _openWeek;
+    }
+  } catch(e) {}
+
   // Push to master dashboard
   const _fbRecord = {
     staffName:  name,
     role:       ROLE,
     roleLabel:  ROLE_LABEL,
     outlet:     getOutlet(),
-    week:       getWeekStart(),
+    week:       _closingWeek,
     verifiedBy: getVerified(),
     overallPct:   op,
     openingPct:   null,
     closingPct:   opC,
     qualified:    false,
     status:       'closing_submitted',
-    submittedDates: trackSubmittedDate(getWeekStart()),
+    submittedDates: trackSubmittedDate(_closingWeek),
     taskData: (function() {
       const tasks = {};
       const _tdData = load()[getTodayKey()] || {};

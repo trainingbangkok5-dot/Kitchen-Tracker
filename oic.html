@@ -610,6 +610,17 @@ function checkAutoReset() {
 // ── Role config ───────────────────────────────────────────────
 const ROLE       = 'oic';
 
+function clearTodayData() {
+  if (!confirm("Clear today's answers and photos?\n\nYour name and outlet will be kept.\nThis cannot be undone.")) return;
+  const d = load();
+  const todayKey = getTodayKey();
+  if (d[todayKey]) { delete d[todayKey]; save(d); }
+  currentShift = null;
+  try { localStorage.removeItem('oic_currentShift_' + getTodayKey()); } catch(e) {}
+  showToast("Today's checklist cleared ✓", 'ok');
+  if (typeof buildDayRail === 'function') buildDayRail(); renderDay();
+}
+
 function clearAllData() {
   const pin = prompt('Enter Training PIN to reset checklist:');
   if (pin === null) return;

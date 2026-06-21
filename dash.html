@@ -3035,6 +3035,10 @@ function openWeeklyDetail(staffName, week) {
     const tasks = byDay[day];
     const bySec = {};
     tasks.forEach(t => {
+      // Filter OIC observation tasks — shown in dedicated panel
+      const _wkOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+      const _wkKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+      if (_wkOicIds.includes(_wkKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
       const sec = t.section||'Tasks';
       if (!bySec[sec]) bySec[sec] = [];
       bySec[sec].push(t);
@@ -4981,6 +4985,10 @@ async function exportDetailPDF() {
       const tasks = byDay[day];
       const bySec = {};
       tasks.forEach(t => {
+        // Filter OIC observation tasks from PDF export
+        const _pdfOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+        const _pdfKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+        if (_pdfOicIds.includes(_pdfKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
         const sec = t.section||'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -8015,7 +8023,12 @@ function openFOHDetail(idx) {
 
   // Show Edit button only for roles allowed to overwrite FOH records
   // OIC can overwrite service/delco/bartender; area manager can overwrite all FOH
-  const fohCanEdit = ['oic','areamanager','training','operations','director','ceo'].includes(currentRole);
+  // OIC can edit service/bartender/delco but NOT their own OIC records
+  // fohCanEdit: areamanager and above; OIC only if viewing non-OIC records
+  const _viewingOIC = (staff && staff.role === 'oic');
+  const fohCanEdit = _viewingOIC
+    ? ['areamanager','training','operations','director','ceo'].includes(currentRole)
+    : ['oic','areamanager','training','operations','director','ceo'].includes(currentRole);
   const fohEditBtn = document.getElementById('fohEditBtn');
   if (fohEditBtn) fohEditBtn.style.display = fohCanEdit ? 'block' : 'none';
 
@@ -8841,6 +8854,8 @@ function toggleFOHEditMode() {
       if (editSec) editSec.remove();
       openFOHDetail(_fohDetailIdx);
     };
+    // Append cancelBtn first so it's in the DOM, then insert vbyDiv before it
+    area.appendChild(cancelBtn);
     // Verification log panel for FOH overwrite
     let fohVbyDiv = area.querySelector('#fohVerifiedByDiv');
     if (!fohVbyDiv) {
@@ -8848,9 +8863,9 @@ function toggleFOHEditMode() {
       fohVbyDiv.id = 'fohVerifiedByDiv';
       fohVbyDiv.style.cssText = 'margin-top:8px;';
       fohVbyDiv.innerHTML = buildVerifyEditPanel(staff);
+      // insertBefore cancelBtn which is now in the DOM
       area.insertBefore(fohVbyDiv, cancelBtn);
     }
-    area.appendChild(cancelBtn);
   }
 }
 
@@ -9160,6 +9175,10 @@ async function exportFOHDetailPDF() {
             const tasks = byDay[day];
             const bySec = {};
             tasks.forEach(t => {
+              // Filter OIC observation tasks from FOH PDF export
+              const _fohPdfOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+              const _fohPdfKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+              if (_fohPdfOicIds.includes(_fohPdfKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
               const sec = t.section||'Tasks';
               if (!bySec[sec]) bySec[sec] = [];
               bySec[sec].push(t);
