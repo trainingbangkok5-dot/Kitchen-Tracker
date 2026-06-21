@@ -982,8 +982,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="mtab-completed" onclick="setMaintTab('completed')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">✅ Completed</button>
       <button id="mtab-weekly" onclick="setMaintTab('weekly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📆 Weekly</button>
       <button id="mtab-monthly" onclick="setMaintTab('monthly')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">📅 Monthly</button>
-      <button id="mtab-outsourced" onclick="setMaintTab('outsourced')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🏗️ Outsourced</button>
-      <button id="mtab-preventive" onclick="setMaintTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Monthly Preventive</button>
+      <button id="mtab-preventive" onclick="setMaintTab('preventive')" style="padding:7px 14px;font-size:12px;font-weight:500;border:none;background:#E0DDD4;color:#475569;border-radius:8px 8px 0 0;cursor:pointer;">🔧 Preventive</button>
       <div style="display:flex;align-items:center;gap:6px;padding:4px;margin-left:auto;">
         <select id="mFilterOutlet" style="padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;background:#fff;" onchange="renderMaintCurrentTab()">
           <option value="">All Outlets</option>
@@ -1054,36 +1053,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <tbody id="maintTableBody"></tbody>
       </table>
       <div id="maintEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No maintenance issues logged yet</div>
-    </div>
-  </div>
-
-  <!-- Outsourced Preventive Panel -->
-  <div id="dashOutsourcedPanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
-    <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-      <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🏗️ Outsourced Preventive Maintenance</div>
-      <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
-    </div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;min-width:900px;font-size:12px;">
-        <thead>
-          <tr style="background:#F8F7F2;">
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;">Issue</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Priority</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date Resolved</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Verified By</th>
-            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Action</th>
-          </tr>
-        </thead>
-        <tbody id="dashOutsourcedTbody"></tbody>
-      </table>
-      <div id="dashOutsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No outsourced preventive tasks found.</div>
     </div>
   </div>
 
@@ -1734,9 +1703,13 @@ function loadData() {
         // Merge opening+closing — preserve both scores, never discard either
         const m = dedupBOH[key];
         if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
-        // Never merge closingPct from an opening_submitted record
-        if (s.closingPct != null && m.closingPct == null && s.status !== 'opening_submitted') m.closingPct = s.closingPct;
-        if (m.status === 'opening_submitted') m.closingPct = null;
+        // Merge closingPct from a real closing record (not an opening_submitted one)
+        const incomingHasClosing = s.closingPct != null && s.status !== 'opening_submitted';
+        if (incomingHasClosing && m.closingPct == null) {
+          m.closingPct = s.closingPct;
+          // Promote status so the merged record is no longer treated as opening-only
+          if (m.status === 'opening_submitted') m.status = 'closing_submitted';
+        }
         if (s.taskData) {
           if (!m.taskData) m.taskData = {};
           Object.assign(m.taskData, s.taskData);
@@ -1750,13 +1723,8 @@ function loadData() {
         if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
       }
     });
-    // One-time cleanup: delete stale closingPct from opening_submitted records
-    Object.values(dedupBOH).forEach(rec => {
-      if (rec.status === 'opening_submitted' && rec._fbKey) {
-        const db_ = rec._isFOH ? fohDb : db;
-        if (db_) db_.ref('submissions/' + rec._fbKey + '/closingPct').remove().catch(()=>{});
-      }
-    });
+    // NOTE: removed the destructive cleanup that deleted closingPct from Firebase —
+    // it was permanently erasing valid closing scores. Display logic handles opening-only correctly.
     allStaff = Object.values(dedupBOH);
     setLoadingIndicator('');
     db.ref('audits').on('value', aSnap => {
@@ -1808,10 +1776,13 @@ function loadData() {
         // Merge opening+closing — only merge closingPct if the incoming record is NOT opening_submitted
         const m = dedupMap[key];
         if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
-        // Never overwrite a null closingPct with data from an opening_submitted record
-        if (s.closingPct != null && m.closingPct == null && s.status !== 'opening_submitted') m.closingPct = s.closingPct;
-        // Also if existing record is opening_submitted, don't accept closingPct from merge
-        if (m.status === 'opening_submitted') m.closingPct = null;
+        // Merge closingPct from a real closing record (not an opening_submitted one)
+        const incomingHasClosing = s.closingPct != null && s.status !== 'opening_submitted';
+        if (incomingHasClosing && m.closingPct == null) {
+          m.closingPct = s.closingPct;
+          // Promote status so the merged record is no longer treated as opening-only
+          if (m.status === 'opening_submitted') m.status = 'closing_submitted';
+        }
         if (s.taskData) {
           if (!m.taskData) m.taskData = {};
           Object.assign(m.taskData, s.taskData);
@@ -2231,7 +2202,7 @@ function renderSummaryScoring() {
     (a.rank!=null && b.rank!=null ? a.rank-b.rank :
      a.rank!=null ? -1 : b.rank!=null ? 1 :
      new Date(b.submittedAt||0) - new Date(a.submittedAt||0)) ||
-    a.staffName.localeCompare(b.staffName)
+    (a.staffName||'').localeCompare(b.staffName||'')
   );
 
   _ssConsolidatedRows = employees;
@@ -6714,26 +6685,6 @@ function dashCanEditPrev() {
   return ['director','maintsupervisor','training','operations','ceo'].includes(currentRole);
 }
 
-function dashRenderOutsourced() {
-  const tbody = document.getElementById('dashOutsourcedTbody');
-  const emptyEl = document.getElementById('dashOutsourcedEmpty');
-  if (!tbody) return;
-  const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
-  // Outsourced = Preventive priority + assigned to external contractor + NOT completed
-  const outsourced = (allMaintenanceLogs||[]).filter(l => {
-    if (l.priority !== 'Preventive') return false;
-    const assigned = (l.assignedTo||'').trim();
-    if (!assigned) return false;
-    if (INTERNAL.includes(assigned)) return false;
-    // Completed records go to Completed tab
-    return l.status !== 'Yes' && l.status !== 'Completed';
-  }).sort((a,b)=>(b.dateReported||'').localeCompare(a.dateReported||''));
-  tbody.innerHTML = '';
-  if (!outsourced.length) { if(emptyEl) emptyEl.style.display='block'; return; }
-  if (emptyEl) emptyEl.style.display='none';
-  outsourced.forEach(log => renderMaintRow(log, tbody));
-}
-
 async function dashLoadPreventive() {
   const month = document.getElementById('dashPrevMonthSelect').value;
   document.getElementById('dashPrevStatus').textContent = '⏳ Loading...';
@@ -6828,7 +6779,7 @@ async function dashSavePreventive() {
 
 function setMaintTab(tab) {
   currentMaintTab = tab;
-  ['log','completed','weekly','monthly','preventive','outsourced'].forEach(t => {
+  ['log','completed','weekly','monthly','preventive'].forEach(t => {
     const btn = document.getElementById('mtab-'+t);
     if (btn) {
       btn.style.background = t===tab ? '#7F1D1D' : '#E0DDD4';
@@ -6836,25 +6787,14 @@ function setMaintTab(tab) {
       btn.style.fontWeight = t===tab ? '600' : '500';
     }
   });
-  const titles = {
-    log:        '🔧 Active Issues',
-    completed:  '✅ Completed Issues',
-    weekly:     '📆 Weekly Report',
-    monthly:    '📅 Monthly Report',
-    preventive: '🔧 Monthly Preventive Schedule',
-    outsourced: '🏗️ Outsourced Preventive'
-  };
+  const titles = {log:'🔧 Active Issues', completed:'✅ Completed Issues', weekly:'📆 Weekly Report', monthly:'📅 Monthly Report', preventive:'🔧 Preventive Schedule'};
   const el = document.getElementById('maintTabTitle');
   if (el) el.textContent = titles[tab]||'';
   const maintWrap = document.getElementById('maintLogTableWrap');
   const prevPanel = document.getElementById('dashPreventivePanel');
-  const outsPanel = document.getElementById('dashOutsourcedPanel');
-  if (maintWrap) maintWrap.style.display = (tab==='preventive'||tab==='outsourced') ? 'none' : '';
+  if (maintWrap) maintWrap.style.display = tab==='preventive' ? 'none' : '';
   if (prevPanel) prevPanel.style.display = tab==='preventive' ? 'block' : 'none';
-  if (outsPanel) outsPanel.style.display = tab==='outsourced' ? 'block' : 'none';
   if (tab==='preventive') { dashLoadPreventive(); return; }
-  if (tab==='outsourced') { renderMaintenanceLogs(); dashRenderOutsourced(); return; }
-  if (tab==='completed') { renderMaintenanceLogs(); renderMaintCompleted(); return; }
   renderMaintCurrentTab();
 }
 
@@ -6863,7 +6803,6 @@ function renderMaintCurrentTab() {
   else if (currentMaintTab === 'completed') renderMaintCompleted();
   else if (currentMaintTab === 'weekly') renderMaintWeekly();
   else if (currentMaintTab === 'monthly') renderMaintMonthly();
-  else if (currentMaintTab === 'outsourced') dashRenderOutsourced();
 }
 
 function getMaintFiltered() {
@@ -9056,7 +8995,7 @@ function loadMaintenanceLogs() {
     return;
   }
   document.getElementById('maintStatus').textContent = '⏳ Loading...';
-  // Load all records — NO orderByChild (it drops records missing the field); fall back to dateReported for sort
+  // Load all records — NO orderByChild (drops records missing the field); fall back to dateReported for sort
   maintenanceDb.ref('maintenanceLogs').limitToLast(500).once('value', snap => {
     allMaintenanceLogs = [];
     if (snap.exists()) {
@@ -9079,25 +9018,11 @@ function loadMaintenanceLogs() {
 }
 
 function renderMaintenanceLogs() {
-  // Update stats — count from outsourced only when on outsourced tab
-  const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
-  // Stats reflect the active tab's dataset
-  let statsSource;
-  if (currentMaintTab === 'outsourced') {
-    statsSource = (allMaintenanceLogs||[]).filter(l => {
-      if (l.priority !== 'Preventive') return false;
-      const a = (l.assignedTo||'').trim();
-      return a && !INTERNAL.includes(a);
-    });
-  } else if (currentMaintTab === 'completed') {
-    statsSource = (allMaintenanceLogs||[]).filter(l => l.status === 'Yes' || l.status === 'Completed');
-  } else {
-    statsSource = allMaintenanceLogs;
-  }
-  document.getElementById('mStatTotal').textContent = statsSource.length;
-  document.getElementById('mStatUrgent').textContent = statsSource.filter(l=>l.priority==='Urgent').length;
-  document.getElementById('mStatPending').textContent = statsSource.filter(l=>l.status!=='Yes'&&l.status!=='Completed').length;
-  document.getElementById('mStatDone').textContent = statsSource.filter(l=>l.status==='Yes'||l.status==='Completed').length;
+  // Update stats
+  document.getElementById('mStatTotal').textContent = allMaintenanceLogs.length;
+  document.getElementById('mStatUrgent').textContent = allMaintenanceLogs.filter(l=>l.priority==='Urgent').length;
+  document.getElementById('mStatPending').textContent = allMaintenanceLogs.filter(l=>l.status!=='Yes'&&l.status!=='Completed').length;
+  document.getElementById('mStatDone').textContent = allMaintenanceLogs.filter(l=>l.status==='Yes'||l.status==='Completed').length;
 
   // Log tab shows ONLY active (non-completed) issues
   const activeLogs = getMaintFiltered().filter(l => l.status !== 'Yes' && l.status !== 'Completed');
@@ -9111,23 +9036,7 @@ function renderMaintenanceLogs() {
 }
 
 function renderMaintCompleted() {
-  const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
-  // Include completed outsourced preventive records
-  const completedOutsourced = (allMaintenanceLogs||[]).filter(l => {
-    if (l.priority !== 'Preventive') return false;
-    const a = (l.assignedTo||'').trim();
-    if (!a || INTERNAL.includes(a)) return false;
-    return l.status === 'Yes' || l.status === 'Completed';
-  });
-  const completedRegular = getMaintFiltered().filter(l => l.status === 'Yes' || l.status === 'Completed');
-  // Merge and deduplicate by _key
-  const seen = new Set();
-  const completedLogs = [...completedRegular, ...completedOutsourced].filter(l => {
-    const k = l._key || l.logId;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  }).sort((a,b)=>(b.dateReported||'').localeCompare(a.dateReported||''));
+  const completedLogs = getMaintFiltered().filter(l => l.status === 'Yes' || l.status === 'Completed');
   const tbody = document.getElementById('maintTableBody');
   tbody.innerHTML = '';
   const emptyEl = document.getElementById('maintEmpty');
