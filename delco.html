@@ -809,7 +809,8 @@ function submitDay() {
   }));
 
   // For closing shift submitted after midnight, use opening shift's week
-  const _dayData2 = _d[getTodayKey()]||{};
+  // For closing shift submitted after midnight, use opening shift's week
+  const _dayData2 = d[getTodayKey()]||{};
   let _weekStart2 = getWeekStart();
   if (currentShift==='closing' && _dayData2._openDone) {
     try { const _od=new Date(_dayData2._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)_weekStart2=_ow; } catch(e){}
