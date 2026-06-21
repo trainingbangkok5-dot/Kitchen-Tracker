@@ -4859,21 +4859,59 @@ function showDeleteToast(msg) {
 }
 
 // ── Export detail PDF (stub — main fn defined above) ──────────
+// ── Shared PDF photo helpers ─────────────────────────────────────────────────
+
+// Fetch a Cloudinary (https://) URL and return a base64 data URL for jsPDF addImage
+async function _urlToBase64(url) {
+  try {
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    return await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(blob);
+    });
+  } catch(e) { return null; }
+}
+
+// Collect all photo URLs for a task from photoUrls array + photoUrl + photoUrl_1..4
+function _collectTaskPhotos(t) {
+  const seen = new Set();
+  const photos = [];
+  const add = (u) => { if (u && typeof u === 'string' && u.startsWith('http') && !seen.has(u)) { seen.add(u); photos.push(u); } };
+  if (Array.isArray(t.photoUrls)) t.photoUrls.forEach(add);
+  add(t.photoUrl);
+  for (let i = 1; i <= 4; i++) add(t['photoUrl_' + i]);
+  return photos;
+}
+
 async function exportDetailPDF() {
   var s = _currentStaffData;
   if (!s) { alert('No staff data.'); return; }
   var { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('PDF library not loaded.'); return; }
 
-  // Pre-fetch all db: photos from Firebase before building PDF
-  if (s.taskData && db) {
+  // Pre-fetch all photos (db: from Firebase, https:// from Cloudinary) before building PDF
+  if (s.taskData) {
     const fetchPromises = Object.values(s.taskData).map(async t => {
-      if (t.photoUrl && t.photoUrl.startsWith('db:')) {
+      // Resolve db: photo to base64
+      if (t.photoUrl && t.photoUrl.startsWith('db:') && db) {
         try {
           const snap = await db.ref('photos/' + t.photoUrl.slice(3)).once('value');
           const dataUrl = snap.val();
           if (dataUrl && dataUrl.startsWith('data:')) t.photoUrl = dataUrl;
         } catch(e) {}
+      }
+      // Resolve all Cloudinary URLs in photoUrls array to base64
+      if (Array.isArray(t.photoUrls)) {
+        t._b64Photos = await Promise.all(t.photoUrls.map(u => u.startsWith('http') ? _urlToBase64(u) : Promise.resolve(u.startsWith('data:') ? u : null)));
+        t._b64Photos = t._b64Photos.filter(Boolean);
+      }
+      // Resolve single photoUrl if it's a Cloudinary URL
+      if (t.photoUrl && t.photoUrl.startsWith('http')) {
+        const b64 = await _urlToBase64(t.photoUrl);
+        if (b64) t.photoUrl = b64;
       }
     });
     await Promise.all(fetchPromises);
@@ -5026,23 +5064,29 @@ async function exportDetailPDF() {
 
         // Photos inline — under each task that has one
         for (const t of secTasks) {
-          const photoUrl = t.photoUrl || '';
-          if (!photoUrl || photoUrl.startsWith('db:')) continue;
+          // Collect all resolved photos: _b64Photos array first, then single photoUrl
+          const taskPhotos = [];
+          if (Array.isArray(t._b64Photos) && t._b64Photos.length) {
+            taskPhotos.push(...t._b64Photos);
+          } else {
+            const pu = t.photoUrl || '';
+            if (pu.startsWith('data:')) taskPhotos.push(pu);
+          }
+          if (!taskPhotos.length) continue;
           if (y > H-55) { doc.addPage(); y=16; }
           doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
           doc.text('[Photo] ' + (t.task||'').replace(/[^\x00-\x7F]/g,'').trim().substring(0,65), 16, y+4); y += 7;
-          if (photoUrl.startsWith('data:')) {
+          let px = 16;
+          for (const photoData of taskPhotos) {
+            if (y > H-45) { doc.addPage(); y=16; px=16; }
             try {
-              const fmt = photoUrl.startsWith('data:image/png')?'PNG':'JPEG';
-              doc.addImage(photoUrl, fmt, 16, y, 45, 34);
-              y += 38;
-            } catch(e) { y += 2; }
-          } else if (photoUrl.startsWith('http')) {
-            doc.setFillColor(220,252,231); doc.roundedRect(16,y,55,10,2,2,'F');
-            doc.setFontSize(7); doc.setTextColor(21,128,61);
-            doc.textWithLink('[View Photo]', 18, y+7, {url: photoUrl});
-            y += 14;
+              const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+              doc.addImage(photoData, fmt, px, y, 45, 34);
+              px += 49;
+              if (px > W - 49) { px = 16; y += 38; }
+            } catch(e) {}
           }
+          y += 38;
         }
         y += 4;
       });
@@ -6137,12 +6181,10 @@ function buildVerifyEditPanel(s) {
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
     + (historyHtml || noVerify)
     + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\u25b6\':\'\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">\u2795 Add Verification <span class="vfy-arrow" style="font-size:9px;">\u25b6</span></div>'
-    + '<div style="display:none;margin-top:6px;">'
+    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">\u2795 Add Verification</div>'
     + '<input id="verifiedByInput" type="text" value="' + nameVal + '" placeholder="Your name..."'
     + ' style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;">'
     + '<div style="font-size:10px;color:#94A3B8;">' + roleNote + '</div>'
-    + '</div>'
     + '</div></div>';
 }
 
@@ -9326,18 +9368,28 @@ async function exportFOHDetailPDF() {
           });
         });
 
-        // Pre-fetch all db: photos from fohDb before building PDF
+        // Pre-fetch all photos (db: from Firebase, https:// from Cloudinary) before building PDF
         const allFohTasks = Object.values(byDay).flat();
-        await Promise.all(allFohTasks
-          .filter(t => t.photoUrl && t.photoUrl.startsWith('db:'))
-          .map(async t => {
+        await Promise.all(allFohTasks.map(async t => {
+          // Resolve db: photo
+          if (t.photoUrl && t.photoUrl.startsWith('db:') && fohDb) {
             try {
               const pSnap = await fohDb.ref('photos/' + t.photoUrl.slice(3)).once('value');
               const dataUrl = pSnap.val();
               if (dataUrl && dataUrl.startsWith('data:')) t.photoUrl = dataUrl;
             } catch(e) {}
-          })
-        );
+          }
+          // Resolve all Cloudinary URLs in photoUrls array to base64
+          if (Array.isArray(t.photoUrls)) {
+            t._b64Photos = await Promise.all(t.photoUrls.map(u => u.startsWith('http') ? _urlToBase64(u) : Promise.resolve(u.startsWith('data:') ? u : null)));
+            t._b64Photos = t._b64Photos.filter(Boolean);
+          }
+          // Resolve single photoUrl if Cloudinary
+          if (t.photoUrl && t.photoUrl.startsWith('http')) {
+            const b64 = await _urlToBase64(t.photoUrl);
+            if (b64) t.photoUrl = b64;
+          }
+        }));
 
         if (Object.keys(byDay).length) {
           if (y > H-30) { doc.addPage(); y=16; }
@@ -9416,23 +9468,32 @@ async function exportFOHDetailPDF() {
               y = doc.lastAutoTable.finalY + 2;
 
               // Render photos for tasks in this section
-              const photoTasksFoh = secTasks.filter(t => t.photoUrl && (t.photoUrl.startsWith('data:') || t.photoUrl.startsWith('https://')));
+              // Collect all resolved photos for tasks in this section
+              const photoTasksFoh = [];
+              for (const t of secTasks) {
+                const photos = [];
+                if (Array.isArray(t._b64Photos) && t._b64Photos.length) photos.push(...t._b64Photos);
+                else if (t.photoUrl && t.photoUrl.startsWith('data:')) photos.push(t.photoUrl);
+                if (photos.length) photoTasksFoh.push({t, photos});
+              }
               if (photoTasksFoh.length > 0) {
                 if (y > H - 50) { doc.addPage(); y = 16; }
                 doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
                 doc.text('Photo Evidence:', 14, y + 4); y += 9;
                 let px = 14;
-                for (const t of photoTasksFoh) {
-                  try {
-                    if (y > H - 50) { doc.addPage(); y = 16; px = 14; }
-                    const fmt = t.photoUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-                    doc.addImage(t.photoUrl, fmt, px, y, 42, 32);
-                    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-                    const label = (t.task || t.text || '').substring(0, 28);
-                    doc.text(label, px, y + 35);
-                    px += 48;
-                    if (px > W - 48) { px = 14; y += 42; }
-                  } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
+                for (const {t, photos} of photoTasksFoh) {
+                  for (const photoData of photos) {
+                    try {
+                      if (y > H - 50) { doc.addPage(); y = 16; px = 14; }
+                      const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                      doc.addImage(photoData, fmt, px, y, 42, 32);
+                      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
+                      const label = (t.task || t.text || '').substring(0, 28);
+                      doc.text(label, px, y + 35);
+                      px += 48;
+                      if (px > W - 48) { px = 14; y += 42; }
+                    } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
+                  }
                 }
                 y += 42;
               }
