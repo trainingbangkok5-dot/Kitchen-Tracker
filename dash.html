@@ -8916,6 +8916,22 @@ async function saveFOHOverwrite(staff) {
     if (sub.role !== staff.role || sub.week !== staff.week) return;
     // Apply yn changes — also allow adding new OIC tasks not in original submission
     const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']; // OIC eval task IDs
+    // ── Verified By — runs independently of task changes ───────────────
+    if (_fohVerifiedBy) {
+      const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
+      const _fohExistingLog = Array.isArray(sub.verificationLog) ? [...sub.verificationLog] : [];
+      if (sub.verifiedBy && !_fohExistingLog.length) {
+        _fohExistingLog.push({ by: sub.verifiedBy, role: sub.verifiedByRole||'', at: sub.verifiedAt||'' });
+      }
+      _fohExistingLog.push(_fohNewEntry);
+      updates['submissions/' + child.key + '/verificationLog'] = _fohExistingLog;
+      updates['submissions/' + child.key + '/verifiedBy'] = _fohVerifiedBy;
+      updates['submissions/' + child.key + '/verifiedByRole'] = currentRole;
+      updates['submissions/' + child.key + '/verifiedAt'] = _fohNewEntry.at;
+    } else if (sub.verifiedBy) {
+      updates['submissions/' + child.key + '/verifiedBy'] = sub.verifiedBy;
+    }
+
     Object.entries(_fohEditChanges).forEach(([taskKey, changes]) => {
       const isOicTask = oicIds.some(id => taskKey === id || taskKey.endsWith('_'+id) || taskKey.startsWith(id+'_'));
       // Allow if task exists OR if it's an OIC observation task
@@ -8925,21 +8941,6 @@ async function saveFOHOverwrite(staff) {
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
         if (changes && changes.oicPhotoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/oicPhotoUrl'] = changes.oicPhotoUrl;
         if (changes && changes.audScore != null) updates['submissions/' + child.key + '/taskData/' + taskKey + '/audScore'] = changes.audScore;
-      // Append to verificationLog — preserve all previous entries
-      if (_fohVerifiedBy) {
-        const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
-        const _fohExistingLog = Array.isArray(sub.verificationLog) ? [...sub.verificationLog] : [];
-        if (sub.verifiedBy && !_fohExistingLog.length) {
-          _fohExistingLog.push({ by: sub.verifiedBy, role: sub.verifiedByRole||'', at: sub.verifiedAt||'' });
-        }
-        _fohExistingLog.push(_fohNewEntry);
-        updates['submissions/' + child.key + '/verificationLog'] = _fohExistingLog;
-        updates['submissions/' + child.key + '/verifiedBy'] = _fohVerifiedBy;
-        updates['submissions/' + child.key + '/verifiedByRole'] = currentRole;
-        updates['submissions/' + child.key + '/verifiedAt'] = _fohNewEntry.at;
-      } else if (sub.verifiedBy) {
-        updates['submissions/' + child.key + '/verifiedBy'] = sub.verifiedBy;
-      }
         // Also store task metadata for new OIC tasks — include task text so full report shows it
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
           const _tid = taskKey.replace(/^d[0-9]+_/, '');
@@ -9062,6 +9063,12 @@ async function saveFOHOverwrite(staff) {
         if (updates['submissions/' + child.key + '/closingPct'] != null) staffMem.closingPct = updates['submissions/' + child.key + '/closingPct'];
         else if (child.key.endsWith('_opening')) staffMem.closingPct = null;
         if (updates['submissions/' + child.key + '/oicEvalPct'] != null) staffMem.oicEvalPct = updates['submissions/' + child.key + '/oicEvalPct'];
+        // Update verifiedBy in memory so header reflects immediately
+        if (_fohVerifiedBy) {
+          staffMem.verifiedBy = _fohVerifiedBy;
+          staffMem.verifiedByRole = currentRole;
+          staffMem.verificationLog = updates['submissions/' + child.key + '/verificationLog'] || staffMem.verificationLog;
+        }
         // Merge updated taskData
         if (!staffMem.taskData) staffMem.taskData = {};
         Object.entries(updates).forEach(([path, val]) => {
