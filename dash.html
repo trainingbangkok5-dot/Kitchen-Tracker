@@ -3201,7 +3201,7 @@ function openStaffDetail(s) {
     pdfBtn.className = 'modal-close pdf-daily-btn';
     pdfBtn.style.cssText = 'background:#22C55E;margin-right:6px;';
     pdfBtn.textContent = '📄 Export PDF';
-    pdfBtn.onclick = () => exportDetailPDF();
+    pdfBtn.onclick = () => exportDetailPDF().catch(e => { showToast('PDF error: ' + e.message, 'error'); console.error('PDF error:', e); });
     const closeBtn = modalHeader.querySelector('.modal-close');
     if (closeBtn) modalHeader.insertBefore(pdfBtn, closeBtn);
     // Edit/Overwrite button — role-based access
@@ -8219,6 +8219,9 @@ function openFOHDetail(idx) {
   const staff = _fohFiltered[idx];
   if (!staff) return;
   _fohDetailIdx = idx;
+  // Clear BOH staff references so FOH delete/verify use the correct FOH staff
+  _currentDetailStaff = null;
+  _currentStaffData = null;
 
   document.getElementById('fohDetailName').textContent = staff.staffName;
   document.getElementById('fohDetailSub').textContent = staff.role.toUpperCase() + ' • ' + staff.outlet + ' • Week of ' + fmtWeekRange(staff.week);
