@@ -3281,40 +3281,40 @@ function openStaffDetail(s) {
     const scoreRows = [];
     scoreRows.push(
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
-        '<div style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
+        '<div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
-          '<div style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
-          '<div style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
+          '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
+          '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
         '</div>' +
-        '<div style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
+        '<div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
-          '<div style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
-          '<div style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
+          '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
+          '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
         '</div>' +
       '</div>'
     );
     if (isService) {
       scoreRows.push(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
-          '<div style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
+          '<div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : '👥 OIC EVAL') + '</div>' +
-            '<div style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
-            '<div style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
           '</div>' +
-          '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
+          '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
-            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
-            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
           '</div>' +
         '</div>'
       );
     } else {
       scoreRows.push(
         '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
-          '<div style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
+          '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
-            '<div style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
-            '<div style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
           '</div>' +
         '</div>'
       );
