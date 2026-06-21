@@ -4955,9 +4955,9 @@ async function exportDetailPDF() {
   doc.rect(0,0,W,20,'F');
   doc.setTextColor(255,255,255);
   doc.setFontSize(14); doc.setFont('helvetica','bold');
-  doc.text('BOH Performance Report - ' + (s.staffName||'-'), 14, 9);
+  doc.text('BOH Performance Report - ' + (s.staffName||'-').replace(/[^\x00-\x7F]/g,'').trim(), 14, 9);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text(role.label.toUpperCase() + ' | ' + (s.outlet||'-') + ' | Week of ' + (fmtWeekRange(s.week)||'-'), 14, 15);
+  doc.text(role.label.replace(/[^\x00-\x7F]/g,'').toUpperCase() + ' | ' + (s.outlet||'-').replace(/[^\x00-\x7F]/g,'').trim() + ' | Week of ' + (fmtWeekRange(s.week)||'-'), 14, 15);
   doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), W-14, 15, {align:'right'});
 
   let y = 28;
@@ -4966,10 +4966,10 @@ async function exportDetailPDF() {
   doc.autoTable({
     startY: y,
     body: [
-      ['Staff Name', s.staffName||'-', 'Role', role.label||'-'],
-      ['Outlet', s.outlet||'-', 'Employee No', s.empNo||'-'],
+      ['Staff Name', (s.staffName||'-').replace(/[^\x00-\x7F]/g,'').trim(), 'Role', (role.label||'-').replace(/[^\x00-\x7F]/g,'').trim()],
+      ['Outlet', (s.outlet||'-').replace(/[^\x00-\x7F]/g,'').trim(), 'Employee No', (s.empNo||'-').replace(/[^\x00-\x7F]/g,'').trim()],
       ['Started', fmtDT(s.startedAt), 'Submitted', fmtDT(s.submittedAt)],
-      ['Verified By', (function(){ var vl=s.verificationLog; var lg=Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); return s.verifiedBy||(lg.length?lg.map(function(e){return e.by||'';}).join(', '):'Pending'); })(), 'Status', pass?'QUALIFIED':'NOT QUALIFIED'],
+      ['Verified By', (function(){ var vl=s.verificationLog; var lg=Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); var names=s.verifiedBy||(lg.length?lg.map(function(e){return (e.by||'').replace(/[^\x00-\x7F]/g,'').trim();}).join(', '):'Pending'); return names.replace(/[^\x00-\x7F]/g,'').trim(); })(), 'Status', pass?'QUALIFIED':'NOT QUALIFIED'],
     ],
     styles:{fontSize:9,cellPadding:3},
     columnStyles:{
@@ -7447,7 +7447,21 @@ function deleteVerificationEntry(btn, idx) {
     upd['submissions/' + key + '/verifiedAt'] = last ? last.at : null;
     fbRef.ref().update(upd).then(() => {
       s.verificationLog = log;
-      s.verifiedBy = last ? last.by : '';
+      s.verifiedBy = last ? last.by : null;
+      s.verifiedByRole = last ? last.role : null;
+      s.verifiedAt = last ? last.at : null;
+      // Update all in-memory caches so re-render shows correct state
+      [allStaff, allBOHData, allFOHData].forEach(function(arr) {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(function(r) {
+          if (r.staffName === s.staffName && r.role === s.role && r.week === s.week) {
+            r.verificationLog = log;
+            r.verifiedBy = s.verifiedBy;
+            r.verifiedByRole = s.verifiedByRole;
+            r.verifiedAt = s.verifiedAt;
+          }
+        });
+      });
       showToast('Verification removed', 'ok');
       // Refresh display
       const isFOH = ['service','oic','delco','bartender'].includes(s.role);
