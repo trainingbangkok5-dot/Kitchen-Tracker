@@ -965,13 +965,14 @@ function uploadPhoto(input, key, type) {
 function markDone(key) {
   const log = allLogs.find(l => l._key === key);
   if (!log) return;
-  if (!log.afterPhoto) { showToast('Please attach after photo first','warn'); return; }
+  if (!log.afterPhoto) { showToast('Please attach after photo first — tap 📷 in the After column','warn'); return; }
   if (!db) return;
   db.ref('maintenanceLogs/' + key).update({
     status: 'Yes',
     dateResolved: getDubaiDate(),
-    fixedBy: currentName
-  }).then(() => showToast('Marked as resolved ✓','ok'))
+    fixedBy: currentName,
+    fixedByRole: currentRole,
+  }).then(() => { showToast('Marked as resolved ✓','ok'); loadLogs(); })
     .catch(e => showToast('Update failed: ' + e.message, 'error'));
 }
 
@@ -1444,6 +1445,8 @@ function renderMonthlyReport() {
 
 function renderLogRow(log, tbody) {
   const canManage = ['areachef','areamanager','operations','director','ceo','training','maintsupervisor','cksupervisor','ckqa'].includes(currentRole);
+  // Maintenance team can mark done + upload after photo, but NOT edit/delete
+  const canComplete = canManage || currentRole === 'maintenance';
   const canSetPriority = ['director','maintsupervisor'].includes(currentRole);
   const canAssign = ['director','maintsupervisor'].includes(currentRole);
   const days = daysPending(log.dateReported, log.status==='Yes' ? log.dateResolved : null);
@@ -1510,12 +1513,12 @@ function renderLogRow(log, tbody) {
     <td style="padding:8px 10px">
       <div class="photo-cell">
         ${log.afterPhoto ? `<img class="photo-thumb after-img" src="${log.afterPhoto}" onclick="showPhoto('${log.afterPhoto}')" title="After photo">` : ''}
-        ${log.status!=='Yes' ? `<button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','after'))">📷</button><button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','after'))">🖼️</button>` : ''}
+        ${(log.status!=='Yes' || currentRole==='maintenance' || canComplete) ? `<button class="attach-btn" onclick="openCamera(f=>uploadPhotoFile(f,'${log._key}','after'))">📷</button><button class="attach-btn" onclick="openGallery(f=>uploadPhotoFile(f,'${log._key}','after'))">🖼️</button>` : ''}
       </div>
     </td>
     <td style="padding:8px 10px;font-size:11px;">
       ${log.verifiedBy ?
-        `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''} • ${log.verifiedAt ? new Date(log.verifiedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : ''}</div>` :
+        `<div style="font-weight:600;color:#15803D">${log.verifiedBy}</div><div style="font-size:10px;color:#94A3B8">${log.verifiedByRole||''} • ${log.verifiedAt ? new Date(log.verifiedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}) : ''}</div>${log.fixedBy ? '<div style="font-size:10px;color:#0369A1;margin-top:2px;">🔧 Fixed by: ' + log.fixedBy + '</div>' : ''}` :
         (['kic','oic'].includes(currentRole) && log.status==='Yes') ?
           `<button onclick="verifyTask('${log._key}')" style="font-size:11px;padding:4px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;">✅ Verify</button>` :
           '<span style="color:#94A3B8;font-size:11px">—</span>'
@@ -1527,13 +1530,15 @@ function renderLogRow(log, tbody) {
   actionTd.style.cssText = 'padding:8px 10px;white-space:nowrap';
   const actionDiv = document.createElement('div');
   actionDiv.style.cssText = 'display:flex;gap:4px;align-items:center;';
-  // Done button — only for roles that can manage (NOT OIC/KIC view-only)
-  if (canManage) {
+  // Done button — maintenance team + managers can mark complete
+  if (canComplete) {
     if (log.status !== 'Yes') {
       const doneBtn = document.createElement('button');
       doneBtn.textContent = '✅';
+      doneBtn.title = 'Mark as Completed';
       doneBtn.style.cssText = 'font-size:11px;padding:4px 8px;background:#15803D;color:#fff;border:none;border-radius:6px;cursor:pointer;';
-      doneBtn.onclick = () => markDone(log._key);
+      // Maintenance team gets a simple completion modal; managers go straight to markDone
+      doneBtn.onclick = () => currentRole === 'maintenance' ? openMaintComplete(log._key) : markDone(log._key);
       actionDiv.appendChild(doneBtn);
     } else {
       const doneSpan = document.createElement('span');
@@ -2242,9 +2247,126 @@ window.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => { if (db) loadLogs(); }, 1500);
   }
 });
+
+// ── Maintenance Team — Complete Task Modal ────────────────────────────
+let _mc_photoUrl = ''; // uploaded after photo URL
+
+function openMaintComplete(key) {
+  _mc_photoUrl = '';
+  document.getElementById('mc_key').value = key;
+  document.getElementById('mc_remarks').value = '';
+  document.getElementById('mc_photo_preview').innerHTML = '';
+  document.getElementById('mc_photo_status').textContent = '';
+  // Pre-fill with existing after photo if already uploaded
+  const log = allLogs.find(l => l._key === key);
+  if (log && log.afterPhoto) {
+    _mc_photoUrl = log.afterPhoto;
+    document.getElementById('mc_photo_preview').innerHTML =
+      '<img src="' + log.afterPhoto + '" style="width:100%;border-radius:8px;border:2px solid #15803D;margin-bottom:4px;">';
+    document.getElementById('mc_photo_status').textContent = '✅ Photo already attached';
+    document.getElementById('mc_photo_status').style.color = '#15803D';
+  }
+  if (log && log.remarks) document.getElementById('mc_remarks').value = log.remarks;
+  document.getElementById('maintCompleteModal').style.display = 'flex';
+}
+
+function mc_uploadPhoto(file) {
+  if (!file) return;
+  const status = document.getElementById('mc_photo_status');
+  status.textContent = '⏳ Uploading photo...';
+  status.style.color = '#D97706';
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', 'culex_uploads');
+  fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(j => {
+      if (j.secure_url) {
+        _mc_photoUrl = j.secure_url;
+        document.getElementById('mc_photo_preview').innerHTML =
+          '<img src="' + j.secure_url + '" style="width:100%;border-radius:8px;border:2px solid #15803D;margin-bottom:4px;">';
+        status.textContent = '✅ Photo uploaded';
+        status.style.color = '#15803D';
+      } else {
+        status.textContent = '❌ Upload failed — try again';
+        status.style.color = '#B91C1C';
+      }
+    })
+    .catch(() => {
+      status.textContent = '❌ Upload failed — check connection';
+      status.style.color = '#B91C1C';
+    });
+}
+
+function mc_submitComplete() {
+  const key = document.getElementById('mc_key').value;
+  const remarks = document.getElementById('mc_remarks').value.trim();
+  if (!_mc_photoUrl) {
+    showToast('📷 Please attach an after photo before marking as completed', 'warn');
+    return;
+  }
+  if (!db) { showToast('Firebase not ready — please refresh', 'error'); return; }
+  const updates = {
+    status: 'Yes',
+    dateResolved: getDubaiDate(),
+    fixedBy: currentName,
+    fixedByRole: currentRole,
+    afterPhoto: _mc_photoUrl,
+  };
+  if (remarks) updates.remarks = remarks;
+  db.ref('maintenanceLogs/' + key).update(updates)
+    .then(() => {
+      showToast('✅ Task marked as completed by ' + currentName, 'ok');
+      document.getElementById('maintCompleteModal').style.display = 'none';
+      loadLogs();
+    })
+    .catch(e => showToast('Save failed: ' + e.message, 'error'));
+}
+
 </script>
 <!-- Persistent photo inputs for cross-device compatibility -->
 <input type="file" id="maintCamInput" accept="image/*" capture="environment" style="display:none;">
 <input type="file" id="maintGalInput" accept="image/*" style="display:none;">
+
+<!-- ── Maintenance Team Complete Task Modal ─────────────────────────── -->
+<div id="maintCompleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:700;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;color:#15803D;">✅ Mark Task as Completed</div>
+      <button onclick="document.getElementById('maintCompleteModal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#94A3B8;">✕</button>
+    </div>
+    <input type="hidden" id="mc_key">
+
+    <!-- After Photo -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px;">📸 After Photo <span style="color:#B91C1C;">*</span></div>
+      <div id="mc_photo_preview" style="margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="openCamera(f=>mc_uploadPhoto(f))"
+          style="flex:1;padding:10px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+          📷 Take Photo
+        </button>
+        <button onclick="openGallery(f=>mc_uploadPhoto(f))"
+          style="flex:1;padding:10px;background:#F8F7F2;color:#1A3C5E;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+          🖼️ Gallery
+        </button>
+      </div>
+      <div id="mc_photo_status" style="font-size:11px;color:#94A3B8;margin-top:4px;"></div>
+    </div>
+
+    <!-- Completion Note -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px;">📝 What was done?</div>
+      <textarea id="mc_remarks" rows="3" placeholder="e.g. Replaced motor unit, cleaned drain, repaired AC..."
+        style="width:100%;padding:8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;resize:none;box-sizing:border-box;outline:none;"></textarea>
+    </div>
+
+    <button onclick="mc_submitComplete()"
+      style="width:100%;padding:12px;background:#15803D;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">
+      ✅ Confirm Completed
+    </button>
+  </div>
+</div>
+
 </body>
 </html>
