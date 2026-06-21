@@ -7584,7 +7584,7 @@ function buildProgressCell(staff) {
   );
 
   // ── Eval: OIC/KIC get AM/AC Eval; service/bartender/delco get OIC Observation ──
-  const needsObservation = ['service','bartender','delco'].includes(role);
+  const needsObservation = role === 'service'; // Only service has OIC/AM observation
   const obsDone = needsObservation
     ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
     : false;
