@@ -7533,21 +7533,28 @@ function buildProgressCell(staff) {
   const role = staff.role || '';
 
   // ── Styles ──────────────────────────────────────────────────
-  const BASE = 'display:flex;align-items:baseline;gap:6px;font-size:11px;font-weight:700;line-height:1.9;';
-  // Done  — dark green bold
+  const BASE = 'display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;line-height:2;';
+
+  // Done — white text on green pill
   const S_DONE = BASE + 'color:#166534;';
-  // Action needed — amber bold (eval or sign-off truly expected but missing)
+  // Action needed — white text on amber pill
   const S_NEED = BASE + 'color:#92400E;';
-  // Not submitted / neutral — grey normal weight (no alarm, shift may not apply)
-  const S_GREY = BASE + 'color:#6B7280;font-weight:400;';
-  // Waiting on prior step — lighter grey
+  // Not submitted — grey, lighter
+  const S_GREY = BASE + 'color:#6B7280;font-weight:500;';
+  // Waiting — light grey
   const S_WAIT = BASE + 'color:#9CA3AF;font-weight:400;';
 
-  const CHK = '<span style="font-size:13px;">&#9745;</span>'; // ☑ green
-  const BOX = '<span style="font-size:13px;">&#9744;</span>'; // ☐ empty
+  // Pill badges for done / needed / grey / wait
+  const PILL_DONE = 'display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#DCFCE7;color:#166534;';
+  const PILL_NEED = 'display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#FEF3C7;color:#92400E;';
+  const PILL_GREY = 'display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500;background:#F3F4F6;color:#6B7280;';
+  const PILL_WAIT = 'display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:400;background:#F9FAFB;color:#9CA3AF;';
 
-  function row(style, icon, label) {
-    return '<div style="' + style + '">' + icon + '<span>' + label + '</span></div>';
+  const CHK = '&#9745;';
+  const BOX = '&#9744;';
+
+  function row(pillStyle, icon, label) {
+    return '<div style="margin-bottom:3px;"><span style="' + pillStyle + '">' + icon + ' ' + label + '</span></div>';
   }
 
   // ── Data ────────────────────────────────────────────────────
@@ -7564,24 +7571,22 @@ function buildProgressCell(staff) {
 
   // ── Opening ─────────────────────────────────────────────────
   html += row(
-    openDone ? S_DONE : S_NEED,
+    openDone ? PILL_DONE : PILL_NEED,
     openDone ? CHK : BOX,
     openDone ? 'Opening — ' + staff.openingPct + '%' : 'Opening — not submitted'
   );
 
   // ── Closing ─────────────────────────────────────────────────
-  // Grey (not amber) — we don't know if this staff works closing shift
   html += row(
-    closeDone ? S_DONE : S_GREY,
+    closeDone ? PILL_DONE : PILL_GREY,
     closeDone ? CHK : BOX,
     closeDone ? 'Closing — ' + staff.closingPct + '%' : 'Closing — not submitted'
   );
 
   // ── Eval (OIC / KIC only) ───────────────────────────────────
   if (needsEval) {
-    const evalStyle = !openDone ? S_WAIT : evalDone ? S_DONE : S_NEED;
     html += row(
-      evalStyle,
+      evalDone ? PILL_DONE : !openDone ? PILL_WAIT : PILL_NEED,
       evalDone ? CHK : BOX,
       evalDone
         ? evalLabel + ' — ' + staff.oicEvalPct + '%'
@@ -7590,11 +7595,9 @@ function buildProgressCell(staff) {
   }
 
   // ── Sign-off ─────────────────────────────────────────────────
-  // Amber only when opening is done AND eval is done (or not needed) — sign-off is genuinely expected
   const verExpected = openDone && (!needsEval || evalDone);
-  const verStyle = verDone ? S_DONE : verExpected ? S_NEED : S_WAIT;
   html += row(
-    verStyle,
+    verDone ? PILL_DONE : verExpected ? PILL_NEED : PILL_WAIT,
     verDone ? CHK : BOX,
     verDone
       ? 'Signed off — ' + staff.verifiedBy
