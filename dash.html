@@ -3109,9 +3109,10 @@ function buildPhotoHtml(t, role) {
   const imgs = [];
   const isFOH = ['service','oic','delco','bartender'].includes(role);
   const dbrefAttr = isFOH ? 'data-fohdbref' : 'data-dbref';
-  // 1) Read photoUrls array (new format)
-  if (Array.isArray(t.photoUrls)) {
-    t.photoUrls.forEach(url => { if (url && !seen.has(url)) { seen.add(url); imgs.push(url); } });
+  // 1) Read photoUrls array (new format — also handles Firebase object-arrays {0:url,1:url})
+  const _pu = t.photoUrls;
+  if (_pu && typeof _pu === 'object') {
+    Object.values(_pu).forEach(url => { if (url && typeof url === 'string' && !seen.has(url)) { seen.add(url); imgs.push(url); } });
   }
   // 2) Read photoUrl, photoUrl_1... (sequential keys)
   let pi = 0;
@@ -3250,19 +3251,7 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
       <div id="bohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
-        ${(function() {
-          const subRole = s.role || '';
-          const canVerify =
-            ['training','operations','director','ceo'].includes(currentRole) ||
-            (currentRole === 'kic'         && ['steward','linecook'].includes(subRole)) ||
-            (currentRole === 'areachef'    && ['linecook','steward','kic'].includes(subRole)) ||
-            (currentRole === 'areamanager' && ['linecook','steward','kic','oic','service','bartender','delco'].includes(subRole));
-          const panel = buildVerifyEditPanel(s);
-          if (canVerify) {
-            return panel + '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>';
-          }
-          return panel;
-        })()}
+        ${renderVerificationLog(s)}
       </div>
     </div>`;
 
@@ -3339,9 +3328,9 @@ function openStaffDetail(s) {
     Object.keys(s.taskData).forEach(k => {
       const t = s.taskData[k];
       if (t) {
-        // Unpack photoUrls array into sequential photoUrl keys so buildPhotoHtml works
-        if (Array.isArray(t.photoUrls) && t.photoUrls.length > 0) {
-          t.photoUrls.forEach((url, idx) => {
+        // Unpack photoUrls (array or Firebase object {0:url,...}) into sequential photoUrl keys
+        if (t.photoUrls && typeof t.photoUrls === 'object') {
+          Object.values(t.photoUrls).forEach((url, idx) => {
             const uk = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
             if (!t[uk]) t[uk] = url;
           });
@@ -4892,11 +4881,6 @@ async function exportDetailPDF() {
   var { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('PDF library not loaded.'); return; }
 
-  var s = _currentStaffData;
-  if (!s) { alert('No staff data.'); return; }
-  var { jsPDF } = window.jspdf;
-  if (!jsPDF) { alert('PDF library not loaded.'); return; }
-
   // Pre-fetch all photos (db: from Firebase, https:// from Cloudinary) before building PDF
   if (s.taskData) {
     const fetchPromises = Object.values(s.taskData).map(async t => {
@@ -4908,9 +4892,10 @@ async function exportDetailPDF() {
           if (dataUrl && dataUrl.startsWith('data:')) t.photoUrl = dataUrl;
         } catch(e) {}
       }
-      // Resolve all Cloudinary URLs in photoUrls array to base64
-      if (Array.isArray(t.photoUrls)) {
-        t._b64Photos = await Promise.all(t.photoUrls.map(u => u.startsWith('http') ? _urlToBase64(u) : Promise.resolve(u.startsWith('data:') ? u : null)));
+      // Resolve all Cloudinary URLs in photoUrls (array or Firebase object) to base64
+      if (t.photoUrls && typeof t.photoUrls === 'object') {
+        const _urls = Object.values(t.photoUrls).filter(u => typeof u === 'string');
+        t._b64Photos = await Promise.all(_urls.map(u => u.startsWith('http') ? _urlToBase64(u) : Promise.resolve(u.startsWith('data:') ? u : null)));
         t._b64Photos = t._b64Photos.filter(Boolean);
       }
       // Resolve single photoUrl if it's a Cloudinary URL
@@ -9419,8 +9404,9 @@ async function exportFOHDetailPDF() {
             } catch(e) {}
           }
           // Resolve all Cloudinary URLs in photoUrls array to base64
-          if (Array.isArray(t.photoUrls)) {
-            t._b64Photos = await Promise.all(t.photoUrls.map(u => u.startsWith('http') ? _urlToBase64(u) : Promise.resolve(u.startsWith('data:') ? u : null)));
+          if (t.photoUrls && typeof t.photoUrls === 'object') {
+            const _furls = Object.values(t.photoUrls).filter(u => typeof u === 'string');
+            t._b64Photos = await Promise.all(_furls.map(u => u.startsWith('http') ? _urlToBase64(u) : Promise.resolve(u.startsWith('data:') ? u : null)));
             t._b64Photos = t._b64Photos.filter(Boolean);
           }
           // Resolve single photoUrl if Cloudinary
@@ -9506,36 +9492,28 @@ async function exportFOHDetailPDF() {
               });
               y = doc.lastAutoTable.finalY + 2;
 
-              // Render photos for tasks in this section
-              // Collect all resolved photos for tasks in this section
-              const photoTasksFoh = [];
+              // Photos immediately after table — per task, not grouped
               for (const t of secTasks) {
-                const photos = [];
-                if (Array.isArray(t._b64Photos) && t._b64Photos.length) photos.push(...t._b64Photos);
-                else if (t.photoUrl && t.photoUrl.startsWith('data:')) photos.push(t.photoUrl);
-                if (photos.length) photoTasksFoh.push({t, photos});
-              }
-              if (photoTasksFoh.length > 0) {
-                if (y > H - 50) { doc.addPage(); y = 16; }
-                doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
-                doc.text('Photo Evidence:', 14, y + 4); y += 9;
+                const taskPhotos = [];
+                if (Array.isArray(t._b64Photos) && t._b64Photos.length) taskPhotos.push(...t._b64Photos);
+                else if (t.photoUrl && t.photoUrl.startsWith('data:')) taskPhotos.push(t.photoUrl);
+                if (!taskPhotos.length) continue;
+                if (y > H-50) { doc.addPage(); y=16; }
+                doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(60,60,60);
+                doc.text('[Photo] '+(t.task||t.text||'').replace(/[^\x00-\x7F]/g,'').trim().substring(0,70), 14, y+4); y+=7;
                 let px = 14;
-                for (const {t, photos} of photoTasksFoh) {
-                  for (const photoData of photos) {
-                    try {
-                      if (y > H - 50) { doc.addPage(); y = 16; px = 14; }
-                      const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-                      doc.addImage(photoData, fmt, px, y, 42, 32);
-                      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(100,100,100);
-                      const label = (t.task || t.text || '').substring(0, 28);
-                      doc.text(label, px, y + 35);
-                      px += 48;
-                      if (px > W - 48) { px = 14; y += 42; }
-                    } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
-                  }
+                for (const photoData of taskPhotos) {
+                  if (y > H-42) { doc.addPage(); y=16; px=14; }
+                  try {
+                    const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                    doc.addImage(photoData, fmt, px, y, 45, 34);
+                    px += 49;
+                    if (px > W-47) { px=14; y+=38; }
+                  } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
                 }
-                y += 42;
+                y += 38;
               }
+              y += 4;
             }
             y += 4;
           }
