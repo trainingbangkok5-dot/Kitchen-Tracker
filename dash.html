@@ -1721,7 +1721,8 @@ function loadData() {
         // Keep latest submittedAt
         if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
         if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
-        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
+        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; m.verifiedByRole = s.verifiedByRole||''; }
+        if (s.verificationLog && (!m.verificationLog || s.verificationLog.length > (m.verificationLog||[]).length)) m.verificationLog = s.verificationLog;
       }
     });
     // NOTE: removed the destructive cleanup that deleted closingPct from Firebase —
@@ -1795,7 +1796,8 @@ function loadData() {
         // Keep latest submittedAt
         if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
         if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
-        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; }
+        if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; m.verifiedByRole = s.verifiedByRole||''; }
+        if (s.verificationLog && (!m.verificationLog || s.verificationLog.length > (m.verificationLog||[]).length)) m.verificationLog = s.verificationLog;
       }
     });
     allStaff = Object.values(dedupMap);
@@ -3246,8 +3248,7 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${s.verifiedBy
-          ? `<div style="font-size:12px;font-weight:700;color:#15803D;">✅ ${s.verifiedBy}</div>
-             <div style="font-size:10px;color:#94A3B8;margin-top:2px;">📅 ${s.verifiedAt ? new Date(s.verifiedAt).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>`
+          ? `<div>${renderVerificationLog(s)}</div>`
           : ((function() {
               const subRole = s.role || '';
               const canVerify =
@@ -6054,6 +6055,69 @@ async function saveKPIOverwrite(s) {
   }
 }
 
+
+// ── Verification Log Helper ─────────────────────────────────────────────
+function renderVerificationLog(s) {
+  var log = Array.isArray(s.verificationLog) ? [].concat(s.verificationLog) : [];
+  if (!log.length && s.verifiedBy) {
+    log.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
+  }
+  if (!log.length) return '';
+  var roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
+    ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC',
+    maintsupervisor:'Maintenance Sup.' };
+  return log.map(function(entry, idx) {
+    var dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
+      day:'2-digit', month:'short', year:'numeric',
+      hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
+    }) : '\u2014';
+    var rl = roleLabel[entry.role] || entry.role || '';
+    var border = idx > 0 ? 'border-top:.5px solid #E0DDD4;margin-top:3px;' : '';
+    return '<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;' + border + '">'
+      + '<div style="flex:1;">'
+      + '<div style="font-size:12px;font-weight:700;color:#15803D;">\u2705 ' + (entry.by || '\u2014') + '</div>'
+      + (rl ? '<div style="font-size:10px;color:#64748B;">' + rl + '</div>' : '')
+      + '<div style="font-size:10px;color:#94A3B8;">\ud83d\udcc5 ' + dt + '</div>'
+      + '</div></div>';
+  }).join('');
+}
+
+// Build the verifiedBy edit panel (used in both BOH toggleEditMode and FOH edit)
+function buildVerifyEditPanel(s) {
+  const log = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
+  if (!log.length && s.verifiedBy) {
+    log.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
+  }
+  const roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
+    ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC' };
+  // Build history HTML using string concat (no nested template literals)
+  const historyHtml = log.map(function(entry) {
+    const dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
+      day:'2-digit', month:'short', year:'numeric',
+      hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
+    }) : '\u2014';
+    const rl = roleLabel[entry.role] || entry.role || '';
+    return '<div style="padding:5px 8px;background:#F0FDF4;border-radius:6px;margin-bottom:4px;font-size:11px;">'
+      + '<span style="font-weight:700;color:#15803D;">\u2705 ' + (entry.by||'\u2014') + '</span>'
+      + (rl ? ' <span style="color:#64748B;font-size:10px;">(' + rl + ')</span>' : '')
+      + '<div style="color:#94A3B8;font-size:10px;">\ud83d\udcc5 ' + dt + '</div>'
+      + '</div>';
+  }).join('');
+
+  const noVerify = '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
+  const nameVal = (currentName||'').replace(/"/g,'&quot;');
+  const roleNote = 'Your role (' + currentRole + ') and timestamp will be added automatically';
+  return '<div style="margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;">'
+    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
+    + (historyHtml || noVerify)
+    + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
+    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">\u2795 Add Verification</div>'
+    + '<input id="verifiedByInput" type="text" value="' + nameVal + '" placeholder="Your name..."'
+    + ' style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;">'
+    + '<div style="font-size:10px;color:#94A3B8;">' + roleNote + '</div>'
+    + '</div></div>';
+}
+
 function toggleEditMode(s) {
   _editMode = true;
   // Force closingPct=null for opening-only records in edit mode too
@@ -6160,15 +6224,10 @@ function toggleEditMode(s) {
   cancelBtn.textContent = '✕ Cancel Edit';
   cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; _editPhotoChanges = {}; openStaffDetail(s); };
 
-  // Add Verified By field so it can be updated during overwrite
+  // Verification log panel
   const vbyDiv = document.createElement('div');
-  vbyDiv.style.cssText = 'margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;';
-  vbyDiv.innerHTML = `
-    <label style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">✅ Verified By</label>
-    <input id="verifiedByInput" type="text" value="${(s.verifiedBy||'').replace(/"/g,'&quot;')}"
-      placeholder="Enter verifier name..."
-      style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">
-  `;
+  vbyDiv.style.cssText = 'margin-top:8px;';
+  vbyDiv.innerHTML = buildVerifyEditPanel(s);
   // Append vbyDiv before cancelBtn so KIC section (which inserts before #cancelEditBtn) goes in right position
   body.appendChild(vbyDiv);
   body.appendChild(cancelBtn);
@@ -6688,9 +6747,27 @@ async function saveOverwrite(s) {
     updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
     s.oicEvalPct = ePct;
   }
-  // Save verifiedBy — keep existing if input is empty
-  const _vbFinal = verifiedBy || s.verifiedBy || '';
-  if (_vbFinal) updates['submissions/' + fbKey + '/verifiedBy'] = _vbFinal;
+  // Append to verificationLog — preserve all previous entries
+  if (verifiedBy) {
+    const _newEntry = { by: verifiedBy, role: currentRole, at: new Date().toISOString() };
+    const _existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
+    if (s.verifiedBy && !_existingLog.length) {
+      // Migrate legacy single verifiedBy to log
+      _existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole||'', at: s.verifiedAt||'' });
+    }
+    _existingLog.push(_newEntry);
+    updates['submissions/' + fbKey + '/verificationLog'] = _existingLog;
+    // Also update legacy fields for backward compat
+    updates['submissions/' + fbKey + '/verifiedBy'] = verifiedBy;
+    updates['submissions/' + fbKey + '/verifiedByRole'] = currentRole;
+    updates['submissions/' + fbKey + '/verifiedAt'] = _newEntry.at;
+    // Update in-memory
+    s.verificationLog = _existingLog;
+    s.verifiedByRole = currentRole;
+  } else if (s.verifiedBy) {
+    // Keep existing verifiedBy even if input empty
+    updates['submissions/' + fbKey + '/verifiedBy'] = s.verifiedBy;
+  }
 
   try {
     showToast('💾 Saving...', 'ok');
@@ -7150,7 +7227,8 @@ function loadBOHData() {
         }
         grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
-        if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
+        if (sub.verificationLog && (!grouped[gKey].verificationLog || sub.verificationLog.length > (grouped[gKey].verificationLog||[]).length)) grouped[gKey].verificationLog = sub.verificationLog;
         if (sub.submittedAt) {
           if (!grouped[gKey].submittedAt || sub.submittedAt > grouped[gKey].submittedAt) grouped[gKey].submittedAt = sub.submittedAt;
         }
@@ -7574,7 +7652,8 @@ function loadFOHData() {
         // Use latest overallPct
         if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
-        if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
+        if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
+        if (sub.verificationLog && (!grouped[gKey].verificationLog || sub.verificationLog.length > (grouped[gKey].verificationLog||[]).length)) grouped[gKey].verificationLog = sub.verificationLog;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
         // Track shift status — prefer closing_submitted over opening_submitted
@@ -7773,9 +7852,9 @@ function openFOHDetail(idx) {
   // Show verifiedBy in FOH detail
   const fohVerEl = document.getElementById('fohVerifiedBy');
   if (fohVerEl) {
-    fohVerEl.innerHTML = staff.verifiedBy
-      ? `<span style="color:#15803D;font-weight:700;">✅ ${staff.verifiedBy}</span>`
-      : `<span style="color:#94A3B8;font-style:italic;">Pending OIC verification</span>`;
+    fohVerEl.innerHTML = (staff.verifiedBy || (Array.isArray(staff.verificationLog) && staff.verificationLog.length))
+      ? renderVerificationLog(staff)
+      : '<span style="color:#94A3B8;font-style:italic;">Pending verification</span>';
   }
 
   const roleLabels = {service:'🛎️ Service', oic:'🧑‍💼 OIC', delco:'🚚 Del.Co', bartender:'🍹 Bartender'};
@@ -7858,7 +7937,7 @@ function openFOHDetail(idx) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${staff.verifiedBy
-          ? `<div style="font-size:12px;font-weight:700;color:#15803D;">✅ ${staff.verifiedBy}</div>`
+          ? `<div>${renderVerificationLog(staff)}</div>`
           : `<div style="display:flex;gap:6px;margin-top:2px;">
                <input id="fohVerifiedByInput" type="text" placeholder="${staff.role==='oic'?'Enter Area Manager name...':'Enter OIC name...'}" value=""
                  style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
@@ -8762,18 +8841,13 @@ function toggleFOHEditMode() {
       if (editSec) editSec.remove();
       openFOHDetail(_fohDetailIdx);
     };
-    // Add Verified By field for FOH overwrite
+    // Verification log panel for FOH overwrite
     let fohVbyDiv = area.querySelector('#fohVerifiedByDiv');
     if (!fohVbyDiv) {
       fohVbyDiv = document.createElement('div');
       fohVbyDiv.id = 'fohVerifiedByDiv';
-      fohVbyDiv.style.cssText = 'margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;';
-      fohVbyDiv.innerHTML = `
-        <label style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">✅ Verified By</label>
-        <input id="verifiedByInput" type="text" value="${(staff && staff.verifiedBy||'').replace(/"/g,'&quot;')}"
-          placeholder="Enter verifier name..."
-          style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">
-      `;
+      fohVbyDiv.style.cssText = 'margin-top:8px;';
+      fohVbyDiv.innerHTML = buildVerifyEditPanel(staff);
       area.insertBefore(fohVbyDiv, cancelBtn);
     }
     area.appendChild(cancelBtn);
@@ -8810,9 +8884,21 @@ async function saveFOHOverwrite(staff) {
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
         if (changes && changes.oicPhotoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/oicPhotoUrl'] = changes.oicPhotoUrl;
         if (changes && changes.audScore != null) updates['submissions/' + child.key + '/taskData/' + taskKey + '/audScore'] = changes.audScore;
-      // Save verifiedBy
-      const _fohVbFinal = _fohVerifiedBy || (staff && staff.verifiedBy) || '';
-      if (_fohVbFinal) updates['submissions/' + child.key + '/verifiedBy'] = _fohVbFinal;
+      // Append to verificationLog — preserve all previous entries
+      if (_fohVerifiedBy) {
+        const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
+        const _fohExistingLog = Array.isArray(sub.verificationLog) ? [...sub.verificationLog] : [];
+        if (sub.verifiedBy && !_fohExistingLog.length) {
+          _fohExistingLog.push({ by: sub.verifiedBy, role: sub.verifiedByRole||'', at: sub.verifiedAt||'' });
+        }
+        _fohExistingLog.push(_fohNewEntry);
+        updates['submissions/' + child.key + '/verificationLog'] = _fohExistingLog;
+        updates['submissions/' + child.key + '/verifiedBy'] = _fohVerifiedBy;
+        updates['submissions/' + child.key + '/verifiedByRole'] = currentRole;
+        updates['submissions/' + child.key + '/verifiedAt'] = _fohNewEntry.at;
+      } else if (sub.verifiedBy) {
+        updates['submissions/' + child.key + '/verifiedBy'] = sub.verifiedBy;
+      }
         // Also store task metadata for new OIC tasks — include task text so full report shows it
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
           const _tid = taskKey.replace(/^d[0-9]+_/, '');
