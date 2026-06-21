@@ -7394,7 +7394,14 @@ document.addEventListener('click', function(e) {
 
 function overwiteFromBOH(s) {
   if (!s) return;
+  // Open the detail view, then switch to edit mode after modal is ready
   openBOHDetailFull(s);
+  // Give modal time to render before entering edit mode
+  setTimeout(() => {
+    if (document.getElementById('detailModal').classList.contains('open')) {
+      toggleEditMode(s);
+    }
+  }, 600);
 }
 
 function openBOHDetailFull(s) {
@@ -7533,7 +7540,7 @@ function openBOHDetailFull(s) {
     else if (_fcl != null) fullRecord.overallPct = _fcl;
 
     openStaffDetail(fullRecord);
-  }).catch(() => openStaffDetail(s));
+  }).catch((e) => { console.warn('openBOHDetailFull error:', e); openStaffDetail(s); });
 }
 
 
@@ -7710,7 +7717,8 @@ function renderBOHStaff() {
       </td>`;
     tbody.appendChild(tr);
     // Attach click handlers with direct reference to staff object — avoids template literal issues
-    tr.querySelector('.boh-view-btn').addEventListener('click', () => openBOHDetailFull(staff));
+    const viewBtn = tr.querySelector('.boh-view-btn');
+    if (viewBtn) viewBtn.addEventListener('click', () => openBOHDetailFull(staff));
     const editBtn = tr.querySelector('.boh-edit-btn');
     if (editBtn) editBtn.addEventListener('click', () => overwiteFromBOH(staff));
   });
@@ -8767,16 +8775,16 @@ function toggleFOHEditMode() {
   if (staff && staff.role === 'service') {
     // Always render OIC Observation section in edit mode — whether already filled or not
     const oicTaskDefs = [
-      {id:'u1', section:'💰 Upselling',                          text:'Monthly Sales target achieved and the staff with highest Sales will also be rewarded'},
-      {id:'s1', section:'⭐ Service Standards',                  text:'Customer interaction'},
-      {id:'s2', section:'⭐ Service Standards',                  text:'Sequence of service'},
-      {id:'s3', section:'⭐ Service Standards',                  text:'Service awareness'},
-      {id:'f1', section:'📝 Customer Feedback & Performance',    text:'Complaints'},
-      {id:'f2', section:'📝 Customer Feedback & Performance',    text:'Grooming (hair neatly tied and wearing make up)'},
-      {id:'t1', section:'🤝 Teamwork & Attitude',                text:'Be a team player with OIC and teammates'},
-      {id:'t2', section:'🤝 Teamwork & Attitude',                text:'Helpful attitude'},
-      {id:'t3', section:'🤝 Teamwork & Attitude',                text:'Follow instruction'},
-      {id:'t4', section:'🤝 Teamwork & Attitude',                text:'Attendance'},
+      {id:'u1', section:'💰 Upselling',                       text:'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.'},
+      {id:'s1', section:'⭐ Service Standards',               text:'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.'},
+      {id:'s2', section:'⭐ Service Standards',               text:'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.'},
+      {id:'s3', section:'⭐ Service Standards',               text:'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.'},
+      {id:'f1', section:'📝 Customer Feedback & Performance', text:'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.'},
+      {id:'f2', section:'📝 Customer Feedback & Performance', text:'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.'},
+      {id:'t1', section:'🤝 Team Player & Professionalism',   text:'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.'},
+      {id:'t2', section:'🤝 Team Player & Professionalism',   text:'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.'},
+      {id:'t3', section:'🤝 Team Player & Professionalism',   text:'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.'},
+      {id:'t4', section:'🤝 Team Player & Professionalism',   text:'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.'},
     ];
     // Find existing OIC section container or create one
     // Hide the existing OIC view section to avoid duplicate
@@ -9006,7 +9014,7 @@ async function saveFOHOverwrite(staff) {
     const sub = child.val();
     if (sub.role !== staff.role || sub.week !== staff.week) return;
     // Apply yn changes — also allow adding new OIC tasks not in original submission
-    const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']; // OIC eval task IDs
+    const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4']; // OIC eval task IDs
     // ── Verified By — runs independently of task changes ───────────────
     if (_fohVerifiedBy) {
       const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
