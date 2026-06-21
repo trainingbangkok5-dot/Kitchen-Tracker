@@ -2899,7 +2899,12 @@ function openMonthlyDetail(staffName, allSubs) {
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
       const tasks = byDay[day];
       const bySec = {};
+      const _oicObsIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
       tasks.forEach(t => {
+        // Filter out OIC observation tasks — they render in the dedicated OIC Observation panel below
+        const _tKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+        const _isOicObs = _oicObsIds.includes(_tKey) || (t.owner||'').toLowerCase() === 'oic only' || (t.section||'').toLowerCase() === 'oic observation';
+        if (_isOicObs) return;
         const sec = t.section||'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -6511,6 +6516,63 @@ async function saveOverwrite(s) {
     return;
   }
 
+  // Use task ID to identify opening/closing/eval — based on actual checklist task IDs
+  // OIC: opening=o1-o4, closing=c1-c4, eval=s1-s4,m1-m2,u1-u2,w1-w2,p1-p2,mp1-mp2,a1
+  // KIC: opening=o1-o4, closing=cy1-cy4, eval=fc1-fc4,fo1-fo3,cost1,sp2,cc1,aud1
+  const _isKIC = s.role === 'kic';
+
+  // Task text lookup — so full checklist report shows text instead of "—"
+  const _evalTaskTextMap = {
+    // KIC eval (Area Chef)
+    fc1:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.',
+    fc2:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.',
+    fc3:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation.',
+    fc4:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.',
+    fo1:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.',
+    fo2:'All sections maintained mise en place standards throughout the shift.',
+    fo3:'Communication between FOH and BOH was clear and effective throughout the shift.',
+    cost1:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.',
+    sp2:'Team performance maintains an overall score above 90% each shift.',
+    cc1:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.',
+    aud1:'The outlet achieved a score above 90% in the last monthly audit visit.',
+    // OIC eval (Area Manager)
+    s1:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.',
+    s2:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.',
+    s3:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.',
+    s4:'Service leadership: OIC leads by example and maintains service standards throughout the shift.',
+    m1:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.',
+    m2:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.',
+    u1:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.',
+    u2:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.',
+    w1:'Waste Management: Food and material waste is minimized and properly handled.',
+    w2:'Stock Control: Stock levels are monitored and controlled effectively.',
+    p1:'Team Performance: Overall team performance meets or exceeds the 90% target.',
+    p2:'Staff Punctuality: All staff arrive on time and are ready for their shifts.',
+    mp1:'Compliance: All SOPs and policies are followed consistently during the shift.',
+    mp2:'Reporting: All incidents, issues, and observations are reported accurately.',
+    a1:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.',
+  };
+
+  const _evalSectionMap = _isKIC ? {
+    fc1:'🍲 Food Consistency Today', fc2:'🍲 Food Consistency Today', fc3:'🍲 Food Consistency Today', fc4:'🍲 Food Consistency Today',
+    fo1:'⚙️ Flow of Operation', fo2:'⚙️ Flow of Operation', fo3:'⚙️ Flow of Operation',
+    cost1:'💰 Food Cost & Staff', sp2:'💰 Food Cost & Staff', cc1:'💰 Food Cost & Staff', aud1:'💰 Food Cost & Staff',
+  } : {
+    s1:'⭐ Service Standards', s2:'⭐ Service Standards', s3:'⭐ Service Standards', s4:'⭐ Service Standards',
+    m1:'🔧 Maintenance & Cleanliness', m2:'🔧 Maintenance & Cleanliness',
+    u1:'💰 Upselling', u2:'💰 Upselling',
+    w1:'♻️ Waste & Stock', w2:'♻️ Waste & Stock',
+    p1:'🤝 Team & Attendance', p2:'🤝 Team & Attendance',
+    mp1:'📋 Compliance', mp2:'📋 Compliance', a1:'📋 Compliance',
+  };
+
+  const _evalOwner = _isKIC ? 'Area Chef' : 'Area Manager';
+  const _evalIds  = _isKIC
+    ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
+    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
+  const _openIds  = ['o1','o2','o3','o4','o5'];
+  const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
+
   // Build updates
   const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
@@ -6589,62 +6651,6 @@ async function saveOverwrite(s) {
     };
   });
 
-  // Use task ID to identify opening/closing/eval — based on actual checklist task IDs
-  // OIC: opening=o1-o4, closing=c1-c4, eval=s1-s4,m1-m2,u1-u2,w1-w2,p1-p2,mp1-mp2,a1
-  // KIC: opening=o1-o4, closing=cy1-cy4, eval=fc1-fc4,fo1-fo3,cost1,sp2,cc1,aud1
-  const _isKIC = s.role === 'kic';
-
-  // Task text lookup — so full checklist report shows text instead of "—"
-  const _evalTaskTextMap = {
-    // KIC eval (Area Chef)
-    fc1:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.',
-    fc2:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.',
-    fc3:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation.',
-    fc4:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.',
-    fo1:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.',
-    fo2:'All sections maintained mise en place standards throughout the shift.',
-    fo3:'Communication between FOH and BOH was clear and effective throughout the shift.',
-    cost1:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.',
-    sp2:'Team performance maintains an overall score above 90% each shift.',
-    cc1:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.',
-    aud1:'The outlet achieved a score above 90% in the last monthly audit visit.',
-    // OIC eval (Area Manager)
-    s1:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.',
-    s2:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.',
-    s3:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.',
-    s4:'Service leadership: OIC leads by example and maintains service standards throughout the shift.',
-    m1:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.',
-    m2:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.',
-    u1:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.',
-    u2:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.',
-    w1:'Waste Management: Food and material waste is minimized and properly handled.',
-    w2:'Stock Control: Stock levels are monitored and controlled effectively.',
-    p1:'Team Performance: Overall team performance meets or exceeds the 90% target.',
-    p2:'Staff Punctuality: All staff arrive on time and are ready for their shifts.',
-    mp1:'Compliance: All SOPs and policies are followed consistently during the shift.',
-    mp2:'Reporting: All incidents, issues, and observations are reported accurately.',
-    a1:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.',
-  };
-
-  const _evalSectionMap = _isKIC ? {
-    fc1:'🍲 Food Consistency Today', fc2:'🍲 Food Consistency Today', fc3:'🍲 Food Consistency Today', fc4:'🍲 Food Consistency Today',
-    fo1:'⚙️ Flow of Operation', fo2:'⚙️ Flow of Operation', fo3:'⚙️ Flow of Operation',
-    cost1:'💰 Food Cost & Staff', sp2:'💰 Food Cost & Staff', cc1:'💰 Food Cost & Staff', aud1:'💰 Food Cost & Staff',
-  } : {
-    s1:'⭐ Service Standards', s2:'⭐ Service Standards', s3:'⭐ Service Standards', s4:'⭐ Service Standards',
-    m1:'🔧 Maintenance & Cleanliness', m2:'🔧 Maintenance & Cleanliness',
-    u1:'💰 Upselling', u2:'💰 Upselling',
-    w1:'♻️ Waste & Stock', w2:'♻️ Waste & Stock',
-    p1:'🤝 Team & Attendance', p2:'🤝 Team & Attendance',
-    mp1:'📋 Compliance', mp2:'📋 Compliance', a1:'📋 Compliance',
-  };
-
-  const _evalOwner = _isKIC ? 'Area Chef' : 'Area Manager';
-  const _evalIds  = _isKIC
-    ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
-    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
-  const _openIds  = ['o1','o2','o3','o4','o5'];
-  const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
   Object.entries(updatedTaskData).forEach(([k, t]) => {
     if (!t.yn || t.yn === 'na') return;
@@ -8756,12 +8762,27 @@ function toggleFOHEditMode() {
       if (editSec) editSec.remove();
       openFOHDetail(_fohDetailIdx);
     };
+    // Add Verified By field for FOH overwrite
+    let fohVbyDiv = area.querySelector('#fohVerifiedByDiv');
+    if (!fohVbyDiv) {
+      fohVbyDiv = document.createElement('div');
+      fohVbyDiv.id = 'fohVerifiedByDiv';
+      fohVbyDiv.style.cssText = 'margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;';
+      fohVbyDiv.innerHTML = `
+        <label style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">✅ Verified By</label>
+        <input id="verifiedByInput" type="text" value="${(staff && staff.verifiedBy||'').replace(/"/g,'&quot;')}"
+          placeholder="Enter verifier name..."
+          style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">
+      `;
+      area.insertBefore(fohVbyDiv, cancelBtn);
+    }
     area.appendChild(cancelBtn);
   }
 }
 
 async function saveFOHOverwrite(staff) {
-  if (!Object.keys(_fohEditChanges).length) {
+  const _fohVerifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
+  if (!Object.keys(_fohEditChanges).length && !_fohVerifiedBy) {
     showToast('No changes made', 'warn');
     _fohEditMode = false;
     const btn = document.getElementById('fohEditBtn');
@@ -8789,6 +8810,9 @@ async function saveFOHOverwrite(staff) {
         if (changes && changes.comment !== undefined) updates['submissions/' + child.key + '/taskData/' + taskKey + '/comment'] = changes.comment;
         if (changes && changes.oicPhotoUrl) updates['submissions/' + child.key + '/taskData/' + taskKey + '/oicPhotoUrl'] = changes.oicPhotoUrl;
         if (changes && changes.audScore != null) updates['submissions/' + child.key + '/taskData/' + taskKey + '/audScore'] = changes.audScore;
+      // Save verifiedBy
+      const _fohVbFinal = _fohVerifiedBy || (staff && staff.verifiedBy) || '';
+      if (_fohVbFinal) updates['submissions/' + child.key + '/verifiedBy'] = _fohVbFinal;
         // Also store task metadata for new OIC tasks — include task text so full report shows it
         if (isOicTask && sub.taskData && sub.taskData[taskKey] === undefined) {
           const _tid = taskKey.replace(/^d[0-9]+_/, '');
