@@ -4948,7 +4948,7 @@ async function exportDetailPDF() {
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const scoreColor = p => p>=95?[15,118,110]:p>=70?[217,119,6]:[185,28,28];
-  function fmtDT(iso) { try { return iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; } catch(e){return '—';} }
+  function fmtDT(iso) { try { return iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-'; } catch(e){return '-';} }
 
   // ── Header (maroon, FOH style) ───────────────────────────────────────────
   doc.setFillColor(123,45,66);
@@ -4966,8 +4966,8 @@ async function exportDetailPDF() {
   doc.autoTable({
     startY: y,
     body: [
-      ['Staff Name', s.staffName||'—', 'Role', role.label||'—'],
-      ['Outlet', s.outlet||'—', 'Employee No', s.empNo||'—'],
+      ['Staff Name', s.staffName||'-', 'Role', role.label||'-'],
+      ['Outlet', s.outlet||'-', 'Employee No', s.empNo||'-'],
       ['Started', fmtDT(s.startedAt), 'Submitted', fmtDT(s.submittedAt)],
       ['Verified By', (function(){ var vl=s.verificationLog; var lg=Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); return s.verifiedBy||(lg.length?lg.map(function(e){return e.by||'';}).join(', '):'Pending'); })(), 'Status', pass?'QUALIFIED':'NOT QUALIFIED'],
     ],
@@ -5005,8 +5005,8 @@ async function exportDetailPDF() {
         const p = s.days[d];
         return [
           'Day '+d,
-          isNaN(date)?'—':date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
-          p!=null?p+'%':'—',
+          isNaN(date)?'-':date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
+          p!=null?p+'%':'-',
           p!=null?(p>=95?'QUALIFIED':'BELOW TARGET'):'Not submitted'
         ];
       }),
@@ -5100,7 +5100,7 @@ async function exportDetailPDF() {
           body: secTasks.map(t=>[
             (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
             (t.task||'').replace(/[^\x00-\x7F]/g,'').trim(),
-            (t.yn||'').toUpperCase()||'—',
+            (t.yn||'').toUpperCase()||'-',
           ]),
           columnStyles:{
             0:{cellWidth:24,fontSize:8,textColor:[100,100,100]},
@@ -5118,7 +5118,7 @@ async function exportDetailPDF() {
         });
         y = doc.lastAutoTable.finalY + 2;
 
-        // Photos immediately after table — one row per task with photos
+        // Photos immediately after table - one row per task with photos
         for (const t of secTasks) {
           // Collect resolved base64 photos; fall back to checking photoUrl slots
           const taskPhotos = [];
@@ -5213,7 +5213,7 @@ async function exportDetailPDF() {
       doc.autoTable({
         startY: y,
         head: [['Outlet','In-Charge','Score (100)']],
-        body: s.icRollup.map(r => [r.outlet||'—', r.name||'—', r.score||'—']),
+        body: s.icRollup.map(r => [r.outlet||'-', r.name||'-', r.score||'-']),
         styles:{fontSize:9,cellPadding:4},
         headStyles:{fillColor:[26,60,94],textColor:[255,255,255]},
         columnStyles:{2:{halign:'center',fontStyle:'bold'}},
@@ -5236,9 +5236,9 @@ async function exportDetailPDF() {
         head: [['Outlet','Actual FC%','Status']],
         body: s.fcTracker.map(r => {
           const f = parseFloat(r.fc);
-          if (isNaN(f)) return [r.outlet||'—','—','—'];
+          if (isNaN(f)) return [r.outlet||'-','-','-'];
           const status = f<=25?'Target Achieved':f<=25.5?'Acceptable Variance':f<=26?'Critical Warning':'Action Plan Required';
-          return [r.outlet||'—', f.toFixed(1)+'%', status];
+          return [r.outlet||'-', f.toFixed(1)+'%', status];
         }),
         styles:{fontSize:9,cellPadding:4},
         headStyles:{fillColor:[26,60,94],textColor:[255,255,255]},
@@ -5262,10 +5262,10 @@ async function exportDetailPDF() {
         head: [['Outlet','Target','Actual','Ach%','Status']],
         body: s.salesTracker.map(r => {
           const target = parseFloat(r.target), actual = parseFloat(r.actual);
-          if (isNaN(target)||isNaN(actual)||target<=0) return [r.outlet||'—','—','—','—','—'];
+          if (isNaN(target)||isNaN(actual)||target<=0) return [r.outlet||'-','-','-','-','-'];
           const ach = Math.round((actual/target)*100*10)/10;
           const status = ach>=100?'Target Achieved':ach>=90?'Acceptable Variance':ach>=75?'Below Target':'Action Plan Required';
-          return [r.outlet||'—', target.toLocaleString(), actual.toLocaleString(), ach.toFixed(1)+'%', status];
+          return [r.outlet||'-', target.toLocaleString(), actual.toLocaleString(), ach.toFixed(1)+'%', status];
         }),
         styles:{fontSize:9,cellPadding:4},
         headStyles:{fillColor:[26,60,94],textColor:[255,255,255]},
@@ -5281,7 +5281,7 @@ async function exportDetailPDF() {
       y = doc.lastAutoTable.finalY + 8;
     }
 
-    // Audit Tracker — PDF
+    // Audit Tracker - PDF
     if (s.auditTracker && s.auditTracker.length) {
       const validAudits = s.auditTracker.filter(r => r.outlet && r.score !== '' && !isNaN(parseFloat(r.score)));
       if (validAudits.length) {
@@ -5292,7 +5292,7 @@ async function exportDetailPDF() {
           body: validAudits.map(r => {
             const sc = parseFloat(r.score);
             const grade = sc>=91?'A':sc>=80?'B':sc>=70?'C':'D';
-            return [r.outlet||'—', sc.toFixed(1), grade];
+            return [r.outlet||'-', sc.toFixed(1), grade];
           }),
           styles:{fontSize:9,cellPadding:4},
           headStyles:{fillColor:[26,60,94],textColor:[255,255,255]},
@@ -5377,7 +5377,7 @@ async function exportDetailPDF() {
         head: [['Outlet','In-Charge','Score']],
         body: s.icRollup.map(r => {
           const sc = parseFloat(r.score);
-          return [r.outlet||'—', r.name||'—', !isNaN(sc)&&r.score!==''?sc:'—'];
+          return [r.outlet||'-', r.name||'-', !isNaN(sc)&&r.score!==''?sc:'-'];
         }),
         styles:{fontSize:9,cellPadding:3},
         headStyles:{fillColor:[248,250,252],textColor:[100,116,139],fontStyle:'bold',fontSize:9},
@@ -5406,14 +5406,14 @@ async function exportDetailPDF() {
         startY: y,
         head: [['Outlet','FC%','Score','Status']],
         body: s.fcTracker.map(r => {
-          if (!r.fc && r.fc!==0) return [r.outlet||'—','—','—','—'];
+          if (!r.fc && r.fc!==0) return [r.outlet||'-','-','-','-'];
           const f=parseFloat(r.fc);
           let score,status;
           if(f<=25){score=30;status='Target Achieved';}
           else if(f<=25.5){score=29.5-((f-25.1)/0.4)*2;status='Acceptable Variance';}
           else if(f<=26){score=27-((f-25.6)/0.4)*2;status='Critical Warning Zone';}
           else{score=Math.max(0,25-(f-26)*5);status='Action Plan Required';}
-          return [r.outlet||'—',f+'%',score.toFixed(1),status];
+          return [r.outlet||'-',f+'%',score.toFixed(1),status];
         }),
         styles:{fontSize:9,cellPadding:3},
         headStyles:{fillColor:[248,250,252],textColor:[100,116,139],fontStyle:'bold',fontSize:9},
@@ -5423,7 +5423,7 @@ async function exportDetailPDF() {
             const v=data.cell.raw||'';
             if(v==='Target Achieved')data.cell.styles.textColor=[21,128,61];
             else if(v==='Acceptable Variance')data.cell.styles.textColor=[133,77,14];
-            else if(v!=='—')data.cell.styles.textColor=[185,28,28];
+            else if(v!=='-')data.cell.styles.textColor=[185,28,28];
           }
         },
         margin:{left:14,right:14},theme:'grid',
@@ -9529,7 +9529,7 @@ async function exportFOHDetailPDF() {
       return [
         'Day ' + d,
         date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
-        p !== undefined ? p + '%' : '—',
+        p !== undefined ? p + '%' : '-',
         p !== undefined ? (p>=95?'QUALIFIED':'BELOW TARGET') : 'Not submitted'
       ];
     }),
@@ -9640,7 +9640,7 @@ async function exportFOHDetailPDF() {
             doc.rect(14,y-3,W-28,7,'F');
             doc.setTextColor(255,255,255);
             doc.setFontSize(9); doc.setFont('helvetica','bold');
-            const dayScoreText = dayPct !== undefined ? ' — Score: ' + dayPct + '%' : '';
+            const dayScoreText = dayPct !== undefined ? ' - Score: ' + dayPct + '%' : '';
             doc.text(dayLabel + dayScoreText, 16, y+2);
             y += 8;
 
@@ -9653,8 +9653,8 @@ async function exportFOHDetailPDF() {
                   const yn = (t.yn||'').toUpperCase();
                   return [
                     (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
-                    (t.task||t.text||'—').replace(/[^\x00-\x7F]/g,'').trim(),
-                    yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'—'
+                    (t.task||t.text||'-').replace(/[^\x00-\x7F]/g,'').trim(),
+                    yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'-'
                   ];
                 }),
                 styles:{fontSize:8,cellPadding:3},
@@ -9674,7 +9674,7 @@ async function exportFOHDetailPDF() {
               });
               y = doc.lastAutoTable.finalY + 2;
 
-              // Photos immediately after table — per task, not grouped
+              // Photos immediately after table - per task, not grouped
               for (const t of secTasks) {
                 const taskPhotos = [];
                 if (Array.isArray(t._b64Photos) && t._b64Photos.length) taskPhotos.push(...t._b64Photos);
