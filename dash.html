@@ -3037,7 +3037,11 @@ function openWeeklyDetail(staffName, week) {
       const _wkOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
       const _wkKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
       if (_wkOicIds.includes(_wkKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
-      const sec = t.section||'Tasks';
+      // Derive section from task ID if section is missing or generic
+      const _baseId = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+      const _secFallback = /^(c[y]?[0-9]|cy)/.test(_baseId) ? 'Closing Tasks'
+        : /^o[0-9]/.test(_baseId) ? 'Opening Tasks' : 'Tasks';
+      const sec = (t.section && t.section !== 'Tasks') ? t.section.replace(/[^\x20-\x7E]/g,'').trim() || _secFallback : _secFallback;
       if (!bySec[sec]) bySec[sec] = [];
       bySec[sec].push(t);
     });
@@ -3379,7 +3383,11 @@ function openStaffDetail(s) {
       // Skip eval tasks — they render in the dedicated eval panel below
       const _tk = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
       if (_allEvalIds.includes(_tk)) return;
-      const sec = t.section||'Tasks';
+      // Derive section from task ID when missing or generic
+      const _baseId2 = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+      const _secFb = /^(cy?[0-9]|c[0-9])/.test(_baseId2) ? 'Closing Tasks'
+        : /^o[0-9]/.test(_baseId2) ? 'Opening Tasks' : 'Tasks';
+      const sec = (t.section && t.section !== 'Tasks') ? t.section.replace(/[\u0080-\uFFFF]/g,'').trim() || _secFb : _secFb;
       if (!bySec[sec]) bySec[sec] = [];
       bySec[sec].push(t);
     });
@@ -5074,7 +5082,10 @@ async function exportDetailPDF() {
         const _tHasPhoto = (t.photoUrls && typeof t.photoUrls==='object' && Object.keys(t.photoUrls).length)
           || (t.photoUrl && t.photoUrl.startsWith('http')) || Array.isArray(t._b64Photos)&&t._b64Photos.length;
         if ((!t.yn || t.yn === '') && !_tHasPhoto) return;
-        const sec = t.section||'Tasks';
+        // Derive section name from task ID when generic
+        const _pdfSecFallback = /^(c[y]?[0-9]|cy)/.test(key) ? 'Closing Tasks'
+          : /^o[0-9]/.test(key) ? 'Opening Tasks' : 'Tasks';
+        const sec = (t.section && t.section !== 'Tasks') ? t.section.replace(/[^\x20-\x7E]/g,'').trim() || _pdfSecFallback : _pdfSecFallback;
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
       });
@@ -7468,7 +7479,7 @@ function deleteVerificationEntry(btn, idx) {
       let foundKey = null;
       snap.forEach(child => {
         const v = child.val();
-        if (v.role === s.role && (!sDate || (v.submittedAt||''). substring(0,10) === sDate)) foundKey = child.key;
+        if (v.role === s.role && (!sDate || (v.submittedAt||'').substring(0,10) === sDate)) foundKey = child.key;
       });
       if (foundKey) { s._fbKey = foundKey; _doDelete(foundKey); }
       else showToast('Record not found in Firebase', 'warn');
