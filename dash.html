@@ -1673,17 +1673,18 @@ function loadData() {
       s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      // For closing shifts that crossed midnight into next week, map back to previous week
+      // For closing shifts submitted after midnight (00:00-02:59 Dubai), link to previous day's week
       const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
       let effectiveDate = subDate;
-      if (_isClosing && subDate) {
+      if (_isClosing && s.submittedAt) {
         try {
-          const _d = new Date(subDate + 'T00:00:00');
-          const _dow = _d.getDay(); // 1=Monday = start of week
-          if (_dow === 1) { // subDate IS a Monday = closing rolled into next week
-            _d.setDate(_d.getDate() - 7);
-            effectiveDate = _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
-            effectiveDate = normalizeWeek(effectiveDate);
+          const _subHour = new Date(s.submittedAt).toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour:'numeric', hour12:false});
+          const _hour = parseInt(_subHour, 10);
+          if (_hour >= 0 && _hour < 3) {
+            // Submitted after midnight — roll effective date back one day to find the opening shift's week
+            const _d = new Date(subDate + 'T00:00:00');
+            _d.setDate(_d.getDate() - 1);
+            effectiveDate = normalizeWeek(_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0'));
           }
         } catch(e) {}
       }
@@ -1746,17 +1747,18 @@ function loadData() {
       s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      // For closing shifts that crossed midnight into next week, map back to previous week
+      // For closing shifts submitted after midnight (00:00-02:59 Dubai), link to previous day's week
       const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
       let effectiveDate = subDate;
-      if (_isClosing && subDate) {
+      if (_isClosing && s.submittedAt) {
         try {
-          const _d = new Date(subDate + 'T00:00:00');
-          const _dow = _d.getDay(); // 1=Monday = start of week
-          if (_dow === 1) { // subDate IS a Monday = closing rolled into next week
-            _d.setDate(_d.getDate() - 7);
-            effectiveDate = _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
-            effectiveDate = normalizeWeek(effectiveDate);
+          const _subHour = new Date(s.submittedAt).toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour:'numeric', hour12:false});
+          const _hour = parseInt(_subHour, 10);
+          if (_hour >= 0 && _hour < 3) {
+            // Submitted after midnight — roll effective date back one day to find the opening shift's week
+            const _d = new Date(subDate + 'T00:00:00');
+            _d.setDate(_d.getDate() - 1);
+            effectiveDate = normalizeWeek(_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0'));
           }
         } catch(e) {}
       }

@@ -942,6 +942,11 @@ function buildDayRail() {} // Day rail removed — single daily submission
 
 // ── Render day ────────────────────────────────────────────────
 function renderDay() {
+  // MASTER-BUILD: Shift restore — survives ALL page reload paths
+  if (!currentShift) {
+    var _rs = localStorage.getItem('oic_currentShift_' + getTodayKey());
+    if (_rs === 'opening' || _rs === 'closing') currentShift = _rs;
+  }
   // Always restore currentShift first — permanent fix
   if (!currentShift) {
     var _rs = localStorage.getItem('oic_currentShift_' + getTodayKey());
