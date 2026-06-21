@@ -4862,16 +4862,23 @@ function showDeleteToast(msg) {
 
 // Fetch a Cloudinary (https://) URL and return a base64 data URL for jsPDF addImage
 async function _urlToBase64(url) {
-  try {
-    const resp = await fetch(url, {mode:'cors', credentials:'omit'});
-    const blob = await resp.blob();
-    return await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(blob);
-    });
-  } catch(e) { return null; }
+  // Use Image + canvas to avoid CORS restrictions on Cloudinary
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = function() {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      } catch(e) { resolve(null); }
+    };
+    img.onerror = () => resolve(null);
+    // Add cache-bust to help with CORS
+    img.src = url + (url.includes("?") ? "&" : "?") + "_cb=" + Date.now();
+  });
 }
 
 // Collect all photo URLs for a task from photoUrls array + photoUrl + photoUrl_1..4
@@ -4954,7 +4961,7 @@ async function exportDetailPDF() {
       ['Staff Name', s.staffName||'—', 'Role', role.label||'—'],
       ['Outlet', s.outlet||'—', 'Employee No', s.empNo||'—'],
       ['Started', fmtDT(s.startedAt), 'Submitted', fmtDT(s.submittedAt)],
-      ['Verified By', s.verifiedBy||(s.verificationLog&&s.verificationLog.length?s.verificationLog.map(e=>e.by).join(', '):'Pending'), 'Status', pass?'✓ QUALIFIED':'✗ NOT QUALIFIED'],
+      ['Verified By', (function(){ var vl=s.verificationLog; var lg=Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); return s.verifiedBy||(lg.length?lg.map(function(e){return e.by||'';}).join(', '):'Pending'); })(), 'Status', pass?'QUALIFIED':'NOT QUALIFIED'],
     ],
     styles:{fontSize:9,cellPadding:3},
     columnStyles:{
@@ -5053,7 +5060,9 @@ async function exportDetailPDF() {
 
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
       const tasks = byDay[day];
-      const hasData = tasks.some(t => t.yn && t.yn !== '');
+      const hasData = tasks.some(t => (t.yn && t.yn !== '')
+        || (t.photoUrls && typeof t.photoUrls==='object' && Object.keys(t.photoUrls).length)
+        || (t.photoUrl && t.photoUrl.startsWith('http')));
       if (!hasData) return;
 
       const bySec = {};
@@ -5061,7 +5070,10 @@ async function exportDetailPDF() {
         const key = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
         if (_pdfOicIds.includes(key)||(t.owner||'').toLowerCase()==='oic only'||(t.section||'').toLowerCase()==='oic observation') return;
         if (_pdfKicEvalIds.includes(key)) return;
-        if (!t.yn || t.yn === '') return;
+        // Include task if it has yn answer OR has photos
+        const _tHasPhoto = (t.photoUrls && typeof t.photoUrls==='object' && Object.keys(t.photoUrls).length)
+          || (t.photoUrl && t.photoUrl.startsWith('http')) || Array.isArray(t._b64Photos)&&t._b64Photos.length;
+        if ((!t.yn || t.yn === '') && !_tHasPhoto) return;
         const sec = t.section||'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -5097,12 +5109,18 @@ async function exportDetailPDF() {
 
         // Photos immediately after table — one row per task with photos
         for (const t of secTasks) {
+          // Collect resolved base64 photos; fall back to checking photoUrl slots
           const taskPhotos = [];
           if (Array.isArray(t._b64Photos) && t._b64Photos.length) {
             taskPhotos.push(...t._b64Photos);
           } else {
-            const pu = t.photoUrl||'';
-            if (pu.startsWith('data:')) taskPhotos.push(pu);
+            // _b64Photos not set or empty - try photoUrl and slots directly
+            const _rawUrls = [];
+            const _pu = t.photoUrls;
+            if (_pu && typeof _pu === 'object') Object.values(_pu).forEach(u => { if(u&&typeof u==='string') _rawUrls.push(u); });
+            if (!_rawUrls.length && t.photoUrl && t.photoUrl.startsWith('data:')) taskPhotos.push(t.photoUrl);
+            // For https:// URLs that couldn't be fetched, note them (can't embed in jsPDF)
+            if (!_rawUrls.length && !taskPhotos.length) { /* no photo available */ }
           }
           if (!taskPhotos.length) continue;
           if (y > H-50) { doc.addPage(); y=16; }
@@ -7299,7 +7317,9 @@ function loadBOHData() {
         } else {
           if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         }
+        // Also pick up closingPct/openingPct written directly (lc/st/kic don't set shift field)
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
+        if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
         // Track shift status — prefer closing_submitted over opening_submitted
         if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
         else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
