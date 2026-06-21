@@ -3161,6 +3161,7 @@ function openStaffDetail(s) {
   // Store current staff for PDF export
   _currentStaffData = s;
 
+  const _isKIC = s.role === 'kic'; // declared early — used throughout function
   const role = ROLES[s.role]||{label:s.role,icon:''};
   const sc   = parseFloat(s.overallPct)||0;
   const pass = sc >= 95;
@@ -6611,7 +6612,6 @@ async function saveOverwrite(s) {
   // Use task ID to identify opening/closing/eval — based on actual checklist task IDs
   // OIC: opening=o1-o4, closing=c1-c4, eval=s1-s4,m1-m2,u1-u2,w1-w2,p1-p2,mp1-mp2,a1
   // KIC: opening=o1-o4, closing=cy1-cy4, eval=fc1-fc4,fo1-fo3,cost1,sp2,cc1,aud1
-  const _isKIC = s.role === 'kic';
 
   // Task text lookup — so full checklist report shows text instead of "—"
   const _evalTaskTextMap = {
@@ -7394,14 +7394,13 @@ document.addEventListener('click', function(e) {
 
 function overwiteFromBOH(s) {
   if (!s) return;
-  // Open the detail view, then switch to edit mode after modal is ready
-  openBOHDetailFull(s);
-  // Give modal time to render before entering edit mode
+  // Open detail with pre-loaded data, then switch to edit mode
+  openStaffDetail(s);
   setTimeout(() => {
     if (document.getElementById('detailModal').classList.contains('open')) {
       toggleEditMode(s);
     }
-  }, 600);
+  }, 300);
 }
 
 function openBOHDetailFull(s) {
@@ -7712,7 +7711,7 @@ function renderBOHStaff() {
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
       <td style="padding:8px 12px;">${buildProgressCell(staff)}</td>
       <td style="padding:6px 8px;text-align:center;">
-        <button onclick="openBOHDetailFull(_bohFiltered[${bohIdx}])" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
+        <button onclick="openStaffDetail(_bohFiltered[${bohIdx}])" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
         ${canOW ? `<button onclick="overwiteFromBOH(_bohFiltered[${bohIdx}])" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
       </td>`;
     tbody.appendChild(tr);
