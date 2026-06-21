@@ -6145,6 +6145,18 @@ function toggleEditMode(s) {
   cancelBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px;background:#F1F5F9;border:1px solid #E0DDD4;color:#64748B;border-radius:10px;font-size:13px;cursor:pointer;';
   cancelBtn.textContent = '✕ Cancel Edit';
   cancelBtn.onclick = () => { _editMode = false; _editChanges = {}; _editPhotoChanges = {}; openStaffDetail(s); };
+
+  // Add Verified By field so it can be updated during overwrite
+  const vbyDiv = document.createElement('div');
+  vbyDiv.style.cssText = 'margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;';
+  vbyDiv.innerHTML = `
+    <label style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px;">✅ Verified By</label>
+    <input id="verifiedByInput" type="text" value="${(s.verifiedBy||'').replace(/"/g,'&quot;')}"
+      placeholder="Enter verifier name..."
+      style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">
+  `;
+  // Append vbyDiv before cancelBtn so KIC section (which inserts before #cancelEditBtn) goes in right position
+  body.appendChild(vbyDiv);
   body.appendChild(cancelBtn);
 
   // ── OIC Observation injection (Area Manager overwriting service staff record via BOH modal) ──
@@ -6454,6 +6466,7 @@ function _editTakePhoto(taskKey, withCapture) {
 }
 
 async function saveOverwrite(s) {
+  if (!s) { showToast('⚠ No record loaded. Please close and reopen.', 'warn'); return; }
   const verifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
   // Check for any comment changes
   const commentChanges = Array.from(document.querySelectorAll('.edit-comment')).some(el => {
@@ -6463,12 +6476,12 @@ async function saveOverwrite(s) {
   });
   const hasChanges = Object.keys(_editChanges).length > 0 || Object.keys(_editPhotoChanges).length > 0 || commentChanges || verifiedBy !== (s.verifiedBy||'');
 
-  if (!hasChanges) { showToast('No changes made', 'warn'); return; }
+  if (!hasChanges) { showToast('⚠ No changes detected — tap YES/NO on a task first, then Save.', 'warn'); return; }
 
   // Determine correct Firebase — FOH roles use fohDb, BOH roles use db
   const _isFOHRecord = s._isFOH || ['service','oic','delco','bartender'].includes(s.role);
   const _saveDb = _isFOHRecord ? fohDb : db;
-  if (!_saveDb) { alert('Firebase not connected. Please refresh and try again.'); return; }
+  if (!_saveDb) { showToast('⚠ Firebase not connected. Please refresh.', 'warn'); alert('Firebase not connected. Please refresh and try again.'); return; }
 
   // Find Firebase key
   let fbKey = s._fbKey || '';
@@ -6484,6 +6497,7 @@ async function saveOverwrite(s) {
     }
   }
   if (!fbKey) {
+    showToast('⚠ Record not found in Firebase. Please refresh.', 'warn');
     alert('Cannot save - record not found. Please refresh the page and try again.');
     return;
   }
@@ -6657,10 +6671,14 @@ async function saveOverwrite(s) {
   }
   if (ePct !== null) {
     updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
-    s.oicEvalPct = ePct; // update in-memory immediately so badge disappears right away
+    s.oicEvalPct = ePct;
   }
+  // Save verifiedBy — keep existing if input is empty
+  const _vbFinal = verifiedBy || s.verifiedBy || '';
+  if (_vbFinal) updates['submissions/' + fbKey + '/verifiedBy'] = _vbFinal;
 
   try {
+    showToast('💾 Saving...', 'ok');
     await _saveDb.ref().update(updates);
     // Update in-memory record with ALL changes so nothing is lost
     s._fbKey = fbKey;
