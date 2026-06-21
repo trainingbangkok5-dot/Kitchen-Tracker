@@ -6137,10 +6137,12 @@ function buildVerifyEditPanel(s) {
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
     + (historyHtml || noVerify)
     + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">\u2795 Add Verification</div>'
+    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\u25b6\':\'\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">\u2795 Add Verification <span class="vfy-arrow" style="font-size:9px;">\u25b6</span></div>'
+    + '<div style="display:none;margin-top:6px;">'
     + '<input id="verifiedByInput" type="text" value="' + nameVal + '" placeholder="Your name..."'
     + ' style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;">'
     + '<div style="font-size:10px;color:#94A3B8;">' + roleNote + '</div>'
+    + '</div>'
     + '</div></div>';
 }
 
