@@ -7959,7 +7959,7 @@ function openFOHDetail(idx) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtFohDT(staff.startedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtFohDT(staff.submittedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${fmtFohDate(staff.submittedAt)}</div>
-      <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
+      <div id="fohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${staff.verifiedBy
           ? `<div>${renderVerificationLog(staff)}</div>`
@@ -8871,26 +8871,19 @@ function toggleFOHEditMode() {
       if (b) { b.textContent = '✏️ Edit / Overwrite'; b.style.background = '#E87722'; }
       const editSec = document.querySelector('#oicEditSection');
       if (editSec) editSec.remove();
-      // Restore fohVerifiedBy to display mode
-      const _fohVbyEl2 = document.getElementById('fohVerifiedBy');
-      if (_fohVbyEl2 && _fohVbyEl2.dataset.origHtml) {
-        _fohVbyEl2.innerHTML = _fohVbyEl2.dataset.origHtml;
-        _fohVbyEl2.style.cssText = 'font-size:11px;opacity:0.8;margin-top:4px;';
-        delete _fohVbyEl2.dataset.origHtml;
-      }
+      // openFOHDetail rebuilds the entire white card including VERIFIED BY
       openFOHDetail(_fohDetailIdx);
     };
     area.appendChild(cancelBtn);
   }
-  // Inject verification edit panel into the existing VERIFIED BY section in the modal header
-  const _fohVbyEl = document.getElementById('fohVerifiedBy');
-  if (_fohVbyEl) {
-    // Save original content so cancel can restore it
-    if (!_fohVbyEl.dataset.origHtml) _fohVbyEl.dataset.origHtml = _fohVbyEl.innerHTML;
-    _fohVbyEl.innerHTML = buildVerifyEditPanel(staff);
-    _fohVbyEl.style.cssText = 'margin-top:4px;';
+  // Inject verification edit panel into the white card VERIFIED BY section (body area)
+  const _fohVbyCard = document.getElementById('fohVerifiedByCard');
+  if (_fohVbyCard) {
+    _fohVbyCard.style.background = '#F0FDF4'; // subtle green tint in edit mode
+    _fohVbyCard.innerHTML = '<div style="font-size:10px;font-weight:700;color:#15803D;margin-bottom:6px;">👤 VERIFIED BY</div>'
+      + buildVerifyEditPanel(staff);
   }
-  // Also remove any stale bottom panel from a previous session
+  // Clean up any stale bottom panel
   const _oldVbyDiv = area.querySelector('#fohVerifiedByDiv');
   if (_oldVbyDiv) _oldVbyDiv.remove();
 }
