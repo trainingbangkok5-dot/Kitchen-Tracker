@@ -6305,33 +6305,46 @@ function setTaskYN(btn, val) {
 
 function updateLiveScore() {
   const s = _editStaffData;
-  if (!s || !s.taskData) return;
-  const updatedTaskData = JSON.parse(JSON.stringify(s.taskData));
-  Object.entries(_editChanges).forEach(([k, yn]) => {
-    if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
-  });
-  // Use task IDs to split — never section name (unreliable)
-  const _lsOicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
+  if (!s) return;
+
+  // Determine role-specific task ID lists
+  const _isKICRole = s.role === 'kic';
+  const _lsEvalIds = _isKICRole
+    ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
+    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
-  const _lsCloseIds = ['c1','c2','c3','c4','c5'];
+  const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
+
+  // Start with existing taskData
+  const updatedTaskData = s.taskData ? JSON.parse(JSON.stringify(s.taskData)) : {};
+
+  // Merge _editChanges — BOTH existing and NEW tasks
+  Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (k === 'aud1_score') return;
+    const ynVal = typeof yn === 'string' ? yn : (yn && yn.yn) ? yn.yn : yn;
+    if (updatedTaskData[k]) {
+      updatedTaskData[k] = {...updatedTaskData[k], yn: ynVal};
+    } else {
+      // New task not previously in taskData — still count it
+      updatedTaskData[k] = {yn: ynVal};
+    }
+  });
+
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
   Object.entries(updatedTaskData).forEach(([k, t]) => {
-    if (!t.yn || t.yn === 'na') return;
+    if (!t || !t.yn || t.yn === 'na') return;
     const tid = k.replace(/^d[0-9]+_/, '');
-    if (_lsOicIds.includes(tid))        { eM++;  if (t.yn==='yes') eY++;  }
-    else if (_lsOpenIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
-    else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
+    if (_lsEvalIds.includes(tid))        { eM++;  if (t.yn==='yes') eY++;  }
+    else if (_lsOpenIds.includes(tid))   { opM++; if (t.yn==='yes') opY++; }
+    else if (_lsCloseIds.includes(tid))  { clM++; if (t.yn==='yes') clY++; }
   });
+
   const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
-  // Opening-only only if closingPct is genuinely absent
   const _lsIsOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
     && (s.closingPct == null || s.closingPct === undefined);
   const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
   const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
-  // Total score formula:
-  // Opening shift only:  (opening + eval) / 2
-  // Closing shift only:  (closing + eval) / 2
-  // Straight (both):     (opening + closing + eval) / 3
+
   const hasOp = opPct !== null, hasCl = clPct !== null, hasEv = ePct !== null;
   let newScore = 0;
   if (hasOp && hasCl && hasEv) newScore = Math.round((opPct + clPct + ePct) / 3);
@@ -6341,15 +6354,16 @@ function updateLiveScore() {
   else if (hasOp)              newScore = opPct;
   else if (hasCl)              newScore = clPct;
   else if (hasEv)              newScore = ePct;
+
   const pass = newScore >= 95;
-  // Update score boxes — explicitly show "—" for null scores
+
+  // Update all score boxes
   document.querySelectorAll('#detailModal [data-scorebox], #detailBody [data-scorebox]').forEach(box => {
     const type = box.getAttribute('data-scorebox');
     const pctEl = box.querySelector('.sb-pct') || box;
     const lblEl = box.querySelector('.sb-lbl');
     let pct = type==='opening' ? opPct : type==='closing' ? clPct : type==='oic' ? ePct : newScore;
     if (pct === null) {
-      // Explicitly clear — don't leave old value showing
       if (type === 'closing') {
         pctEl.textContent = '—';
         pctEl.style.color = '#94A3B8';
@@ -6365,7 +6379,8 @@ function updateLiveScore() {
       lblEl.style.color = isPass ? '#15803D' : '#B91C1C';
     }
   });
-  // Also update the main score display in modal header if present
+
+  // Update total score in modal header
   const headerScore = document.querySelector('#detailModal .detail-score, #detailModal [class*="score"]');
   if (headerScore && headerScore.textContent.includes('%')) {
     headerScore.textContent = newScore + '%';
@@ -6646,34 +6661,37 @@ async function saveOverwrite(s) {
 
   try {
     await _saveDb.ref().update(updates);
+    // Update in-memory record with ALL changes so nothing is lost
     s._fbKey = fbKey;
     s.overallPct = newScore;
     s.qualified  = newQualified;
-    s.taskData   = updatedTaskData;
+    s.overwrittenBy = currentRole;
+    // Merge updatedTaskData back so eval answers are preserved
+    s.taskData = updatedTaskData;
     if (verifiedBy) s.verifiedBy = verifiedBy;
     if (opPct !== null) s.openingPct = opPct;
     if (clPct !== null) s.closingPct = clPct;
+    if (ePct  !== null) s.oicEvalPct = ePct;
+
+    // Update allStaff in-memory
+    const idx = allStaff.findIndex(st => st._fbKey === fbKey);
+    if (idx >= 0) allStaff[idx] = {...allStaff[idx], ...s};
+
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
-    showToast('✓ Changes saved! Score: ' + newScore + '%', 'ok');
+    showToast('✓ Saved! Score: ' + newScore + '%', 'ok');
+
+    // Re-fetch from Firebase to get the true saved state, then re-open detail
     const freshSnap = await _saveDb.ref('submissions/' + fbKey).once('value');
     if (freshSnap.exists()) {
       const fresh = {...freshSnap.val(), _fbKey: fbKey, _isFOH: _isFOHRecord};
-      const idx = allStaff.findIndex(st => st._fbKey === fbKey);
-      if (idx >= 0) allStaff[idx] = fresh;
-      const fohIdx = allFOHData.findIndex(st => st.staffName === s.staffName && st.role === s.role && st.week === s.week);
-      if (fohIdx >= 0 && fresh.taskData) {
-        Object.entries(fresh.taskData).forEach(([k, t]) => {
-          if (allFOHData[fohIdx].taskData && allFOHData[fohIdx].taskData[k]) {
-            if (t.comment) allFOHData[fohIdx].taskData[k].comment = t.comment;
-            if (t.oicPhotoUrl) allFOHData[fohIdx].taskData[k].oicPhotoUrl = t.oicPhotoUrl;
-          }
-        });
-      }
+      // Update allStaff with fresh data
+      const idx2 = allStaff.findIndex(st => st._fbKey === fbKey);
+      if (idx2 >= 0) allStaff[idx2] = fresh;
       openStaffDetail(fresh);
     } else {
       openStaffDetail(s);
     }
-    // Re-render table so AC/AM Eval Needed badge disappears immediately
+    // Re-render table so eval badges update immediately
     if (_isFOHRecord) renderFOHStaff(); else renderBOHStaff();
   } catch(e) {
     alert('Save failed: ' + e.message + '. Please try again.');
