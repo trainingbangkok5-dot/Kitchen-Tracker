@@ -6489,6 +6489,7 @@ async function saveOverwrite(s) {
   }
 
   // Build updates
+  const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
     if (k === 'aud1_score') {
       // Save raw audit score to taskData/aud1/audScore
