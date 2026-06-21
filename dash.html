@@ -7692,15 +7692,15 @@ function renderBOHStaff() {
   const scoreColor = p => p>=95?'#15803D':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
   // Sort latest submission first
+  _bohFiltered = filtered;
   filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
-  filtered.forEach((staff, idx) => {
+  filtered.forEach((staff, bohIdx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
     const op = staff.overallPct;
     const canOW = ['areachef','areamanager','training','operations','director','ceo'].includes(currentRole);
     const rowKey = (staff.staffName||'') + '_' + (staff.role||'') + '_' + (staff.week||'');
     // Store reference index for click handlers
-    const bohIdx = allBOHData.findIndex(s=>s.staffName===staff.staffName&&s.week===staff.week&&s.role===staff.role);
     tr.innerHTML = `
       <td class="boh-chk-cell" style="padding:8px 12px;text-align:center;display:none;">
         <input type="checkbox" class="boh-row-chk" data-key="${rowKey}" onchange="updateBOHSelectCount()" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;">
@@ -7712,15 +7712,10 @@ function renderBOHStaff() {
       <td style="padding:8px 12px;text-align:center;"><span style="display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700;background:${scoreBg(op)};color:${scoreColor(op)}">${op}%</span></td>
       <td style="padding:8px 12px;">${buildProgressCell(staff)}</td>
       <td style="padding:6px 8px;text-align:center;">
-        <button class="boh-view-btn" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
-        ${canOW ? `<button class="boh-edit-btn" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
+        <button onclick="openBOHDetailFull(_bohFiltered[${bohIdx}])" style="padding:4px 10px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;">👁 View</button>
+        ${canOW ? `<button onclick="overwiteFromBOH(_bohFiltered[${bohIdx}])" style="padding:4px 10px;background:#E87722;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>` : ''}
       </td>`;
     tbody.appendChild(tr);
-    // Attach click handlers with direct reference to staff object — avoids template literal issues
-    const viewBtn = tr.querySelector('.boh-view-btn');
-    if (viewBtn) viewBtn.addEventListener('click', () => openBOHDetailFull(staff));
-    const editBtn = tr.querySelector('.boh-edit-btn');
-    if (editBtn) editBtn.addEventListener('click', () => overwiteFromBOH(staff));
   });
 }
 
@@ -7970,6 +7965,7 @@ function renderFOHStaff() {
 }
 
 // Track filtered for detail view
+let _bohFiltered = [];
 let _fohFiltered = [];
 let _fohDetailIdx = -1;
 
@@ -8373,7 +8369,9 @@ function openFOHDetail(idx) {
         oicBySec[t.section].push({...t, yn, comment, taskKey});
       });
 
-      html += '<div data-oic-view-section="1" style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;margin-top:12px;border-radius:8px 8px 0 0;">🧑‍💼 OIC Observation</div>';
+      // OIC observation section — wrapped in single container so hiding in edit mode removes all rows
+      html += '<div data-oic-view-section="1" style="margin-top:12px;border-radius:8px;overflow:hidden;">';
+      html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;">🧑‍💼 OIC Observation</div>';
       // Only show if at least one OIC task has been answered
       const hasAnyOIC = oicEvalTasks.some(t => {
         const existing = dedupedSubs.reduce((found, sub) => {
@@ -8403,18 +8401,11 @@ function openFOHDetail(idx) {
               <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
               ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:4px;font-style:italic;">💬 ${t.comment}</div>` : ''}
             </div>
-            <div class="foh-yn-edit" style="display:none;flex-direction:column;gap:6px;">
-              <div style="display:flex;gap:4px;">
-                <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:6px 8px;font-size:12px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
-                <button onclick="setFOHTaskYN(this,'no')" style="flex:1;padding:6px 8px;font-size:12px;font-weight:700;border-radius:8px;border:none;background:${yn==='no'?'#B91C1C':'#E5E7EB'};color:${yn==='no'?'#fff':'#374151'};cursor:pointer;">✗ NO</button>
-                <button onclick="setFOHTaskYN(this,'na')" style="flex:1;padding:6px 8px;font-size:12px;font-weight:700;border-radius:8px;border:none;background:${yn==='na'?'#374151':'#E5E7EB'};color:${yn==='na'?'#fff':'#374151'};cursor:pointer;">N/A</button>
-              </div>
-              <textarea data-fohtaskkey="${t.taskKey}" onchange="setFOHTaskComment(this)" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Add comment...">${t.comment||''}</textarea>
-            </div>
           </div>`;
           });
         }); // end Object.entries(oicBySec)
       } // end hasAnyOIC else
+      html += '</div>'; // end data-oic-view-section container
     }
 
     html += `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:8px;">Role: ${roleLabels[staff.role]||staff.role} • Outlet: ${staff.outlet}</div>`;
@@ -8790,12 +8781,7 @@ function toggleFOHEditMode() {
     // Hide the existing OIC view section to avoid duplicate
     const existingOicView = area.querySelector('[data-oic-view-section]');
     if (existingOicView) existingOicView.style.display = 'none';
-    // Also hide the OIC header (dark red bar before OIC tasks)
-    area.querySelectorAll('div').forEach(d => {
-      if (d.textContent.trim() === '🧑‍💼 OIC Observation' && d.style.background === 'rgb(123, 45, 66)') {
-        d.style.display = 'none';
-      }
-    });
+    // data-oic-view-section now wraps the entire OIC obs block (header + all task rows));
 
     let oicEditContainer = area.querySelector('#oicEditSection');
     if (!oicEditContainer) {
