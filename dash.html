@@ -3250,26 +3250,19 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
       <div id="bohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
-        ${s.verifiedBy
-          ? `<div>${renderVerificationLog(s)}</div>`
-          : ((function() {
-              const subRole = s.role || '';
-              const canVerify =
-                ['training','operations','director','ceo'].includes(currentRole) ||
-                (currentRole === 'kic'          && ['steward','linecook'].includes(subRole)) ||
-                (currentRole === 'oic'          && ['service','bartender','delco'].includes(subRole)) ||
-                (currentRole === 'areachef'     && ['linecook','steward','kic'].includes(subRole)) ||
-                (currentRole === 'areamanager'  && ['oic','service','bartender','delco'].includes(subRole));
-              return canVerify;
-            })()
-            ? `<div style="display:flex;gap:6px;margin-top:4px;">
-               <input id="verifyNameInput" type="text" placeholder="${s.role==='kic'?'Enter Area Chef name...':['linecook','steward'].includes(s.role)?'Enter KIC name...':'Enter your name...'}" value=""
-                 style="flex:1;padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:6px;font-size:12px;outline:none;">
-               <button onclick="saveVerification()" style="padding:5px 10px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">✅ Verify</button>
-             </div>
-             <div style="font-size:10px;color:#F59E0B;font-weight:600;margin-top:4px;">⚪ Pending verification</div>`
-            : `<div style="font-size:10px;color:#F59E0B;font-weight:600;margin-top:4px;">⚪ Pending verification</div>`)
-        }
+        ${(function() {
+          const subRole = s.role || '';
+          const canVerify =
+            ['training','operations','director','ceo'].includes(currentRole) ||
+            (currentRole === 'kic'         && ['steward','linecook'].includes(subRole)) ||
+            (currentRole === 'areachef'    && ['linecook','steward','kic'].includes(subRole)) ||
+            (currentRole === 'areamanager' && ['linecook','steward','kic','oic','service','bartender','delco'].includes(subRole));
+          const panel = buildVerifyEditPanel(s);
+          if (canVerify) {
+            return panel + '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>';
+          }
+          return panel;
+        })()}
       </div>
     </div>`;
 
@@ -7307,6 +7300,71 @@ function setBOHSub(sub) {
 
 // Current staff detail record reference
 let _currentDetailStaff = null;
+
+function saveBOHVerification() {
+  const name = (document.getElementById('verifiedByInput')?.value || '').trim();
+  if (!name) { showToast('Please enter your name', 'warn'); return; }
+  if (!_currentDetailStaff) { showToast('No record loaded', 'warn'); return; }
+  const s = _currentDetailStaff;
+  const isFOH = ['service','oic','delco','bartender'].includes(s.role);
+  const firebaseRef = isFOH ? fohDb : db;
+  if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
+  const now = new Date().toISOString();
+  const newEntry = { by: name, role: currentRole, at: now };
+  const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
+  if (s.verifiedBy && !existingLog.length) {
+    existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
+  }
+  existingLog.push(newEntry);
+  const sDate = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
+  firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+    if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
+    const updateMap = {};
+    snap.forEach(child => {
+      const v = child.val();
+      const vDate = v.submittedAt ? v.submittedAt.substring(0, 10) : '';
+      const weekMatch = v.week === s.week || normalizeWeek(v.week||'') === normalizeWeek(s.week||'');
+      const dateMatch = sDate && vDate && vDate === sDate;
+      if (v.role === s.role && (weekMatch || dateMatch)) {
+        updateMap['submissions/' + child.key + '/verificationLog'] = existingLog;
+        updateMap['submissions/' + child.key + '/verifiedBy'] = name;
+        updateMap['submissions/' + child.key + '/verifiedByRole'] = currentRole;
+        updateMap['submissions/' + child.key + '/verifiedAt'] = now;
+        updateMap['submissions/' + child.key + '/lastUpdated'] = now;
+      }
+    });
+    if (!Object.keys(updateMap).length) { showToast('No matching record found', 'warn'); return; }
+    firebaseRef.ref().update(updateMap).then(() => {
+      s.verifiedBy = name;
+      s.verifiedByRole = currentRole;
+      s.verifiedAt = now;
+      s.verificationLog = existingLog;
+      [allStaff, allBOHData, allFOHData].forEach(arr => {
+        arr.forEach(r => {
+          if (r.staffName === s.staffName && r.role === s.role && r.week === s.week) {
+            r.verifiedBy = name; r.verifiedByRole = currentRole;
+            r.verifiedAt = now; r.verificationLog = existingLog;
+          }
+        });
+      });
+      showToast('Verified by ' + name + ' ✓', 'ok');
+      // Refresh the verify panel in place
+      const verCard = document.getElementById('bohVerifiedByCard');
+      if (verCard) {
+        const panel = buildVerifyEditPanel(s);
+        const canVerify = ['training','operations','director','ceo'].includes(currentRole) ||
+          (currentRole === 'kic' && ['steward','linecook'].includes(s.role)) ||
+          (currentRole === 'areachef' && ['linecook','steward','kic'].includes(s.role)) ||
+          (currentRole === 'areamanager' && ['linecook','steward','kic','oic','service','bartender','delco'].includes(s.role));
+        verCard.innerHTML = '<div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>'
+          + panel
+          + (canVerify ? '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">✅ Verify</button>' : '');
+      } else {
+        openStaffDetail(s);
+      }
+    }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+  });
+}
 
 function saveVerification() {
   const name = document.getElementById('verifyNameInput')?.value?.trim();
