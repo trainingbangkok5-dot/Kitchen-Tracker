@@ -4892,6 +4892,11 @@ async function exportDetailPDF() {
   var { jsPDF } = window.jspdf;
   if (!jsPDF) { alert('PDF library not loaded.'); return; }
 
+  var s = _currentStaffData;
+  if (!s) { alert('No staff data.'); return; }
+  var { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+
   // Pre-fetch all photos (db: from Firebase, https:// from Cloudinary) before building PDF
   if (s.taskData) {
     const fetchPromises = Object.values(s.taskData).map(async t => {
@@ -4917,95 +4922,129 @@ async function exportDetailPDF() {
     await Promise.all(fetchPromises);
   }
 
-  const role = ROLES[s.role]||{label:s.role||'Staff'};
-  const sc   = parseFloat(s.overallPct)||0;
-  const pass = sc >= 95;
-  const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
-  // Force closingPct=null for opening-only records
-  // A record is opening-only if: status=opening_submitted OR key ends with _opening OR no status but has openingPct
-  // Opening-only: only if closingPct is genuinely null/missing
-  // Don't rely solely on status — closing submitted at 1AM may merge with opening record
+  const role  = ROLES[s.role]||{label:s.role||'Staff'};
+  const sc    = parseFloat(s.overallPct)||0;
+  const pass  = sc >= 95;
+  const opO   = s.openingPct != null ? parseFloat(s.openingPct) : null;
   const _isOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
     && (s.closingPct == null || s.closingPct === undefined);
-  const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
-  // Clean stale closingPct from Firebase permanently
-  if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
-    const _cleanDb = s._isFOH ? fohDb : db;
-    if (_cleanDb) _cleanDb.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
+  const opC   = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
+  if (_isOpeningOnly && s.closingPct != null && s._fbKey && db) {
+    db.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
     s.closingPct = null;
   }
 
-  const doc  = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  const W    = doc.internal.pageSize.getWidth();
-  const H    = doc.internal.pageSize.getHeight();
-  let y = 0;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const scoreColor = p => p>=95?[15,118,110]:p>=70?[217,119,6]:[185,28,28];
+  function fmtDT(iso) { try { return iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; } catch(e){return '—';} }
 
-  // Header bar
-  doc.setFillColor(26,60,94);
-  doc.rect(0,0,W,22,'F');
+  // ── Header (maroon, FOH style) ───────────────────────────────────────────
+  doc.setFillColor(123,45,66);
+  doc.rect(0,0,W,20,'F');
   doc.setTextColor(255,255,255);
-  doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text('Kitchen Incentive Tracker', 14, 10);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('BOH Performance Report — ' + (s.staffName||'—'), 14, 9);
   doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.text('Culex Hospitality -- Staff Report', 14, 17);
-  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'}), W-14, 17, {align:'right'});
-  y = 28;
+  doc.text(role.label.toUpperCase() + ' • ' + (s.outlet||'—') + ' • Week of ' + (fmtWeekRange(s.week)||'—'), 14, 15);
+  doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), W-14, 15, {align:'right'});
 
-  // Title
-  doc.setTextColor(26,60,94);
-  doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text(`${s.staffName||'—'} -- ${fmtWeekRange(s.week)||'—'} Full Report`, 14, y); y+=8;
+  let y = 28;
 
-  // Staff info table
+  // ── Staff details row ────────────────────────────────────────────────────
   doc.autoTable({
     startY: y,
     body: [
-      ['Name', s.staffName||'—', 'Role', role.label||'—'],
-      ['Outlet', s.outlet||'—', 'Week', s.week||'—'],
-      ['Overall Score', sc>0?sc+'%':'—', 'Result', pass?'QUALIFIED':'NOT QUALIFIED'],
-      ['Started', s.startedAt?new Date(s.startedAt).toLocaleString('en-GB'):'—',
-       'Submitted', s.submittedAt?new Date(s.submittedAt).toLocaleString('en-GB'):'—'],
+      ['Staff Name', s.staffName||'—', 'Role', role.label||'—'],
+      ['Outlet', s.outlet||'—', 'Employee No', s.empNo||'—'],
+      ['Started', fmtDT(s.startedAt), 'Submitted', fmtDT(s.submittedAt)],
+      ['Verified By', s.verifiedBy||(s.verificationLog&&s.verificationLog.length?s.verificationLog.map(e=>e.by).join(', '):'Pending'), 'Status', pass?'✓ QUALIFIED':'✗ NOT QUALIFIED'],
     ],
     styles:{fontSize:9,cellPadding:3},
     columnStyles:{
       0:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
       1:{cellWidth:57},
       2:{fontStyle:'bold',fillColor:[245,243,238],cellWidth:28},
-      3:{cellWidth:57,textColor:pass?[21,128,61]:[185,28,28],fontStyle:'bold'},
+      3:{cellWidth:57,fontStyle:'bold'},
     },
+    didParseCell:(data)=>{ if(data.column.index===3&&data.row.index===3&&data.section==='body'){ data.cell.styles.textColor=pass?[21,128,61]:[185,28,28]; } },
     margin:{left:14,right:14}, theme:'grid',
   });
-  y = doc.lastAutoTable.finalY + 6;
+  y = doc.lastAutoTable.finalY + 8;
 
-  // Score boxes
+  // ── Big overall score ────────────────────────────────────────────────────
+  doc.setFillColor(255,241,242);
+  doc.rect(14,y,W-28,18,'F');
+  doc.setFontSize(26); doc.setFont('helvetica','bold');
+  doc.setTextColor(...scoreColor(sc));
+  doc.text(sc>0?sc+'%':'—', W/2, y+13, {align:'center'});
+  doc.setFontSize(9); doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
+  doc.text('Weekly Overall Score (Target: 95%)', W/2, y+17, {align:'center'});
+  y += 26;
+
+  // ── Daily score breakdown ────────────────────────────────────────────────
+  if (s.days && Object.keys(s.days).length) {
+    const weekStart = new Date((s.week||'')+'T00:00:00');
+    doc.autoTable({
+      startY: y,
+      head: [['Day','Date','Score','Status']],
+      body: Array.from({length:6},(_,i)=>{
+        const d = i+1;
+        const date = new Date(weekStart); date.setDate(weekStart.getDate()+i);
+        const p = s.days[d];
+        return [
+          'Day '+d,
+          isNaN(date)?'—':date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
+          p!=null?p+'%':'—',
+          p!=null?(p>=95?'QUALIFIED':'BELOW TARGET'):'Not submitted'
+        ];
+      }),
+      styles:{fontSize:10,cellPadding:4},
+      headStyles:{fillColor:[123,45,66],textColor:[255,255,255]},
+      didParseCell:(data)=>{
+        if(data.column.index===3&&data.section==='body'){
+          const v=data.cell.raw;
+          data.cell.styles.textColor=v==='QUALIFIED'?[15,118,110]:v==='BELOW TARGET'?[185,28,28]:[150,150,150];
+          data.cell.styles.fontStyle='bold';
+        }
+        if(data.column.index===2&&data.section==='body'){
+          const v=parseInt(data.cell.raw)||0;
+          if(v>0) data.cell.styles.textColor=v>=95?[15,118,110]:v>=70?[217,119,6]:[185,28,28];
+          data.cell.styles.fontStyle='bold';
+        }
+      },
+      margin:{left:14,right:14}
+    });
+    y = doc.lastAutoTable.finalY + 8;
+  }
+
+  // ── Score boxes: Opening / Closing / Total ───────────────────────────────
   if (opO !== null || opC !== null) {
     const bw = (W-28)/3;
-    [
-      {label:'Opening', val:opO},
-      {label:'Closing', val:opC},
-      {label:'Total', val:sc},
-    ].forEach((box,i) => {
-      const x = 14 + i*(bw+4);
-      doc.setFillColor(i===0?239:i===1?240:pass?240:254, i===0?246:i===1?253:pass?253:242, i===0?255:i===1?244:pass?244:242);
+    [{label:'Opening',val:opO},{label:'Closing',val:opC},{label:'Total',val:sc}].forEach((box,i)=>{
+      const x = 14+i*(bw+4);
+      const v = box.val;
+      const bg = v==null?[245,245,245]:v>=95?[240,253,244]:v>=70?[254,243,199]:[254,242,242];
+      doc.setFillColor(...bg);
       doc.roundedRect(x,y,bw,14,2,2,'F');
       doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100);
       doc.text(box.label.toUpperCase(), x+bw/2, y+5, {align:'center'});
       doc.setFontSize(13); doc.setFont('helvetica','bold');
-      const v = box.val;
-      doc.setTextColor(v!=null&&v>=95?21:v!=null&&v>=70?180:185, v!=null&&v>=95?128:v!=null&&v>=70?100:28, 0);
+      doc.setTextColor(v!=null?scoreColor(v):[150,150,150]);
       doc.text(v!=null?v+'%':'—', x+bw/2, y+12, {align:'center'});
     });
     y += 20;
   }
 
-  // Task checklist
-  // Normalize taskData — handle both formats
+  // ── Task checklist (normalise → group by section → render table → photos) ─
   if (s.taskData) {
-    Object.keys(s.taskData).forEach(k => {
+    Object.keys(s.taskData).forEach(k=>{
       const t = s.taskData[k];
-      if (t && t.photo && !t.photoUrl) { t.photoUrl = t.photo; }
+      if (t && t.photo && !t.photoUrl) t.photoUrl = t.photo;
     });
   }
+
   if (s.taskData && Object.keys(s.taskData).length > 0) {
     const byDay = {};
     Object.values(s.taskData).forEach(t => {
@@ -5014,41 +5053,41 @@ async function exportDetailPDF() {
       byDay[d].push(t);
     });
 
+    const _pdfOicIds     = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
+    const _pdfKicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1'];
+
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
-      // Only show days with actual YES/NO answers
-      const hasActualData = byDay[day].some(t => t.yn && t.yn !== '');
-      if (!hasActualData) return;
-      if (y > H-40) { doc.addPage(); y=16; }
       const tasks = byDay[day];
+      const hasData = tasks.some(t => t.yn && t.yn !== '');
+      if (!hasData) return;
+
       const bySec = {};
       tasks.forEach(t => {
-        // Filter OIC observation tasks from PDF export
-        const _pdfOicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
-        // Filter KIC/OIC eval tasks — shown in dedicated eval section below
-        const _pdfKicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1'];
-        const _pdfKey = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
-        if (_pdfOicIds.includes(_pdfKey) || (t.owner||'').toLowerCase()==='oic only' || (t.section||'').toLowerCase()==='oic observation') return;
-        if (_pdfKicEvalIds.includes(_pdfKey)) return;
+        const key = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
+        if (_pdfOicIds.includes(key)||(t.owner||'').toLowerCase()==='oic only'||(t.section||'').toLowerCase()==='oic observation') return;
+        if (_pdfKicEvalIds.includes(key)) return;
+        if (!t.yn || t.yn === '') return;
         const sec = t.section||'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
       });
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
+        if (y > H-40) { doc.addPage(); y=16; }
+
+        // Section table
         doc.autoTable({
           startY: y,
-          head: [[{content: sec.replace(/[^\x00-\x7F]/g, '').trim().replace(/^\s+/, '') || 'Tasks', colSpan:4, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
-          body: secTasks.map(t => [
+          head: [[{content: sec.replace(/[^\x00-\x7F]/g,'').trim()||'Tasks', colSpan:3, styles:{fillColor:[46,109,164],textColor:255,fontStyle:'bold',fontSize:9}}]],
+          body: secTasks.map(t=>[
             (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
             (t.task||'').replace(/[^\x00-\x7F]/g,'').trim(),
             (t.yn||'').toUpperCase()||'—',
-            (t.comment||'').replace(/[^\x00-\x7F]/g,'').trim()
           ]),
           columnStyles:{
             0:{cellWidth:28,fontSize:8,textColor:[100,100,100]},
-            1:{cellWidth:90,fontSize:9},
-            2:{cellWidth:20,halign:'center',fontStyle:'bold'},
-            3:{cellWidth:42,fontSize:8,textColor:[80,80,80],fontStyle:'italic'},
+            1:{cellWidth:120,fontSize:9},
+            2:{cellWidth:22,halign:'center',fontStyle:'bold'},
           },
           didParseCell:(data)=>{
             if(data.column.index===2&&data.section==='body'){
@@ -5056,34 +5095,32 @@ async function exportDetailPDF() {
               data.cell.styles.textColor=v==='YES'?[21,128,61]:v==='NO'?[185,28,28]:[100,100,100];
             }
           },
-          styles:{fontSize:9,cellPadding:3},
           alternateRowStyles:{fillColor:[248,250,252]},
-          margin:{left:14,right:14},
+          margin:{left:14,right:14}, theme:'grid',
         });
         y = doc.lastAutoTable.finalY + 2;
 
-        // Photos inline — under each task that has one
+        // Photos immediately after table — one row per task with photos
         for (const t of secTasks) {
-          // Collect all resolved photos: _b64Photos array first, then single photoUrl
           const taskPhotos = [];
           if (Array.isArray(t._b64Photos) && t._b64Photos.length) {
             taskPhotos.push(...t._b64Photos);
           } else {
-            const pu = t.photoUrl || '';
+            const pu = t.photoUrl||'';
             if (pu.startsWith('data:')) taskPhotos.push(pu);
           }
           if (!taskPhotos.length) continue;
-          if (y > H-55) { doc.addPage(); y=16; }
-          doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
-          doc.text('[Photo] ' + (t.task||'').replace(/[^\x00-\x7F]/g,'').trim().substring(0,65), 16, y+4); y += 7;
-          let px = 16;
+          if (y > H-50) { doc.addPage(); y=16; }
+          doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(60,60,60);
+          doc.text('[Photo] '+(t.task||'').replace(/[^\x00-\x7F]/g,'').trim().substring(0,70), 14, y+4); y+=7;
+          let px = 14;
           for (const photoData of taskPhotos) {
-            if (y > H-45) { doc.addPage(); y=16; px=16; }
+            if (y > H-42) { doc.addPage(); y=16; px=14; }
             try {
-              const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+              const fmt = photoData.startsWith('data:image/png')?'PNG':'JPEG';
               doc.addImage(photoData, fmt, px, y, 45, 34);
               px += 49;
-              if (px > W - 49) { px = 16; y += 38; }
+              if (px > W-47) { px=14; y+=38; }
             } catch(e) {}
           }
           y += 38;
@@ -6181,10 +6218,12 @@ function buildVerifyEditPanel(s) {
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
     + (historyHtml || noVerify)
     + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">\u2795 Add Verification</div>'
+    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\u25b6\':\'\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">\u2795 Add Verification <span class="vfy-arrow" style="font-size:9px;">\u25b6</span></div>'
+    + '<div style="display:none;margin-top:6px;">'
     + '<input id="verifiedByInput" type="text" value="' + nameVal + '" placeholder="Your name..."'
     + ' style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;">'
     + '<div style="font-size:10px;color:#94A3B8;">' + roleNote + '</div>'
+    + '</div>'
     + '</div></div>';
 }
 
