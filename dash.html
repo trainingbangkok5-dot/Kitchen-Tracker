@@ -7601,17 +7601,21 @@ function buildProgressCell(staff) {
   }
 
   if (needsObservation) {
+    // Observation is expected only when BOTH opening AND closing are submitted
+    const obsExpected = openDone && closeDone;
     html += row(
-      obsDone ? PILL_DONE : !openDone ? PILL_WAIT : PILL_NEED,
+      obsDone  ? PILL_DONE :
+      obsExpected ? PILL_NEED :
+      PILL_GREY,
       obsDone ? CHK : BOX,
-      obsDone
-        ? obsLabel + ' — ' + staff.oicEvalPct + '%'
-        : !openDone ? obsLabel + ' — waiting' : obsLabel + ' — needed'
+      obsDone      ? obsLabel + ' — ' + staff.oicEvalPct + '%' :
+      obsExpected  ? obsLabel + ' — needed' :
+      obsLabel + ' — after both shifts'
     );
   }
 
   // ── Sign-off ─────────────────────────────────────────────────
-  const verExpected = openDone && (!needsEval || evalDone) && (!needsObservation || obsDone);
+  const verExpected = openDone && (!needsEval || evalDone) && (!needsObservation || obsDone) && (!needsObservation || (openDone && closeDone));
   html += row(
     verDone ? PILL_DONE : verExpected ? PILL_NEED : PILL_WAIT,
     verDone ? CHK : BOX,
