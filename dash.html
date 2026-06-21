@@ -2907,12 +2907,21 @@ function openMonthlyDetail(staffName, allSubs) {
       if (!Object.keys(bySec).length) return;
 
       const daySub = weekSubs.find(s => (s.day||1) == day);
-      const dayDt = daySub && daySub.submittedAt ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}) : 'Day '+day;
+      const _subDate = daySub && daySub.submittedAt ? new Date(daySub.submittedAt) : null;
+      const dayDt = _subDate ? _subDate.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',timeZone:'Asia/Dubai'}) : 'Day '+day;
+      const _openTime = daySub && daySub.startedAt ? new Date(daySub.startedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : null;
+      const _closeTime = _subDate ? _subDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : null;
+      const _fullDate = _subDate ? _subDate.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Dubai'}) : '';
 
-      html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 ${dayDt}</div>`;
+      html += `<div style="background:#2E6DA4;padding:6px 12px;font-size:11px;font-weight:600;color:#fff;">📅 ${dayDt} ${_fullDate ? '— '+_fullDate : ''}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
-        html += `<div style="background:#4A90C4;padding:3px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim()||'Tasks'}</div>`;
+        // Add date+time to section header
+        const _secLower = (sec||'').toLowerCase();
+        const _isClosingSec = _secLower.includes('clos');
+        const _isOpeningSec = _secLower.includes('open');
+        const _secTime = _isClosingSec && _closeTime ? ' — '+_fullDate+', '+_closeTime : _isOpeningSec && _openTime ? ' — '+_fullDate+', '+_openTime : _fullDate ? ' — '+_fullDate : '';
+        html += `<div style="background:#4A90C4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${(sec||'Tasks').replace(/[\u{1F000}-\u{1FFFF}]|[\u2600-\u27BF]/gu,'').trim()||'Tasks'}${_secTime}</div>`;
         secTasks.forEach((t, ti) => {
           const yn = t.yn||'';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -3032,7 +3041,7 @@ function openWeeklyDetail(staffName, week) {
     html += `<div style="background:#1A3C5E;padding:7px 12px;font-size:12px;font-weight:600;color:#fff;margin-top:10px;">📅 ${dayDt}</div>`;
 
     Object.entries(bySec).forEach(([sec, secTasks]) => {
-      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec.replace(/[^\x00-\x7F]/g,'').trim()||'Tasks'}</div>`;
+      html += `<div style="background:#2E6DA4;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${(sec||'').replace(/[\u0080-\uFFFF]/g,'').trim()||'Tasks'}</div>`;
       secTasks.forEach((t, ti) => {
         const yn = t.yn||'';
         const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -7091,6 +7100,14 @@ function loadBOHData() {
           if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         }
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
+        // Track shift status — prefer closing_submitted over opening_submitted
+        if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
+        else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
+        // For _fbKey: prefer closing key over opening key so _isFohOpeningOnly works correctly
+        if (sub._fbKey) {
+          if (sub.shift === 'closing' || sub.status === 'closing_submitted') grouped[gKey]._fbKey = sub._fbKey;
+          else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
+        }
         // Determine if this is an opening-only record using ALL available signals
         const _subIsOpenOnly = sub.status === 'opening_submitted'
           || (sub._fbKey && sub._fbKey.endsWith('_opening'))
@@ -7136,7 +7153,14 @@ function loadBOHData() {
         }
         // Store taskData, startedAt, _fbKey so openStaffDetail can render task details
         if (sub.startedAt && !grouped[gKey].startedAt) grouped[gKey].startedAt = sub.startedAt;
-        if (sub._fbKey && !grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
+        // For _fbKey: prefer closing key so opening-only detection works correctly
+        if (sub._fbKey) {
+          if (sub.shift === 'closing' || sub.status === 'closing_submitted') grouped[gKey]._fbKey = sub._fbKey;
+          else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
+        }
+        // Track status — prefer closing_submitted
+        if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
+        else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
         if (sub.taskData && Object.keys(sub.taskData).length > 0) {
           if (!grouped[gKey].taskData) grouped[gKey].taskData = {};
           Object.assign(grouped[gKey].taskData, sub.taskData);
@@ -7547,6 +7571,14 @@ function loadFOHData() {
         if (sub.verifiedBy) grouped[gKey].verifiedBy = sub.verifiedBy;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
         if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
+        // Track shift status — prefer closing_submitted over opening_submitted
+        if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
+        else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
+        // For _fbKey: prefer closing key over opening key so _isFohOpeningOnly works correctly
+        if (sub._fbKey) {
+          if (sub.shift === 'closing' || sub.status === 'closing_submitted') grouped[gKey]._fbKey = sub._fbKey;
+          else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
+        }
         // Determine if this is an opening-only record
         const _fohSubIsOpenOnly = sub.status === 'opening_submitted'
           || (sub._fbKey && sub._fbKey.endsWith('_opening'))
