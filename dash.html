@@ -3298,12 +3298,12 @@ function openStaffDetail(s) {
         '<div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
           '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
-          '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'Not submitted':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
+          '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'N/A':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
         '</div>' +
         '<div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
           '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
-          '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
+          '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'N/A':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
         '</div>' +
       '</div>'
     );
@@ -5018,7 +5018,7 @@ async function exportDetailPDF() {
           'Day '+d,
           isNaN(date)?'-':date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
           p!=null?p+'%':'-',
-          p!=null?(p>=95?'QUALIFIED':'BELOW TARGET'):'Not submitted'
+          p!=null?(p>=95?'QUALIFIED':'BELOW TARGET'):'N/A'
         ];
       }),
       styles:{fontSize:10,cellPadding:4},
@@ -6289,7 +6289,7 @@ function toggleEditMode(s) {
       const pctEl = box.querySelector('.sb-pct');
       const lblEl = box.querySelector('.sb-lbl');
       if (pctEl) { pctEl.textContent = '—'; pctEl.style.color = '#94A3B8'; }
-      if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+      if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
     });
   }
   const btn = document.querySelector('.edit-report-btn');
@@ -6613,7 +6613,7 @@ function updateLiveScore() {
       if (type === 'closing') {
         pctEl.textContent = '—';
         pctEl.style.color = '#94A3B8';
-        if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+        if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
       }
       return;
     }
@@ -8387,12 +8387,12 @@ function openFOHDetail(idx) {
       <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 OPENING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'}">${oPctFoh!=null?oPctFoh+'%':'—'}</div>
-        <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'Not submitted':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'N/A':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
       <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 CLOSING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
-        <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'Not submitted':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'N/A':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
@@ -8411,12 +8411,12 @@ function openFOHDetail(idx) {
       <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 OPENING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'}">${oPctFoh!=null?oPctFoh+'%':'—'}</div>
-        <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'Not submitted':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'N/A':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
       <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 CLOSING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
-        <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'Not submitted':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'N/A':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
       </div>
     </div>
     ${isService ? `
@@ -9055,7 +9055,7 @@ function setFOHTaskYN(btn, val) {
     if (pct === null) {
       if (type === 'closing') {
         pctEl.textContent = '—'; pctEl.style.color = '#94A3B8';
-        if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+        if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
       }
       return;
     }
@@ -9085,7 +9085,7 @@ function toggleFOHEditMode() {
       const pctEl = box.querySelector('.sb-pct');
       const lblEl = box.querySelector('.sb-lbl');
       if (pctEl) { pctEl.textContent = '—'; pctEl.style.color = '#94A3B8'; }
-      if (lblEl) { lblEl.textContent = 'Not submitted'; lblEl.style.color = '#94A3B8'; }
+      if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
     });
   }
 
@@ -9275,7 +9275,7 @@ function toggleFOHEditMode() {
               const type=box.getAttribute('data-scorebox');
               const pctEl=box.querySelector('.sb-pct')||box, lblEl=box.querySelector('.sb-lbl');
               let pct=type==='opening'?opS2:type==='closing'?clS2:type==='oic'?evS2:tot2;
-              if(pct===null){if(type==='closing'){pctEl.textContent='—';pctEl.style.color='#94A3B8';if(lblEl){lblEl.textContent='Not submitted';lblEl.style.color='#94A3B8';}}return;}
+              if(pct===null){if(type==='closing'){pctEl.textContent='—';pctEl.style.color='#94A3B8';if(lblEl){lblEl.textContent='N/A';lblEl.style.color='#94A3B8';}}return;}
               pctEl.textContent=pct+'%';pctEl.style.color=pct>=95?'#0F766E':'#B91C1C';
               if(lblEl){lblEl.textContent=pct>=95?'✓ Pass':'✗ Below target';lblEl.style.color=pct>=95?'#0F766E':'#B91C1C';}
             });
@@ -9568,7 +9568,7 @@ async function exportFOHDetailPDF() {
         'Day ' + d,
         date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
         p !== undefined ? p + '%' : '-',
-        p !== undefined ? (p>=95?'QUALIFIED':'BELOW TARGET') : 'Not submitted'
+        p !== undefined ? (p>=95?'QUALIFIED':'BELOW TARGET') : 'N/A'
       ];
     }),
     styles:{fontSize:10,cellPadding:4},
@@ -9686,65 +9686,75 @@ async function exportFOHDetailPDF() {
             y += 8;
 
             for (const [sec, secTasks] of Object.entries(bySec)) {
+              // Section header
               if (y > H-20) { doc.addPage(); y=16; }
               doc.autoTable({
                 startY: y,
                 head: [[{content: sec.replace(/[^\x00-\x7F]/g,'').trim() || 'Tasks', colSpan:3, styles:{fillColor:[196,83,58],textColor:255,fontStyle:'bold',fontSize:8}}]],
-                body: secTasks.map(t => {
-                  const yn = (t.yn||'').toUpperCase();
-                  return [
-                    (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
-                    (t.task||t.text||'-').replace(/[^\x00-\x7F]/g,'').trim(),
-                    yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'-'
-                  ];
-                }),
-                styles:{fontSize:8,cellPadding:3},
-                columnStyles:{
-                  0:{cellWidth:30,fontSize:7,textColor:[100,100,100]},
-                  1:{cellWidth:120,fontSize:8},
-                  2:{cellWidth:20,halign:'center',fontStyle:'bold'},
-                },
-                didParseCell:(data)=>{
-                  if(data.column.index===2&&data.section==='body'){
-                    const v=data.cell.raw;
-                    data.cell.styles.textColor=v==='YES'?[21,128,61]:v==='NO'?[185,28,28]:[100,100,100];
-                  }
-                },
-                alternateRowStyles:{fillColor:[248,250,252]},
+                body: [],
+                styles:{fontSize:8,cellPadding:0},
                 margin:{left:14,right:14},
               });
-              y = doc.lastAutoTable.finalY + 2;
+              y = doc.lastAutoTable.finalY + 1;
 
-              // Photos immediately after table - per task, not grouped
+              // Each task individually — task row then its photos immediately below
               for (const t of secTasks) {
+                const yn = (t.yn||'').toUpperCase();
+                const ynLabel = yn==='YES'?'YES':yn==='NO'?'NO':yn==='NA'?'N/A':'-';
+                const ynColor = yn==='YES'?[21,128,61]:yn==='NO'?[185,28,28]:[100,100,100];
+
+                // Collect this task's photos
                 const taskPhotos = [];
                 if (Array.isArray(t._b64Photos) && t._b64Photos.length) {
                   taskPhotos.push(...t._b64Photos);
                 } else if (t.photoUrl && t.photoUrl.startsWith('data:')) {
                   taskPhotos.push(t.photoUrl);
                 }
-                // Also check photoUrls object/array for any base64 already resolved
                 if (!taskPhotos.length && t.photoUrls && typeof t.photoUrls === 'object') {
                   Object.values(t.photoUrls).forEach(u => {
                     if (u && typeof u === 'string' && u.startsWith('data:')) taskPhotos.push(u);
                   });
                 }
-                if (!taskPhotos.length) continue;
-                if (y > H-50) { doc.addPage(); y=16; }
-                doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(60,60,60);
-                doc.text('[Photo] '+(t.task||t.text||'').replace(/[^\x00-\x7F]/g,'').trim().substring(0,70), 14, y+4); y+=7;
-                let px = 14;
-                for (const photoData of taskPhotos) {
-                  if (y > H-42) { doc.addPage(); y=16; px=14; }
-                  try {
-                    if (!photoData || !photoData.startsWith('data:image/')) { px += 49; continue; }
-                    const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-                    doc.addImage(photoData, fmt, px, y, 45, 34);
-                    px += 49;
-                    if (px > W-47) { px=14; y+=38; }
-                  } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
+
+                // Check if task + photos fit on current page; if not, new page
+                const spaceNeeded = 14 + (taskPhotos.length > 0 ? 40 : 0);
+                if (y > H - spaceNeeded) { doc.addPage(); y=16; }
+
+                // Task row
+                doc.autoTable({
+                  startY: y,
+                  body: [[
+                    (t.owner||'').replace(/[^\x00-\x7F]/g,'').trim(),
+                    (t.task||t.text||'-').replace(/[^\x00-\x7F]/g,'').trim(),
+                    ynLabel
+                  ]],
+                  styles:{fontSize:8,cellPadding:3},
+                  columnStyles:{
+                    0:{cellWidth:30,fontSize:7,textColor:[100,100,100]},
+                    1:{cellWidth:120,fontSize:8},
+                    2:{cellWidth:20,halign:'center',fontStyle:'bold',textColor:ynColor},
+                  },
+                  alternateRowStyles:{fillColor:[248,250,252]},
+                  margin:{left:14,right:14},
+                });
+                y = doc.lastAutoTable.finalY + 1;
+
+                // Photos immediately after this task row
+                if (taskPhotos.length) {
+                  let px = 14;
+                  for (const photoData of taskPhotos) {
+                    if (y > H-42) { doc.addPage(); y=16; px=14; }
+                    try {
+                      if (!photoData || !photoData.startsWith('data:image/')) { px += 49; continue; }
+                      const fmt = photoData.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                      doc.addImage(photoData, fmt, px, y, 45, 34);
+                      px += 49;
+                      if (px > W-47) { px=14; y+=38; }
+                    } catch(imgErr) { console.warn('FOH photo render error:', imgErr.message); }
+                  }
+                  y += 38;
                 }
-                y += 38;
+                y += 2;
               }
               y += 4;
             }
