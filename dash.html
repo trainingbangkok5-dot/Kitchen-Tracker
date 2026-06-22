@@ -7476,6 +7476,9 @@ function deleteVerificationEntry(btn, idx) {
         });
       });
       showToast('Verification removed', 'ok');
+      // Re-render the staff list so the card/table row also reflects the deletion
+      if (isFOH) { if (typeof renderFOHStaff === 'function') renderFOHStaff(); }
+      else { if (typeof renderBOHStaff === 'function') renderBOHStaff(); }
       // Refresh display
       const isFOH = ['service','oic','delco','bartender'].includes(s.role);
       if (isFOH) {
