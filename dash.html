@@ -3118,7 +3118,9 @@ function buildPhotoHtml(t, role) {
   if (_pu && typeof _pu === 'object') {
     Object.values(_pu).forEach(url => { if (url && typeof url === 'string' && !seen.has(url)) { seen.add(url); imgs.push(url); } });
   }
-  // 2) Read photoUrl, photoUrl_1... (sequential keys)
+  // 2a) Read oicPhotoUrl (from AM observation photo upload)
+  if (t.oicPhotoUrl && !seen.has(t.oicPhotoUrl)) { seen.add(t.oicPhotoUrl); imgs.push(t.oicPhotoUrl); }
+  // 2b) Read photoUrl, photoUrl_1... (sequential keys)
   let pi = 0;
   while (true) {
     const key = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
@@ -3342,6 +3344,10 @@ function openStaffDetail(s) {
     Object.keys(s.taskData).forEach(k => {
       const t = s.taskData[k];
       if (t) {
+        // Also unpack oicPhotoUrl (AM obs photo) into photoUrls
+        if (t.oicPhotoUrl && t.oicPhotoUrl.startsWith('http') && !t.photoUrls) {
+          t.photoUrls = [t.oicPhotoUrl];
+        }
         // Unpack photoUrls (array or Firebase object {0:url,...}) into sequential photoUrl keys
         if (t.photoUrls && typeof t.photoUrls === 'object') {
           Object.values(t.photoUrls).forEach((url, idx) => {
