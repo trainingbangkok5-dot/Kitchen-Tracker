@@ -10953,7 +10953,9 @@ document.addEventListener('keydown', function(e) {
 
 // ── Lightbox zoom state ──────────────────────────────────────────────────────
 let _lbScale = 1, _lbX = 0, _lbY = 0;
-let _lbPinchDist = 0, _lbDragStart = null, _lbLastTap = 0;
+let _lbPinchDist = 0, _lbPinchMid = null;
+let _lbDragStart = null, _lbLastTap = 0;
+let _lbDragging = false;
 
 function _lbApplyTransform() {
   const img = document.getElementById('photoLightboxImg');
@@ -10961,7 +10963,6 @@ function _lbApplyTransform() {
 }
 
 function _lbClampPan() {
-  // Allow panning only when zoomed in
   if (_lbScale <= 1) { _lbX = 0; _lbY = 0; return; }
   const img = document.getElementById('photoLightboxImg');
   if (!img) return;
@@ -10971,113 +10972,107 @@ function _lbClampPan() {
   _lbY = Math.max(-maxY, Math.min(maxY, _lbY));
 }
 
-// Touch events
-document.addEventListener('touchstart', function(e) {
+function _lbIsOpen() {
   const lb = document.getElementById('photoLightbox');
-  if (!lb || lb.style.display === 'none') return;
-  if (e.target.id === 'photoLightboxImg' || e.target.closest('#photoLightboxWrap')) {
-    if (e.touches.length === 1) {
-      // Double-tap to zoom
+  return lb && lb.style.display !== 'none';
+}
+
+document.addEventListener('touchstart', function(e) {
+  if (!_lbIsOpen()) return;
+  const inWrap = e.target.closest('#photoLightboxWrap') || e.target.id === 'photoLightboxImg';
+
+  if (e.touches.length === 2) {
+    // Pinch start
+    e.preventDefault();
+    _lbPinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    _lbPinchMid = {
+      x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+      y: (e.touches[0].clientY + e.touches[1].clientY) / 2
+    };
+    _lbDragStart = null;
+    return;
+  }
+
+  if (e.touches.length === 1) {
+    if (inWrap) {
+      e.preventDefault();
       const now = Date.now();
-      if (now - _lbLastTap < 300) {
-        e.preventDefault();
-        if (_lbScale > 1) { _lbScale = 1; _lbX = 0; _lbY = 0; }
-        else { _lbScale = 8; }
+      const t = e.touches[0];
+
+      // Double-tap: zoom in → zoom more → reset
+      if (now - _lbLastTap < 280) {
+        if (_lbScale < 1.5) {
+          _lbScale = 5;
+        } else if (_lbScale < 15) {
+          _lbScale = 30;
+        } else {
+          _lbScale = 1; _lbX = 0; _lbY = 0;
+        }
+        _lbClampPan();
         _lbApplyTransform();
+        document.getElementById('lbZoomHint').style.opacity = '0';
+        _lbLastTap = 0;
+        _lbDragStart = null;
+        return;
       }
       _lbLastTap = now;
-      _lbDragStart = { x: e.touches[0].clientX - _lbX, y: e.touches[0].clientY - _lbY };
-    } else if (e.touches.length === 2) {
-      e.preventDefault();
-      _lbPinchDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
+      _lbDragging = false;
+      _lbDragStart = { x: t.clientX - _lbX, y: t.clientY - _lbY };
+    } else {
+      // Tap outside image → close
+      if (e.target.id === 'photoLightbox') closeLightbox();
     }
-  } else if (e.touches.length === 1) {
-    // Tap outside image to close
-    if (e.target === lb) closeLightbox();
   }
 }, { passive: false });
 
 document.addEventListener('touchmove', function(e) {
-  const lb = document.getElementById('photoLightbox');
-  if (!lb || lb.style.display === 'none') return;
-  if (!e.target.closest('#photoLightboxWrap') && e.target.id !== 'photoLightboxImg') return;
+  if (!_lbIsOpen()) return;
   e.preventDefault();
+
   if (e.touches.length === 2) {
     // Pinch zoom
     const dist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
-    const delta = dist / (_lbPinchDist || dist);
+    const ratio = dist / (_lbPinchDist || dist);
     _lbPinchDist = dist;
-    _lbScale = Math.max(1, Math.min(50, _lbScale * delta));
+    _lbScale = Math.max(1, Math.min(50, _lbScale * ratio));
     _lbClampPan();
     _lbApplyTransform();
     document.getElementById('lbZoomHint').style.opacity = '0';
-  } else if (e.touches.length === 1 && _lbDragStart && _lbScale > 1) {
-    // Drag to pan
-    _lbX = e.touches[0].clientX - _lbDragStart.x;
-    _lbY = e.touches[0].clientY - _lbDragStart.y;
-    _lbClampPan();
-    _lbApplyTransform();
+  } else if (e.touches.length === 1 && _lbDragStart) {
+    // Drag to pan (only when zoomed)
+    if (_lbScale > 1) {
+      const t = e.touches[0];
+      const dx = t.clientX - _lbDragStart.x;
+      const dy = t.clientY - _lbDragStart.y;
+      if (!_lbDragging && (Math.abs(dx - _lbX) > 5 || Math.abs(dy - _lbY) > 5)) _lbDragging = true;
+      if (_lbDragging) {
+        _lbX = dx;
+        _lbY = dy;
+        _lbClampPan();
+        _lbApplyTransform();
+      }
+    }
   }
 }, { passive: false });
 
 document.addEventListener('touchend', function(e) {
-  if (e.touches.length === 0) _lbDragStart = null;
-  if (_lbScale < 1.02) { _lbScale = 1; _lbX = 0; _lbY = 0; _lbApplyTransform(); }
-});
-
-// Mouse wheel zoom (desktop)
-document.addEventListener('wheel', function(e) {
-  const lb = document.getElementById('photoLightbox');
-  if (!lb || lb.style.display === 'none') return;
-  e.preventDefault();
-  _lbScale = Math.max(1, Math.min(50, _lbScale * (e.deltaY < 0 ? 1.25 : 0.82)));
-  _lbClampPan();
-  _lbApplyTransform();
-}, { passive: false });
-
-
-
-document.addEventListener('touchmove', function(e) {
-  const lb = document.getElementById('photoLightbox');
-  if (!lb || lb.style.display === 'none') return;
-  if (!e.target.closest('#photoLightboxWrap') && e.target.id !== 'photoLightboxImg') return;
-  e.preventDefault();
-  if (e.touches.length === 2) {
-    // Pinch zoom
-    const dist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    const delta = dist / (_lbPinchDist || dist);
-    _lbPinchDist = dist;
-    _lbScale = Math.max(1, Math.min(50, _lbScale * delta));
-    _lbClampPan();
-    _lbApplyTransform();
-    document.getElementById('lbZoomHint').style.opacity = '0';
-  } else if (e.touches.length === 1 && _lbDragStart && _lbScale > 1) {
-    // Drag to pan
-    _lbX = e.touches[0].clientX - _lbDragStart.x;
-    _lbY = e.touches[0].clientY - _lbDragStart.y;
-    _lbClampPan();
-    _lbApplyTransform();
+  if (!_lbIsOpen()) return;
+  if (e.touches.length === 0) {
+    _lbDragStart = null;
+    if (_lbScale < 1.02) { _lbScale = 1; _lbX = 0; _lbY = 0; _lbApplyTransform(); }
   }
-}, { passive: false });
-
-document.addEventListener('touchend', function(e) {
-  if (e.touches.length === 0) _lbDragStart = null;
-  if (_lbScale < 1.02) { _lbScale = 1; _lbX = 0; _lbY = 0; _lbApplyTransform(); }
+  if (e.touches.length < 2) _lbPinchDist = 0;
 });
 
 // Mouse wheel zoom (desktop)
 document.addEventListener('wheel', function(e) {
-  const lb = document.getElementById('photoLightbox');
-  if (!lb || lb.style.display === 'none') return;
+  if (!_lbIsOpen()) return;
   e.preventDefault();
   _lbScale = Math.max(1, Math.min(50, _lbScale * (e.deltaY < 0 ? 1.25 : 0.82)));
   _lbClampPan();
