@@ -10940,28 +10940,53 @@ function openLightbox(src) {
   lb.style.display = 'flex';
   _lbScale = 1; _lbX = 0; _lbY = 0;
   img.style.transform = 'translate(0px,0px) scale(1)';
-  document.getElementById('lbZoomHint').style.opacity = '1';
+  _lbUpdateLabel();
 }
 function closeLightbox() {
   const lb = document.getElementById('photoLightbox');
   if (lb) lb.style.display = 'none';
   _lbScale = 1; _lbX = 0; _lbY = 0;
 }
+function lbZoom(dir) {
+  // dir: +1 = zoom in, -1 = zoom out
+  const step = 1.5;
+  _lbScale = dir > 0
+    ? Math.min(50, _lbScale * step)
+    : Math.max(1, _lbScale / step);
+  if (_lbScale <= 1.02) { _lbScale = 1; _lbX = 0; _lbY = 0; }
+  _lbClampPan();
+  _lbApplyTransform();
+  _lbUpdateLabel();
+}
+function lbReset() {
+  _lbScale = 1; _lbX = 0; _lbY = 0;
+  _lbApplyTransform();
+  _lbUpdateLabel();
+}
+function _lbUpdateLabel() {
+  const el = document.getElementById('lbZoomLevel');
+  if (el) el.textContent = Math.round(_lbScale * 100) + '%';
+}
 document.addEventListener('keydown', function(e) {
+  if (!_lbIsOpen()) return;
   if (e.key === 'Escape') closeLightbox();
+  if (e.key === '+' || e.key === '=') lbZoom(1);
+  if (e.key === '-') lbZoom(-1);
+  if (e.key === '0') lbReset();
 });
 
-// ── Lightbox zoom state ──────────────────────────────────────────────────────
+// ── Lightbox state ───────────────────────────────────────────────────────────
 let _lbScale = 1, _lbX = 0, _lbY = 0;
-let _lbPinchDist = 0, _lbPinchMid = null;
-let _lbDragStart = null, _lbLastTap = 0;
-let _lbDragging = false;
+let _lbPinchDist = 0, _lbDragStart = null, _lbLastTap = 0, _lbDragging = false;
 
+function _lbIsOpen() {
+  const lb = document.getElementById('photoLightbox');
+  return lb && lb.style.display !== 'none';
+}
 function _lbApplyTransform() {
   const img = document.getElementById('photoLightboxImg');
   if (img) img.style.transform = 'translate('+_lbX+'px,'+_lbY+'px) scale('+_lbScale+')';
 }
-
 function _lbClampPan() {
   if (_lbScale <= 1) { _lbX = 0; _lbY = 0; return; }
   const img = document.getElementById('photoLightboxImg');
@@ -10972,112 +10997,91 @@ function _lbClampPan() {
   _lbY = Math.max(-maxY, Math.min(maxY, _lbY));
 }
 
-function _lbIsOpen() {
-  const lb = document.getElementById('photoLightbox');
-  return lb && lb.style.display !== 'none';
-}
-
+// Touch events (mobile)
 document.addEventListener('touchstart', function(e) {
   if (!_lbIsOpen()) return;
-  const inWrap = e.target.closest('#photoLightboxWrap') || e.target.id === 'photoLightboxImg';
-
-  if (e.touches.length === 2) {
-    // Pinch start
+  const inImg = e.target.closest('#photoLightboxWrap') || e.target.id === 'photoLightboxImg';
+  if (e.touches.length === 2 && inImg) {
     e.preventDefault();
     _lbPinchDist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
-    _lbPinchMid = {
-      x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-      y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-    };
     _lbDragStart = null;
     return;
   }
-
-  if (e.touches.length === 1) {
-    if (inWrap) {
-      e.preventDefault();
-      const now = Date.now();
-      const t = e.touches[0];
-
-      // Double-tap: zoom in → zoom more → reset
-      if (now - _lbLastTap < 280) {
-        if (_lbScale < 1.5) {
-          _lbScale = 5;
-        } else if (_lbScale < 15) {
-          _lbScale = 30;
-        } else {
-          _lbScale = 1; _lbX = 0; _lbY = 0;
-        }
-        _lbClampPan();
-        _lbApplyTransform();
-        document.getElementById('lbZoomHint').style.opacity = '0';
-        _lbLastTap = 0;
-        _lbDragStart = null;
-        return;
-      }
-      _lbLastTap = now;
-      _lbDragging = false;
-      _lbDragStart = { x: t.clientX - _lbX, y: t.clientY - _lbY };
-    } else {
-      // Tap outside image → close
-      if (e.target.id === 'photoLightbox') closeLightbox();
+  if (e.touches.length === 1 && inImg) {
+    e.preventDefault();
+    const now = Date.now();
+    if (now - _lbLastTap < 280) {
+      // Double-tap cycle: 1x → 5x → 20x → 1x
+      if (_lbScale < 2) { _lbScale = 5; }
+      else if (_lbScale < 10) { _lbScale = 20; }
+      else { _lbScale = 1; _lbX = 0; _lbY = 0; }
+      _lbClampPan(); _lbApplyTransform(); _lbUpdateLabel();
+      _lbLastTap = 0; _lbDragStart = null;
+      return;
     }
+    _lbLastTap = now;
+    _lbDragging = false;
+    _lbDragStart = { x: e.touches[0].clientX - _lbX, y: e.touches[0].clientY - _lbY };
+  } else if (e.touches.length === 1 && e.target.id === 'photoLightbox') {
+    closeLightbox();
   }
 }, { passive: false });
 
 document.addEventListener('touchmove', function(e) {
   if (!_lbIsOpen()) return;
   e.preventDefault();
-
   if (e.touches.length === 2) {
-    // Pinch zoom
     const dist = Math.hypot(
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
-    const ratio = dist / (_lbPinchDist || dist);
+    _lbScale = Math.max(1, Math.min(50, _lbScale * (dist / (_lbPinchDist || dist))));
     _lbPinchDist = dist;
-    _lbScale = Math.max(1, Math.min(50, _lbScale * ratio));
-    _lbClampPan();
-    _lbApplyTransform();
-    document.getElementById('lbZoomHint').style.opacity = '0';
-  } else if (e.touches.length === 1 && _lbDragStart) {
-    // Drag to pan (only when zoomed)
-    if (_lbScale > 1) {
-      const t = e.touches[0];
-      const dx = t.clientX - _lbDragStart.x;
-      const dy = t.clientY - _lbDragStart.y;
-      if (!_lbDragging && (Math.abs(dx - _lbX) > 5 || Math.abs(dy - _lbY) > 5)) _lbDragging = true;
-      if (_lbDragging) {
-        _lbX = dx;
-        _lbY = dy;
-        _lbClampPan();
-        _lbApplyTransform();
-      }
-    }
+    _lbClampPan(); _lbApplyTransform(); _lbUpdateLabel();
+  } else if (e.touches.length === 1 && _lbDragStart && _lbScale > 1) {
+    _lbDragging = true;
+    _lbX = e.touches[0].clientX - _lbDragStart.x;
+    _lbY = e.touches[0].clientY - _lbDragStart.y;
+    _lbClampPan(); _lbApplyTransform();
   }
 }, { passive: false });
 
 document.addEventListener('touchend', function(e) {
   if (!_lbIsOpen()) return;
-  if (e.touches.length === 0) {
-    _lbDragStart = null;
-    if (_lbScale < 1.02) { _lbScale = 1; _lbX = 0; _lbY = 0; _lbApplyTransform(); }
-  }
+  if (e.touches.length === 0) { _lbDragStart = null; }
   if (e.touches.length < 2) _lbPinchDist = 0;
+  if (_lbScale < 1.02) { _lbScale = 1; _lbX = 0; _lbY = 0; _lbApplyTransform(); _lbUpdateLabel(); }
 });
 
-// Mouse wheel zoom (desktop)
+// Mouse wheel (desktop)
 document.addEventListener('wheel', function(e) {
   if (!_lbIsOpen()) return;
   e.preventDefault();
-  _lbScale = Math.max(1, Math.min(50, _lbScale * (e.deltaY < 0 ? 1.25 : 0.82)));
-  _lbClampPan();
-  _lbApplyTransform();
+  _lbScale = Math.max(1, Math.min(50, _lbScale * (e.deltaY < 0 ? 1.2 : 0.85)));
+  _lbClampPan(); _lbApplyTransform(); _lbUpdateLabel();
 }, { passive: false });
+
+// Mouse drag (desktop)
+document.addEventListener('mousedown', function(e) {
+  if (!_lbIsOpen() || _lbScale <= 1) return;
+  if (e.target.closest('#photoLightboxWrap') || e.target.id === 'photoLightboxImg') {
+    _lbDragStart = { x: e.clientX - _lbX, y: e.clientY - _lbY };
+    document.body.style.cursor = 'grabbing';
+  }
+});
+document.addEventListener('mousemove', function(e) {
+  if (!_lbIsOpen() || !_lbDragStart || _lbScale <= 1) return;
+  _lbX = e.clientX - _lbDragStart.x;
+  _lbY = e.clientY - _lbDragStart.y;
+  _lbClampPan(); _lbApplyTransform();
+});
+document.addEventListener('mouseup', function() {
+  _lbDragStart = null;
+  document.body.style.cursor = '';
+});
 
 </script>
 
@@ -11164,11 +11168,19 @@ document.addEventListener('wheel', function(e) {
 <!-- Photo Lightbox -->
 <div id="photoLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;overflow:hidden;touch-action:none;">
   <div id="photoLightboxWrap" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;">
-    <img id="photoLightboxImg" src="" draggable="false" style="max-width:100vw;max-height:100vh;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-select:none;">
+    <img id="photoLightboxImg" src="" draggable="false" style="max-width:95vw;max-height:84vh;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-select:none;">
   </div>
-  <div style="position:absolute;top:16px;right:20px;color:#fff;font-size:36px;font-weight:300;cursor:pointer;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.8);z-index:10;" onclick="closeLightbox()">&times;</div>
-  <div id="lbZoomHint" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:12px;pointer-events:none;white-space:nowrap;">Pinch or double-tap to zoom • Tap × to close</div>
+  <!-- Close -->
+  <div style="position:absolute;top:12px;right:16px;color:#fff;font-size:36px;font-weight:300;cursor:pointer;z-index:10;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.8);" onclick="closeLightbox()">&times;</div>
+  <!-- Zoom controls -->
+  <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;z-index:10;">
+    <button onclick="lbZoom(-1)" style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:#fff;font-size:26px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;">−</button>
+    <span id="lbZoomLevel" style="color:#fff;font-size:13px;font-weight:700;min-width:48px;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.9);">100%</span>
+    <button onclick="lbZoom(1)" style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:#fff;font-size:26px;cursor:pointer;font-weight:300;display:flex;align-items:center;justify-content:center;">+</button>
+    <button onclick="lbReset()" style="height:36px;padding:0 16px;border-radius:18px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-left:4px;letter-spacing:.03em;">RESET</button>
+  </div>
 </div>
+
 
 </body>
 </html>
