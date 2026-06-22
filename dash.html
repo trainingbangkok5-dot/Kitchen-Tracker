@@ -4870,22 +4870,33 @@ function showDeleteToast(msg) {
 
 // Fetch a Cloudinary (https://) URL and return a base64 data URL for jsPDF addImage
 async function _urlToBase64(url) {
-  // Use Image + canvas to avoid CORS restrictions on Cloudinary
+  // Try fetch() first - works when CORS headers are present
+  try {
+    const resp = await fetch(url, {mode: 'cors', credentials: 'omit'});
+    if (resp.ok) {
+      const blob = await resp.blob();
+      return await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result);
+        r.onerror = rej;
+        r.readAsDataURL(blob);
+      });
+    }
+  } catch(e) { /* CORS blocked - fall through to canvas */ }
+  // Fallback: Image + canvas (works when image is already cached without CORS)
   return new Promise(resolve => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
     img.onload = function() {
       try {
-        const canvas = document.createElement("canvas");
+        const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth || img.width;
         canvas.height = img.naturalHeight || img.height;
-        canvas.getContext("2d").drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/jpeg", 0.85));
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       } catch(e) { resolve(null); }
     };
     img.onerror = () => resolve(null);
-    // Add cache-bust to help with CORS
-    img.src = url + (url.includes("?") ? "&" : "?") + "_cb=" + Date.now();
+    img.src = url;
   });
 }
 
@@ -7375,7 +7386,15 @@ function loadBOHData() {
         }
         grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
-        if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
+        if (sub.verifiedBy) {
+          // Prefer closing record's verifiedBy (mirrors verificationLog preference)
+          const _vbyIsClosing = sub.status === 'closing_submitted' || (sub._fbKey && sub._fbKey.endsWith('_closing'));
+          if (_vbyIsClosing || !grouped[gKey]._vbyFromClosing) {
+            grouped[gKey].verifiedBy = sub.verifiedBy;
+            grouped[gKey].verifiedByRole = sub.verifiedByRole || '';
+            grouped[gKey]._vbyFromClosing = _vbyIsClosing;
+          }
+        }
         // Always prefer the most recent submission's verificationLog (closing > opening)
         if (sub.verificationLog) {
           const _subIsClosing = sub.status === 'closing_submitted' || (sub._fbKey && sub._fbKey.endsWith('_closing'));
@@ -9597,7 +9616,10 @@ async function exportFOHDetailPDF() {
         subs.forEach(sub => {
           if (!sub.taskData) return;
           Object.entries(sub.taskData).forEach(([k, t]) => {
-            if (!t.yn || t.yn === '') return;
+            const _hasYn = t.yn && t.yn !== '';
+            const _hasPhoto = (t.photoUrls && typeof t.photoUrls === 'object' && Object.keys(t.photoUrls).length > 0)
+              || (t.photoUrl && t.photoUrl.startsWith('http'));
+            if (!_hasYn && !_hasPhoto) return;
             const d = t.day || 1;
             if (!byDay[d]) byDay[d] = [];
             if (!byDay[d].find(x => x._key === k)) byDay[d].push({...t, _key: k});
@@ -9707,8 +9729,17 @@ async function exportFOHDetailPDF() {
               // Photos immediately after table - per task, not grouped
               for (const t of secTasks) {
                 const taskPhotos = [];
-                if (Array.isArray(t._b64Photos) && t._b64Photos.length) taskPhotos.push(...t._b64Photos);
-                else if (t.photoUrl && t.photoUrl.startsWith('data:')) taskPhotos.push(t.photoUrl);
+                if (Array.isArray(t._b64Photos) && t._b64Photos.length) {
+                  taskPhotos.push(...t._b64Photos);
+                } else if (t.photoUrl && t.photoUrl.startsWith('data:')) {
+                  taskPhotos.push(t.photoUrl);
+                }
+                // Also check photoUrls object/array for any base64 already resolved
+                if (!taskPhotos.length && t.photoUrls && typeof t.photoUrls === 'object') {
+                  Object.values(t.photoUrls).forEach(u => {
+                    if (u && typeof u === 'string' && u.startsWith('data:')) taskPhotos.push(u);
+                  });
+                }
                 if (!taskPhotos.length) continue;
                 if (y > H-50) { doc.addPage(); y=16; }
                 doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(60,60,60);
