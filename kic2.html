@@ -691,31 +691,44 @@ const SECTIONS = [
 
   // ── Area Chef Evaluation (evalOnly — hidden from KIC) ──
   {
-    title: 'Food Consistency Today',
+    title: '🍲 Recipe & Portion Compliance',
     evalOnly: true,
     tasks: [
-      { id:'fc1', owner:'areachef', ownerLbl:'Area Chef', text:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.', photo:true, translations:{} },
-      { id:'fc2', owner:'areachef', ownerLbl:'Area Chef', text:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.', photo:false, translations:{} },
-      { id:'fc3', owner:'areachef', ownerLbl:'Area Chef', text:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation before leaving the kitchen.', photo:false, translations:{} },
-      { id:'fc4', owner:'areachef', ownerLbl:'Area Chef', text:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.', photo:false, translations:{} }
+      { id:'fc1', owner:'areachef', ownerLbl:'Area Chef', text:'Did the KIC ensure all dishes were prepared strictly according to approved recipes, maintaining exact portion sizes as per the recipe cards?', photo:false, translations:{} }
     ]
   },
   {
-    title: 'Flow of Operation for the Day',
+    title: '⭐ Quality, Taste & Presentation',
     evalOnly: true,
     tasks: [
-      { id:'fo1', owner:'areachef', ownerLbl:'Area Chef', text:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.', photo:false, translations:{} },
-      { id:'fo2', owner:'areachef', ownerLbl:'Area Chef', text:'All sections maintained mise en place standards throughout the shift.', photo:false, translations:{} },
-      { id:'fo3', owner:'areachef', ownerLbl:'Area Chef', text:'Communication between FOH and BOH was clear and effective throughout the shift.', photo:false, translations:{} }
+      { id:'fc2', owner:'areachef', ownerLbl:'Area Chef', text:'Did all food items meet the required standards for taste, texture, temperature, and presentation before leaving the pass?', photo:false, translations:{} }
     ]
   },
   {
-    title: 'Food Cost & Staff',
+    title: '⚙️ Prep Readiness & Operational Flow',
     evalOnly: true,
     tasks: [
-      { id:'cost1', owner:'areachef', ownerLbl:'Area Chef', text:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.', photo:false, translations:{} },
-      { id:'sp2', owner:'areachef', ownerLbl:'Area Chef', text:'Team performance maintains an overall score above 90% each shift.', photo:false, translations:{} },
-      { id:'cc1', owner:'areachef', ownerLbl:'Area Chef', text:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.', photo:false, translations:{} },
+      { id:'fc3', owner:'areachef', ownerLbl:'Area Chef', text:'Was the kitchen flow smooth and without major service delays, with all sections maintaining proper mise en place standards throughout the shift?', photo:false, translations:{} }
+    ]
+  },
+  {
+    title: '♻️ Waste Control & Efficiency',
+    evalOnly: true,
+    tasks: [
+      { id:'fc4', owner:'areachef', ownerLbl:'Area Chef', text:'Did the KIC actively monitor, accurately track, and report food wastage across all kitchen sections during the shift?', photo:false, translations:{} }
+    ]
+  },
+  {
+    title: '📡 Expo & Cross-Department Communication',
+    evalOnly: true,
+    tasks: [
+      { id:'fo1', owner:'areachef', ownerLbl:'Area Chef', text:'Was communication between the FOH and BOH clear, effective, and managed properly to ensure smooth ticket times?', photo:false, translations:{} }
+    ]
+  },
+  {
+    title: '🔍 Auditor Verification',
+    evalOnly: true,
+    tasks: [
       { id:'aud1', owner:'areachef', ownerLbl:'Area Chef', text:'The outlet achieved a score above 90% in the last monthly audit visit.', photo:false, translations:{} }
     ]
   }
@@ -1192,7 +1205,9 @@ function submitDay() {
         const td=d[dayKey][t.id]||{}; const yn=td.yn;
         const photoUrls=[];
         ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photo_url','photo_1_url','photo_2_url','photo_3_url','photo_4_url'].forEach(k=>{const u=td[k];if(u&&u.startsWith('http')&&!photoUrls.includes(u))photoUrls.push(u);});
-        const hasLocalPhoto=['photo','photo_1','photo_2','photo_3','photo_4'].some(k=>{const u=td[k];return u&&u.startsWith('data:');});
+        // Include base64 fallback so dashboard shows photo even before Cloudinary upload completes
+        if(!photoUrls.length){['photo','photo_1','photo_2','photo_3','photo_4'].forEach(k=>{const u=td[k];if(u&&u.startsWith('data:')&&!photoUrls.includes(u))photoUrls.push(u);});}
+        const hasLocalPhoto=photoUrls.length>0||['photo','photo_1','photo_2','photo_3','photo_4'].some(k=>{const u=td[k];return u&&u.startsWith('data:');});
         if(yn||photoUrls.length||hasLocalPhoto) tasks[t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn:yn||'',photoUrl:photoUrls[0]||'',photoUrls,hasPhoto:photoUrls.length>0||hasLocalPhoto};
       }));
       return tasks;

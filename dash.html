@@ -6454,16 +6454,11 @@ function toggleEditMode(s) {
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
   if (s.role === 'kic') {
     const allKicDefs = [
-      {id:'fc1', section:'🍲 Food Consistency Today',      text:'Recipe Compliance: Ensure all dishes are prepared and served according to the approved recipes.'},
-      {id:'fc2', section:'🍲 Food Consistency Today',      text:'Portion Control: Ensure correct portion sizes for all menu items as per recipe cards.'},
-      {id:'fc3', section:'🍲 Food Consistency Today',      text:'Taste and Presentation: All food items meet the required standard for taste, texture, temperature, and presentation before leaving the kitchen.'},
-      {id:'fc4', section:'🍲 Food Consistency Today',      text:'Wastage Monitoring: Ensure wastage is tracked and reported accurately in each section.'},
-      {id:'fo1', section:'⚙️ Flow of Operation for the Day', text:'Kitchen flow was smooth throughout the shift with no major service delays or breakdowns.'},
-      {id:'fo2', section:'⚙️ Flow of Operation for the Day', text:'All sections maintained mise en place standards throughout the shift.'},
-      {id:'fo3', section:'⚙️ Flow of Operation for the Day', text:'Communication between FOH and BOH was clear and effective throughout the shift.'},
-      {id:'cost1',section:'💰 Food Cost & Staff',           text:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.'},
-      {id:'sp2',  section:'💰 Food Cost & Staff',           text:'Team performance maintains an overall score above 90% each shift.'},
-      {id:'cc1',  section:'💰 Food Cost & Staff',           text:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.'},
+      {id:'fc1', section:'', text:'Did the KIC ensure all dishes were prepared strictly according to approved recipes, maintaining exact portion sizes as per the recipe cards?'},
+      {id:'fc2', section:'', text:'Did all food items meet the required standards for taste, texture, temperature, and presentation before leaving the pass?'},
+      {id:'fc3', section:'', text:'Was the kitchen flow smooth and without major service delays, with all sections maintaining proper mise en place standards throughout the shift?'},
+      {id:'fc4', section:'', text:'Did the KIC actively monitor, accurately track, and report food wastage across all kitchen sections during the shift?'},
+      {id:'fo1', section:'', text:'Was communication between the FOH and BOH clear, effective, and managed properly to ensure smooth ticket times?'},
     ];
     const kicAudScore = (s.taskData && s.taskData['aud1'] && s.taskData['aud1'].audScore != null) ? s.taskData['aud1'].audScore : '';
 
@@ -6478,7 +6473,7 @@ function toggleEditMode(s) {
     let kicHtml = '<div style="background:#166534;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">👨‍🍳 Area Chef Observation — KIC Evaluation</div>';
     let lastSec = '';
     allKicDefs.forEach(t => {
-      if (t.section !== lastSec) {
+      if (t.section && t.section !== lastSec) {
         lastSec = t.section;
         kicHtml += `<div style="background:#15803D;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
       }
@@ -6496,6 +6491,17 @@ function toggleEditMode(s) {
             <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
           </div>
           <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Area Chef comment...">${existingComment}</textarea>
+          <div class="oic-photo-preview" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${(s.taskData&&s.taskData[t.id]&&s.taskData[t.id].oicPhotoUrl)?'<img src="'+s.taskData[t.id].oicPhotoUrl+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;" onclick="openLightbox(this.src)">':''}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#15803D;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
+              📷 Take Photo
+              <input type="file" accept="image/*" capture="environment" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))">
+            </label>
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#475569;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
+              🖼 Gallery
+              <input type="file" accept="image/*" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))">
+            </label>
+          </div>
         </div>
       </div>`;
     });
@@ -6564,7 +6570,7 @@ function updateLiveScore() {
   // Determine role-specific task ID lists
   const _isKICRole = s.role === 'kic';
   const _lsEvalIds = _isKICRole
-    ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
+    ? ['fc1','fc2','fc3','fc4','fo1']
     : ['s1','m1','p1','u1','w1','mp1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
