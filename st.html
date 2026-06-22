@@ -1267,7 +1267,7 @@ function submitOpening() {
     staffName:   name, role:ROLE, roleLabel:ROLE_LABEL,
     outlet:      getOutlet(), week:getWeekStart(),
     overallPct:  opO2, openingPct:opO2, closingPct:null,
-    qualified:   false, day:currentDay, status:'opening_submitted',
+    qualified:   opO2>=95, day:currentDay, status:'opening_submitted',
     startedAt:   startedAt,
     submittedAt: new Date().toISOString(), lastUpdated:new Date().toISOString(),
     taskData:    openingTaskData,
@@ -1336,7 +1336,7 @@ function submitDay() {
     overallPct:   op,
     openingPct:   null,
     closingPct:   opC,
-    qualified:    false,
+    qualified:    opC>=95,
     status:       'closing_submitted',
     submittedDates: trackSubmittedDate(_closingWeek),
     taskData: (function() {
