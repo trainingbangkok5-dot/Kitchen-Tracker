@@ -816,7 +816,7 @@ const SECTIONS = [
         id: 'o1',
         owner: 'self',
         ownerLbl: 'Self-report',
-        text: 'Service station, dining area, table setup, and outdoor area are neatly set up and maintained in a tidy condition.',
+        text: 'Service Station / Tables & Chairs / Outdoor Area: Clean, fully set up, and ready for service. Tables and chairs are properly arranged, and umbrellas/sunshades are opened and positioned correctly.',
         photo: true,
         translations: {}
       },
@@ -829,7 +829,7 @@ const SECTIONS = [
         translations: {}
       },
       {
-        id: 'o4',
+        id: 'o3',
         owner: 'monitor',
         ownerLbl: 'Monitor',
         text: 'Equipment and furniture are clean and in good working condition. Any issues or malfunctioning items are reported to the OIC.',
@@ -837,10 +837,10 @@ const SECTIONS = [
         translations: {}
       },
       {
-        id: 'o5',
+        id: 'o4',
         owner: 'monitor',
         ownerLbl: 'Monitor',
-        text: 'Ambience: Decorative items are clean and properly aligned, the AC is set to the correct temperature, and the perfume diffuser is functioning properly.',
+        text: 'Ambience: Table alignment, decorative items, guest areas, and toilet facilities are clean, organized, and prepared to provide a welcoming environment for guests.',
         photo: true,
         translations: {}
       }
@@ -854,7 +854,7 @@ const SECTIONS = [
         id: 'c1',
         owner: 'monitor',
         ownerLbl: 'Monitor',
-        text: 'Service Station / Tables / Outdoor Area: Cleaned, fully reset, and left neat and ready for the next operation.',
+        text: 'Service Station / Tables & Chairs / Outdoor Area: Ensure all service stations, tables, chairs, and outdoor areas are cleaned, fully reset, umbrellas or sunshades are closed, and the area is left neat and ready for the next day\'s operation.',
         photo: true,
         translations: {}
       },
@@ -867,122 +867,88 @@ const SECTIONS = [
         translations: {}
       },
       {
-        id: 'c4',
+        id: 'c3',
         owner: 'monitor',
         ownerLbl: 'Monitor',
-        text: 'Maintenance: All equipment is switched off, furniture has been checked, and any issues have been reported to the OIC',
+        text: 'Equipment and furniture are checked, switched off where applicable, and any issues or malfunctions are reported to the OIC.',
         photo: true,
         translations: {}
       },
       {
-        id: 'c5',
+        id: 'c4',
         owner: 'monitor',
         ownerLbl: 'Monitor',
-        text: 'Ambience: Furniture, decorative items, and guest areas are cleaned, organized, and left in good condition for the next operation.',
+        text: 'Ambience: Ensure table alignment, decorative items, guest areas, and toilet facilities are cleaned, organized, and left in good condition for the next operation.',
         photo: true,
         translations: {}
       }
     ]
   },
   {
-    title: '💰 Upselling',
+    title: '💰 Upselling & Revenue Generation',
     oicOnly: true,
     tasks: [
       {
         id: 'u1',
         owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Staff follow upselling techniques by promoting offers, suggesting add-ons, and recommending drinks to guests.',
+        ownerLbl: 'OIC',
+        text: 'Does the staff actively promote offers, suggest add-ons, and recommend beverages to guests?',
         photo: false,
         translations: {}
       }
     ]
   },
   {
-    title: '⭐ Service Standards',
+    title: '⭐ Sequence of Service & Attentiveness',
     oicOnly: true,
     tasks: [
       {
         id: 's1',
         owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Customer Interaction: Staff engage with guests in a friendly, professional, and attentive manner.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 's2',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Sequence of Service: Guests are greeted, seated, served, and thanked according to the established service sequence.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 's3',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Service Awareness: Demonstrates good awareness of guest needs and responds promptly and appropriately throughout service.',
+        ownerLbl: 'OIC',
+        text: 'Are guests greeted, seated, served, and thanked according to standards, with prompt attention given to their needs throughout?',
         photo: false,
         translations: {}
       }
     ]
   },
   {
-    title: '📝 Customer Feedback & Performance',
+    title: '📝 Professionalism & Grooming',
     oicOnly: true,
     tasks: [
       {
         id: 'f1',
         owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Complaints Handling: Manages guest complaints promptly and professionally, ensuring appropriate resolution and follow-up.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 'f2',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Grooming: Presents a well-groomed and professional appearance, following company standards at all times.',
+        ownerLbl: 'OIC',
+        text: 'Does the staff member maintain a well-groomed appearance and handle all guest interactions—including complaints—professionally and calmly?',
         photo: false,
         translations: {}
       }
     ]
   },
   {
-    title: '🤝 Team Player & Professionalism',
+    title: '🤝 Teamwork & Operational Support',
     oicOnly: true,
     tasks: [
       {
         id: 't1',
         owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Teamwork: Demonstrates strong teamwork by supporting the OIC and colleagues to ensure smooth operations.',
+        ownerLbl: 'OIC',
+        text: 'Do they show a positive attitude, support their colleagues, and follow all instructions from the OIC/management without resistance?',
         photo: false,
         translations: {}
-      },
-      {
-        id: 't2',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.',
-        photo: false,
-        translations: {}
-      },
-      {
-        id: 't3',
-        owner: 'monitor',
-        ownerLbl: 'Monitor',
-        text: 'Instruction Following: Follows instructions correctly and executes tasks as directed.',
-        photo: false,
-        translations: {}
-      },
+      }
+    ]
+  },
+  {
+    title: '📅 Attendance & Reliability',
+    oicOnly: true,
+    tasks: [
       {
         id: 't4',
-        owner: 'verify',
-        ownerLbl: 'Verify by KIC/Manager',
-        text: 'Attendance: Maintains good attendance and reports to work on time as scheduled.',
+        owner: 'monitor',
+        ownerLbl: 'OIC',
+        text: 'Did the staff member arrive on time, complete their full shift, and adhere to scheduling standards?',
         photo: false,
         translations: {}
       }
@@ -2072,6 +2038,76 @@ function retryPendingSync() {
     _retryQueue.splice(idx, 1);
   });
 }
+
+function openLightbox(src) {
+  if (!src || src === '') return;
+  const lb = document.getElementById('photoLightbox');
+  const img = document.getElementById('photoLightboxImg');
+  if (!lb || !img) return;
+  img.src = src;
+  lb.style.display = 'flex';
+  _lbScale = 1; _lbX = 0; _lbY = 0;
+  img.style.transform = 'translate(0px,0px) scale(1)';
+  document.getElementById('lbZoomHint').style.opacity = '1';
+}
+function closeLightbox() {
+  const lb = document.getElementById('photoLightbox');
+  if (lb) lb.style.display = 'none';
+  _lbScale = 1; _lbX = 0; _lbY = 0;
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+// ── Lightbox zoom state ──────────────────────────────────────────────────────
+let _lbScale = 1, _lbX = 0, _lbY = 0;
+let _lbPinchDist = 0, _lbDragStart = null, _lbLastTap = 0;
+
+function _lbApplyTransform() {
+  const img = document.getElementById('photoLightboxImg');
+  if (img) img.style.transform = 'translate('+_lbX+'px,'+_lbY+'px) scale('+_lbScale+')';
+}
+
+function _lbClampPan() {
+  // Allow panning only when zoomed in
+  if (_lbScale <= 1) { _lbX = 0; _lbY = 0; return; }
+  const img = document.getElementById('photoLightboxImg');
+  if (!img) return;
+  const maxX = (img.offsetWidth  * (_lbScale - 1)) / 2;
+  const maxY = (img.offsetHeight * (_lbScale - 1)) / 2;
+  _lbX = Math.max(-maxX, Math.min(maxX, _lbX));
+  _lbY = Math.max(-maxY, Math.min(maxY, _lbY));
+}
+
+// Touch events
+document.addEventListener('touchstart', function(e) {
+  const lb = document.getElementById('photoLightbox');
+  if (!lb || lb.style.display === 'none') return;
+  if (e.target.id === 'photoLightboxImg' || e.target.closest('#photoLightboxWrap')) {
+    if (e.touches.length === 1) {
+      // Double-tap to zoom
+      const now = Date.now();
+      if (now - _lbLastTap < 300) {
+        e.preventDefault();
+        if (_lbScale > 1) { _lbScale = 1; _lbX = 0; _lbY = 0; }
+        else { _lbScale = 2.5; }
+        _lbApplyTransform();
+      }
+      _lbLastTap = now;
+      _lbDragStart = { x: e.touches[0].clientX - _lbX, y: e.touches[0].clientY - _lbY };
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      _lbPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  } else if (e.touches.length === 1) {
+    // Tap outside image to close
+    if (e.target === lb) closeLightbox();
+  }
+}, { passive: false });
+
 </script>
 
 <div style="margin-top:32px;padding:12px 18px;display:flex;justify-content:space-between;align-items:flex-start;border-top:1.5px solid #1A3C5E;font-family:sans-serif;">
@@ -2085,6 +2121,15 @@ function retryPendingSync() {
     <div style="font-size:12px;font-weight:700;color:#1A3C5E;">Training &amp; Development</div>
     <div style="font-size:11px;color:#64748B;margin-top:1px;">Culex Hospitality Operations</div>
   </div>
+</div>
+
+<!-- Photo Lightbox -->
+<div id="photoLightbox" onclick="closeLightbox(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;overflow:hidden;touch-action:none;">
+  <div id="photoLightboxWrap" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+    <img id="photoLightboxImg" src="" draggable="false" style="max-width:100vw;max-height:100vh;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-select:none;">
+  </div>
+  <div style="position:absolute;top:16px;right:20px;color:#fff;font-size:36px;font-weight:300;cursor:pointer;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.8);z-index:10;" onclick="closeLightbox()">&times;</div>
+  <div id="lbZoomHint" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:12px;pointer-events:none;white-space:nowrap;">Pinch or double-tap to zoom • Tap × to close</div>
 </div>
 </body>
 </html>
