@@ -738,6 +738,18 @@ function trackSubmittedDate(weekStart) {
   } catch(e) { return []; }
 }
 function getTodayKey() {
+  // Closing shift after midnight (12AM–2AM) belongs to previous day
+  try {
+    const hour = getDubaiHour();
+    if (currentShift === 'closing' && hour < 2) {
+      const d = getDubaiDate();
+      d.setDate(d.getDate() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return 'dt' + y + '-' + m + '-' + dd;
+    }
+  } catch(e) {}
   return 'dt' + getDubaiDateStr(); // Dubai date key
 }
 
@@ -1129,21 +1141,10 @@ function renderDay() {
           <div class="yn yes ${val==='yes'?'on':''}" onclick="tapYN('${task.id}','yes',this)">\u2713 YES</div>
           <div class="yn no ${val==='no'?'on':''}" onclick="tapYN('${task.id}','no',this)">\u2717 NO</div>
           <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">N/A</div>
+          ${task.photo ? ('<button class="photo-btn '+(photos.length?'taken':'')+'" onclick="openPhotoModal(\''+task.id+'\')">'+(photos.length?'\u{1f4f7} \u2713':'\u{1f4f7}')+'</button>') : ''}
         </div>
         <div class="comment-row" style="padding:4px 0 2px 0;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:600;margin-bottom:3px;">Comment</div><textarea rows="2" placeholder="Add comment..." onchange="setVal(${currentDay},'${task.id}','comment',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;">${comment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
-        ${photos.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:4px 0;">${photos.map(u=>`<img src="${u}" onclick="openLightbox(this.src)" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;">`).join('')}</div>`:''}
-        ${task.photo?`
-        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:600;margin:6px 0 3px;">PHOTO</div>
-        <div style="display:flex;gap:6px;">
-          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;background:#1A3C5E;color:#fff;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
-            📷 Take Photo
-            <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleInlinePhoto(event,'${task.id}')">
-          </label>
-          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;background:#475569;color:#fff;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
-            🖼 Gallery
-            <input type="file" accept="image/*" style="display:none;" onchange="handleInlinePhoto(event,'${task.id}')">
-          </label>
-        </div>`:''}
+        ${photos.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;">${photos.map(u=>`<img src="${u}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">`).join('')}</div>`:''}
       `;
       container.appendChild(card);
     });
@@ -1306,34 +1307,6 @@ function closePhotoModal() {
 // prepareCamera() is called via onclick on the label
 // mbtnGallery is now a <label for="galInput"> — no onclick needed
 // prepareGallery() is called via onclick on the label
-
-function handleInlinePhoto(event, taskId) {
-  const file = event.target.files[0];
-  if (!file || !taskId) return;
-  compressAndReturn(file, async function(dataUrl) {
-    const data = load();
-    const dayKey = getTodayKey();
-    if (!data[dayKey]) data[dayKey] = {};
-    if (!data[dayKey][taskId]) data[dayKey][taskId] = {};
-    let slot = 'photo';
-    if (data[dayKey][taskId]['photo']) {
-      let i = 1;
-      while (data[dayKey][taskId]['photo_' + i]) i++;
-      slot = 'photo_' + i;
-    }
-    setVal(currentDay, taskId, slot, dataUrl);
-    renderDay();
-    showToast('Photo saved ✓', 'ok');
-    const staffName = getStaffName();
-    if (staffName && _db) {
-      const dbRef = await uploadPhotoToFirebase(dataUrl, taskId, staffName, currentDay);
-      if (dbRef) {
-        setVal(currentDay, taskId, slot + '_url', dbRef);
-        showToast('Photo synced ✓', 'ok');
-      }
-    }
-  });
-}
 
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;

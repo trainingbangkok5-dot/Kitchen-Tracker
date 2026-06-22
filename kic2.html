@@ -756,6 +756,18 @@ function trackSubmittedDate(weekStart) {
   } catch(e) { return []; }
 }
 function getTodayKey() {
+  // Closing shift after midnight (12AM–2AM) belongs to previous day
+  try {
+    const hour = getDubaiHour();
+    if (currentShift === 'closing' && hour < 2) {
+      const d = getDubaiDate();
+      d.setDate(d.getDate() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return 'dt' + y + '-' + m + '-' + dd;
+    }
+  } catch(e) {}
   return 'dt' + getDubaiDateStr(); // Dubai date key
 }
 
