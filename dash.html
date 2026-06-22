@@ -3277,7 +3277,7 @@ function openStaffDetail(s) {
     const cColor = opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C';
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
-    const isService = ['service','oic','kic'].includes(s.role); // kic also has eval score
+    const isService = ['service','oic','kic','linecook','steward'].includes(s.role);
     const isKICRole = s.role === 'kic';
     // Total score formula: opening+eval, closing+eval, or opening+closing+eval
     const hasOpening = opO !== null;
@@ -3313,7 +3313,7 @@ function openStaffDetail(s) {
       scoreRows.push(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
           '<div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
-            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : '👥 OIC EVAL') + '</div>' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
             '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
             '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
           '</div>' +
@@ -6544,6 +6544,50 @@ function toggleEditMode(s) {
       }
     });
   }
+
+  // ── Line Cook / Steward KIC Observation (KIC overwriting LC/Steward record) ──
+  if (['linecook','steward'].includes(s.role)) {
+    const lcObsDefs = [
+      {id:'lc1', text:'Does the staff follow recipe compliance, portion control standards, maintain proper mise en place, ensure all items are replenished, and keep their section organized throughout the shift?'},
+      {id:'lc2', text:'Does the staff ensure all food items meet the required standards for taste, texture, temperature, and presentation before leaving the kitchen?'},
+      {id:'lc3', text:'Does the staff maintain smooth kitchen operations through effective communication and support of the team?'},
+      {id:'lc4', text:'Does the staff maintain proper grooming and personal hygiene standards, including correct handwashing practices and wearing gloves when required?'},
+      {id:'lc5', text:'Does the staff demonstrate good teamwork and collaboration with both kitchen and service team members while maintaining a positive attitude throughout the shift?'},
+    ];
+    let lcEditContainer = body.querySelector('#lcObsSection');
+    if (!lcEditContainer) {
+      lcEditContainer = document.createElement('div');
+      lcEditContainer.id = 'lcObsSection';
+      lcEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      body.insertBefore(lcEditContainer, body.querySelector('#cancelEditBtn'));
+    }
+    let lcHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">📋 KIC OBSERVATION</div>';
+    lcObsDefs.forEach(t => {
+      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
+      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
+      const existingPhoto = (s.taskData && s.taskData[t.id] && s.taskData[t.id].oicPhotoUrl) ? s.taskData[t.id].oicPhotoUrl : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      lcHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="KIC comment...">${existingComment}</textarea>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${existingPhoto?'<img src="'+existingPhoto+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;" onclick="openLightbox(this.src)">':''}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#2E6DA4;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📷 Take Photo<input type="file" accept="image/*" capture="environment" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))"></label>
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#475569;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">🖼 Gallery<input type="file" accept="image/*" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))"></label>
+          </div>
+        </div>
+      </div>`;
+    });
+    lcEditContainer.innerHTML = lcHtml;
+  }
 }
 
 function setTaskYN(btn, val) {
@@ -6569,8 +6613,11 @@ function updateLiveScore() {
 
   // Determine role-specific task ID lists
   const _isKICRole = s.role === 'kic';
+  const _isLCRole = ['linecook','steward'].includes(s.role);
   const _lsEvalIds = _isKICRole
     ? ['fc1','fc2','fc3','fc4','fo1']
+    : _isLCRole
+    ? ['lc1','lc2','lc3','lc4','lc5']
     : ['s1','m1','p1','u1','w1','mp1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -6715,6 +6762,7 @@ function _editTakePhoto(taskKey, withCapture) {
 
 async function saveOverwrite(s) {
   const _isKIC = s.role === 'kic';
+  const _isLC  = ['linecook','steward'].includes(s.role);
   if (!s) { showToast('⚠ No record loaded. Please close and reopen.', 'warn'); return; }
   const verifiedBy = (document.getElementById('verifiedByInput')?.value || '').trim();
   // Check for any comment changes
@@ -6802,8 +6850,10 @@ async function saveOverwrite(s) {
 
   const _evalOwner = _isKIC ? 'Area Chef' : 'Area Manager';
   const _evalIds  = _isKIC
-    ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
-    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
+    ? ['fc1','fc2','fc3','fc4','fo1']
+    : _isLC
+    ? ['lc1','lc2','lc3','lc4','lc5']
+    : ['s1','m1','p1','u1','w1','mp1'];
   const _openIds  = ['o1','o2','o3','o4','o5'];
   const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
 
