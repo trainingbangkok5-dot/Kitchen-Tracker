@@ -1218,14 +1218,18 @@ function submitDay() {
         const td = d[dayKey][t.id] || {};
         const yn = td.yn;
         const photoUrls = [];
-        // Cloudinary URLs are stored as photo_url, photo_1_url, photo_2_url... (slot + '_url')
-        // Also check legacy photoUrl, photoUrl_1 format
+        // Collect Cloudinary URLs (http) AND base64 fallback
         ['photo_url','photo_1_url','photo_2_url','photo_3_url','photo_4_url',
          'photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(k => {
           const u = td[k]; if (u && u.startsWith('http') && !photoUrls.includes(u)) photoUrls.push(u);
         });
-        // Also include local base64 photos as fallback if no Cloudinary URL yet
-        const hasLocalPhoto = ['photo','photo_1','photo_2','photo_3','photo_4'].some(k => {
+        // If no Cloudinary URL yet, include base64 local photos so dashboard can display them
+        if (!photoUrls.length) {
+          ['photo','photo_1','photo_2','photo_3','photo_4'].forEach(k => {
+            const u = td[k]; if (u && u.startsWith('data:') && !photoUrls.includes(u)) photoUrls.push(u);
+          });
+        }
+        const hasLocalPhoto = photoUrls.length > 0 || ['photo','photo_1','photo_2','photo_3','photo_4'].some(k => {
           const u = td[k]; return u && u.startsWith('data:');
         });
         if (yn || photoUrls.length || hasLocalPhoto) {
