@@ -10938,13 +10938,108 @@ function openLightbox(src) {
   if (!lb || !img) return;
   img.src = src;
   lb.style.display = 'flex';
+  _lbScale = 1; _lbX = 0; _lbY = 0;
+  img.style.transform = 'translate(0px,0px) scale(1)';
+  document.getElementById('lbZoomHint').style.opacity = '1';
 }
-function closeLightbox(e) {
-  if (e.target.tagName !== 'IMG') document.getElementById('photoLightbox').style.display = 'none';
+function closeLightbox() {
+  const lb = document.getElementById('photoLightbox');
+  if (lb) lb.style.display = 'none';
+  _lbScale = 1; _lbX = 0; _lbY = 0;
 }
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') document.getElementById('photoLightbox').style.display = 'none';
+  if (e.key === 'Escape') closeLightbox();
 });
+
+// ── Lightbox zoom state ──────────────────────────────────────────────────────
+let _lbScale = 1, _lbX = 0, _lbY = 0;
+let _lbPinchDist = 0, _lbDragStart = null, _lbLastTap = 0;
+
+function _lbApplyTransform() {
+  const img = document.getElementById('photoLightboxImg');
+  if (img) img.style.transform = 'translate('+_lbX+'px,'+_lbY+'px) scale('+_lbScale+')';
+}
+
+function _lbClampPan() {
+  // Allow panning only when zoomed in
+  if (_lbScale <= 1) { _lbX = 0; _lbY = 0; return; }
+  const img = document.getElementById('photoLightboxImg');
+  if (!img) return;
+  const maxX = (img.offsetWidth  * (_lbScale - 1)) / 2;
+  const maxY = (img.offsetHeight * (_lbScale - 1)) / 2;
+  _lbX = Math.max(-maxX, Math.min(maxX, _lbX));
+  _lbY = Math.max(-maxY, Math.min(maxY, _lbY));
+}
+
+// Touch events
+document.addEventListener('touchstart', function(e) {
+  const lb = document.getElementById('photoLightbox');
+  if (!lb || lb.style.display === 'none') return;
+  if (e.target.id === 'photoLightboxImg' || e.target.closest('#photoLightboxWrap')) {
+    if (e.touches.length === 1) {
+      // Double-tap to zoom
+      const now = Date.now();
+      if (now - _lbLastTap < 300) {
+        e.preventDefault();
+        if (_lbScale > 1) { _lbScale = 1; _lbX = 0; _lbY = 0; }
+        else { _lbScale = 2.5; }
+        _lbApplyTransform();
+      }
+      _lbLastTap = now;
+      _lbDragStart = { x: e.touches[0].clientX - _lbX, y: e.touches[0].clientY - _lbY };
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      _lbPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  } else if (e.touches.length === 1) {
+    // Tap outside image to close
+    if (e.target === lb) closeLightbox();
+  }
+}, { passive: false });
+
+document.addEventListener('touchmove', function(e) {
+  const lb = document.getElementById('photoLightbox');
+  if (!lb || lb.style.display === 'none') return;
+  if (!e.target.closest('#photoLightboxWrap') && e.target.id !== 'photoLightboxImg') return;
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    // Pinch zoom
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const delta = dist / (_lbPinchDist || dist);
+    _lbPinchDist = dist;
+    _lbScale = Math.max(1, Math.min(5, _lbScale * delta));
+    _lbClampPan();
+    _lbApplyTransform();
+    document.getElementById('lbZoomHint').style.opacity = '0';
+  } else if (e.touches.length === 1 && _lbDragStart && _lbScale > 1) {
+    // Drag to pan
+    _lbX = e.touches[0].clientX - _lbDragStart.x;
+    _lbY = e.touches[0].clientY - _lbDragStart.y;
+    _lbClampPan();
+    _lbApplyTransform();
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+  if (e.touches.length === 0) _lbDragStart = null;
+  if (_lbScale < 1.05) { _lbScale = 1; _lbX = 0; _lbY = 0; _lbApplyTransform(); }
+});
+
+// Mouse wheel zoom (desktop)
+document.addEventListener('wheel', function(e) {
+  const lb = document.getElementById('photoLightbox');
+  if (!lb || lb.style.display === 'none') return;
+  e.preventDefault();
+  _lbScale = Math.max(1, Math.min(5, _lbScale * (e.deltaY < 0 ? 1.15 : 0.87)));
+  _lbClampPan();
+  _lbApplyTransform();
+}, { passive: false });
 
 </script>
 
@@ -11029,10 +11124,12 @@ document.addEventListener('keydown', function(e) {
 
 
 <!-- Photo Lightbox -->
-<div id="photoLightbox" onclick="closeLightbox(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
-  <img id="photoLightboxImg" src="" style="max-width:95vw;max-height:92vh;object-fit:contain;border-radius:8px;box-shadow:0 4px 32px rgba(0,0,0,0.8);" onclick="event.stopPropagation()">
-  <div style="position:absolute;top:16px;right:20px;color:#fff;font-size:32px;font-weight:300;cursor:pointer;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.8);" onclick="document.getElementById('photoLightbox').style.display='none'">&times;</div>
-  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.55);font-size:12px;pointer-events:none;">Tap outside image to close</div>
+<div id="photoLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;align-items:center;justify-content:center;overflow:hidden;touch-action:none;">
+  <div id="photoLightboxWrap" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+    <img id="photoLightboxImg" src="" draggable="false" style="max-width:100vw;max-height:100vh;object-fit:contain;transform-origin:center center;user-select:none;-webkit-user-select:none;">
+  </div>
+  <div style="position:absolute;top:16px;right:20px;color:#fff;font-size:36px;font-weight:300;cursor:pointer;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.8);z-index:10;" onclick="closeLightbox()">&times;</div>
+  <div id="lbZoomHint" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:12px;pointer-events:none;white-space:nowrap;">Pinch or double-tap to zoom • Tap × to close</div>
 </div>
 </body>
 </html>
