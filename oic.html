@@ -933,20 +933,7 @@ function tapYN(tid, val, el) {
     totBox.textContent=tot3!=null?tot3+'%':'—';
     totBox.style.color=tot3!=null?'#fff':'#94A3B8';
   }
-  // Comment box
-  if (val === 'no') {
-    const card = el.closest('.task-card');
-    if (card && !card.querySelector('.comment-row')) {
-      const cr = document.createElement('div');
-      cr.className = 'comment-row';
-      cr.innerHTML = '<input type="text" placeholder="Comment required for NO..." onchange="setVal('+currentDay+',\''+tid+'\',\'comment\',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">';
-      card.appendChild(cr);
-    }
-  } else {
-    const card = el.closest('.task-card');
-    const cr = card?.querySelector('.comment-row');
-    if (cr) cr.remove();
-  }
+  // Comment box — always shown in task template
 }
 
 function buildDayRail() {} // Day rail removed — single daily submission
@@ -1159,7 +1146,7 @@ function renderDay() {
           <div class="yn na ${val==='na'?'on':''}" onclick="tapYN('${task.id}','na',this)">N/A</div>
           ${task.photo ? ('<button class="photo-btn '+(photos.length?'taken':'')+'" onclick="openPhotoModal(\''+task.id+'\')">'+(photos.length?'\u{1f4f7} \u2713':'\u{1f4f7}')+'</button>') : ''}
         </div>
-        ${val==='no'?`<div class="comment-row"><input type="text" placeholder="Comment required for NO..." value="${comment.replace(/"/g,'&quot;')}" onchange="setVal(${currentDay},'${task.id}','comment',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;"></div>`:''}
+        <div class="comment-row" style="padding:4px 0 2px 0;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:600;margin-bottom:3px;">Comment</div><textarea rows="2" placeholder="Add comment..." onchange="setVal(${currentDay},'${task.id}','comment',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;">${comment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
         ${photos.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;">${photos.map(u=>`<img src="${u}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">`).join('')}</div>`:''}
       `;
       container.appendChild(card);

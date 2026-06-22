@@ -922,19 +922,7 @@ function tapYN(tid, val, el) {
     totBox.style.color=tot!=null?'#fff':'#94A3B8';
   }
   // Comment box
-  if(val==='no'){
-    const card=el.closest('.task-card');
-    if(card&&!card.querySelector('.comment-row')){
-      const cr=document.createElement('div');
-      cr.className='comment-row';
-      cr.innerHTML='<input type="text" placeholder="Comment required for NO..." onchange="setVal('+currentDay+',\''+tid+'\',\'comment\',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;">';
-      card.appendChild(cr);
-    }
-  } else {
-    const card=el.closest('.task-card');
-    const cr=card?.querySelector('.comment-row');
-    if(cr) cr.remove();
-  }
+  // Comment box — always shown in task template
 }
 
 function buildDayRail() {} // Day rail removed — single daily submission
@@ -1120,14 +1108,20 @@ function renderDay() {
         ynRow.appendChild(pb);
       }
       card.appendChild(ynRow);
-      if(val==='no'){
+      // Comment field — always visible for all tasks
+      {
         const cr=document.createElement('div'); cr.className='comment-row';
-        const inp=document.createElement('input'); inp.type='text';
-        inp.placeholder='Comment required for NO...';
+        cr.style.cssText='padding:4px 0 2px 0;';
+        const clbl=document.createElement('div');
+        clbl.style.cssText='font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:600;margin-bottom:3px;';
+        clbl.textContent='Comment';
+        const inp=document.createElement('textarea');
+        inp.rows=2;
+        inp.placeholder='Add comment...';
         inp.value=comment;
-        inp.style.cssText='width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;';
+        inp.style.cssText='width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;';
         inp.onchange=e=>setVal(currentDay,task.id,'comment',e.target.value);
-        cr.appendChild(inp); card.appendChild(cr);
+        cr.appendChild(clbl); cr.appendChild(inp); card.appendChild(cr);
       }
       if(photos.length){
         const prow=document.createElement('div');
