@@ -9176,8 +9176,7 @@ function toggleFOHEditMode() {
       {id:'p1',  section:'👀 Floor Presence & Accountability',  text:'Is the OIC highly visible on the floor, holding FOH staff accountable for their performance, and executing opening/closing duties correctly?'},
       {id:'u1',  section:'💰 Revenue Drive & Coaching',         text:'Is the OIC aware of daily sales targets, and do they actively coach/monitor the team on upselling techniques to drive results?'},
       {id:'w1',  section:'🚨 Incident Resolution & Escalation', text:'Does the OIC handle staff/guest conflicts calmly on the spot and ensure any major incidents or complaints are reported to you promptly?'},
-      {id:'mp1', section:'📅 Attendance & Punctuality',          text:'Did the OIC arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
-      {id:'a1',  section:'🔍 Auditor Verification',              text:'FOH audit score on the last visit is above 90%'},
+      {id:'mp1', section:'',          text:'Did the OIC arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'}
     ];
     let oicAMContainer = area.querySelector('#oicAMEditSection');
     if (!oicAMContainer) {
@@ -9191,7 +9190,7 @@ function toggleFOHEditMode() {
     let oicAMHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑 Area Manager Observation — OIC Evaluation</div>';
     let lastAMSec = '';
     oicObsDefs.forEach(function(t) {
-      if (t.section !== lastAMSec) {
+      if (t.section && t.section !== lastAMSec) {
         lastAMSec = t.section;
         oicAMHtml += '<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">' + t.section + '</div>';
       }
