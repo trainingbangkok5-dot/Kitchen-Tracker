@@ -3383,6 +3383,8 @@ function openStaffDetail(s) {
       // Skip eval tasks — they render in the dedicated eval panel below
       const _tk = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
       if (_allEvalIds.includes(_tk)) return;
+      // Skip phantom photo-only tasks (no task text and no yn — these are OIC photo entries)
+      if ((!t.task || t.task.trim() === '') && (!t.yn || t.yn === '')) return;
       // Derive section from task ID when missing or generic
       const _baseId2 = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
       const _secFb = /^(cy?[0-9]|c[0-9])/.test(_baseId2) ? 'Closing Tasks'
@@ -6557,7 +6559,7 @@ function updateLiveScore() {
   const _isKICRole = s.role === 'kic';
   const _lsEvalIds = _isKICRole
     ? ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1']
-    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
+    : ['s1','m1','p1','u1','w1','mp1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
 
@@ -8560,6 +8562,8 @@ function openFOHDetail(idx) {
         const key = t._key || '';
         const isOicTask = !isOICRole && oicObsIds.some(id => key===id || key.endsWith('_'+id) || key.startsWith(id+'_'));
         if (isOicTask || (!isOICRole && (t.owner||'').toLowerCase() === 'oic only')) return;
+        // Skip phantom photo-only tasks (no task text and no yn)
+        if ((!t.task || t.task.trim() === '') && (!t.yn || t.yn === '')) return;
         const sec = t.section || 'Tasks';
         if (!bySec[sec]) bySec[sec] = [];
         bySec[sec].push(t);
@@ -9018,7 +9022,7 @@ function setFOHTaskYN(btn, val) {
     else merged[k] = {yn};
   });
   // Use task IDs to split scores correctly
-  const oicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
+  const oicIds   = ['s1','m1','p1','u1','w1','mp1'];
   const openIds  = ['o1','o2','o3','o4','o5'];
   const closeIds = ['c1','c2','c3','c4','c5'];
   let oicY=0, oicT=0, opY=0, opT=0, clY=0, clT=0;
