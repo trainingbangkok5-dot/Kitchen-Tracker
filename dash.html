@@ -10982,7 +10982,7 @@ document.addEventListener('touchstart', function(e) {
       if (now - _lbLastTap < 300) {
         e.preventDefault();
         if (_lbScale > 1) { _lbScale = 1; _lbX = 0; _lbY = 0; }
-        else { _lbScale = 4; }
+        else { _lbScale = 8; }
         _lbApplyTransform();
       }
       _lbLastTap = now;
@@ -11013,7 +11013,7 @@ document.addEventListener('touchmove', function(e) {
     );
     const delta = dist / (_lbPinchDist || dist);
     _lbPinchDist = dist;
-    _lbScale = Math.max(1, Math.min(10, _lbScale * delta));
+    _lbScale = Math.max(1, Math.min(50, _lbScale * delta));
     _lbClampPan();
     _lbApplyTransform();
     document.getElementById('lbZoomHint').style.opacity = '0';
@@ -11036,7 +11036,7 @@ document.addEventListener('wheel', function(e) {
   const lb = document.getElementById('photoLightbox');
   if (!lb || lb.style.display === 'none') return;
   e.preventDefault();
-  _lbScale = Math.max(1, Math.min(10, _lbScale * (e.deltaY < 0 ? 1.2 : 0.85)));
+  _lbScale = Math.max(1, Math.min(50, _lbScale * (e.deltaY < 0 ? 1.25 : 0.82)));
   _lbClampPan();
   _lbApplyTransform();
 }, { passive: false });
@@ -11056,7 +11056,7 @@ document.addEventListener('touchmove', function(e) {
     );
     const delta = dist / (_lbPinchDist || dist);
     _lbPinchDist = dist;
-    _lbScale = Math.max(1, Math.min(10, _lbScale * delta));
+    _lbScale = Math.max(1, Math.min(50, _lbScale * delta));
     _lbClampPan();
     _lbApplyTransform();
     document.getElementById('lbZoomHint').style.opacity = '0';
@@ -11079,7 +11079,7 @@ document.addEventListener('wheel', function(e) {
   const lb = document.getElementById('photoLightbox');
   if (!lb || lb.style.display === 'none') return;
   e.preventDefault();
-  _lbScale = Math.max(1, Math.min(10, _lbScale * (e.deltaY < 0 ? 1.2 : 0.85)));
+  _lbScale = Math.max(1, Math.min(50, _lbScale * (e.deltaY < 0 ? 1.25 : 0.82)));
   _lbClampPan();
   _lbApplyTransform();
 }, { passive: false });
