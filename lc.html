@@ -1137,17 +1137,37 @@ function renderDay() {
   });
   const opO = currentShift === 'opening' && oM>0 ? Math.round((oY/oM)*100) : null;
   const opC = currentShift === 'closing' && cM>0 ? Math.round((cY/cM)*100) : null;
-  // Total = current shift score only
-  const _liveScores = [opO, opC].filter(v => v !== null);
-  const tM = _liveScores.length;
-  const op = _liveScores.length > 0 ? Math.round(_liveScores.reduce((a,b)=>a+b,0)/_liveScores.length) : 0;
-  const pass = op>=95;
 
+  // Read KIC eval score from Firebase shared record if available
+  let rdEval = null;
+  try {
+    const _sharedRaw = localStorage.getItem(SHARED_DB_KEY);
+    if (_sharedRaw) {
+      const _sharedAll = JSON.parse(_sharedRaw);
+      const _lcName = (localStorage.getItem('kic_info_' + ROLE + '_fName') || '').trim().toLowerCase();
+      const _todayKeyLC = getTodayKey().replace('dt', '');
+      if (_lcName && _sharedAll && _sharedAll.submissions) {
+        _sharedAll.submissions.forEach(rec => {
+          if (rec && rec.role === 'linecook' && (rec.staffName || '').trim().toLowerCase() === _lcName && rec.oicEvalPct != null) {
+            const _recDate = (rec.submittedAt || '').substring(0, 10);
+            if (_recDate === _todayKeyLC) rdEval = parseFloat(rec.oicEvalPct);
+          }
+        });
+      }
+    }
+  } catch(e) {}
+
+  // Total: opening + closing + KIC eval (exclude nulls)
+  const _rdComps = [opO, opC, rdEval].filter(v => v !== null);
+  const tM = _rdComps.length;
+  const op = tM > 0 ? Math.round(_rdComps.reduce((a,b) => a+b, 0) / tM) : 0;
+  const pass = op >= 95;
+  const eColor = rdEval===null?'#94A3B8':rdEval>=95?'#15803D':rdEval>=70?'#92400E':'#B91C1C';
 
   const sc=document.createElement('div');
   sc.className=`status-card ${tM>0?(pass?'pass':'fail'):''}`;
   sc.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;margin-bottom:8px;">
       <div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌅 Opening</div>
         <div class="sb-pct" style="font-size:20px;font-weight:700;color:${opO===null?'#94A3B8':opO>=95?'#15803D':opO>=70?'#92400E':'#B91C1C'}">${opO!==null?opO+'%':'—'}</div>
@@ -1157,6 +1177,13 @@ function renderDay() {
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🌙 Closing</div>
         <div class="sb-pct" style="font-size:20px;font-weight:700;color:${opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${opC===null?'#94A3B8':opC>=95?'#15803D':'#B91C1C'};margin-top:2px;">${opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px 6px;text-align:center;">
+        <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">👨‍🍳 KIC Eval</div>
+        <div class="sb-pct" style="font-size:20px;font-weight:700;color:${eColor}">${rdEval!==null?rdEval+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${eColor};margin-top:2px;">${rdEval===null?'Pending KIC':rdEval>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
       <div data-scorebox="total" style="background:${tM===0?'#F8FAFC':pass?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM===0?'#E2E8F0':pass?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total</div>
@@ -1248,11 +1275,12 @@ function tapYN(tid, val, el) {
     const _boxes = _sc.querySelectorAll('[data-scorebox]');
     _boxes.forEach(b => {
       const type = b.getAttribute('data-scorebox');
+      if (type === 'oic') return; // KIC eval — read-only, filled from dash
       let pct = type==='opening'?opO:type==='closing'?opC:op;
       const isNull = pct===null;
       b.querySelector('.sb-pct').textContent = isNull ? '—' : pct+'%';
       b.querySelector('.sb-pct').style.color = isNull?'#94A3B8':pct>=95?'#15803D':pct>=70?'#92400E':'#B91C1C';
-      b.querySelector('.sb-lbl').textContent = isNull?'Not submitted':pct>=95?'✓ Pass':'✗ Below target';
+      b.querySelector('.sb-lbl').textContent = isNull?(type==='total'?'No data':'Not submitted'):pct>=95?(type==='total'?'✓ Qualified':'✓ Pass'):(type==='total'?'✗ Not qualified':'✗ Below target');
       b.querySelector('.sb-lbl').style.color = isNull?'#94A3B8':pct>=95?'#15803D':'#B91C1C';
     });
   }
