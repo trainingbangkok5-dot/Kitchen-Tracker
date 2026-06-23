@@ -3386,7 +3386,8 @@ function openStaffDetail(s) {
     const _oicEvalIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
     const _lcEvalIds  = ['lc1','lc2','lc3','lc4','lc5'];
     const _stEvalIds  = ['st1','st2','st3','st4','st5'];
-    const _allEvalIds = _isKIC ? _kicEvalIds : s.role === 'steward' ? _stEvalIds : s.role === 'linecook' ? _lcEvalIds : _oicEvalIds;
+    const _btEvalIds  = ['bt1','bt2','bt3','bt4'];
+    const _allEvalIds = _isKIC ? _kicEvalIds : s.role === 'steward' ? _stEvalIds : s.role === 'linecook' ? _lcEvalIds : s.role === 'bartender' ? _btEvalIds : _oicEvalIds;
     Object.values(deduped).forEach(t => {
       // Skip eval tasks — they render in the dedicated eval panel below
       const _tk = (t._key||t.taskKey||'').replace(/^d[0-9]+_/,'');
@@ -6450,6 +6451,51 @@ function toggleEditMode(s) {
     oicBOHEditContainer.innerHTML = oicBOHHtml;
   }
 
+  // ── OIC Observation injection for Bartender ──
+  if (s.role === 'bartender' && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole)) {
+    const btObsDefs = [
+      {id:'bt1', text:'Does the staff member strictly follow drink recipes and portion control, ensuring all beverages meet required standards for taste, temperature, and presentation before service?'},
+      {id:'bt2', text:'Does the staff member ensure the bar station, garnishes, ice, and glassware are fully prepared before service and kept organized and replenished throughout the shift?'},
+      {id:'bt3', text:'Does the staff member maintain excellent personal grooming, follow proper handwashing and glove-wear practices, and ensure the bar counters, tools, and ice wells stay clean and sanitary?'},
+      {id:'bt4', text:'Does the staff member handle beverage orders efficiently to support floor ticket times, communicate clearly with the service team, and maintain a positive attitude?'},
+    ];
+
+    // Hide any existing bt1-bt4 rows from main body to prevent duplication
+    body.querySelectorAll('[data-taskkey]').forEach(row => {
+      const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
+      if (['bt1','bt2','bt3','bt4'].includes(tk)) row.style.display = 'none';
+    });
+
+    let btEditContainer = body.querySelector('#btObsSection');
+    if (!btEditContainer) {
+      btEditContainer = document.createElement('div');
+      btEditContainer.id = 'btObsSection';
+      btEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      body.insertBefore(btEditContainer, body.querySelector('#cancelEditBtn'));
+    }
+
+    let btHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">🍹 OIC OBSERVATION</div>';
+    btObsDefs.forEach(t => {
+      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
+      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      btHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC comment...">${existingComment}</textarea>
+        </div>
+      </div>`;
+    });
+    btEditContainer.innerHTML = btHtml;
+  }
+
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
   if (s.role === 'kic') {
     const allKicDefs = [
@@ -7938,7 +7984,7 @@ function buildProgressCell(staff) {
   );
 
   // ── Eval: OIC/KIC get AM/AC Eval; service/bartender/delco get OIC Observation ──
-  const needsObservation = role === 'service'; // Only service has OIC/AM observation
+  const needsObservation = ['service','bartender'].includes(role); // service and bartender have OIC observation
   const obsDone = needsObservation
     ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
     : false;
@@ -8147,7 +8193,7 @@ function loadFOHData() {
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
-          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1']; // OIC eval task IDs
+          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4']; // OIC eval task IDs
           const hasOICData = oicTaskIds.some(tid => {
             // Check both 'd1_u1' format and direct 'u1' format
             return Object.keys(sub.taskData).some(k =>
@@ -9208,6 +9254,45 @@ function toggleFOHEditMode() {
     oicEditContainer.innerHTML = oicHtml;
   }
 
+  // ── OIC Observation for Bartender in FOH edit mode ──
+  if (staff && staff.role === 'bartender') {
+    const btFOHObsDefs = [
+      {id:'bt1', text:'Does the staff member strictly follow drink recipes and portion control, ensuring all beverages meet required standards for taste, temperature, and presentation before service?'},
+      {id:'bt2', text:'Does the staff member ensure the bar station, garnishes, ice, and glassware are fully prepared before service and kept organized and replenished throughout the shift?'},
+      {id:'bt3', text:'Does the staff member maintain excellent personal grooming, follow proper handwashing and glove-wear practices, and ensure the bar counters, tools, and ice wells stay clean and sanitary?'},
+      {id:'bt4', text:'Does the staff member handle beverage orders efficiently to support floor ticket times, communicate clearly with the service team, and maintain a positive attitude?'},
+    ];
+
+    let btFOHContainer = area.querySelector('#btFOHObsSection');
+    if (!btFOHContainer) {
+      btFOHContainer = document.createElement('div');
+      btFOHContainer.id = 'btFOHObsSection';
+      btFOHContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      area.insertBefore(btFOHContainer, area.querySelector('button#fohCancelEditBtn') || area.lastChild);
+    }
+
+    let btFOHHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">🍹 OIC OBSERVATION</div>';
+    btFOHObsDefs.forEach(t => {
+      const existingYN = (staff.taskData && staff.taskData[t.id]) ? staff.taskData[t.id].yn : '';
+      const existingComment = (staff.taskData && staff.taskData[t.id]) ? (staff.taskData[t.id].comment || '') : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      btFOHHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setFOHTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setFOHTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea data-fohtaskkey="${t.id}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC comment...">${existingComment}</textarea>
+        </div>
+      </div>`;
+    });
+    btFOHContainer.innerHTML = btFOHHtml;
+  }
+
   // -- Area Manager Observation -- OIC role
   if (staff && staff.role === 'oic') {
     const oicObsDefs = [
@@ -9376,7 +9461,7 @@ async function saveFOHOverwrite(staff) {
     const sub = child.val();
     if (sub.role !== staff.role || sub.week !== staff.week) return;
     // Apply yn changes — also allow adding new OIC tasks not in original submission
-    const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4']; // OIC eval task IDs
+    const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4']; // OIC eval task IDs
     // ── Verified By — runs independently of task changes ───────────────
     if (_fohVerifiedBy) {
       const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
@@ -9417,11 +9502,16 @@ async function saveFOHOverwrite(staff) {
             t2:'Attitude: Shows a helpful, positive attitude and is willing to support both guests and team members.',
             t3:'Follow Instruction: Listens carefully and follows instructions from the OIC and management without resistance.',
             t4:'Attendance: Arrives on time, is present for the full shift, and follows scheduling and attendance standards.',
+            bt1:'Does the staff member strictly follow drink recipes and portion control, ensuring all beverages meet required standards for taste, temperature, and presentation before service?',
+            bt2:'Does the staff member ensure the bar station, garnishes, ice, and glassware are fully prepared before service and kept organized and replenished throughout the shift?',
+            bt3:'Does the staff member maintain excellent personal grooming, follow proper handwashing and glove-wear practices, and ensure the bar counters, tools, and ice wells stay clean and sanitary?',
+            bt4:'Does the staff member handle beverage orders efficiently to support floor ticket times, communicate clearly with the service team, and maintain a positive attitude?',
           };
           const _fohSecText = {
             u1:'💰 Upselling', s1:'⭐ Service Standards', s2:'⭐ Service Standards', s3:'⭐ Service Standards',
             f1:'📝 Customer Feedback', f2:'📝 Customer Feedback',
             t1:'🤝 Team Player', t2:'🤝 Team Player', t3:'🤝 Team Player', t4:'🤝 Team Player',
+            bt1:'🍹 OIC Observation', bt2:'🍹 OIC Observation', bt3:'🍹 OIC Observation', bt4:'🍹 OIC Observation',
           };
           if (_fohTaskText[_tid]) updates['submissions/' + child.key + '/taskData/' + taskKey + '/task'] = _fohTaskText[_tid];
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = _fohSecText[_tid] || 'OIC Observation';
@@ -9458,7 +9548,7 @@ async function saveFOHOverwrite(staff) {
       });
       // Calculate opening, closing, oic scores separately
       // OIC task IDs — never count these toward opening or closing score
-      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1']; // OIC eval task IDs
+      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4']; // OIC eval task IDs
       // Opening task IDs — o1..o5
       const openTaskIds = ['o1','o2','o3','o4','o5'];
       // Closing task IDs — c1..c5
