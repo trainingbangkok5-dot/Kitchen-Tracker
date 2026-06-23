@@ -204,26 +204,23 @@ function initFirebase() {
 }
 initFirebase();
 
-// ── OIC Eval Score — loaded from Firebase when name is known ─────────────────
+// ── OIC Eval Score — read from Firebase when name is known ───────────────────
 let _oicEvalPct = null;
 function loadOicEvalPct() {
-  const name = typeof getStaffName === 'function' ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
+  const name = document.getElementById('fName')?.value?.trim() || '';
   if (!name || !_db) return;
-  const todayDate = getTodayKey().replace('dt','');
   _db.ref('submissions').orderByChild('staffName').equalTo(name).once('value', snap => {
     if (!snap.exists()) return;
     snap.forEach(child => {
       const rec = child.val();
       if (rec.role !== 'delco') return;
-      if (rec.oicEvalPct != null) {
-        _oicEvalPct = parseFloat(rec.oicEvalPct);
-      }
+      if (rec.oicEvalPct != null) _oicEvalPct = parseFloat(rec.oicEvalPct);
     });
     if (typeof renderDay === 'function') renderDay();
   });
 }
 
-
+let _overwritePins = {};
 function loadOverwritePins() {
   if (!_db) return;
   _db.ref('settings/pins').once('value', snap => { _overwritePins = snap.val() || {}; });
@@ -638,10 +635,7 @@ function renderDay() {
     const oPct=oM2>0?Math.round((oY2/oM2)*100):null;
     const cPct=cM2>0?Math.round((cY2/cM2)*100):null;
 
-    // OIC eval score — loaded from Firebase by loadOicEvalPct()
     const rdEval = (typeof _oicEvalPct !== 'undefined' && _oicEvalPct !== null) ? _oicEvalPct : null;
-
-    // Total = opening + closing + OIC eval (exclude nulls)
     const _rdComps = [oPct, cPct, rdEval].filter(v => v !== null);
     const totalM = _rdComps.length;
     const totalPct = totalM > 0 ? Math.round(_rdComps.reduce((a,b) => a+b, 0) / totalM) : 0;

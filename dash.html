@@ -3277,7 +3277,7 @@ function openStaffDetail(s) {
     const cColor = opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C';
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
-    const isService = ['service','oic','kic','linecook','steward','bartender','delco'].includes(s.role);
+    const isService = ['service','oic','kic','linecook','steward','bartender'].includes(s.role);
     const isKICRole = s.role === 'kic';
     // Total score formula: opening+eval, closing+eval, or opening+closing+eval
     const hasOpening = opO !== null;
@@ -6492,48 +6492,6 @@ function toggleEditMode(s) {
     btEditContainer.innerHTML = btHtml;
   }
 
-  // ── OIC Observation for Delco (BOH modal) ──
-  if (s.role === 'delco' && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole)) {
-    const dcObsDefs = [
-      {id:'dc1', text:'Does the staff member double-check all delivery slips against physical items, ensuring correct modifications, tight seals, proper temperature control, and correct branding before dispatch?'},
-      {id:'dc2', text:'Does the staff member assign orders quickly to available aggregators or internal drivers, keeping delivery ticket times within company targets?'},
-      {id:'dc3', text:'Is the delivery station fully prepared with sufficient packing materials (bags, tissue, cutlery, tapes) before peak hours, and kept clean and organized?'},
-      {id:'dc4', text:'Does the staff member communicate effectively with both kitchen staff and delivery riders, handle delay complaints calmly, and maintain a positive attitude?'},
-      {id:'dc5', text:'Did the staff member arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
-    ];
-    body.querySelectorAll('[data-taskkey]').forEach(row => {
-      const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
-      if (['dc1','dc2','dc3','dc4','dc5'].includes(tk)) row.style.display = 'none';
-    });
-    let dcEditContainer = body.querySelector('#dcObsSection');
-    if (!dcEditContainer) {
-      dcEditContainer = document.createElement('div');
-      dcEditContainer.id = 'dcObsSection';
-      dcEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      body.insertBefore(dcEditContainer, body.querySelector('#cancelEditBtn'));
-    }
-    let dcHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">🛵 OIC OBSERVATION</div>';
-    dcObsDefs.forEach(t => {
-      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
-      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
-      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      dcHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;gap:4px;">
-            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
-            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
-            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
-          </div>
-          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC comment...">${existingComment}</textarea>
-        </div>
-      </div>`;
-    });
-    dcEditContainer.innerHTML = dcHtml;
-  }
-
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
   if (s.role === 'kic') {
     const allKicDefs = [
@@ -7487,7 +7445,7 @@ function loadBOHData() {
           if (db && sub._fbKey) db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
           grouped[gKey].closingPct = null;
         }
-        if (sub.oicEvalPct != null && sub.role === 'kic') grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+        if (sub.oicEvalPct != null) grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
         // Recalculate overall from opening+closing+eval for KIC, opening+closing for others
         const _op = grouped[gKey].openingPct;
         const _cl = grouped[gKey].closingPct;
@@ -8022,7 +7980,7 @@ function buildProgressCell(staff) {
   );
 
   // ── Eval: OIC/KIC get AM/AC Eval; service/bartender/delco get OIC Observation ──
-  const needsObservation = ['service','bartender','delco'].includes(role); // service, bartender and delco have OIC observation
+  const needsObservation = ['service','bartender'].includes(role); // service and bartender have OIC observation
   const obsDone = needsObservation
     ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
     : false;
@@ -8231,7 +8189,7 @@ function loadFOHData() {
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
-          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
+          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4']; // OIC eval task IDs
           const hasOICData = oicTaskIds.some(tid => {
             // Check both 'd1_u1' format and direct 'u1' format
             return Object.keys(sub.taskData).some(k =>
@@ -8465,7 +8423,7 @@ function openFOHDetail(idx) {
   else if (cPctFoh!==null)                                         fohTotal = cPctFoh;
   else if (oicPctFoh!==null)                                       fohTotal = oicPctFoh;
   const fohTotalPass = fohTotal >= 95;
-  const isService = ['service','bartender','delco'].includes(staff.role);
+  const isService = ['service','bartender'].includes(staff.role);
   const isOIC = staff.role === 'oic';
 
   // Show loading state immediately
@@ -9329,44 +9287,6 @@ function toggleFOHEditMode() {
     btFOHContainer.innerHTML = btFOHHtml;
   }
 
-  // ── OIC Observation for Delco (FOH modal) ──
-  if (staff && staff.role === 'delco') {
-    const dcFOHObsDefs = [
-      {id:'dc1', text:'Does the staff member double-check all delivery slips against physical items, ensuring correct modifications, tight seals, proper temperature control, and correct branding before dispatch?'},
-      {id:'dc2', text:'Does the staff member assign orders quickly to available aggregators or internal drivers, keeping delivery ticket times within company targets?'},
-      {id:'dc3', text:'Is the delivery station fully prepared with sufficient packing materials (bags, tissue, cutlery, tapes) before peak hours, and kept clean and organized?'},
-      {id:'dc4', text:'Does the staff member communicate effectively with both kitchen staff and delivery riders, handle delay complaints calmly, and maintain a positive attitude?'},
-      {id:'dc5', text:'Did the staff member arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
-    ];
-    let dcFOHContainer = area.querySelector('#dcFOHObsSection');
-    if (!dcFOHContainer) {
-      dcFOHContainer = document.createElement('div');
-      dcFOHContainer.id = 'dcFOHObsSection';
-      dcFOHContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      area.insertBefore(dcFOHContainer, area.querySelector('button#fohCancelEditBtn') || area.lastChild);
-    }
-    let dcFOHHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">🛵 OIC OBSERVATION</div>';
-    dcFOHObsDefs.forEach(t => {
-      const existingYN = (staff.taskData && staff.taskData[t.id]) ? staff.taskData[t.id].yn : '';
-      const existingComment = (staff.taskData && staff.taskData[t.id]) ? (staff.taskData[t.id].comment || '') : '';
-      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      dcFOHHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-fohtaskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-        <div class="foh-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;gap:4px;">
-            <button onclick="setFOHTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
-            <button onclick="setFOHTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
-            <button onclick="setFOHTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
-          </div>
-          <textarea data-fohtaskkey="${t.id}" onchange="setFOHTaskComment(this)" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC comment...">${existingComment}</textarea>
-        </div>
-      </div>`;
-    });
-    dcFOHContainer.innerHTML = dcFOHHtml;
-  }
-
   // -- Area Manager Observation -- OIC role
   if (staff && staff.role === 'oic') {
     const oicObsDefs = [
@@ -9535,7 +9455,7 @@ async function saveFOHOverwrite(staff) {
     const sub = child.val();
     if (sub.role !== staff.role || sub.week !== staff.week) return;
     // Apply yn changes — also allow adding new OIC tasks not in original submission
-    const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
+    const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4']; // OIC eval task IDs
     // ── Verified By — runs independently of task changes ───────────────
     if (_fohVerifiedBy) {
       const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
@@ -9580,18 +9500,12 @@ async function saveFOHOverwrite(staff) {
             bt2:'Does the staff member ensure the bar station, garnishes, ice, and glassware are fully prepared before service and kept organized and replenished throughout the shift?',
             bt3:'Does the staff member maintain excellent personal grooming, follow proper handwashing and glove-wear practices, and ensure the bar counters, tools, and ice wells stay clean and sanitary?',
             bt4:'Does the staff member handle beverage orders efficiently to support floor ticket times, communicate clearly with the service team, and maintain a positive attitude?',
-            dc1:'Does the staff member double-check all delivery slips against physical items, ensuring correct modifications, tight seals, proper temperature control, and correct branding before dispatch?',
-            dc2:'Does the staff member assign orders quickly to available aggregators or internal drivers, keeping delivery ticket times within company targets?',
-            dc3:'Is the delivery station fully prepared with sufficient packing materials (bags, tissue, cutlery, tapes) before peak hours, and kept clean and organized?',
-            dc4:'Does the staff member communicate effectively with both kitchen staff and delivery riders, handle delay complaints calmly, and maintain a positive attitude?',
-            dc5:'Did the staff member arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?',
           };
           const _fohSecText = {
             u1:'💰 Upselling', s1:'⭐ Service Standards', s2:'⭐ Service Standards', s3:'⭐ Service Standards',
             f1:'📝 Customer Feedback', f2:'📝 Customer Feedback',
             t1:'🤝 Team Player', t2:'🤝 Team Player', t3:'🤝 Team Player', t4:'🤝 Team Player',
             bt1:'🍹 OIC Observation', bt2:'🍹 OIC Observation', bt3:'🍹 OIC Observation', bt4:'🍹 OIC Observation',
-            dc1:'🛵 OIC Observation', dc2:'🛵 OIC Observation', dc3:'🛵 OIC Observation', dc4:'🛵 OIC Observation', dc5:'🛵 OIC Observation',
           };
           if (_fohTaskText[_tid]) updates['submissions/' + child.key + '/taskData/' + taskKey + '/task'] = _fohTaskText[_tid];
           updates['submissions/' + child.key + '/taskData/' + taskKey + '/section'] = _fohSecText[_tid] || 'OIC Observation';
@@ -9628,7 +9542,7 @@ async function saveFOHOverwrite(staff) {
       });
       // Calculate opening, closing, oic scores separately
       // OIC task IDs — never count these toward opening or closing score
-      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
+      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4']; // OIC eval task IDs
       // Opening task IDs — o1..o5
       const openTaskIds = ['o1','o2','o3','o4','o5'];
       // Closing task IDs — c1..c5
