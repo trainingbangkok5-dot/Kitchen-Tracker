@@ -6545,11 +6545,6 @@ function toggleEditMode(s) {
             <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
           </div>
           <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="KIC comment...">${existingComment}</textarea>
-          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${existingPhoto?'<img src="'+existingPhoto+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;" onclick="openLightbox(this.src)">':''}</div>
-          <div style="display:flex;gap:6px;margin-top:6px;">
-            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#2E6DA4;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📷 Take Photo<input type="file" accept="image/*" capture="environment" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))"></label>
-            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#475569;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">🖼 Gallery<input type="file" accept="image/*" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))"></label>
-          </div>
         </div>
       </div>`;
     });
