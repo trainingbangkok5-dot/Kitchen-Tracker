@@ -3382,7 +3382,7 @@ function openStaffDetail(s) {
     // Group by section
     const bySec = {};
     // Eval task IDs — shown in dedicated eval panel below, exclude from main checklist
-    const _kicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1'];
+    const _kicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1'];
     const _oicEvalIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
     const _lcEvalIds  = ['lc1','lc2','lc3','lc4','lc5'];
     const _stEvalIds  = ['st1','st2','st3','st4','st5'];
@@ -3417,14 +3417,7 @@ function openStaffDetail(s) {
           const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
           const isLast = ti===secTasks.length-1;
           const taskKey = t.taskKey || (Object.keys(s.taskData||{}).find(k => s.taskData[k] === t) || '');
-          // Special display for aud1 — show audit score instead of YES/NO
           const baseTaskId = taskKey.replace(/^d[0-9]+_/,'');
-          const isAud1 = baseTaskId === 'aud1';
-          const audScoreDisplay = isAud1 && t.audScore != null ? parseFloat(t.audScore) : null;
-          const audPass = audScoreDisplay != null && audScoreDisplay >= 90;
-          const audDisplayBg  = audScoreDisplay==null?'#F3F4F6':audPass?'#DCFCE7':'#FEE2E2';
-          const audDisplayCol = audScoreDisplay==null?'#6B6B60':audPass?'#15803D':'#B91C1C';
-          const audDisplayLbl = audScoreDisplay==null?(yn==='yes'?'✓ YES':yn==='no'?'✗ NO':'—'):(audScoreDisplay+'% '+(audPass?'✓ Pass':'✗ Below'));
           html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-taskkey="${taskKey}">
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
@@ -3433,7 +3426,7 @@ function openStaffDetail(s) {
               ${buildPhotoHtml(t, s ? s.role : (staff ? staff.role : ""))}
             </div>
             <div class="task-yn-display">
-              <span style="background:${isAud1?audDisplayBg:ynBg};color:${isAud1?audDisplayCol:ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${isAud1?audDisplayLbl:ynLbl}</span>
+              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;">${ynLbl}</span>
             </div>
             <div class="task-yn-edit" style="display:none;gap:4px;">
               <button onclick="setTaskYN(this,'yes')" style="padding:5px 10px;font-size:11px;font-weight:700;border-radius:8px;border:none;background:${yn==='yes'?'#15803D':'#E5E7EB'};color:${yn==='yes'?'#fff':'#374151'};cursor:pointer;">✓ YES</button>
@@ -5085,7 +5078,7 @@ async function exportDetailPDF() {
     });
 
     const _pdfOicIds     = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
-    const _pdfKicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1','aud1'];
+    const _pdfKicEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1'];
 
     Object.keys(byDay).sort((a,b)=>+a-+b).forEach(day => {
       const tasks = byDay[day];
@@ -6466,7 +6459,6 @@ function toggleEditMode(s) {
       {id:'fc4', section:'', text:'Did the KIC actively monitor, accurately track, and report food wastage across all kitchen sections during the shift?'},
       {id:'fo1', section:'', text:'Was communication between the FOH and BOH clear, effective, and managed properly to ensure smooth ticket times?'},
     ];
-    const kicAudScore = (s.taskData && s.taskData['aud1'] && s.taskData['aud1'].audScore != null) ? s.taskData['aud1'].audScore : '';
 
     let kicEditContainer = body.querySelector('#kicEditSection');
     if (!kicEditContainer) {
@@ -6512,43 +6504,6 @@ function toggleEditMode(s) {
       </div>`;
     });
     kicEditContainer.innerHTML = kicHtml;
-
-    // Audit score row — separate from YES/NO tasks
-    const audScore = kicAudScore;
-    const audColor = audScore >= 90 ? '#15803D' : audScore ? '#B91C1C' : '#94A3B8';
-    const audBg    = audScore >= 90 ? '#DCFCE7' : audScore ? '#FEE2E2' : '#F8FAFC';
-    const audDiv = document.createElement('div');
-    audDiv.style.cssText = 'background:#F5F3EE;border-top:2px solid #E0DDD4;padding:12px;';
-    audDiv.innerHTML = `
-      <div style="background:#1A3C5E;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;border-radius:6px 6px 0 0;margin:-12px -12px 10px -12px;">🗂️ Audit Compliance</div>
-      <div style="font-size:12px;font-weight:500;margin-bottom:8px;">The outlet achieved a score above 90% in the last monthly audit visit.</div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <input id="kicAud1ScoreInput" type="number" min="0" max="100" step="0.5" value="${audScore}" placeholder="e.g. 92"
-          style="width:80px;padding:7px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:14px;font-weight:700;text-align:center;color:${audColor};background:${audBg};outline:none;"
-          oninput="(function(inp){
-            const v=parseFloat(inp.value);
-            const pass=!isNaN(v)&&v>=90;
-            inp.style.color=isNaN(v)?'#94A3B8':pass?'#15803D':'#B91C1C';
-            inp.style.background=isNaN(v)?'#F8FAFC':pass?'#DCFCE7':'#FEE2E2';
-            inp.style.borderColor=isNaN(v)?'#E0DDD4':pass?'#15803D':'#B91C1C';
-            const lbl=document.getElementById('kicAud1Label');
-            if(lbl){lbl.textContent=isNaN(v)?'Enter score':pass?'✅ Passes (90%+)':'❌ Below 90% — does not qualify';lbl.style.color=isNaN(v)?'#94A3B8':pass?'#15803D':'#B91C1C';}
-            if(!isNaN(v)){_editChanges['aud1']=pass?'yes':'no';_editChanges['aud1_score']=v;if(typeof updateLiveScore==='function')updateLiveScore();}
-          })(this)">
-        <span id="kicAud1Label" style="font-size:12px;font-weight:600;color:${audScore>=90?'#15803D':audScore?'#B91C1C':'#94A3B8'};">
-          ${audScore>=90?'✅ Passes (90%+)':audScore?'❌ Below 90% — does not qualify':'Enter score'}
-        </span>
-      </div>`;
-    kicEditContainer.appendChild(audDiv);
-
-    // Wire up audit score to _editChanges on save
-    kicEditContainer.querySelector('#kicAud1ScoreInput').addEventListener('change', function() {
-      const v = parseFloat(this.value);
-      if (!isNaN(v)) {
-        _editChanges['aud1'] = v >= 90 ? 'yes' : 'no';
-        _editChanges['aud1_score'] = v;
-      }
-    });
   }
 
   // ── Line Cook / Steward KIC Observation (KIC overwriting LC/Steward record) ──
@@ -6652,7 +6607,6 @@ function updateLiveScore() {
 
   // Merge _editChanges — BOTH existing and NEW tasks
   Object.entries(_editChanges).forEach(([k, yn]) => {
-    if (k === 'aud1_score') return;
     const ynVal = typeof yn === 'string' ? yn : (yn && yn.yn) ? yn.yn : yn;
     if (updatedTaskData[k]) {
       updatedTaskData[k] = {...updatedTaskData[k], yn: ynVal};
@@ -6826,7 +6780,7 @@ async function saveOverwrite(s) {
 
   // Use task ID to identify opening/closing/eval — based on actual checklist task IDs
   // OIC: opening=o1-o4, closing=c1-c4, eval=s1-s4,m1-m2,u1-u2,w1-w2,p1-p2,mp1-mp2,a1
-  // KIC: opening=o1-o4, closing=cy1-cy4, eval=fc1-fc4,fo1-fo3,cost1,sp2,cc1,aud1
+  // KIC: opening=o1-o4, closing=cy1-cy4, eval=fc1-fc4,fo1-fo3,cost1,sp2,cc1
 
   // Task text lookup — so full checklist report shows text instead of "—"
   const _evalTaskTextMap = {
@@ -6841,7 +6795,6 @@ async function saveOverwrite(s) {
     cost1:'Day-to-day purchasing, receiving, and stock-on-hand are being monitored consistently.',
     sp2:'Team performance maintains an overall score above 90% each shift.',
     cc1:'If any food-related customer complaints occur, ensure a photo and a clear explanation are provided.',
-    aud1:'The outlet achieved a score above 90% in the last monthly audit visit.',
     // Line Cook eval (KIC)
     lc1:'Does the staff follow recipe compliance, portion control standards, maintain proper mise en place, ensure all items are replenished, and keep their section organized throughout the shift?',
     lc2:'Does the staff ensure all food items meet the required standards for taste, texture, temperature, and presentation before leaving the kitchen?',
@@ -6875,7 +6828,7 @@ async function saveOverwrite(s) {
   const _evalSectionMap = _isKIC ? {
     fc1:'🍲 Food Consistency Today', fc2:'🍲 Food Consistency Today', fc3:'🍲 Food Consistency Today', fc4:'🍲 Food Consistency Today',
     fo1:'⚙️ Flow of Operation', fo2:'⚙️ Flow of Operation', fo3:'⚙️ Flow of Operation',
-    cost1:'💰 Food Cost & Staff', sp2:'💰 Food Cost & Staff', cc1:'💰 Food Cost & Staff', aud1:'💰 Food Cost & Staff',
+    cost1:'💰 Food Cost & Staff', sp2:'💰 Food Cost & Staff', cc1:'💰 Food Cost & Staff',
   } : s.role === 'steward' ? {
     st1:'📋 KIC Observation', st2:'📋 KIC Observation', st3:'📋 KIC Observation', st4:'📋 KIC Observation', st5:'📋 KIC Observation',
   } : _isLC ? {
@@ -6903,11 +6856,6 @@ async function saveOverwrite(s) {
   // Build updates
   const updates = {};
   Object.entries(_editChanges).forEach(([k, yn]) => {
-    if (k === 'aud1_score') {
-      // Save raw audit score to taskData/aud1/audScore
-      updates['submissions/' + fbKey + '/taskData/aud1/audScore'] = yn;
-      return;
-    }
     updates['submissions/' + fbKey + '/taskData/' + k + '/yn'] = yn;
     // Store task text/section/owner for new eval tasks so full report shows correct text
     const tid = k.replace(/^d[0-9]+_/, '');
@@ -6966,7 +6914,6 @@ async function saveOverwrite(s) {
   // Recalculate score
   const updatedTaskData = JSON.parse(JSON.stringify(s.taskData || {}));
   Object.entries(_editChanges).forEach(([k, yn]) => {
-    if (k === 'aud1_score') return; // raw score stored separately, not a yn task
     const tid = k.replace(/^d[0-9]+_/, '');
     if (updatedTaskData[k]) updatedTaskData[k].yn = yn;
     else updatedTaskData[k] = {

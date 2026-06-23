@@ -524,58 +524,6 @@ function showToast(msg, type) {
 
 
 
-// ── Auto-fill audit score for KIC's outlet ───────────────────────────────────
-function getLatestAuditForOutlet(outlet) {
-  if (!outlet) return null;
-  try {
-    const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{}');
-    const audits = db.audits || [];
-    const outletAudits = audits.filter(a =>
-      a.outlet && a.outlet.trim().toLowerCase() === outlet.trim().toLowerCase()
-    );
-    if (outletAudits.length === 0) return null;
-    // Get most recent
-    return outletAudits.sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0];
-  } catch(e) { return null; }
-}
-
-function showAuditBanner() {
-  const outlet = document.getElementById('fOutlet')?.value?.trim();
-  const audit = getLatestAuditForOutlet(outlet);
-  let banner = document.getElementById('_auditBanner');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = '_auditBanner';
-    banner.style.cssText = 'margin:10px 16px 0;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;';
-    const content = document.getElementById('mainContent');
-    if (content) content.parentNode.insertBefore(banner, content);
-  }
-  if (!outlet) {
-    banner.style.display = 'none';
-    return;
-  }
-  if (!audit) {
-    banner.style.cssText += 'background:#FEF9C3;border:1px solid #FDE68A;color:#92400E;display:block;';
-    banner.textContent = '⏳ ' + outlet + ' — No audit submitted yet (Pending)';
-  } else {
-    const pass = audit.score >= 90;
-    banner.style.cssText += (pass
-      ? 'background:#DCFCE7;border:1px solid #22C55E;color:#15803D;display:block;'
-      : 'background:#FEE2E2;border:1px solid #EF4444;color:#B91C1C;display:block;');
-    const d = new Date(audit.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'Asia/Dubai'});
-    banner.textContent = (pass ? '✅' : '❌') + ' ' + outlet + ' ' + audit.auditType +
-      ' Audit: ' + audit.score + '% (' + audit.rawScore + '/' + audit.maxScore + ' pts)' +
-      ' — Auditor: ' + audit.auditor + ' — ' + d;
-    // Also auto-set the auditor section task yn if score >= 90
-    autoSetAuditorTask(audit.score);
-  }
-}
-
-function autoSetAuditorTask(score) {
-  // Find the aud1 task and auto-set it
-  const val = score >= 90 ? 'yes' : 'no';
-  setVal(currentDay, 'aud1', 'yn', val);
-}
 
 
 // ── Auto-reset: detect new week and start fresh cycle ────────
@@ -725,13 +673,6 @@ const SECTIONS = [
       { id:'fo1', owner:'areachef', ownerLbl:'Area Chef', text:'Was communication between the FOH and BOH clear, effective, and managed properly to ensure smooth ticket times?', photo:false, translations:{} }
     ]
   },
-  {
-    title: '🔍 Auditor Verification',
-    evalOnly: true,
-    tasks: [
-      { id:'aud1', owner:'areachef', ownerLbl:'Area Chef', text:'The outlet achieved a score above 90% in the last monthly audit visit.', photo:false, translations:{} }
-    ]
-  }
 ];
 let currentDay = 1; // Single daily submission — day rail removed
 let currentShift = null; // 'opening' or 'closing'
@@ -1370,7 +1311,6 @@ window.addEventListener('DOMContentLoaded', () => {
   })();
   buildDayRail();
   renderDay();
-  showAuditBanner();
 });
 
 // ── Midnight auto-reset (Dubai UTC+4) ───────────────────────
