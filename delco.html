@@ -211,13 +211,28 @@ let _oicEvalRef = null;
 function _updateEvalBox() {
   const rdEval = _oicEvalPct;
   const eColor = rdEval===null?'#94A3B8':rdEval>=95?'#15803D':rdEval>=70?'#D97706':'#B91C1C';
+  // Update OIC eval box directly — no renderDay() to avoid destroying DOM mid-edit
   const box = document.querySelector('[data-scorebox="oic"]');
   if (!box) return;
   const pctEl = box.querySelector('.sb-pct');
   const lblEl = box.querySelector('.sb-lbl');
   if (pctEl) { pctEl.textContent = rdEval!==null?rdEval+'%':'—'; pctEl.style.color = eColor; }
   if (lblEl) { lblEl.textContent = rdEval===null?'Pending OIC':rdEval>=95?'✓ Pass':'✗ Below target'; lblEl.style.color = eColor; }
-  if (typeof renderDay === 'function') renderDay();
+  // Update total box without full re-render
+  const tbox = document.querySelector('[data-scorebox="total"]');
+  if (tbox) {
+    const oPct = parseFloat(document.querySelector('[data-scorebox="opening"] .sb-pct')?.textContent)||null;
+    const cPct = parseFloat(document.querySelector('[data-scorebox="closing"] .sb-pct')?.textContent)||null;
+    const comps = [oPct, cPct, rdEval].filter(v => v !== null && !isNaN(v));
+    const tot = comps.length > 0 ? Math.round(comps.reduce((a,b)=>a+b,0)/comps.length) : null;
+    const pass = tot !== null && tot >= 95;
+    const tPct = tbox.querySelector('.sb-pct');
+    const tLbl = tbox.querySelector('.sb-lbl');
+    if (tPct) { tPct.textContent = tot!==null?tot+'%':'—'; tPct.style.color = tot===null?'#94A3B8':pass?'#15803D':'#B91C1C'; }
+    if (tLbl) { tLbl.textContent = tot===null?'No data':pass?'✓ Qualified':'✗ Not qualified'; tLbl.style.color = tot===null?'#94A3B8':pass?'#15803D':'#B91C1C'; }
+    tbox.style.background = tot===null?'#F8FAFC':pass?'#F0FDF4':'#FFF1F0';
+    tbox.style.borderColor = tot===null?'#E2E8F0':pass?'#22C55E':'#EF4444';
+  }
 }
 
 function loadOicEvalPct() {
