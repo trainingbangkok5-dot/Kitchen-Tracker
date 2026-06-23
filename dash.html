@@ -290,6 +290,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
+    <div class="tab" id="tabOICIncentive" onclick="showTab(this,'oicincentive')" style="display:none;">💰 OIC Incentive</div>
     <div class="tab" id="tabSummaryScoring" onclick="showTab(this,'summaryscoring')" style="display:none;">📈 Weekly Staff Report</div>
     <div class="tab" id="tabArchive" onclick="showTab(this,'archive')" style="display:none;">🗄️ Archive</div>
   </div>
@@ -387,6 +388,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
     <div id="kpiPageBody"></div>
+  </div>
+
+  <!-- OIC MONTHLY INCENTIVE PAGE -->
+  <div class="page" id="page-oicincentive" style="padding:16px;">
+    <div style="max-width:960px;margin:0 auto;">
+
+      <!-- Page header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#1A3C5E;">💰 OIC Monthly Incentive</div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px;">Individual entry, auto-calculation, saved per OIC per month</div>
+        </div>
+        <button onclick="showOICIncentiveForm(null)" style="padding:8px 16px;background:#1F4E79;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">+ New Entry</button>
+      </div>
+
+      <!-- Filters -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+        <select id="oicIncMonthFilter" onchange="loadOICIncentiveList()" style="padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;min-width:140px;"></select>
+        <select id="oicIncOutletFilter" onchange="loadOICIncentiveList()" style="padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;min-width:130px;">
+          <option value="">All Outlets</option>
+          <option>LB DSO</option><option>LB Tower</option><option>LB Hamra</option><option>LB JLT</option><option>LB OM</option><option>LB DHE</option><option>LB MTC</option><option>SB Deira</option><option>SB DG</option><option>The Red Door</option>
+        </select>
+        <div id="oicIncStatus" style="font-size:12px;color:#64748B;margin-left:auto;"></div>
+      </div>
+
+      <!-- Consolidated table -->
+      <div id="oicIncConsolidated"></div>
+
+      <!-- Entry form (hidden by default) -->
+      <div id="oicIncFormWrap" style="display:none;margin-top:20px;"></div>
+    </div>
   </div>
 
   <!-- RESET CHECKLIST MODAL -->
@@ -1504,6 +1536,7 @@ function doLogin() {
   document.getElementById('tabVerified').style.display = 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabOICIncentive').style.display = ['oic','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabSummaryScoring').style.display = ['areachef','areamanager','director','training','operations','ceo','kic','oic'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
@@ -2334,6 +2367,7 @@ function showTab(el,id) {
   if (id === 'foh') { loadFOHData(); }
   if (id === 'boh') { loadBOHData(); }
   if (id === 'kpi') { renderKPIPage(); }
+  if (id === 'oicincentive') { initOICIncentive(); }
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'summaryscoring') { initSummaryScoring(); }
   if (id === 'audits') {
@@ -2349,6 +2383,273 @@ function showTab(el,id) {
 }
 
 function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly(); renderAudits(); loadRegistry(); }
+
+// ══════════════════════════════════════════════════════════════
+// OIC MONTHLY INCENTIVE CALCULATOR
+// ══════════════════════════════════════════════════════════════
+var _oicIncDb = db; // uses same BOH Firebase (culex-kitchen-tracker)
+var _oicIncEditKey = null; // Firebase key being edited (null = new)
+
+var OIC_INC_ROWS = [
+  { id:'sales',      kpi:'Sales',                                                     source:'P&L actuals vs Target',          weight:0.10, max:100, inverse:false },
+  { id:'foodcost',   kpi:'Food Cost',                                                 source:'P&L actuals vs Target',          weight:0.10, max:100, inverse:false },
+  { id:'manpower',   kpi:'Manpower Cost',                                             source:'P&L actuals vs Target',          weight:0.10, max:100, inverse:false },
+  { id:'audit',      kpi:'Dining Area Audit Score',                                   source:'Internal Auditor',               weight:0.20, max:100, inverse:false },
+  { id:'complaints', kpi:'Service Complaint Count',                                   source:'Actual Log (Inverse Scale)',     weight:0.10, max:4,   inverse:true  },
+  { id:'teamscores', kpi:'Monthly Team Member Avg. Scores',                           source:'Staff Sheet Roll-up',            weight:0.20, max:100, inverse:false },
+  { id:'behavior',   kpi:'OIC Consistency, Attitude & Behavior',                      source:'One on One Tracker of the Area', weight:0.20, max:100, inverse:false },
+];
+
+function _oicIncWeighted(actual, max, weight, inverse) {
+  var v = parseFloat(actual);
+  if (isNaN(v) || actual === '' || actual == null) return null;
+  var score = inverse ? Math.max(0, (max - v) / max) * 100 : Math.min(v / max, 1) * 100;
+  return Math.round(score * weight * 1000) / 100;
+}
+
+function _oicIncTotal(actuals) {
+  var total = 0, hasAny = false;
+  OIC_INC_ROWS.forEach(function(row) {
+    var ws = _oicIncWeighted(actuals[row.id], row.max, row.weight, row.inverse);
+    if (ws !== null) { total += ws; hasAny = true; }
+  });
+  return hasAny ? Math.round(total * 10) / 10 : null;
+}
+
+function initOICIncentive() {
+  // Populate month filter
+  var sel = document.getElementById('oicIncMonthFilter');
+  if (sel && !sel.options.length) {
+    var now = new Date();
+    for (var i = 0; i < 12; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var val = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      var lbl = d.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+      var opt = document.createElement('option');
+      opt.value = val; opt.textContent = lbl;
+      if (i === 0) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+  loadOICIncentiveList();
+}
+
+function loadOICIncentiveList() {
+  var statusEl = document.getElementById('oicIncStatus');
+  if (statusEl) statusEl.textContent = 'Loading...';
+  var month = document.getElementById('oicIncMonthFilter').value;
+  var outlet = document.getElementById('oicIncOutletFilter').value;
+  if (!_oicIncDb) { renderOICIncConsolidated([]); return; }
+  _oicIncDb.ref('oic_incentive').orderByChild('month').equalTo(month).once('value', function(snap) {
+    var records = [];
+    if (snap.exists()) {
+      snap.forEach(function(child) {
+        var r = child.val(); r._key = child.key;
+        if (!outlet || r.outlet === outlet) records.push(r);
+      });
+    }
+    records.sort(function(a,b){ return (a.oicName||'').localeCompare(b.oicName||''); });
+    renderOICIncConsolidated(records);
+    if (statusEl) statusEl.textContent = records.length + ' record' + (records.length===1?'':'s');
+  });
+}
+
+function renderOICIncConsolidated(records) {
+  var el = document.getElementById('oicIncConsolidated');
+  if (!el) return;
+  if (!records.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:#94A3B8;background:#F8FAFC;border-radius:10px;border:1px dashed #E0DDD4;font-size:13px;">No records for this month. Click <strong>+ New Entry</strong> to add one.</div>';
+    return;
+  }
+  var html = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+    '<thead><tr style="background:#1F4E79;color:#fff;">' +
+    '<th style="padding:10px 12px;text-align:left;font-weight:600;">OIC Name</th>' +
+    '<th style="padding:10px 12px;text-align:left;font-weight:600;">Outlet</th>' +
+    '<th style="padding:10px 12px;text-align:left;font-weight:600;">Month</th>' +
+    '<th style="padding:10px 12px;text-align:center;font-weight:600;">Total Score</th>' +
+    '<th style="padding:10px 12px;text-align:center;font-weight:600;">Status</th>' +
+    '<th style="padding:10px 12px;text-align:center;font-weight:600;">Actions</th>' +
+    '</tr></thead><tbody>';
+  records.forEach(function(r, i) {
+    var total = r.totalScore;
+    var pass = total >= 95;
+    var tColor = total === null ? '#94A3B8' : pass ? '#15803D' : total >= 70 ? '#D97706' : '#B91C1C';
+    var badge = total === null ? '<span style="color:#94A3B8;font-size:12px;">—</span>'
+      : pass ? '<span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">✅ Qualified</span>'
+      : '<span style="background:#FEE2E2;color:#B91C1C;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">❌ Not Qualified</span>';
+    var monthLabel = '';
+    try { var d = new Date(r.month+'-01'); monthLabel = d.toLocaleDateString('en-GB',{month:'short',year:'numeric'}); } catch(e){ monthLabel = r.month; }
+    html += '<tr style="border-bottom:1px solid #F1F5F9;background:' + (i%2===0?'#fff':'#FAFBFC') + ';">' +
+      '<td style="padding:10px 12px;font-weight:600;">' + (r.oicName||'—') + '</td>' +
+      '<td style="padding:10px 12px;color:#64748B;">' + (r.outlet||'—') + '</td>' +
+      '<td style="padding:10px 12px;color:#64748B;">' + monthLabel + '</td>' +
+      '<td style="padding:10px 12px;text-align:center;font-size:15px;font-weight:700;color:' + tColor + ';">' + (total!==null?total+'%':'—') + '</td>' +
+      '<td style="padding:10px 12px;text-align:center;">' + badge + '</td>' +
+      '<td style="padding:10px 12px;text-align:center;display:flex;gap:6px;justify-content:center;">' +
+        '<button onclick="showOICIncentiveForm(\'' + r._key + '\')" style="padding:5px 12px;background:#1F4E79;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">✏️ Edit</button>' +
+        '<button onclick="deleteOICIncentive(\'' + r._key + '\')" style="padding:5px 10px;background:#FEE2E2;color:#B91C1C;border:1px solid #FCA5A5;border-radius:6px;font-size:11px;cursor:pointer;">🗑</button>' +
+      '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+function showOICIncentiveForm(key) {
+  _oicIncEditKey = key;
+  var wrap = document.getElementById('oicIncFormWrap');
+  if (!wrap) return;
+  // If editing, load existing record first
+  if (key && _oicIncDb) {
+    _oicIncDb.ref('oic_incentive/' + key).once('value', function(snap) {
+      var rec = snap.val() || {};
+      _buildOICIncForm(wrap, rec);
+    });
+  } else {
+    var month = document.getElementById('oicIncMonthFilter').value;
+    // Pre-fill OIC name from current login if OIC role
+    var preOic = (currentRole === 'oic' && currentOutlet) ? '' : '';
+    _buildOICIncForm(wrap, { month: month, outlet: currentOutlet||'' });
+  }
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function _buildOICIncForm(wrap, rec) {
+  var actuals = rec.actuals || {};
+  var rows = '';
+  var total = _oicIncTotal(actuals);
+  OIC_INC_ROWS.forEach(function(row, i) {
+    var val = actuals[row.id] !== undefined ? actuals[row.id] : '';
+    var ws = _oicIncWeighted(val, row.max, row.weight, row.inverse);
+    var wsColor = ws===null?'#94A3B8':ws/(row.weight*100)>=0.95?'#15803D':ws/(row.weight*100)>=0.7?'#D97706':'#B91C1C';
+    var subNote = row.inverse ? '<div style="font-size:10px;color:#64748B;margin-top:2px;">Fewer = better (max '+row.max+' complaints)</div>' : '';
+    rows += '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;border-bottom:.5px solid #E0DDD4;background:' + (i%2===0?'#fff':'#F8FAFC') + ';">' +
+      '<div style="padding:10px 12px;font-size:12px;font-weight:500;border-right:1px solid #E0DDD4;display:flex;flex-direction:column;justify-content:center;">' + row.kpi + subNote + '</div>' +
+      '<div style="padding:10px 12px;font-size:11px;color:#64748B;border-right:1px solid #E0DDD4;display:flex;align-items:center;">' + row.source + '</div>' +
+      '<div style="padding:10px 12px;font-size:12px;font-weight:600;text-align:center;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;color:#1F4E79;">' + Math.round(row.weight*100) + '%</div>' +
+      '<div style="padding:10px 12px;font-size:12px;text-align:center;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;color:#475569;">' + row.max + '</div>' +
+      '<div style="padding:6px 10px;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;">' +
+        '<input id="oic_inc_' + row.id + '" type="number" min="0" step="0.1" value="' + val + '" placeholder="0\u2013' + row.max + '"' +
+        ' style="width:78px;padding:6px 8px;border:1.5px solid #FDE68A;border-radius:8px;font-size:13px;font-weight:600;text-align:center;background:#FFFDE7;outline:none;color:#1A3C5E;"' +
+        ' oninput="updateOICIncRow(\'' + row.id + '\',' + row.max + ',' + row.weight + ',' + row.inverse + ')">' +
+      '</div>' +
+      '<div id="oic_inc_ws_' + row.id + '" style="padding:10px 12px;font-size:13px;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;color:' + wsColor + ';">' + (ws!==null?ws.toFixed(1):'—') + '</div>' +
+    '</div>';
+  });
+
+  var totalColor = total===null?'#FDE68A':total>=95?'#86EFAC':total>=70?'#FDE68A':'#FCA5A5';
+  var month = document.getElementById('oicIncMonthFilter').value;
+  var monthOptions = '';
+  var sel = document.getElementById('oicIncMonthFilter');
+  if (sel) Array.from(sel.options).forEach(function(o){ monthOptions += '<option value="'+o.value+'"'+(o.value===(rec.month||month)?' selected':'')+'>'+o.text+'</option>'; });
+
+  wrap.innerHTML =
+    '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;overflow:hidden;">' +
+      // Title bar
+      '<div style="background:#1F4E79;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">' +
+        '<div>' +
+          '<div style="font-size:15px;font-weight:700;">OUTLET IN-CHARGE (OIC) INCENTIVE CALCULATOR</div>' +
+          '<div style="font-size:11px;opacity:.8;margin-top:3px;">Monthly Performance Evaluation</div>' +
+        '</div>' +
+        '<button onclick="closeOICIncForm()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">✕ Close</button>' +
+      '</div>' +
+      // Info row
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:14px 16px;background:#F8FAFC;border-bottom:1px solid #E0DDD4;">' +
+        '<div><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">OIC Name</div>' +
+          '<input id="oic_inc_name" type="text" placeholder="Full name..." value="' + (rec.oicName||'') + '" style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;"></div>' +
+        '<div><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Outlet</div>' +
+          '<select id="oic_inc_outlet" style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">' +
+          '<option value="">Select outlet...</option>' +
+          ['LB DSO','LB Tower','LB Hamra','LB JLT','LB OM','LB DHE','LB MTC','SB Deira','SB DG','The Red Door'].map(function(o){ return '<option value="'+o+'"'+(o===(rec.outlet||currentOutlet||'')?' selected':'')+'>'+o+'</option>'; }).join('') +
+          '</select></div>' +
+        '<div><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;">Month</div>' +
+          '<select id="oic_inc_month" style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;">' + monthOptions + '</select></div>' +
+      '</div>' +
+      // Column headers
+      '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;background:#1F4E79;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">' +
+        '<div style="padding:9px 12px;border-right:1px solid rgba(255,255,255,.15);">Incentive Metric / KPI</div>' +
+        '<div style="padding:9px 12px;border-right:1px solid rgba(255,255,255,.15);">Source / Evaluator</div>' +
+        '<div style="padding:9px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.15);">Weight</div>' +
+        '<div style="padding:9px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.15);">Target</div>' +
+        '<div style="padding:9px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.15);">Actual Achieved</div>' +
+        '<div style="padding:9px 12px;text-align:center;">Weighted Score</div>' +
+      '</div>' +
+      // Data rows
+      rows +
+      // Total row
+      '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;background:#1F4E79;color:#fff;">' +
+        '<div style="padding:12px 14px;font-size:13px;font-weight:700;grid-column:1/5;">Total / Final Performance</div>' +
+        '<div style="padding:12px 14px;text-align:center;font-size:13px;font-weight:700;border-left:1px solid rgba(255,255,255,.2);">100%</div>' +
+        '<div style="padding:12px 14px;text-align:center;border-left:1px solid rgba(255,255,255,.2);">' +
+          '<span id="oic_inc_total" style="font-size:16px;font-weight:700;color:' + totalColor + ';">' + (total!==null?total.toFixed(1)+'%':'—') + '</span>' +
+        '</div>' +
+      '</div>' +
+      // Save button
+      '<div style="padding:14px 16px;display:flex;justify-content:flex-end;gap:10px;background:#F8FAFC;border-top:1px solid #E0DDD4;">' +
+        '<button onclick="closeOICIncForm()" style="padding:9px 20px;background:#fff;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;cursor:pointer;color:#64748B;">Cancel</button>' +
+        '<button onclick="saveOICIncentive()" style="padding:9px 24px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">💾 Save Record</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function updateOICIncRow(id, max, weight, inverse) {
+  var inp = document.getElementById('oic_inc_' + id);
+  var wsEl = document.getElementById('oic_inc_ws_' + id);
+  if (!inp || !wsEl) return;
+  var ws = _oicIncWeighted(inp.value, max, weight, inverse);
+  var wsColor = ws===null?'#94A3B8':ws/(weight*100)>=0.95?'#15803D':ws/(weight*100)>=0.7?'#D97706':'#B91C1C';
+  wsEl.textContent = ws !== null ? ws.toFixed(1) : '—';
+  wsEl.style.color = wsColor;
+  // Update total
+  var actuals = {};
+  OIC_INC_ROWS.forEach(function(row){ var el=document.getElementById('oic_inc_'+row.id); actuals[row.id]=el?el.value:''; });
+  var total = _oicIncTotal(actuals);
+  var totalEl = document.getElementById('oic_inc_total');
+  if (totalEl) {
+    totalEl.textContent = total !== null ? total.toFixed(1) + '%' : '—';
+    totalEl.style.color = total===null?'#FDE68A':total>=95?'#86EFAC':total>=70?'#FDE68A':'#FCA5A5';
+  }
+}
+
+function saveOICIncentive() {
+  var name = (document.getElementById('oic_inc_name').value||'').trim();
+  var outlet = document.getElementById('oic_inc_outlet').value;
+  var month = document.getElementById('oic_inc_month').value;
+  if (!name) { alert('Please enter the OIC name.'); return; }
+  if (!outlet) { alert('Please select an outlet.'); return; }
+  if (!month) { alert('Please select a month.'); return; }
+  var actuals = {};
+  OIC_INC_ROWS.forEach(function(row){ var el=document.getElementById('oic_inc_'+row.id); actuals[row.id]=el&&el.value!==''?parseFloat(el.value):null; });
+  var total = _oicIncTotal(actuals);
+  var record = {
+    oicName: name, outlet: outlet, month: month,
+    actuals: actuals, totalScore: total,
+    qualified: total !== null && total >= 95,
+    savedAt: new Date().toISOString(),
+    savedBy: currentRole
+  };
+  if (!_oicIncDb) { alert('Firebase not ready.'); return; }
+  var ref = _oicIncEditKey ? _oicIncDb.ref('oic_incentive/' + _oicIncEditKey) : _oicIncDb.ref('oic_incentive').push();
+  ref.set(record).then(function() {
+    showToast('OIC Incentive record saved ✓', 'ok');
+    closeOICIncForm();
+    loadOICIncentiveList();
+  }).catch(function(e) { alert('Save failed: ' + e.message); });
+}
+
+function deleteOICIncentive(key) {
+  if (!confirm('Delete this record? This cannot be undone.')) return;
+  _oicIncDb.ref('oic_incentive/' + key).remove().then(function() {
+    showToast('Record deleted', 'ok');
+    loadOICIncentiveList();
+  });
+}
+
+function closeOICIncForm() {
+  var wrap = document.getElementById('oicIncFormWrap');
+  if (wrap) { wrap.style.display = 'none'; wrap.innerHTML = ''; }
+  _oicIncEditKey = null;
+}
 
 // ── KPI ───────────────────────────────────────────────────────
 function renderKPI() {
