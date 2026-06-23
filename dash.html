@@ -1907,7 +1907,7 @@ function initSummaryScoring() {
           // openingPct fallback: older OIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
-          oicEvalPct: (['service','oic','bartender','delco'].includes(s.role)) ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
+          oicEvalPct: (['service','oic','bartender','delco','linecook','steward'].includes(s.role)) ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
           days: s.days || null
@@ -2258,7 +2258,7 @@ function openStaffWeeklyDetail(idx) {
   function pctC(v){return v==null?'#94A3B8':v>=90?'#15803D':v>=75?'#D97706':'#B91C1C';}
 
   // Daily Breakdown
-  const hasEvalRole = ['service','oic','kic'].includes(role0);
+  const hasEvalRole = ['service','oic','kic','linecook','steward'].includes(role0);
   const evalLabel = role0==='kic'?'AC Eval':role0==='oic'?'AM Eval':'OIC Eval';
   let dailyBreakdownHtml = '';
   if (e.dailyBreakdown && e.dailyBreakdown.length) {
@@ -6666,10 +6666,6 @@ function updateLiveScore() {
     ? ['st1','st2','st3','st4','st5']
     : _isLCRole
     ? ['lc1','lc2','lc3','lc4','lc5']
-    : s.role === 'bartender'
-    ? ['bt1','bt2','bt3','bt4']
-    : s.role === 'delco'
-    ? ['dc1','dc2','dc3','dc4','dc5']
     : ['s1','m1','p1','u1','w1','mp1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -8002,8 +7998,8 @@ function buildProgressCell(staff) {
   // ── Data ────────────────────────────────────────────────────
   const openDone   = staff.openingPct != null && staff.openingPct > 0;
   const closeDone  = staff.closingPct != null;  // null = not submitted
-  const needsEval  = ['oic','kic'].includes(role);
-  const evalLabel  = role === 'oic' ? 'AM Evaluation' : 'AC Evaluation';
+  const needsEval  = ['oic','kic','linecook','steward'].includes(role);
+  const evalLabel  = role === 'oic' ? 'AM Evaluation' : role === 'kic' ? 'AC Evaluation' : 'KIC Evaluation';
   const evalDone   = needsEval
     ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
     : true;
@@ -8052,7 +8048,7 @@ function buildProgressCell(staff) {
       obsDone ? CHK : BOX,
       obsDone      ? obsLabel + ' — ' + staff.oicEvalPct + '%' :
       obsExpected  ? obsLabel + ' — needed' :
-      obsLabel + ' — Pending'
+      obsLabel + ' — after both shifts'
     );
   }
 
@@ -9146,7 +9142,7 @@ function setFOHTaskYN(btn, val) {
     else merged[k] = {yn};
   });
   // Use task IDs to split scores correctly
-  const oicIds   = ['s1','m1','p1','u1','w1','mp1','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
+  const oicIds   = ['s1','m1','p1','u1','w1','mp1'];
   const openIds  = ['o1','o2','o3','o4','o5'];
   const closeIds = ['c1','c2','c3','c4','c5'];
   let oicY=0, oicT=0, opY=0, opT=0, clY=0, clT=0;
