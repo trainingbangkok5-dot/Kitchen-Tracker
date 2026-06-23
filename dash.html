@@ -6670,6 +6670,10 @@ function updateLiveScore() {
     ? ['bt1','bt2','bt3','bt4']
     : s.role === 'delco'
     ? ['dc1','dc2','dc3','dc4','dc5']
+    : s.role === 'bartender'
+    ? ['bt1','bt2','bt3','bt4']
+    : s.role === 'delco'
+    ? ['dc1','dc2','dc3','dc4','dc5']
     : ['s1','m1','p1','u1','w1','mp1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -8038,7 +8042,7 @@ function buildProgressCell(staff) {
       evalDone ? CHK : BOX,
       evalDone
         ? evalLabel + ' — ' + staff.oicEvalPct + '%'
-        : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — needed'
+        : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted'
     );
   }
 
@@ -8051,7 +8055,7 @@ function buildProgressCell(staff) {
       PILL_GREY,
       obsDone ? CHK : BOX,
       obsDone      ? obsLabel + ' — ' + staff.oicEvalPct + '%' :
-      obsExpected  ? obsLabel + ' — needed' :
+      obsExpected  ? obsLabel + ' — Not submitted' :
       obsLabel + ' — Pending'
     );
   }
@@ -8254,6 +8258,10 @@ function loadFOHData() {
             });
           });
           if(oicT>0 && sub.role === 'service') { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
+          // bartender/delco: oicEvalPct is written directly to the record by saveFOHOverwrite
+          if (['bartender','delco'].includes(sub.role) && sub.oicEvalPct != null) {
+            grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+          }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
           const hasStaffData = staffTaskIds.some(tid =>
