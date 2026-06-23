@@ -6315,11 +6315,15 @@ function toggleEditMode(s) {
   body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'flex');
 
   // Show photo + comment fields for each task
+  const _lcStEvalIds = ['lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5'];
   body.querySelectorAll('[data-taskkey]').forEach(row => {
     const taskKey = row.getAttribute('data-taskkey');
     if (!taskKey) return;
     // Skip if already added
     if (row.querySelector('.edit-extra-fields')) return;
+    // Skip LC/ST eval tasks — handled by the dedicated lcObsSection panel below
+    const _tkBase = taskKey.replace(/^d[0-9]+_/, '');
+    if (['linecook','steward'].includes(s.role) && _lcStEvalIds.includes(_tkBase)) return;
     const task = s.taskData && s.taskData[taskKey];
     const existingComment = task ? (task.comment || '') : '';
     const existingPhotos = [];
@@ -6549,6 +6553,17 @@ function toggleEditMode(s) {
 
   // ── Line Cook / Steward KIC Observation (KIC overwriting LC/Steward record) ──
   if (['linecook','steward'].includes(s.role)) {
+    const _obsIds = s.role === 'steward'
+      ? ['st1','st2','st3','st4','st5']
+      : ['lc1','lc2','lc3','lc4','lc5'];
+
+    // Hide any existing eval task rows already rendered in the main checklist body
+    // (they appear when taskData already has saved eval answers) — prevents duplication
+    body.querySelectorAll('[data-taskkey]').forEach(row => {
+      const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
+      if (_obsIds.includes(tk)) row.style.display = 'none';
+    });
+
     const lcObsDefs = s.role === 'steward' ? [
       {id:'st1', text:'Does the staff member set up the dishwashing area properly, ensure all chemicals and tools are ready, and keep the station organized throughout the shift?'},
       {id:'st2', text:'Does the staff member maintain high standards of cleanliness, empty garbage bins on time, clear drains, and deep-clean the station at closing?'},
