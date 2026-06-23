@@ -3277,7 +3277,7 @@ function openStaffDetail(s) {
     const cColor = opC===null?'#94A3B8':opC>=95?'#15803D':opC>=70?'#D97706':'#B91C1C';
     const oicEvalPct = s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null;
     const eColor = oicEvalPct===null?'#94A3B8':oicEvalPct>=95?'#15803D':oicEvalPct>=70?'#D97706':'#B91C1C';
-    const isService = ['service','oic','kic','linecook','steward'].includes(s.role);
+    const isService = ['service','oic','kic','linecook','steward','bartender'].includes(s.role);
     const isKICRole = s.role === 'kic';
     // Total score formula: opening+eval, closing+eval, or opening+closing+eval
     const hasOpening = opO !== null;
@@ -3313,7 +3313,7 @@ function openStaffDetail(s) {
       scoreRows.push(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
           '<div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
-            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : s.role === 'bartender' ? '🍹 OIC EVAL' : '👥 OIC EVAL')) + '</div>' +
             '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
             '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
           '</div>' +
@@ -8381,7 +8381,7 @@ function openFOHDetail(idx) {
   else if (cPctFoh!==null)                                         fohTotal = cPctFoh;
   else if (oicPctFoh!==null)                                       fohTotal = oicPctFoh;
   const fohTotalPass = fohTotal >= 95;
-  const isService = staff.role === 'service';
+  const isService = ['service','bartender'].includes(staff.role);
   const isOIC = staff.role === 'oic';
 
   // Show loading state immediately
