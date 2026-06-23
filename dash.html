@@ -2387,7 +2387,6 @@ function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly
 // ══════════════════════════════════════════════════════════════
 // OIC MONTHLY INCENTIVE CALCULATOR
 // ══════════════════════════════════════════════════════════════
-var _oicIncDb = db; // uses same BOH Firebase (culex-kitchen-tracker)
 var _oicIncEditKey = null; // Firebase key being edited (null = new)
 
 var OIC_INC_ROWS = [
@@ -2403,8 +2402,16 @@ var OIC_INC_ROWS = [
 function _oicIncWeighted(actual, max, weight, inverse) {
   var v = parseFloat(actual);
   if (isNaN(v) || actual === '' || actual == null) return null;
-  var score = inverse ? Math.max(0, (max - v) / max) * 100 : Math.min(v / max, 1) * 100;
-  return Math.round(score * weight * 1000) / 100;
+  // Excel formula: Weighted Score = Actual Achieved × Weight
+  // Inverse (complaints): Weighted Score = MAX(0, (Max - Actual) / Max) × Weight × 100
+  var ws;
+  if (inverse) {
+    ws = Math.max(0, (max - v) / max) * weight * 100;
+  } else {
+    // Standard: actual is already 0-100 score, multiply by weight
+    ws = v * weight;
+  }
+  return Math.round(ws * 100) / 100;
 }
 
 function _oicIncTotal(actuals) {
@@ -2439,8 +2446,13 @@ function loadOICIncentiveList() {
   if (statusEl) statusEl.textContent = 'Loading...';
   var month = document.getElementById('oicIncMonthFilter').value;
   var outlet = document.getElementById('oicIncOutletFilter').value;
-  if (!_oicIncDb) { renderOICIncConsolidated([]); return; }
-  _oicIncDb.ref('oic_incentive').orderByChild('month').equalTo(month).once('value', function(snap) {
+  var _db = db; // read at call time — db may be null at module load
+  if (!_db) {
+    renderOICIncConsolidated([]);
+    if (statusEl) statusEl.textContent = 'Firebase not connected';
+    return;
+  }
+  _db.ref('oic_incentive').orderByChild('month').equalTo(month).once('value', function(snap) {
     var records = [];
     if (snap.exists()) {
       snap.forEach(function(child) {
@@ -2499,8 +2511,8 @@ function showOICIncentiveForm(key) {
   var wrap = document.getElementById('oicIncFormWrap');
   if (!wrap) return;
   // If editing, load existing record first
-  if (key && _oicIncDb) {
-    _oicIncDb.ref('oic_incentive/' + key).once('value', function(snap) {
+  if (key && db) {
+    db.ref('oic_incentive/' + key).once('value', function(snap) {
       var rec = snap.val() || {};
       _buildOICIncForm(wrap, rec);
     });
@@ -2628,8 +2640,8 @@ function saveOICIncentive() {
     savedAt: new Date().toISOString(),
     savedBy: currentRole
   };
-  if (!_oicIncDb) { alert('Firebase not ready.'); return; }
-  var ref = _oicIncEditKey ? _oicIncDb.ref('oic_incentive/' + _oicIncEditKey) : _oicIncDb.ref('oic_incentive').push();
+  if (!db) { alert('Firebase not ready.'); return; }
+  var ref = _oicIncEditKey ? db.ref('oic_incentive/' + _oicIncEditKey) : db.ref('oic_incentive').push();
   ref.set(record).then(function() {
     showToast('OIC Incentive record saved ✓', 'ok');
     closeOICIncForm();
@@ -2639,7 +2651,7 @@ function saveOICIncentive() {
 
 function deleteOICIncentive(key) {
   if (!confirm('Delete this record? This cannot be undone.')) return;
-  _oicIncDb.ref('oic_incentive/' + key).remove().then(function() {
+  db.ref('oic_incentive/' + key).remove().then(function() {
     showToast('Record deleted', 'ok');
     loadOICIncentiveList();
   });
