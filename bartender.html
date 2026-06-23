@@ -203,27 +203,36 @@ function initFirebase() {
 }
 initFirebase();
 
-// ── OIC Eval Score — loaded from Firebase when name is known ─────────────────
+// ── OIC Eval Score — live Firebase listener ──────────────────────────────────
 let _oicEvalPct = null;
+let _oicEvalRef = null;
+
+function _updateEvalBox() {
+  const rdEval = _oicEvalPct;
+  const eColor = rdEval===null?'#94A3B8':rdEval>=95?'#15803D':rdEval>=70?'#D97706':'#B91C1C';
+  const box = document.querySelector('[data-scorebox="oic"]');
+  if (!box) return;
+  const pctEl = box.querySelector('.sb-pct');
+  const lblEl = box.querySelector('.sb-lbl');
+  if (pctEl) { pctEl.textContent = rdEval!==null?rdEval+'%':'—'; pctEl.style.color = eColor; }
+  if (lblEl) { lblEl.textContent = rdEval===null?'Pending OIC':rdEval>=95?'✓ Pass':'✗ Below target'; lblEl.style.color = eColor; }
+  if (typeof renderDay === 'function') renderDay();
+}
+
 function loadOicEvalPct() {
-  const name = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
+  const name = document.getElementById('fName')?.value?.trim() || '';
   if (!name || !_db) return;
-  const todayKey = typeof getTodayKey === 'function' ? getTodayKey() : '';
-  const todayDate = todayKey.replace('dt','');
-  _db.ref('submissions').orderByChild('staffName').equalTo(name).once('value', snap => {
+  if (_oicEvalRef) { try { _oicEvalRef.off(); } catch(e) {} _oicEvalRef = null; }
+  _oicEvalRef = _db.ref('submissions').orderByChild('staffName').equalTo(name);
+  _oicEvalRef.on('value', snap => {
     if (!snap.exists()) return;
+    let found = null;
     snap.forEach(child => {
       const rec = child.val();
-      if (rec.role !== 'bartender') return;
-      if (rec.oicEvalPct != null) {
-        const recDate = (rec.submittedAt||'').substring(0,10);
-        if (!todayDate || recDate === todayDate || rec.oicEvalPct !== undefined) {
-          _oicEvalPct = parseFloat(rec.oicEvalPct);
-        }
-      }
+      if (rec.role !== '') return;
+      if (rec.oicEvalPct != null) found = parseFloat(rec.oicEvalPct);
     });
-    // Re-render score boxes with updated eval score
-    if (typeof renderDay === 'function') renderDay();
+    if (found !== null) { _oicEvalPct = found; _updateEvalBox(); }
   });
 }
 
@@ -760,7 +769,7 @@ function tapYN(tid, val, el) {
   // Score boxes live update
   document.querySelectorAll('[data-scorebox]').forEach(b => {
     const type = b.getAttribute('data-scorebox');
-    if (type === 'oic') return; // OIC eval — read-only, filled from dash
+    if (type === 'oic') return; // OIC eval — live updated by _updateEvalBox()
     const pct = type==='opening'?oPct : type==='closing'?cPct : totPct;
     const isNull = pct===null;
     const pctEl = b.querySelector('.sb-pct');
