@@ -356,6 +356,54 @@ function initFirebase() {
   }
 }
 initFirebase();
+
+// ── OIC Eval Score — live Firebase listener ──────────────────────────────────
+let _oicEvalPct = null;
+let _oicEvalRef = null;
+
+function _updateEvalBox() {
+  const rdEval = _oicEvalPct;
+  const eColor = rdEval===null?'#94A3B8':rdEval>=95?'#0F766E':rdEval>=70?'#92400E':'#B91C1C';
+  const box = document.querySelector('[data-scorebox="oic"]');
+  if (!box) return;
+  const pctEl = box.querySelector('.sb-pct');
+  const lblEl = box.querySelector('.sb-lbl');
+  if (pctEl) { pctEl.textContent = rdEval!==null?rdEval+'%':'—'; pctEl.style.color = eColor; }
+  if (lblEl) { lblEl.textContent = rdEval===null?'Pending OIC':rdEval>=95?'✓ Pass':'✗ Below target'; lblEl.style.color = eColor; }
+  // Update total box directly
+  const tbox = document.querySelector('[data-scorebox="total"]');
+  if (tbox) {
+    const oPct = parseFloat(document.querySelector('[data-scorebox="opening"] .sb-pct')?.textContent)||null;
+    const cPct = parseFloat(document.querySelector('[data-scorebox="closing"] .sb-pct')?.textContent)||null;
+    const comps = [oPct, cPct, rdEval].filter(v => v !== null && !isNaN(v));
+    const tot = comps.length > 0 ? Math.round(comps.reduce((a,b)=>a+b,0)/comps.length) : null;
+    const pass = tot !== null && tot >= 95;
+    const tPct = tbox.querySelector('.sb-pct');
+    const tLbl = tbox.querySelector('.sb-lbl');
+    if (tPct) { tPct.textContent = tot!==null?tot+'%':'—'; tPct.style.color = tot===null?'#94A3B8':pass?'#0F766E':'#B91C1C'; }
+    if (tLbl) { tLbl.textContent = tot===null?'No data':pass?'✓ Qualified':'✗ Not yet qualified'; tLbl.style.color = tot===null?'#94A3B8':pass?'#0F766E':'#B91C1C'; }
+    tbox.style.background = tot===null?'#F8FAFC':pass?'#F0FDF4':'#FFF1F0';
+    tbox.style.borderColor = tot===null?'#E2E8F0':pass?'#22C55E':'#EF4444';
+  }
+}
+
+function loadOicEvalPct() {
+  const name = document.getElementById('fName')?.value?.trim() || '';
+  if (!name || !_db) return;
+  if (_oicEvalRef) { try { _oicEvalRef.off(); } catch(e) {} _oicEvalRef = null; }
+  _oicEvalRef = _db.ref('submissions').orderByChild('staffName').equalTo(name);
+  _oicEvalRef.on('value', snap => {
+    if (!snap.exists()) return;
+    let found = null;
+    snap.forEach(child => {
+      const rec = child.val();
+      if (rec.role !== 'service') return;
+      if (rec.oicEvalPct != null) found = parseFloat(rec.oicEvalPct);
+    });
+    if (found !== null) { _oicEvalPct = found; _updateEvalBox(); }
+  });
+}
+
 // Pre-load registry for autocomplete
 setTimeout(() => loadRegistryData(), 1500);
 
@@ -1363,10 +1411,10 @@ function renderDay() {
         <div class="sb-pct" style="font-size:20px;font-weight:700;color:${opC===null?'#94A3B8':opC>=95?'#0F766E':opC>=70?'#92400E':'#B91C1C'}">${opC!==null?opC+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${opC===null?'#94A3B8':opC>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${opC===null?'Not submitted':opC>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
-      <div style="background:${oicPctDisplay===null?'#F8FAFC':oicPctDisplay>=95?'#F0FDF4':'#FFF7ED'};border-radius:10px;padding:10px 6px;text-align:center;">
+      <div data-scorebox="oic" style="background:${oicPctDisplay===null?'#F8FAFC':oicPctDisplay>=95?'#F0FDF4':'#FFF7ED'};border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🧑‍💼 OIC Eval</div>
-        <div style="font-size:20px;font-weight:700;color:${oicPctDisplay===null?'#94A3B8':oicPctDisplay>=95?'#0F766E':oicPctDisplay>=70?'#92400E':'#B91C1C'}">${oicPctDisplay!==null?oicPctDisplay+'%':'—'}</div>
-        <div style="font-size:9px;color:${oicPctDisplay===null?'#94A3B8':oicPctDisplay>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${oicPctDisplay===null?'Pending OIC':oicPctDisplay>=95?'✓ Pass':'✗ Below target'}</div>
+        <div class="sb-pct" style="font-size:20px;font-weight:700;color:${oicPctDisplay===null?'#94A3B8':oicPctDisplay>=95?'#0F766E':oicPctDisplay>=70?'#92400E':'#B91C1C'}">${oicPctDisplay!==null?oicPctDisplay+'%':'—'}</div>
+        <div class="sb-lbl" style="font-size:9px;color:${oicPctDisplay===null?'#94A3B8':oicPctDisplay>=95?'#0F766E':'#B91C1C'};margin-top:2px;">${oicPctDisplay===null?'Pending OIC':oicPctDisplay>=95?'✓ Pass':'✗ Below target'}</div>
       </div>
       <div data-scorebox="total" style="background:${tM===0?'#F8FAFC':combinedPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${tM===0?'#E2E8F0':combinedPass?'#22C55E':'#EF4444'};border-radius:10px;padding:10px 6px;text-align:center;">
         <div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">🏆 Total</div>
@@ -1524,12 +1572,13 @@ function tapYN(tid, val, el) {
   if (_sc) {
     _sc.querySelectorAll('[data-scorebox]').forEach(b => {
       const type = b.getAttribute('data-scorebox');
+      if (type === 'oic') return; // OIC eval — live updated by _updateEvalBox()
       const pct = type==='opening'?opO : type==='closing'?opC : op;
       const isNull = pct===null;
       const pctEl = b.querySelector('.sb-pct');
       const lblEl = b.querySelector('.sb-lbl');
       if (pctEl) { pctEl.textContent = isNull?'—':pct+'%'; pctEl.style.color = isNull?'#94A3B8':pct>=95?'#0F766E':pct>=70?'#92400E':'#B91C1C'; }
-      if (lblEl) { lblEl.textContent = isNull?'Not submitted':pct>=95?'✓ Pass':'✗ Below target'; lblEl.style.color = isNull?'#94A3B8':pct>=95?'#0F766E':'#B91C1C'; }
+      if (lblEl) { lblEl.textContent = isNull?(type==='total'?'No data':'Not submitted'):pct>=95?(type==='total'?'✓ Qualified':'✓ Pass'):(type==='total'?'✗ Not qualified':'✗ Below target'); lblEl.style.color = isNull?'#94A3B8':pct>=95?'#0F766E':'#B91C1C'; }
     });
   }
 }
@@ -1921,8 +1970,10 @@ window.addEventListener('DOMContentLoaded', () => {
       const name = document.getElementById('fName').value.trim();
       SK = name ? SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase() : SK_BASE;
       buildDayRail(); renderDay();
+      if (id === 'fName' && name) loadOicEvalPct();
     });
   });
+  if (savedName) setTimeout(loadOicEvalPct, 1500);
 
   // Photo input listeners
   ['camInput','galInput'].forEach(id => {
