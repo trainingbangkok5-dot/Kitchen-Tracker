@@ -6670,10 +6670,6 @@ function updateLiveScore() {
     ? ['bt1','bt2','bt3','bt4']
     : s.role === 'delco'
     ? ['dc1','dc2','dc3','dc4','dc5']
-    : s.role === 'bartender'
-    ? ['bt1','bt2','bt3','bt4']
-    : s.role === 'delco'
-    ? ['dc1','dc2','dc3','dc4','dc5']
     : ['s1','m1','p1','u1','w1','mp1'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -8258,7 +8254,6 @@ function loadFOHData() {
             });
           });
           if(oicT>0 && sub.role === 'service') { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
-          // bartender/delco: oicEvalPct is written directly to the record by saveFOHOverwrite
           if (['bartender','delco'].includes(sub.role) && sub.oicEvalPct != null) {
             grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
           }
@@ -9645,14 +9640,15 @@ async function saveFOHOverwrite(staff) {
       const openTaskIds = ['o1','o2','o3','o4','o5'];
       // Closing task IDs — c1..c5
       const closeTaskIds = ['c1','c2','c3','c4','c5'];
-      let oY=0,oT=0, cY=0,cT=0, eY=0,eT=0;
+      let oY=0,oT=0, cY=0,cT=0, eY=0,eT=0,eAnswered=0;
       Object.entries(updatedTasks).forEach(([k, t]) => {
-        if (!t.yn || t.yn === 'na') return;
-        // Determine task type by ID suffix
         const taskId = k.replace(/^d[0-9]+_/, ''); // strip day prefix e.g. d1_o1 -> o1
         const isOic   = oicTaskIds.includes(taskId);
         const isOpen  = openTaskIds.includes(taskId);
         const isClose = closeTaskIds.includes(taskId);
+        if (!t.yn) return;
+        if (isOic && t.yn) eAnswered++; // count ALL eval answers including N/A
+        if (t.yn === 'na') return;
         if (isOic)   { eT++; if(t.yn==='yes') eY++; }
         else if (isOpen)  { oT++; if(t.yn==='yes') oY++; }
         else if (isClose) { cT++; if(t.yn==='yes') cY++; }
@@ -9660,7 +9656,8 @@ async function saveFOHOverwrite(staff) {
       // Calculate each score separately
       const fohOpPct2 = oT > 0 ? Math.round((oY/oT)*100) : (sub.openingPct != null ? parseFloat(sub.openingPct) : null);
       const fohClPct2 = cT > 0 ? Math.round((cY/cT)*100) : null;
-      const fohEPct2  = eT > 0 ? Math.round((eY/eT)*100) : (sub.oicEvalPct != null ? parseFloat(sub.oicEvalPct) : null);
+      // If eval tasks were answered (even all N/A), don't fall back to old score
+      const fohEPct2  = eT > 0 ? Math.round((eY/eT)*100) : (eAnswered > 0 ? null : (sub.oicEvalPct != null ? parseFloat(sub.oicEvalPct) : null));
       // Total score: opening+eval, closing+eval, or opening+closing+eval
       let newPct = parseFloat(sub.overallPct||0);
       if(fohOpPct2!==null&&fohClPct2!==null&&fohEPct2!==null) newPct=Math.round((fohOpPct2+fohClPct2+fohEPct2)/3);
