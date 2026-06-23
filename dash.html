@@ -9810,6 +9810,82 @@ async function exportFOHDetailPDF() {
           if (sub.role === staff.role && sub.week === staff.week) subs.push(sub);
         });
 
+        // Build fresh days scores from Firebase submissions (not stale staff.days cache)
+        const freshDays = {};
+        subs.forEach(sub => {
+          if (sub.day && sub.day >= 1 && sub.day <= 6 && sub.overallPct != null) {
+            freshDays[sub.day] = sub.overallPct;
+          } else if (sub.week && sub.submittedAt) {
+            const subDate = new Date(sub.submittedAt);
+            const weekStart = new Date(sub.week);
+            const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
+            if (diffDays >= 1 && diffDays <= 6 && sub.overallPct != null) {
+              freshDays[diffDays] = sub.overallPct;
+            }
+          }
+        });
+        // Use freshDays in the day table — update the already-rendered table
+        const freshOverall = subs.length > 0 ? Math.max(...subs.map(s => s.overallPct || 0)) : staff.overallPct;
+
+        // Rebuild daily scores table with fresh data
+        doc.deletePage(1);
+        doc.addPage();
+        y = 28;
+
+        doc.setFillColor(123,45,66);
+        doc.rect(0,0,W,20,'F');
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(14); doc.setFont('helvetica','bold');
+        doc.text('FOH Performance Report - ' + staff.staffName, 14, 9);
+        doc.setFontSize(9); doc.setFont('helvetica','normal');
+        doc.text(staff.role.toUpperCase() + ' | ' + staff.outlet + ' | Week of ' + fmtWeekRange(staff.week), 14, 15);
+        doc.text('Generated: ' + new Date().toLocaleDateString('en-GB'), W-14, 15, {align:'right'});
+
+        // Score summary with fresh overall
+        const displayOverall = freshOverall || staff.overallPct || 0;
+        doc.setFillColor(255,241,240);
+        doc.rect(14,y,W-28,16,'F');
+        doc.setFontSize(24); doc.setFont('helvetica','bold');
+        doc.setTextColor(...scoreColor(displayOverall));
+        doc.text(displayOverall + '%', W/2, y+11, {align:'center'});
+        doc.setFontSize(9); doc.setTextColor(100,100,100); doc.setFont('helvetica','normal');
+        doc.text('Weekly Overall Score (Target: 95%)', W/2, y+15, {align:'center'});
+        y += 24;
+
+        // Daily scores table with fresh data
+        doc.autoTable({
+          startY: y,
+          head: [['Day', 'Date', 'Score', 'Status']],
+          body: Array.from({length:6},(_,i) => {
+            const d = i+1;
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + i);
+            const p = freshDays[d];
+            return [
+              'Day ' + d,
+              date.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),
+              p !== undefined ? p + '%' : '-',
+              p !== undefined ? (p>=95?'QUALIFIED':'BELOW TARGET') : 'N/A'
+            ];
+          }),
+          styles:{fontSize:10,cellPadding:4},
+          headStyles:{fillColor:[123,45,66],textColor:[255,255,255]},
+          didParseCell:(data)=>{
+            if(data.column.index===3&&data.section==='body'){
+              const v=data.cell.raw;
+              data.cell.styles.textColor=v==='QUALIFIED'?[15,118,110]:v==='BELOW TARGET'?[185,28,28]:[150,150,150];
+              data.cell.styles.fontStyle='bold';
+            }
+            if(data.column.index===2&&data.section==='body'){
+              const v=parseInt(data.cell.raw)||0;
+              if(v>0) data.cell.styles.textColor=v>=95?[15,118,110]:v>=70?[217,119,6]:[185,28,28];
+              data.cell.styles.fontStyle='bold';
+            }
+          },
+          margin:{left:14,right:14}
+        });
+        y = doc.lastAutoTable.finalY + 8;
+
         // Group taskData by day then section
         const byDay = {};
         subs.forEach(sub => {
