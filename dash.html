@@ -6864,7 +6864,7 @@ function renderVerificationLog(s, allowDelete) {
   return log.map(function(entry, i) {
     var dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
       day:'2-digit', month:'short', year:'numeric',
-      hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
+      hour:'2-digit', minute:'2-digit', hour12:true, timeZone:'Asia/Dubai'
     }) : '\u2014';
     var rl = roleLabel[entry.role] || entry.role || '';
     var isReverify = entry.shift === 'reverify';
@@ -6900,7 +6900,7 @@ function buildVerifyEditPanel(s) {
   const historyHtml = log.map(function(entry, _hi) {
     const dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
       day:'2-digit', month:'short', year:'numeric',
-      hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
+      hour:'2-digit', minute:'2-digit', hour12:true, timeZone:'Asia/Dubai'
     }) : '\u2014';
     const rl = roleLabel[entry.role] || entry.role || '';
     const isRev = entry.shift === 'reverify';
@@ -6943,7 +6943,7 @@ function buildVerifyEditPanel(s) {
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
     + (historyHtml || noVerify)
     + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\\u25b6\':\'\\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">\\u2795 Add Verification <span class="vfy-arrow" style="font-size:9px;">\\u25b6</span></div>'
+    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\\u25b6\':\'\\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">+ Add Verification <span class="vfy-arrow" style="font-size:9px;">\\u25b6</span></div>'
     + '<div style="display:none;margin-top:6px;">'
     + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..."'
     + ' style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;">'
@@ -8760,14 +8760,14 @@ function buildProgressCell(staff) {
     const rl = { training:'Training', operations:'Ops', director:'Director', ceo:'CEO',
       areachef:'Area Chef', areamanager:'Area Mgr', kic:'KIC', oic:'OIC' };
     const nameRole = (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
-    const dt = e.at ? new Date(e.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : '';
+    const dt = e.at ? new Date(e.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'}) : '';
     const dtStr = dt ? ' \xe2\x80\x93 ' + dt : '';
     const ynCount = (shiftKey === 'opening' || shiftKey === 'closing') ? _shiftYNCount(shiftKey) : null;
     // Check for re-verifier
     const revEntries = _vlog.filter(function(e){ return e.shift === 'reverify'; });
     const rev = revEntries.length ? revEntries[revEntries.length-1] : null;
     const revStr = (shiftKey !== 'reverify' && rev)
-      ? ' \xe2\x94\x94 Re-verified: ' + (rev.by||'') + (rev.at ? ' \xe2\x80\x93 ' + new Date(rev.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : '')
+      ? ' \xe2\x94\x94 Re-verified: ' + (rev.by||'') + (rev.at ? ' \xe2\x80\x93 ' + new Date(rev.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'}) : '')
       : '';
     return nameRole + dtStr + (ynCount ? ' \xe2\x80\x94 ' + ynCount : '') + revStr;
   }
