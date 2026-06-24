@@ -963,11 +963,12 @@ function renderDay() {
       if (task.photo) {
         const photos = [];
         const seenUrls = new Set();
-        const legacyPhoto = getVal(currentDay, task.id, 'photo');
-        if (legacyPhoto && !seenUrls.has(legacyPhoto)) { seenUrls.add(legacyPhoto); photos.push(legacyPhoto); }
-        for (let pi = 1; pi < 5; pi++) {
-          const p = getVal(currentDay, task.id, 'photo_' + pi);
-          if (p && !seenUrls.has(p)) { seenUrls.add(p); photos.push(p); }
+        // Collect all photos: prefer Cloudinary URL (photoUrl), fallback to base64 (photo)
+        for (let pi = 0; pi < 5; pi++) {
+          const localKey = pi === 0 ? 'photo' : 'photo_' + pi;
+          const urlKey   = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
+          const url = getVal(currentDay, task.id, urlKey) || getVal(currentDay, task.id, localKey);
+          if (url && !seenUrls.has(url)) { seenUrls.add(url); photos.push(url); }
         }
         const thumbsHtml = photos.map((p,i) => `
           <div style="display:inline-block;margin:4px;text-align:center;vertical-align:top;">

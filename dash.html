@@ -7299,14 +7299,20 @@ function updateLiveScore() {
     pctEl.textContent = pct + '%';
     pctEl.style.color = isPass ? '#15803D' : '#B91C1C';
     if (lblEl) {
-      lblEl.textContent = isPass ? '✓ Pass' : '✗ Below target';
+      if (type === 'total') {
+        lblEl.textContent = isPass ? '✅ Qualified' : '❌ Not Qualified';
+        box.style.background = isPass ? '#F0FDF4' : '#FFF1F0';
+        box.style.borderColor = isPass ? '#22C55E' : '#EF4444';
+      } else {
+        lblEl.textContent = isPass ? '✓ Pass' : '✗ Below target';
+      }
       lblEl.style.color = isPass ? '#15803D' : '#B91C1C';
     }
   });
 
-  // Update total score in modal header
-  const headerScore = document.querySelector('#detailModal .detail-score, #detailModal [class*="score"]');
-  if (headerScore && headerScore.textContent.includes('%')) {
+  // Update the detail header score (big % at top of modal)
+  const headerScore = document.getElementById('detailLiveScore');
+  if (headerScore) {
     headerScore.textContent = newScore + '%';
     headerScore.style.color = pass ? '#15803D' : '#B91C1C';
   }
@@ -9759,7 +9765,18 @@ function setFOHTaskYN(btn, val) {
     const isPass = pct >= 95;
     pctEl.textContent = pct + '%';
     pctEl.style.color = isPass ? '#0F766E' : '#B91C1C';
-    if (lblEl) { lblEl.textContent = isPass ? '✓ Pass' : '✗ Below target'; lblEl.style.color = isPass ? '#0F766E' : '#B91C1C'; }
+    if (lblEl) {
+      // Total box uses Qualified/Not Qualified; others use Pass/Below
+      if (type === 'total') {
+        lblEl.textContent = isPass ? '✅ Qualified' : '❌ Not Qualified';
+        // Also update total box border/background
+        box.style.background = isPass ? '#F0FDF4' : '#FFF1F0';
+        box.style.borderColor = isPass ? '#22C55E' : '#EF4444';
+      } else {
+        lblEl.textContent = isPass ? '✓ Pass' : '✗ Below target';
+      }
+      lblEl.style.color = isPass ? '#0F766E' : '#B91C1C';
+    }
   });
 }
 

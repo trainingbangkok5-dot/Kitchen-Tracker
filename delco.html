@@ -636,14 +636,14 @@ function renderDay() {
           ['photo','photo_1','photo_2','photo_3','photo_4'].forEach((pk,idx)=>{
             const httpKey=idx===0?'photoUrl':'photoUrl_'+idx;
             const url=getVal(currentDay,task.id,httpKey)||getVal(currentDay,task.id,pk);
-            if(url&&!photos.includes(url)) photos.push(url);
+            if(url) photos.push({url,pk,urlKey:httpKey});
           });
           if(!photos.length) return '';
           return '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">' +
-            photos.map((url,i)=>`
+            photos.map(({url,pk,urlKey})=>`
               <div style="display:inline-block;text-align:center;">
                 <img src="${url}" style="display:block;width:80px;height:70px;border-radius:8px;border:2px solid #22C55E;object-fit:cover;" onerror="this.parentNode.style.display='none'">
-                <button onclick="removePhoto('${task.id}',${i})" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>
+                <button onclick="removePhoto('${task.id}','${pk}','${urlKey}')" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>
               </div>`).join('') +
           '</div>';
         })()}      `;
@@ -835,7 +835,7 @@ function submitDay() {
   if(unanswered.length){ showToast('Please answer all tasks first ('+unanswered.length+' remaining)','warn'); return; }
 
   // Photo check
-  const hasPhotoForTask = (tid) => !!(getVal(currentDay,tid,'photo')||getVal(currentDay,tid,'photo_0')||getVal(currentDay,tid,'photoUrl'));
+  const hasPhotoForTask = (tid) => !!(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => !!getVal(currentDay, tid, pk)));
   const missingPhoto = shiftSections.flatMap(s=>s.tasks).filter(t=>t.photo&&!hasPhotoForTask(t.id));
   if(missingPhoto.length){ showToast('📷 Photo required for all tasks ('+missingPhoto.length+' missing)','warn'); return; }
 
@@ -933,10 +933,8 @@ function tryOverwrite() {
 }
 
 // ── Init ─────────────────────────────────────────────────────
-function removePhoto(taskId, idx) {
+function removePhoto(taskId, key, urlKey) {
   if (!confirm('Remove this photo?')) return;
-  const key    = idx === 0 ? 'photo'    : 'photo_'    + idx;
-  const urlKey = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
   setVal(currentDay, taskId, key, '');
   setVal(currentDay, taskId, urlKey, '');
   renderDay();
