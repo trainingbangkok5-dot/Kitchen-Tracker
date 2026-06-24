@@ -6820,25 +6820,31 @@ function renderVerificationLog(s, allowDelete) {
   var roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
     ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC',
     maintsupervisor:'Maintenance Sup.' };
+  var shiftLabel = { opening:'Opening', closing:'Closing', evaluation:'Evaluation', reverify:'Re-Verified' };
+  var shiftIcon  = { opening:'\ud83c\udf05', closing:'\ud83c\udf19', evaluation:'\ud83d\udccb', reverify:'\ud83d\udd04' };
   return log.map(function(entry, i) {
     var dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
       day:'2-digit', month:'short', year:'numeric',
       hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
     }) : '\u2014';
     var rl = roleLabel[entry.role] || entry.role || '';
+    var isReverify = entry.shift === 'reverify';
+    var sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
+    var sIcon  = entry.shift ? (shiftIcon[entry.shift]  || '\u2705') : '\u2705';
+    var entryColor = isReverify ? '#92400E' : '#15803D';
     var border = i > 0 ? 'border-top:.5px solid #E0DDD4;margin-top:3px;' : '';
     var delBtn = allowDelete
       ? '<button onclick="deleteVerificationEntry(this,' + i + ')" title="Remove" style="background:none;border:none;cursor:pointer;color:#B91C1C;font-size:13px;padding:0 4px;line-height:1;">&times;</button>'
       : '';
     return '<div style="display:flex;align-items:flex-start;gap:6px;padding:5px 0;' + border + '">'
       + '<div style="flex:1;">'
-      + '<div style="font-size:12px;font-weight:700;color:#15803D;">\u2705 ' + (entry.by || '\u2014') + '</div>'
+      + (sLabel ? '<div style="font-size:10px;font-weight:700;color:' + entryColor + ';text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">' + sIcon + ' ' + sLabel + '</div>' : '')
+      + '<div style="font-size:12px;font-weight:700;color:' + entryColor + ';">\u2705 ' + (entry.by || '\u2014') + '</div>'
       + (rl ? '<div style="font-size:10px;color:#64748B;">' + rl + '</div>' : '')
       + '<div style="font-size:10px;color:#94A3B8;">\ud83d\udcc5 ' + dt + '</div>'
       + '</div>' + delBtn + '</div>';
   }).join('');
 }
-
 // Build the verifiedBy edit panel (used in both BOH toggleEditMode and FOH edit)
 function buildVerifyEditPanel(s) {
   var rawVLog = s.verificationLog;
@@ -6849,16 +6855,24 @@ function buildVerifyEditPanel(s) {
   }
   const roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
     ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC' };
-  // Build history HTML using string concat (no nested template literals)
+  const shiftLabel = { opening:'Opening', closing:'Closing', evaluation:'Evaluation', reverify:'Re-Verified' };
+  const shiftIcon  = { opening:'\u{1f305}', closing:'\u{1f319}', evaluation:'\u{1f4cb}', reverify:'\u{1f504}' };
+  // Build history
   const historyHtml = log.map(function(entry, _hi) {
     const dt = entry.at ? new Date(entry.at).toLocaleString('en-GB',{
       day:'2-digit', month:'short', year:'numeric',
       hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'
     }) : '\u2014';
     const rl = roleLabel[entry.role] || entry.role || '';
-    return '<div style="display:flex;align-items:flex-start;gap:4px;padding:5px 8px;background:#F0FDF4;border-radius:6px;margin-bottom:4px;font-size:11px;">'
+    const isRev = entry.shift === 'reverify';
+    const sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
+    const sIcon  = entry.shift ? (shiftIcon[entry.shift]  || '\u2705') : '\u2705';
+    const eColor = isRev ? '#92400E' : '#15803D';
+    const eBg    = isRev ? '#FFF7ED' : '#F0FDF4';
+    return '<div style="display:flex;align-items:flex-start;gap:4px;padding:5px 8px;background:' + eBg + ';border-radius:6px;margin-bottom:4px;font-size:11px;">'
       + '<div style="flex:1;">'
-      + '<span style="font-weight:700;color:#15803D;">\u2705 ' + (entry.by||'\u2014') + '</span>'
+      + (sLabel ? '<div style="font-size:10px;font-weight:700;color:' + eColor + ';text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">' + sIcon + ' ' + sLabel + '</div>' : '')
+      + '<span style="font-weight:700;color:' + eColor + ';">\u2705 ' + (entry.by||'\u2014') + '</span>'
       + (rl ? ' <span style="color:#64748B;font-size:10px;">(' + rl + ')</span>' : '')
       + '<div style="color:#94A3B8;font-size:10px;">\ud83d\udcc5 ' + dt + '</div>'
       + '</div>'
@@ -6867,20 +6881,45 @@ function buildVerifyEditPanel(s) {
   }).join('');
 
   const noVerify = '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
-  const nameVal = '';  // blank in edit mode — user types to verify
   const roleNote = 'Your role (' + currentRole + ') and timestamp will be added automatically';
+  // Management roles that can re-verify
+  const isMgmt = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
+  const reVerifySection = isMgmt
+    ? '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
+      + '<div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">\ud83d\udd04 Re-Verify / Countersign</div>'
+      + '<input id="reVerifiedByInput" type="text" placeholder="Your name for re-verification..."'
+      + ' style="width:100%;padding:6px 8px;border:1.5px solid #FDE68A;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;background:#FFFDE7;">'
+      + '<select id="reVerifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;margin-bottom:4px;box-sizing:border-box;">'
+      + '<option value="opening">\ud83c\udf05 Opening</option>'
+      + '<option value="closing">\ud83c\udf19 Closing</option>'
+      + '<option value="evaluation">\ud83d\udccb Evaluation</option>'
+      + '<option value="reverify">\ud83d\udd04 General Re-Verify</option>'
+      + '</select>'
+      + '<div style="font-size:10px;color:#94A3B8;margin-bottom:4px;">' + roleNote + '</div>'
+      + '<button onclick="saveReVerification()" style="width:100%;padding:7px;background:#D97706;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\ud83d\udd04 Re-Verify / Countersign</button>'
+      + '</div>'
+    : '';
+
   return '<div style="margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;">'
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
     + (historyHtml || noVerify)
     + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\u25b6\':\'\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">\u2795 Add Verification <span class="vfy-arrow" style="font-size:9px;">\u25b6</span></div>'
+    + '<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.vfy-arrow\').textContent=p.style.display===\'none\'?\'\\u25b6\':\'\\u25bc\';" style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:5px;">\\u2795 Add Verification <span class="vfy-arrow" style="font-size:9px;">\\u25b6</span></div>'
     + '<div style="display:none;margin-top:6px;">'
-    + '<input id="verifiedByInput" type="text" value="' + nameVal + '" placeholder="Your name..."'
+    + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..."'
     + ' style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;">'
+    + '<select id="verifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;margin-bottom:4px;box-sizing:border-box;">'
+    + '<option value="opening">\ud83c\udf05 Opening</option>'
+    + '<option value="closing">\ud83c\udf19 Closing</option>'
+    + '<option value="evaluation">\ud83d\udccb Evaluation</option>'
+    + '</select>'
     + '<div style="font-size:10px;color:#94A3B8;">' + roleNote + '</div>'
     + '</div>'
-    + '</div></div>';
+    + '</div>'
+    + reVerifySection
+    + '</div>';
 }
+
 
 function toggleEditMode(s) {
   const _isKIC = s.role === 'kic';
@@ -8289,7 +8328,8 @@ function saveBOHVerification() {
   const firebaseRef = isFOH ? fohDb : db;
   if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
   const now = new Date().toISOString();
-  const newEntry = { by: name, role: currentRole, at: now };
+  const shift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+  const newEntry = { by: name, role: currentRole, at: now, shift: shift };
   const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
   if (s.verifiedBy && !existingLog.length) {
     existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
@@ -8609,8 +8649,10 @@ function buildProgressCell(staff) {
   const CHK = '&#9745;';
   const BOX = '&#9744;';
 
-  function row(pillStyle, icon, label) {
-    return '<div style="margin-bottom:3px;"><span style="' + pillStyle + '">' + icon + ' ' + label + '</span></div>';
+  function row(pillStyle, icon, label, sub) {
+    return '<div style="margin-bottom:3px;"><span style="' + pillStyle + '">' + icon + ' ' + label + '</span>'
+      + (sub ? '<div style="font-size:10px;color:#64748B;padding-left:4px;margin-top:1px;">\u2514 ' + sub + '</div>' : '')
+      + '</div>';
   }
 
   // ── Data ────────────────────────────────────────────────────
@@ -8623,22 +8665,35 @@ function buildProgressCell(staff) {
     : true;
   const verDone    = !!staff.verifiedBy;
 
+  // Per-shift verifier lookup from verificationLog
+  const _vlog = Array.isArray(staff.verificationLog) ? staff.verificationLog
+    : (staff.verificationLog && typeof staff.verificationLog === 'object') ? Object.values(staff.verificationLog) : [];
+  function _lastVerifierFor(shiftKey) {
+    const entries = _vlog.filter(e => e.shift === shiftKey);
+    if (!entries.length) return null;
+    const e = entries[entries.length - 1];
+    const rl = { training:'Training', operations:'Ops', director:'Director', ceo:'CEO',
+      areachef:'Area Chef', areamanager:'Area Mgr', kic:'KIC', oic:'OIC' };
+    return (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
+  }
+
   let html = '<div style="padding:2px 0;">';
 
   // ── Opening ─────────────────────────────────────────────────
   html += row(
     openDone ? PILL_DONE : PILL_NEED,
     openDone ? CHK : BOX,
-    openDone ? 'Opening — ' + staff.openingPct + '%' : 'Opening — not submitted'
+    openDone ? 'Opening — ' + staff.openingPct + '%' : 'Opening — not submitted',
+    openDone ? _lastVerifierFor('opening') : null
   );
 
   // ── Closing ─────────────────────────────────────────────────
   html += row(
     closeDone ? PILL_DONE : PILL_GREY,
     closeDone ? CHK : BOX,
-    closeDone ? 'Closing — ' + staff.closingPct + '%' : 'Closing — not submitted'
+    closeDone ? 'Closing — ' + staff.closingPct + '%' : 'Closing — not submitted',
+    closeDone ? _lastVerifierFor('closing') : null
   );
-
   // ── Eval: OIC/KIC get AM/AC Eval; service/bartender/delco get OIC Observation ──
   const needsObservation = ['service','bartender','delco'].includes(role); // service, bartender and delco have OIC observation
   const obsDone = needsObservation
@@ -8652,7 +8707,8 @@ function buildProgressCell(staff) {
       evalDone ? CHK : BOX,
       evalDone
         ? evalLabel + ' — ' + staff.oicEvalPct + '%'
-        : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted'
+        : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted',
+      evalDone ? _lastVerifierFor('evaluation') : null
     );
   }
 
@@ -8669,16 +8725,6 @@ function buildProgressCell(staff) {
       obsLabel + ' — Pending'
     );
   }
-
-  // ── Sign-off ─────────────────────────────────────────────────
-  const verExpected = openDone && (!needsEval || evalDone) && (!needsObservation || obsDone) && (!needsObservation || (openDone && closeDone));
-  html += row(
-    verDone ? PILL_DONE : verExpected ? PILL_NEED : PILL_WAIT,
-    verDone ? CHK : BOX,
-    verDone
-      ? 'Signed off — ' + staff.verifiedBy
-      : verExpected ? 'Sign-off — needed' : 'Sign-off — waiting'
-  );
 
   html += '</div>';
   return html;
@@ -9655,6 +9701,76 @@ function handleFOHEditPhoto(input, cardEl) {
   reader.readAsDataURL(file);
 }
 
+
+function saveReVerification() {
+  const name = (document.getElementById('reVerifiedByInput')?.value || '').trim();
+  if (!name) { showToast('Please enter your name for re-verification', 'warn'); return; }
+  const shift = (document.getElementById('reVerifyShiftSelect')?.value) || 'reverify';
+  const s = _currentDetailStaff;
+  if (!s) { showToast('No record loaded', 'warn'); return; }
+  const isFOH = ['service','oic','delco','bartender'].includes(s.role);
+  const firebaseRef = isFOH ? fohDb : db;
+  if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
+  const now = new Date().toISOString();
+  const newEntry = { by: name, role: currentRole, at: now, shift: shift };
+  const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog]
+    : (s.verificationLog && typeof s.verificationLog === 'object') ? Object.values(s.verificationLog) : [];
+  if (s.verifiedBy && !existingLog.length) {
+    existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
+  }
+  const _dup = existingLog.some(e => e.by === name && e.shift === shift && (Date.now() - new Date(e.at||0).getTime()) < 10000);
+  if (_dup) { showToast('Already saved', 'warn'); return; }
+  existingLog.push(newEntry);
+  const sDate = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
+  firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
+    if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
+    const updateMap = {};
+    snap.forEach(child => {
+      const v = child.val();
+      const vDate = v.submittedAt ? v.submittedAt.substring(0, 10) : '';
+      const weekMatch = v.week === s.week || normalizeWeek(v.week||'') === normalizeWeek(s.week||'');
+      const dateMatch = sDate && vDate && vDate === sDate;
+      if (v.role === s.role && (weekMatch || dateMatch)) {
+        updateMap['submissions/' + child.key + '/verificationLog'] = existingLog;
+        updateMap['submissions/' + child.key + '/lastUpdated'] = now;
+      }
+    });
+    if (!Object.keys(updateMap).length) { showToast('No matching record found', 'warn'); return; }
+    firebaseRef.ref().update(updateMap).then(() => {
+      s.verificationLog = existingLog;
+      [allStaff, allBOHData, allFOHData].forEach(arr => {
+        arr.forEach(r => {
+          if (r.staffName === s.staffName && r.role === s.role && r.week === s.week) {
+            r.verificationLog = existingLog;
+          }
+        });
+      });
+      // Clear the input
+      const inp = document.getElementById('reVerifiedByInput');
+      if (inp) inp.value = '';
+      showToast('Re-verified by ' + name + ' \u2713', 'ok');
+      // Refresh panel
+      const shiftLabel = { opening:'Opening', closing:'Closing', evaluation:'Evaluation', reverify:'General Re-Verify' };
+      const cardId = isFOH ? 'fohVerifiedByCard' : 'bohVerifiedByCard';
+      const card = document.getElementById(cardId);
+      if (card) {
+        const isMgmtRole = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
+        const canVerify = isMgmtRole
+          || (currentRole==='kic' && ['steward','linecook'].includes(s.role))
+          || (currentRole==='oic' && ['service','bartender','delco'].includes(s.role));
+        const verifyBtn = isFOH
+          ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>'
+          : '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>';
+        const hdr = isFOH
+          ? '<div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>'
+          : '<div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>';
+        card.innerHTML = hdr + buildVerifyEditPanel(s) + (canVerify ? verifyBtn : '');
+      }
+    }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+  });
+}
+
+
 function saveFOHMultiVerify() {
   const staff = _fohFiltered[_fohDetailIdx];
   if (!staff) return;
@@ -9662,7 +9778,8 @@ function saveFOHMultiVerify() {
   if (!name) { showToast('Please enter your name', 'warn'); return; }
   if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
   const now = new Date().toISOString();
-  const newEntry = { by: name, role: currentRole, at: now };
+  const fohShift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+  const newEntry = { by: name, role: currentRole, at: now, shift: fohShift };
   var rawLog = staff.verificationLog;
   const log = Array.isArray(rawLog) ? [...rawLog]
     : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
