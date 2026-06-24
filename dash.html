@@ -8930,8 +8930,8 @@ function renderBOHStaff() {
   const scoreColor = p => p>=95?'#15803D':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
   // Sort latest submission first
-  _bohFiltered = filtered;
   filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
+  _bohFiltered = filtered;
   filtered.forEach((staff, bohIdx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
@@ -9176,13 +9176,12 @@ function renderFOHStaff() {
   const scoreColor = p => p >= 95 ? '#0F766E' : p >= 70 ? '#D97706' : '#B91C1C';
   const scoreBg = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
 
-  _fohFiltered = filtered;
   filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
-  filtered.forEach(staff => {
+  _fohFiltered = filtered;
+  filtered.forEach((staff, staffIdx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
     const op = staff.overallPct;
-    const staffIdx = filtered.indexOf(staff);
     const fohRowKey = (staff.staffName||'') + '_' + (staff.role||'') + '_' + (staff.week||'');
     tr.innerHTML = `
       <td class="foh-chk-cell" style="padding:8px 12px;text-align:center;display:none;">
