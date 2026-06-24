@@ -3858,58 +3858,6 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
   }
   return html;
 
-  // Build all 4 score boxes as separate rows for mobile compatibility
-    const scoreRows = [];
-  const _sbVlog = Array.isArray(s.verificationLog) ? s.verificationLog
-    : (s.verificationLog && typeof s.verificationLog==='object') ? Object.values(s.verificationLog) : [];
-  const _sbTd   = s.taskData || {};
-  const _sbRole = s.role || '';
-    scoreRows.push(
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
-        '<div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
-          '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
-          '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
-          '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'N/A':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
-          _buildVerifierTag(_sbVlog,_sbTd,'opening',_sbRole) +
-        '</div>' +
-        '<div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
-          '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
-          '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
-          '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'N/A':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
-          _buildVerifierTag(_sbVlog,_sbTd,'closing',_sbRole) +
-        '</div>' +
-      '</div>'
-    );
-    if (isService) {
-      scoreRows.push(
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
-          '<div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
-            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
-            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
-            '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
-            _buildVerifierTag(_sbVlog,_sbTd,'evaluation',_sbRole) +
-          '</div>' +
-          '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
-            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
-            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
-            '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
-          '</div>' +
-        '</div>'
-      );
-    } else {
-      scoreRows.push(
-        '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
-          '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
-            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
-            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
-            '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
-          '</div>' +
-        '</div>'
-      );
-    }
-    html += scoreRows.join('');
-  }
-
 
 function openStaffDetail(s) {
   // Always open in view mode
@@ -4046,6 +3994,58 @@ function openStaffDetail(s) {
     
 
 // ── Dubai datetime formatter: 24-hour + AM/PM ─────────────────────────────
+  // Build all 4 score boxes as separate rows for mobile compatibility
+    const scoreRows = [];
+  const _sbVlog = Array.isArray(s.verificationLog) ? s.verificationLog
+    : (s.verificationLog && typeof s.verificationLog==='object') ? Object.values(s.verificationLog) : [];
+  const _sbTd   = s.taskData || {};
+  const _sbRole = s.role || '';
+    scoreRows.push(
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
+        '<div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
+          '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
+          '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
+          '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'N/A':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
+          _buildVerifierTag(_sbVlog,_sbTd,'opening',_sbRole) +
+        '</div>' +
+        '<div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
+          '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
+          '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
+          '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'N/A':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
+          _buildVerifierTag(_sbVlog,_sbTd,'closing',_sbRole) +
+        '</div>' +
+      '</div>'
+    );
+    if (isService) {
+      scoreRows.push(
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
+          '<div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+            _buildVerifierTag(_sbVlog,_sbTd,'evaluation',_sbRole) +
+          '</div>' +
+          '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    } else {
+      scoreRows.push(
+        '<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
+          '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
+            '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+    html += scoreRows.join('');
+  }
+
   // Task checklist
   // Normalize taskData — handle both formats
   if (s.taskData) {
