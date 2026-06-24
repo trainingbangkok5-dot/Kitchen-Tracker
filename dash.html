@@ -3991,7 +3991,6 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
       +(rdt?'<div style="font-size:9px;color:#94A3B8;">'+rdt+'</div>':'');
   }
   return html;
-}
 
   // Build all 4 score boxes as separate rows for mobile compatibility
     const scoreRows = [];
@@ -4466,6 +4465,7 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
       if (dataUrl) { img.src = dataUrl; img.style.display = ''; }
     } catch(e) { console.warn('FOH photo fetch failed:', e); }
   });
+}
 }
 
 // ── Export individual staff monthly PDF ───────────────────────
