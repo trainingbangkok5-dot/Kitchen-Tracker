@@ -1837,6 +1837,8 @@ function loadData() {
       populateFilters();
       renderAll();
       setSyncStatus('ok', '🔥 Live · ' + allStaff.length + ' submissions');
+    // If weekly tab is active, re-render with fresh data
+    if (document.getElementById('page-weekly')?.classList.contains('active')) renderWeekly();
       // Save session
       sessionStorage.setItem('dash_role', currentRole);
       sessionStorage.setItem('dash_name', currentStaffName||'');
@@ -2360,7 +2362,7 @@ function showTab(el,id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('page-'+id).classList.add('active');
-  if (id === 'weekly') { initWeeklyDates(); renderWeekly(); }
+  if (id === 'weekly') { initWeeklyDates(); loadData(); }
   if (id === 'monthly') { renderMonthly(); }
   if (id === 'registry') { renderRegistry(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
@@ -3963,13 +3965,16 @@ function openStaffDetail(s) {
             if (!t[uk]) t[uk] = url;
           });
         }
-        // Copy photo_N -> photoUrl_N
+        // Copy photo_N -> photoUrl_N and photo_N_url -> photoUrl_N
         let _pi = 0;
         while (true) {
-          const _pk = _pi === 0 ? 'photo' : 'photo_' + _pi;
-          const _uk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
-          if (t[_pk] && !t[_uk]) t[_uk] = t[_pk];
-          if (!t[_pk] && !t[_uk]) break;
+          const _pk  = _pi === 0 ? 'photo'     : 'photo_'     + _pi;
+          const _pku = _pi === 0 ? 'photo_url' : 'photo_'     + _pi + '_url';
+          const _uk  = _pi === 0 ? 'photoUrl'  : 'photoUrl_'  + _pi;
+          // Prefer Cloudinary URL slot first, then base64
+          if (t[_pku] && !t[_uk]) t[_uk] = t[_pku];
+          if (t[_pk]  && !t[_uk]) t[_uk] = t[_pk];
+          if (!t[_pk] && !t[_uk] && !t[_pku]) break;
           _pi++;
           if (_pi > 10) break;
         }
@@ -7444,6 +7449,8 @@ function _editTakePhoto(taskKey, withCapture) {
           const fd = new FormData();
           fd.append('file', blob, 'photo.jpg');
           fd.append('upload_preset', 'culex_uploads');
+          fd.append('quality', 'auto:best');
+          fd.append('format', 'jpg');
           fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
             .then(r => r.json())
             .then(j => {
@@ -8668,14 +8675,44 @@ function buildProgressCell(staff) {
   // Per-shift verifier lookup from verificationLog
   const _vlog = Array.isArray(staff.verificationLog) ? staff.verificationLog
     : (staff.verificationLog && typeof staff.verificationLog === 'object') ? Object.values(staff.verificationLog) : [];
+  // Calculate yes/no counts from taskData per shift
+  function _shiftYNCount(shiftPrefix) {
+    if (!staff.taskData) return null;
+    let yes = 0, no = 0;
+    const openIds = ['o1','o2','o3','o4','o5'];
+    const closeIds = ['c1','c2','c3','c4','c5'];
+    Object.entries(staff.taskData).forEach(function(e) {
+      const tid = e[0].replace(/^d[0-9]+_/, '');
+      const yn = (e[1]||{}).yn;
+      if (!yn || yn === 'na') return;
+      const isOpen = openIds.some(function(id){ return tid === id; });
+      const isClose = closeIds.some(function(id){ return tid === id; });
+      if (shiftPrefix === 'opening' && !isOpen) return;
+      if (shiftPrefix === 'closing' && !isClose) return;
+      if (yn === 'yes') yes++; else no++;
+    });
+    if (yes + no === 0) return null;
+    return 'Yes: ' + yes + ' / No: ' + no;
+  }
   function _lastVerifierFor(shiftKey) {
-    const entries = _vlog.filter(e => e.shift === shiftKey);
+    const entries = _vlog.filter(function(e){ return e.shift === shiftKey; });
     if (!entries.length) return null;
     const e = entries[entries.length - 1];
     const rl = { training:'Training', operations:'Ops', director:'Director', ceo:'CEO',
       areachef:'Area Chef', areamanager:'Area Mgr', kic:'KIC', oic:'OIC' };
-    return (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
+    const nameRole = (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
+    const dt = e.at ? new Date(e.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : '';
+    const dtStr = dt ? ' \xe2\x80\x93 ' + dt : '';
+    const ynCount = (shiftKey === 'opening' || shiftKey === 'closing') ? _shiftYNCount(shiftKey) : null;
+    // Check for re-verifier
+    const revEntries = _vlog.filter(function(e){ return e.shift === 'reverify'; });
+    const rev = revEntries.length ? revEntries[revEntries.length-1] : null;
+    const revStr = (shiftKey !== 'reverify' && rev)
+      ? ' \xe2\x94\x94 Re-verified: ' + (rev.by||'') + (rev.at ? ' \xe2\x80\x93 ' + new Date(rev.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : '')
+      : '';
+    return nameRole + dtStr + (ynCount ? ' \xe2\x80\x94 ' + ynCount : '') + revStr;
   }
+
 
   let html = '<div style="padding:2px 0;">';
 
@@ -9670,6 +9707,8 @@ function handleFOHEditPhoto(input, cardEl) {
         const fd = new FormData();
         fd.append('file', blob, 'photo.jpg');
         fd.append('upload_preset', 'culex_uploads');
+        fd.append('quality', 'auto:best');
+        fd.append('format', 'jpg');
         fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
           .then(r => r.json())
           .then(j => {
@@ -10161,77 +10200,6 @@ function toggleFOHEditMode() {
     });
     oicAMContainer.innerHTML = oicAMHtml;
 
-    // Audit Compliance — score input (must be 90%+)
-    (function() {
-      const audScoreVal = (staff.taskData && staff.taskData.aud1 && staff.taskData.aud1.audScore != null) ? staff.taskData.aud1.audScore : '';
-      const audC = audScoreVal >= 90 ? '#15803D' : audScoreVal ? '#B91C1C' : '#94A3B8';
-      const audB = audScoreVal >= 90 ? '#DCFCE7' : audScoreVal ? '#FEE2E2' : '#F8FAFC';
-      const audLbl = audScoreVal >= 90 ? 'Passes (90%+)' : audScoreVal ? 'Below 90% — does not qualify' : 'Enter score';
-      const oicAudDiv = document.createElement('div');
-      oicAudDiv.style.cssText = 'background:#F5F3EE;border-top:2px solid #E0DDD4;padding:12px;border-radius:0 0 10px 10px;';
-      const audHeader = document.createElement('div');
-      audHeader.style.cssText = 'background:#1A3C5E;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;border-radius:6px 6px 0 0;margin:-12px -12px 10px -12px;';
-      audHeader.textContent = 'Audit Compliance';
-      const audDesc = document.createElement('div');
-      audDesc.style.cssText = 'font-size:12px;font-weight:500;margin-bottom:8px;';
-      audDesc.textContent = 'The outlet achieved a score above 90% in the last monthly audit visit.';
-      const audRow = document.createElement('div');
-      audRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
-      const audInput = document.createElement('input');
-      audInput.id = 'oicAud1ScoreInput';
-      audInput.type = 'number'; audInput.min = '0'; audInput.max = '100'; audInput.step = '0.5';
-      audInput.value = audScoreVal; audInput.placeholder = 'e.g. 92';
-      audInput.style.cssText = 'width:80px;padding:7px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:14px;font-weight:700;text-align:center;color:' + audC + ';background:' + audB + ';outline:none;';
-      audInput.addEventListener('input', function() {
-        const v = parseFloat(this.value);
-        const pass = !isNaN(v) && v >= 90;
-        this.style.color = isNaN(v) ? '#94A3B8' : pass ? '#15803D' : '#B91C1C';
-        this.style.background = isNaN(v) ? '#F8FAFC' : pass ? '#DCFCE7' : '#FEE2E2';
-        this.style.borderColor = isNaN(v) ? '#E0DDD4' : pass ? '#15803D' : '#B91C1C';
-        const lbl = document.getElementById('oicAud1Label');
-        if (lbl) { lbl.textContent = isNaN(v) ? 'Enter score' : pass ? 'Passes (90%+)' : 'Below 90% — does not qualify'; lbl.style.color = isNaN(v) ? '#94A3B8' : pass ? '#15803D' : '#B91C1C'; }
-        _fohEditChanges.aud1 = {yn: (!isNaN(v) && v >= 90) ? 'yes' : 'no', audScore: v};
-        // Trigger live FOH score box update
-        if (typeof _fohFiltered !== 'undefined' && typeof _fohDetailIdx !== 'undefined') {
-          const _audStaff = _fohFiltered[_fohDetailIdx];
-          if (_audStaff) {
-            const _m = _audStaff.taskData ? Object.assign({}, _audStaff.taskData) : {};
-            Object.entries(_fohEditChanges).forEach(function(e2) { const yn2 = typeof e2[1]==='string'?e2[1]:e2[1].yn; if(yn2) { if(_m[e2[0]]) _m[e2[0]]={..._m[e2[0]],yn:yn2}; else _m[e2[0]]={yn:yn2}; } });
-            const oicI2=['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1'];
-            const opI2=['o1','o2','o3','o4','o5'], clI2=['c1','c2','c3','c4','c5'];
-            let oY2=0,oT2=0,cY2=0,cT2=0,eY2=0,eT2=0;
-            Object.entries(_m).forEach(function(e3){const t3=e3[1];if(!t3||!t3.yn||t3.yn==='na')return;const tid3=e3[0].replace(/^d[0-9]+_/,'');if(oicI2.some(function(id){return tid3===id;})){eT2++;if(t3.yn==='yes')eY2++;}else if(opI2.includes(tid3)){oT2++;if(t3.yn==='yes')oY2++;}else if(clI2.includes(tid3)){cT2++;if(t3.yn==='yes')cY2++;}});
-            const opS2=oT2>0?Math.round((oY2/oT2)*100):(_audStaff.openingPct!=null?parseFloat(_audStaff.openingPct):null);
-            const clS2=cT2>0?Math.round((cY2/cT2)*100):null;
-            const evS2=eT2>0?Math.round((eY2/eT2)*100):(_audStaff.oicEvalPct!=null?parseFloat(_audStaff.oicEvalPct):null);
-            let tot2=0;
-            if(opS2!==null&&clS2!==null&&evS2!==null)tot2=Math.round((opS2+clS2+evS2)/3);
-            else if(opS2!==null&&evS2!==null)tot2=Math.round((opS2+evS2)/2);
-            else if(clS2!==null&&evS2!==null)tot2=Math.round((clS2+evS2)/2);
-            else if(opS2!==null&&clS2!==null)tot2=Math.round((opS2+clS2)/2);
-            else if(opS2!==null)tot2=opS2; else if(clS2!==null)tot2=clS2; else if(evS2!==null)tot2=evS2;
-            document.querySelectorAll('#fohDetailModal [data-scorebox]').forEach(function(box){
-              const type=box.getAttribute('data-scorebox');
-              const pctEl=box.querySelector('.sb-pct')||box, lblEl=box.querySelector('.sb-lbl');
-              let pct=type==='opening'?opS2:type==='closing'?clS2:type==='oic'?evS2:tot2;
-              if(pct===null){if(type==='closing'){pctEl.textContent='—';pctEl.style.color='#94A3B8';if(lblEl){lblEl.textContent='N/A';lblEl.style.color='#94A3B8';}}return;}
-              pctEl.textContent=pct+'%';pctEl.style.color=pct>=95?'#0F766E':'#B91C1C';
-              if(lblEl){lblEl.textContent=pct>=95?'✓ Pass':'✗ Below target';lblEl.style.color=pct>=95?'#0F766E':'#B91C1C';}
-            });
-          }
-        }
-      });
-      const audSpan = document.createElement('span');
-      audSpan.id = 'oicAud1Label';
-      audSpan.style.cssText = 'font-size:12px;font-weight:600;color:' + audC + ';';
-      audSpan.textContent = audLbl;
-      audRow.appendChild(audInput);
-      audRow.appendChild(audSpan);
-      oicAudDiv.appendChild(audHeader);
-      oicAudDiv.appendChild(audDesc);
-      oicAudDiv.appendChild(audRow);
-      oicAMContainer.appendChild(oicAudDiv);
-    })();
   }
 
   // Add cancel button — always recreate so it's up to date
@@ -11047,6 +11015,8 @@ function maintUploadPhoto(key) {
       const fd = new FormData();
       fd.append('file', input.files[0]);
       fd.append('upload_preset', 'culex_uploads');
+      fd.append('quality', 'auto:best');
+      fd.append('format', 'jpg');
       const res = await fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd});
       const data = await res.json();
       if (!data.secure_url) throw new Error('Upload failed');
@@ -11958,12 +11928,18 @@ async function deleteSelectedFOH() {
 }
 
 
+function _upgradeCloudinaryUrl(url) {
+  // For Cloudinary URLs: remove any size/quality transformations and request full resolution
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  // Replace any existing upload transform params with high quality settings
+  return url.replace(/\/upload\/[^/]*\//, '/upload/q_100,f_auto/');
+}
 function openLightbox(src) {
   if (!src || src === '') return;
   const lb = document.getElementById('photoLightbox');
   const img = document.getElementById('photoLightboxImg');
   if (!lb || !img) return;
-  img.src = src;
+  img.src = _upgradeCloudinaryUrl(src);
   lb.style.display = 'flex';
   _lbScale = 1; _lbX = 0; _lbY = 0;
   img.style.transform = 'translate(0px,0px) scale(1)';

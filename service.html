@@ -511,6 +511,8 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       fd.append('file', blob, 'photo.jpg');
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
+      fd.append('quality', 'auto:best');
+      fd.append('format', 'jpg');
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
         method: 'POST', body: fd
       });
@@ -551,6 +553,8 @@ async function retryPendingPhotos() {
       fd.append('file', blob);
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
+      fd.append('quality', 'auto:best');
+      fd.append('format', 'jpg');
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
         method: 'POST', body: fd
       });
@@ -1257,7 +1261,7 @@ function renderDay() {
       const oicPanel = document.createElement('div');
       oicPanel.id = 'oicEvalPanel';
       oicPanel.style.cssText = 'margin:16px 0 8px;';
-      oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;"><div style="font-size:13px;font-weight:700;color:#15803D;margin-bottom:4px;">🧑\u200d💼 OIC Observation</div><div style="font-size:12px;color:#64748B;">This section is filled by the OIC from the<br><strong>Master Dashboard</strong> after you submit.</div></div>';
+      oicPanel.innerHTML = '<div style="padding:14px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:12px;text-align:center;"><div style="font-size:12px;color:#64748B;">This section is filled by the OIC from the<br><strong>Master Dashboard</strong> after you submit.</div></div>';
       container.appendChild(oicPanel);
     }
 

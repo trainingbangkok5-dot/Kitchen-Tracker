@@ -309,6 +309,8 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       fd.append('file', blob, 'photo.jpg');
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
+      fd.append('quality', 'auto:best');
+      fd.append('format', 'jpg');
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
         method: 'POST', body: fd
       });
@@ -349,6 +351,8 @@ async function retryPendingPhotos() {
       fd.append('file', blob);
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
+      fd.append('quality', 'auto:best');
+      fd.append('format', 'jpg');
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
         method: 'POST', body: fd
       });

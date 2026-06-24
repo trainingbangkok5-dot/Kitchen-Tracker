@@ -393,7 +393,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
 <!-- Outsourced Preventive Panel -->
 <div id="outsourcedPanel" style="display:none;background:#fff;border-radius:0 0 10px 10px;border:0.5px solid #E0DDD4;margin-bottom:16px;">
   <div style="padding:12px 16px;border-bottom:1px solid #F0EDE4;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-    <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🏗️ Outsourced Preventive Maintenance</div>
+    <div style="font-size:14px;font-weight:700;color:#1A3C5E;">🔧 Preventive Maintenance Records</div>
     <div style="font-size:11px;color:#64748B;">Auto-populated from Preventive priority logs assigned to external contractors</div>
   </div>
   <div class="tbl-wrap" style="overflow-x:auto;">
@@ -423,7 +423,7 @@ textarea.cell-inp{resize:none;min-height:36px;min-width:160px;}
     </table>
   </div>
   <div id="outsourcedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">
-    No outsourced tasks found.<br>Logs with Preventive priority assigned to external contractors will appear here automatically.
+    No active preventive maintenance records found.<br>Logs with Preventive priority will appear here automatically.
   </div>
 </div>
 
@@ -1300,7 +1300,7 @@ function setReportTab(tab) {
     weekly:     '📆 Weekly Report',
     monthly:    '📅 Monthly Report',
     preventive: '🔧 Monthly Preventive Maintenance',
-    outsourced: '🏗️ Outsourced Preventive Maintenance'
+    outsourced: '🔧 Preventive Maintenance Records'
   };
   const titleEl = document.querySelector('.sec-title span') || document.getElementById('reportTitle');
   const addBtn = document.getElementById('addRowBtn');
@@ -1847,11 +1847,9 @@ function renderOutsourcedTab() {
 
   const staffOnly = ['kic','oic'].includes(currentRole);
 
-  // Filter: Preventive priority + external contractor + active (not completed)
+  // Filter: Preventive priority — all active preventive records (internal + external)
   let outsourced = allLogs.filter(l => {
     if (l.priority !== 'Preventive') return false;
-    const assigned = (l.assignedTo || '').trim();
-    if (!assigned || INTERNAL_TEAM.includes(assigned)) return false;
     return l.status !== 'Yes' && l.status !== 'Completed'; // completed go to Completed tab
   });
 
