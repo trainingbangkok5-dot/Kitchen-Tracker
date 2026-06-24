@@ -1739,12 +1739,15 @@ function loadData() {
       // For closing shifts submitted after midnight (00:00-02:59 Dubai), link to previous day's week
       const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
       let effectiveDate = subDate;
-      if (_isClosing && s.submittedAt) {
+      if (_isClosing && s.businessDate) {
+        // Prefer businessDate written by checklist (correct operational day)
+        effectiveDate = s.businessDate;
+      } else if (_isClosing && s.submittedAt) {
         try {
           const _subHour = new Date(s.submittedAt).toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour:'numeric', hour12:false});
           const _hour = parseInt(_subHour, 10);
           if (_hour >= 0 && _hour < 3) {
-            // Submitted after midnight — roll effective date back one day to find the opening shift's week
+            // Fallback for old records — roll effective date back one day
             const _d = new Date(subDate + 'T00:00:00');
             _d.setDate(_d.getDate() - 1);
             effectiveDate = normalizeWeek(_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0'));
@@ -1815,12 +1818,15 @@ function loadData() {
       // For closing shifts submitted after midnight (00:00-02:59 Dubai), link to previous day's week
       const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
       let effectiveDate = subDate;
-      if (_isClosing && s.submittedAt) {
+      if (_isClosing && s.businessDate) {
+        // Prefer businessDate written by checklist (correct operational day)
+        effectiveDate = s.businessDate;
+      } else if (_isClosing && s.submittedAt) {
         try {
           const _subHour = new Date(s.submittedAt).toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour:'numeric', hour12:false});
           const _hour = parseInt(_subHour, 10);
           if (_hour >= 0 && _hour < 3) {
-            // Submitted after midnight — roll effective date back one day to find the opening shift's week
+            // Fallback for old records — roll effective date back one day
             const _d = new Date(subDate + 'T00:00:00');
             _d.setDate(_d.getDate() - 1);
             effectiveDate = normalizeWeek(_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0'));

@@ -1226,6 +1226,12 @@ function submitDay() {
     startedAt:  d[dayKey]._start,
     submittedAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString(),
+    businessDate: (function() {
+      if (currentShift !== 'closing') return null;
+      const _h = parseInt(new Date().toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
+      const _bd = new Date(_h < 3 ? Date.now()-86400000 : Date.now());
+      return _bd.toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
+    })(),
     submittedDates: trackSubmittedDate(weekStart),
     taskData: (function() {
       const tasks = {};

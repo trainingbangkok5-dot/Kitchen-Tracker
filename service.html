@@ -1786,6 +1786,11 @@ async function submitDay() {
     closingPct:   opC,
     qualified:    false,
     status:       'closing_submitted',
+    businessDate: (function() {
+      const _h = parseInt(new Date().toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
+      const _bd = new Date(_h < 3 ? Date.now()-86400000 : Date.now());
+      return _bd.toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
+    })(),
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     submittedDates: trackSubmittedDate(getWeekStart()),
