@@ -3938,6 +3938,18 @@ function openStaffDetail(s) {
     else                                     totalScore = sc;
     const pass = totalScore >= 95;
     
+
+// ── Dubai datetime formatter: 24-hour + AM/PM ─────────────────────────────
+function _fmtDubaiDT(iso) {
+  if (!iso) return '—';
+  try {
+    var d = new Date(iso);
+    var base = d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'});
+    var h = parseInt(d.toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
+    return base + (h < 12 ? ' AM' : ' PM');
+  } catch(e){ return '—'; }
+}
 // ── Verifier tag for score boxes (Option A) ───────────────────────────────────
 function _buildVerifierTag(vlog, taskData, shiftKey, role) {
   var log = Array.isArray(vlog) ? vlog : (vlog && typeof vlog==='object' ? Object.values(vlog) : []);
@@ -3964,7 +3976,7 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
   }
   var html='';
   if (verifier) {
-    var dt = verifier.at ? new Date(verifier.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'}) : '';
+    var dt = verifier.at ? _fmtDubaiDT(verifier.at) : '';
     var nameRole=(verifier.by||'')+(verifier.role?' ('+( rl[verifier.role]||verifier.role)+')':'');
     var ynStr=(yes+no>0)?' · Yes: '+yes+' / No: '+no:'';
     html+='<div style="margin-top:5px;padding-top:5px;border-top:1px dashed #E0DDD4;text-align:left;">'
@@ -3973,7 +3985,7 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
       +'</div>';
   }
   if (reVerifier) {
-    var rdt=reVerifier.at?new Date(reVerifier.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'}):'';
+    var rdt=reVerifier.at?_fmtDubaiDT(reVerifier.at):'';
     var rn=(reVerifier.by||'')+(reVerifier.role?' ('+(rl[reVerifier.role]||reVerifier.role)+')':'');
     html+='<div style="font-size:9px;font-weight:600;color:#92400E;margin-top:3px;">?? Re-verified: '+rn+'</div>'
       +(rdt?'<div style="font-size:9px;color:#94A3B8;">'+rdt+'</div>':'');
@@ -6913,7 +6925,7 @@ function renderVerificationLog(s, allowDelete) {
   var shiftLabel = { opening:'Opening', closing:'Closing', evaluation:'Evaluation', reverify:'Re-Verified' };
   var shiftIcon  = { opening:'\ud83c\udf05', closing:'\ud83c\udf19', evaluation:'\ud83d\udccb', reverify:'\ud83d\udd04' };
   return log.map(function(entry, i) {
-    var dt = entry.at ? (function(){ var s=new Date(entry.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'}); })() : '\u2014';
+    var dt = entry.at ? (function(){ var s=_fmtDubaiDT(entry.at); })() : '\u2014';
     var rl = roleLabel[entry.role] || entry.role || '';
     var isReverify = entry.shift === 'reverify';
     var sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
@@ -6946,7 +6958,7 @@ function buildVerifyEditPanel(s) {
   const shiftIcon  = { opening:'\u{1f305}', closing:'\u{1f319}', evaluation:'\u{1f4cb}', reverify:'\u{1f504}' };
   // Build history
   const historyHtml = log.map(function(entry, _hi) {
-    const dt = entry.at ? (function(){ var s=new Date(entry.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'}); })() : '\u2014';
+    const dt = entry.at ? (function(){ var s=_fmtDubaiDT(entry.at); })() : '\u2014';
     const rl = roleLabel[entry.role] || entry.role || '';
     const isRev = entry.shift === 'reverify';
     const sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
@@ -8805,14 +8817,14 @@ function buildProgressCell(staff) {
     const rl = { training:'Training', operations:'Ops', director:'Director', ceo:'CEO',
       areachef:'Area Chef', areamanager:'Area Mgr', kic:'KIC', oic:'OIC' };
     const nameRole = (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
-    const dt = e.at ? new Date(e.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'}) : '';
+    const dt = e.at ? _fmtDubaiDT(e.at) : '';
     const dtStr = dt ? ' \xe2\x80\x93 ' + dt : '';
     const ynCount = (shiftKey === 'opening' || shiftKey === 'closing') ? _shiftYNCount(shiftKey) : null;
     // Check for re-verifier
     const revEntries = _vlog.filter(function(e){ return e.shift === 'reverify'; });
     const rev = revEntries.length ? revEntries[revEntries.length-1] : null;
     const revStr = (shiftKey !== 'reverify' && rev)
-      ? ' \xe2\x94\x94 Re-verified: ' + (rev.by||'') + (rev.at ? ' \xe2\x80\x93 ' + new Date(rev.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Dubai'}) : '')
+      ? ' \xe2\x94\x94 Re-verified: ' + (rev.by||'') + (rev.at ? ' \xe2\x80\x93 ' + _fmtDubaiDT(rev.at) : '')
       : '';
     return nameRole + dtStr + (ynCount ? ' \xe2\x80\x94 ' + ynCount : '') + revStr;
   }
