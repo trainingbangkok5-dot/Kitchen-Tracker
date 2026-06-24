@@ -1245,7 +1245,7 @@ function submitDay() {
           const u = td[k]; return u && u.startsWith('data:');
         });
         if (yn || photoUrls.length || hasLocalPhoto) {
-          tasks[t.id] = { day: currentDay, section: s.title, task: t.text, owner: t.ownerLbl, yn: yn||'', photoUrl: photoUrls[0]||'', photoUrls, hasPhoto: photoUrls.length > 0 || hasLocalPhoto };
+          tasks[t.id] = { day: currentDay, section: s.title, task: t.text, owner: t.ownerLbl, yn: yn||'', comment: td.comment||'', photoUrl: photoUrls[0]||'', photoUrls, hasPhoto: photoUrls.length > 0 || hasLocalPhoto };
         }
       }));
       return tasks;
@@ -1394,6 +1394,15 @@ window.addEventListener('DOMContentLoaded', () => {
       buildDayRail(); renderDay();
     });
   });
+  // Title Case on blur for name field
+  (function(){
+    const fn=document.getElementById('fName');
+    if(fn) fn.addEventListener('blur',function(){
+      if(!this.value.trim()) return;
+      this.value=this.value.trim().replace(/\w\S*/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+      localStorage.setItem('kic_info_' + ROLE + '_fName', this.value);
+    });
+  })();
   // Set SK from saved name on load
   const _savedName = localStorage.getItem('kic_info_' + ROLE + '_fName');
   if (_savedName) SK = SK_BASE + '_' + _savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();

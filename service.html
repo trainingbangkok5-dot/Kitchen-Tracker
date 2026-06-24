@@ -1974,6 +1974,15 @@ window.addEventListener('DOMContentLoaded', () => {
       if (id === 'fName' && name) loadOicEvalPct();
     });
   });
+  // Title Case on blur for name field
+  (function(){
+    const fn=document.getElementById('fName');
+    if(fn) fn.addEventListener('blur',function(){
+      if(!this.value.trim()) return;
+      this.value=this.value.trim().replace(/\w\S*/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+      localStorage.setItem('kic_info_' + ROLE + '_fName', this.value);
+    });
+  })();
   if (savedName) setTimeout(loadOicEvalPct, 1500);
 
   // Photo input listeners

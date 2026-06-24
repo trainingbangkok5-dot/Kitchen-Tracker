@@ -984,6 +984,15 @@ window.addEventListener('DOMContentLoaded', () => {
       if (id === 'fName' && name) loadOicEvalPct();
     });
   });
+  // Title Case on blur for name field
+  (function(){
+    const fn=document.getElementById('fName');
+    if(fn) fn.addEventListener('blur',function(){
+      if(!this.value.trim()) return;
+      this.value=this.value.trim().replace(/\w\S*/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+      localStorage.setItem('delco_info_fName', this.value);
+    });
+  })();
   // Set SK per staff name on load
   const savedName = localStorage.getItem('delco_info_fName') || '';
   if (savedName) SK = SK_BASE + '_' + savedName.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
