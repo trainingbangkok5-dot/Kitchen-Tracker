@@ -3937,19 +3937,73 @@ function openStaffDetail(s) {
     else if (hasOIC)                         totalScore = oicEvalPct;
     else                                     totalScore = sc;
     const pass = totalScore >= 95;
-    // Build all 4 score boxes as separate rows for mobile compatibility
+    
+// ── Verifier tag for score boxes (Option A) ───────────────────────────────────
+function _buildVerifierTag(vlog, taskData, shiftKey, role) {
+  var log = Array.isArray(vlog) ? vlog : (vlog && typeof vlog==='object' ? Object.values(vlog) : []);
+  var rl = {training:'Training',operations:'Ops',director:'Director',ceo:'CEO',
+    areachef:'Area Chef',areamanager:'Area Mgr',kic:'KIC',oic:'OIC'};
+  var entries = log.filter(function(e){ return e.shift===shiftKey; });
+  var verifier = entries.length ? entries[entries.length-1] : null;
+  var revEntries = log.filter(function(e){ return e.shift==='reverify'; });
+  var reVerifier = revEntries.length ? revEntries[revEntries.length-1] : null;
+  // Yes/No count per shift
+  var openIds  = ['o1','o2','o3','o4','o5'];
+  var closeIds = (role==='kic') ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
+  var evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
+    'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
+    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2'];
+  var shiftIds = shiftKey==='opening' ? openIds : shiftKey==='closing' ? closeIds : evalIds;
+  var yes=0, no=0;
+  if (taskData && shiftKey!=='total') {
+    Object.entries(taskData).forEach(function(e){
+      var tid=e[0].replace(/^d[0-9]+_/,''); var yn=(e[1]||{}).yn;
+      if (!yn||yn==='na') return;
+      if (shiftIds.some(function(id){return tid===id;})){if(yn==='yes')yes++;else no++;}
+    });
+  }
+  var html='';
+  if (verifier) {
+    var dt = verifier.at ? new Date(verifier.at).toLocaleString('en-GB',{
+      day:'2-digit',month:'short',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'}) : '';
+    var nameRole=(verifier.by||'')+(verifier.role?' ('+( rl[verifier.role]||verifier.role)+')':'');
+    var ynStr=(yes+no>0)?' · Yes: '+yes+' / No: '+no:'';
+    html+='<div style="margin-top:5px;padding-top:5px;border-top:1px dashed #E0DDD4;text-align:left;">'
+      +'<div style="font-size:9px;font-weight:600;color:#15803D;">✅ '+nameRole+'</div>'
+      +(dt?'<div style="font-size:9px;color:#94A3B8;">'+dt+ynStr+'</div>':'')
+      +'</div>';
+  }
+  if (reVerifier) {
+    var rdt=reVerifier.at?new Date(reVerifier.at).toLocaleString('en-GB',{
+      day:'2-digit',month:'short',year:'numeric',
+      hour:'2-digit',minute:'2-digit',hour12:true,timeZone:'Asia/Dubai'}):'';
+    var rn=(reVerifier.by||'')+(reVerifier.role?' ('+(rl[reVerifier.role]||reVerifier.role)+')':'');
+    html+='<div style="font-size:9px;font-weight:600;color:#92400E;margin-top:3px;">?? Re-verified: '+rn+'</div>'
+      +(rdt?'<div style="font-size:9px;color:#94A3B8;">'+rdt+'</div>':'');
+  }
+  return html;
+}
+
+  // Build all 4 score boxes as separate rows for mobile compatibility
     const scoreRows = [];
+  const _sbVlog = Array.isArray(s.verificationLog) ? s.verificationLog
+    : (s.verificationLog && typeof s.verificationLog==='object') ? Object.values(s.verificationLog) : [];
+  const _sbTd   = s.taskData || {};
+  const _sbRole = s.role || '';
     scoreRows.push(
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
         '<div data-scorebox="opening" style="background:#EFF6FF;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
           '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
           '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'N/A':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
+          _buildVerifierTag(_sbVlog,_sbTd,'opening',_sbRole) +
         '</div>' +
         '<div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
           '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
           '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'N/A':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
+          _buildVerifierTag(_sbVlog,_sbTd,'closing',_sbRole) +
         '</div>' +
       '</div>'
     );
@@ -3960,6 +4014,7 @@ function openStaffDetail(s) {
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
             '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
             '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+            _buildVerifierTag(_sbVlog,_sbTd,'evaluation',_sbRole) +
           '</div>' +
           '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
@@ -9178,6 +9233,13 @@ function openFOHDetail(idx) {
   const scoreColor = p => p>=95?'#0F766E':p>=70?'#D97706':'#B91C1C';
   const scoreBg = p => p>=95?'#DCFCE7':p>=70?'#FEF3C7':'#FEE2E2';
   const op = staff.overallPct;
+  const _fohVlog = Array.isArray(staff.verificationLog) ? staff.verificationLog
+    : (staff.verificationLog && typeof staff.verificationLog==='object') ? Object.values(staff.verificationLog) : [];
+  const _fohSbTd   = staff.taskData || {};
+  const _fohSbRole = staff.role || '';
+  const _fohOpenTag  = _buildVerifierTag(_fohVlog,_fohSbTd,'opening',   _fohSbRole);
+  const _fohCloseTag = _buildVerifierTag(_fohVlog,_fohSbTd,'closing',   _fohSbRole);
+  const _fohEvalTag  = _buildVerifierTag(_fohVlog,_fohSbTd,'evaluation',_fohSbRole);
 
   // Build day breakdown header
   let dayRows = '';
@@ -9273,11 +9335,13 @@ function openFOHDetail(idx) {
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 OPENING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'}">${oPctFoh!=null?oPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'N/A':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        ${_fohOpenTag}
       </div>
       <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 CLOSING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'N/A':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        ${_fohCloseTag}
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;text-align:center;">
@@ -9285,6 +9349,7 @@ function openFOHDetail(idx) {
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">📋 AM EVAL</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'};margin-top:2px;">${oicPctFoh===null?'Pending AM Eval':oicPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        ${_fohEvalTag}
       </div>
       <div data-scorebox="total" style="background:${fohTotalPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${fohTotalPass?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
@@ -9297,11 +9362,13 @@ function openFOHDetail(idx) {
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌅 OPENING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'}">${oPctFoh!=null?oPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${oPctFoh!=null?scoreColor(oPctFoh):'#94A3B8'};margin-top:2px;">${oPctFoh===null?'N/A':oPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        ${_fohOpenTag}
       </div>
       <div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🌙 CLOSING</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'}">${cPctFoh!=null?cPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${cPctFoh!=null?scoreColor(cPctFoh):'#94A3B8'};margin-top:2px;">${cPctFoh===null?'N/A':cPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        ${_fohCloseTag}
       </div>
     </div>
     ${isService ? `
@@ -9310,6 +9377,7 @@ function openFOHDetail(idx) {
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">👥 OIC EVAL</div>
         <div class="sb-pct" style="font-size:24px;font-weight:800;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'}">${oicPctFoh!=null?oicPctFoh+'%':'—'}</div>
         <div class="sb-lbl" style="font-size:9px;color:${oicPctFoh!=null?scoreColor(oicPctFoh):'#94A3B8'};margin-top:2px;">${oicPctFoh===null?'Pending OIC':oicPctFoh>=95?'✓ Pass':'✗ Below'}</div>
+        ${_fohEvalTag}
       </div>
       <div data-scorebox="total" style="background:${fohTotalPass?'#F0FDF4':'#FFF1F0'};border:2px solid ${fohTotalPass?'#22C55E':'#EF4444'};border-radius:10px;padding:12px;">
         <div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:4px;">🏆 TOTAL</div>
