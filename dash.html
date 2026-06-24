@@ -1135,15 +1135,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="font-size:12px;color:#64748B;margin-top:2px;">Records with Preventive priority assigned to external contractors</div>
     </div>
     <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <table style="width:100%;border-collapse:collapse;min-width:900px;font-size:12px;">
         <thead>
           <tr style="background:#F8F7F2;">
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Outlet</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Issue / Task</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Assigned To</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Status</th>
-            <th style="padding:8px 12px;text-align:left;font-weight:700;color:#64748B;border-bottom:1px solid #E0DDD4;">Remarks</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Log ID</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Reported By</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Outlet</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;">Issue</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Priority</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Assigned</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Status</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Days</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Photos</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Date Resolved</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Verified By</th>
+            <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid #E0DDD4;white-space:nowrap;">Action</th>
           </tr>
         </thead>
         <tbody id="dashOutsourcedTbody"></tbody>
@@ -7978,10 +7985,10 @@ function renderDashOutsourced() {
   const panel = document.getElementById('dashOutsourcedPanel');
   if (!panel) return;
   const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
-  const outsourced = allMaintenanceLogs.filter(l => {
+  const outsourced = allMaintenanceLogs.filter(function(l) {
     const assigned = (l.assignedTo || '').trim();
     return l.priority === 'Preventive' && !INTERNAL.includes(assigned) && assigned;
-  }).sort((a,b) => (b.dateReported||'').localeCompare(a.dateReported||''));
+  }).sort(function(a,b){ return (b.dateReported||'').localeCompare(a.dateReported||''); });
   const tbody = document.getElementById('dashOutsourcedTbody');
   const empty = document.getElementById('dashOutsourcedEmpty');
   if (!tbody) return;
@@ -7991,19 +7998,8 @@ function renderDashOutsourced() {
     return;
   }
   if (empty) empty.style.display = 'none';
-  outsourced.forEach(function(log) {
-    var statusColor = (log.status==='Yes'||log.status==='Done'||log.status==='Completed') ? '#15803D' : '#D97706';
-    var statusBg = (log.status==='Yes'||log.status==='Done'||log.status==='Completed') ? '#DCFCE7' : '#FEF3C7';
-    var tr = document.createElement('tr');
-    tr.style.cssText = 'border-bottom:.5px solid #F0EDE4;';
-    tr.innerHTML = '<td style="padding:8px 12px;font-size:12px;">' + (log.dateReported||'—') + '</td>'
-      + '<td style="padding:8px 12px;font-size:12px;color:#1A3C5E;font-weight:600;">' + (log.outlet||'—') + '</td>'
-      + '<td style="padding:8px 12px;font-size:12px;">' + (log.issue||'—') + '</td>'
-      + '<td style="padding:8px 12px;font-size:12px;">' + (log.assignedTo||'—') + '</td>'
-      + '<td style="padding:8px 12px;"><span style="background:' + statusBg + ';color:' + statusColor + ';padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">' + (log.status||'Pending') + '</span></td>'
-      + '<td style="padding:8px 12px;font-size:12px;color:#64748B;">' + (log.remarks||'—') + '</td>';
-    tbody.appendChild(tr);
-  });
+  // Reuse the full renderMaintRow layout (same photos, same edit/overwrite actions)
+  outsourced.forEach(function(log) { renderMaintRow(log, tbody); });
 }
 
 function getMaintFiltered() {
@@ -11146,6 +11142,15 @@ function maintSaveRow(key) {
         badge.textContent = 'Saved ✓';
         badge.style.cssText = 'display:inline-block;margin-top:4px;padding:2px 8px;background:#DCFCE7;color:#15803D;border-radius:10px;font-size:10px;font-weight:700;';
         asgnEl.parentNode.appendChild(badge);
+      }
+      // If Preventive priority + external assignee → auto-redirect to Outsourced tab
+      const savedLog = allMaintenanceLogs.find(l => l._key === key);
+      const INTERNAL = ['Baldev','Angelo','Asad','Shridhar','Awais','Unassigned',''];
+      if (savedLog && savedLog.priority === 'Preventive') {
+        const assignee = (savedLog.assignedTo || '').trim();
+        if (assignee && !INTERNAL.includes(assignee)) {
+          setTimeout(() => setMaintTab('outsourced'), 400);
+        }
       }
     })
     .catch(e => showToast('Save failed: ' + e.message, 'error'));
