@@ -6925,7 +6925,7 @@ function renderVerificationLog(s, allowDelete) {
   var shiftLabel = { opening:'Opening', closing:'Closing', evaluation:'Evaluation', reverify:'Re-Verified' };
   var shiftIcon  = { opening:'\ud83c\udf05', closing:'\ud83c\udf19', evaluation:'\ud83d\udccb', reverify:'\ud83d\udd04' };
   return log.map(function(entry, i) {
-    var dt = entry.at ? (function(){ var s=_fmtDubaiDT(entry.at); })() : '\u2014';
+    var dt = entry.at ? _fmtDubaiDT(entry.at) : '\u2014';
     var rl = roleLabel[entry.role] || entry.role || '';
     var isReverify = entry.shift === 'reverify';
     var sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
@@ -6958,7 +6958,7 @@ function buildVerifyEditPanel(s) {
   const shiftIcon  = { opening:'\u{1f305}', closing:'\u{1f319}', evaluation:'\u{1f4cb}', reverify:'\u{1f504}' };
   // Build history
   const historyHtml = log.map(function(entry, _hi) {
-    const dt = entry.at ? (function(){ var s=_fmtDubaiDT(entry.at); })() : '\u2014';
+    const dt = entry.at ? _fmtDubaiDT(entry.at) : '\u2014';
     const rl = roleLabel[entry.role] || entry.role || '';
     const isRev = entry.shift === 'reverify';
     const sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
@@ -8281,14 +8281,23 @@ function loadBOHData() {
           else if (_cl!=null)                       grouped[gKey].overallPct = _cl;
           else if (_ev!=null)                       grouped[gKey].overallPct = _ev;
         } else {
-          if (_op != null && _cl != null) {
-            grouped[gKey].overallPct = Math.round((_op + _cl) / 2);
-            grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
-          } else if (_op != null && grouped[gKey].overallPct === 0) {
+          // FOH roles (service/oic/bartender/delco): include oicEvalPct in total
+          if (_op!=null && _cl!=null && _ev!=null) {
+            grouped[gKey].overallPct = Math.round((_op+_cl+_ev)/3);
+          } else if (_op!=null && _cl!=null) {
+            grouped[gKey].overallPct = Math.round((_op+_cl)/2);
+          } else if (_op!=null && _ev!=null) {
+            grouped[gKey].overallPct = Math.round((_op+_ev)/2);
+          } else if (_cl!=null && _ev!=null) {
+            grouped[gKey].overallPct = Math.round((_cl+_ev)/2);
+          } else if (_op!=null && grouped[gKey].overallPct === 0) {
             grouped[gKey].overallPct = _op;
-          } else if (_cl != null && grouped[gKey].overallPct === 0) {
+          } else if (_cl!=null && grouped[gKey].overallPct === 0) {
             grouped[gKey].overallPct = _cl;
+          } else if (_ev!=null && grouped[gKey].overallPct === 0) {
+            grouped[gKey].overallPct = _ev;
           }
+          grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
         }
         grouped[gKey].qualified = grouped[gKey].overallPct >= 95;
         if (sub.qualified) grouped[gKey].qualified = sub.qualified;
