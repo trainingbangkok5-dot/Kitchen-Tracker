@@ -2415,11 +2415,14 @@ function _oicIsAM() { return ['areamanager','director','training','operations','
 function _oicIsOIC() { return currentRole === 'oic'; }
 
 // ── CALCULATION (unchanged) ───────────────────────────────────
-function _oicIncWeighted(actual, max, weight, inverse) {
+function _oicIncWeighted(actual, max, weight, inverse, isSales) {
   var v = parseFloat(actual);
   if (isNaN(v) || actual === '' || actual == null) return null;
   var ws;
-  if (inverse) {
+  if (isSales) {
+    // Sales formula: Score = (Weight × Actual Achieved) ÷ 100
+    ws = (weight * v) / 100;
+  } else if (inverse) {
     ws = Math.max(0, (max - v) / max) * weight * 100;
   } else {
     ws = v * weight;
@@ -2427,10 +2430,10 @@ function _oicIncWeighted(actual, max, weight, inverse) {
   return Math.round(ws * 100) / 100;
 }
 
-function _oicIncTotal(actuals) {
+function _oicIncTotal(actuals, salesTarget) {
   var total = 0, hasAny = false;
   OIC_INC_ROWS.forEach(function(row) {
-    var ws = _oicIncWeighted(actuals[row.id], row.max, row.weight, row.inverse);
+    var ws = _oicIncWeighted(actuals[row.id], row.id==='sales'?(salesTarget||row.max):row.max, row.weight, row.inverse, row.id==='sales');
     if (ws !== null) { total += ws; hasAny = true; }
   });
   return hasAny ? Math.round(total * 100) / 100 : null;
@@ -2611,29 +2614,45 @@ function _buildOICIncForm(wrap, rec) {
   var isAM = _oicIsAM();
   var isOIC = _oicIsOIC();
   var locked = isApproved && !isAM;
-  var total = _oicIncTotal(actuals);
+  var total = _oicIncTotal(actuals, rec.salesTarget || null);
   var totalColor = total===null?'#FDE68A':total>=95?'#86EFAC':total>=70?'#FDE68A':'#FCA5A5';
   var month = document.getElementById('oicIncMonthFilter').value;
   var monthOptions = '';
   var sel = document.getElementById('oicIncMonthFilter');
   if (sel) Array.from(sel.options).forEach(function(o){ monthOptions += '<option value="'+o.value+'"'+(o.value===(rec.month||month)?' selected':'')+'>'+o.text+'</option>'; });
   var rows = '';
+  var savedSalesTarget = (rec.salesTarget !== undefined && rec.salesTarget !== null) ? rec.salesTarget : '';
   OIC_INC_ROWS.forEach(function(row, i) {
     var val = actuals[row.id] !== undefined && actuals[row.id] !== null ? actuals[row.id] : '';
-    var ws = _oicIncWeighted(val, row.max, row.weight, row.inverse);
+    var isSales = row.id === 'sales';
+    var effectiveTarget = isSales ? (savedSalesTarget !== '' ? parseFloat(savedSalesTarget) : row.max) : row.max;
+    var ws = _oicIncWeighted(val, effectiveTarget, row.weight, row.inverse, isSales);
     var wsColor = ws===null?'#94A3B8':ws/(row.weight*100)>=0.95?'#15803D':ws/(row.weight*100)>=0.7?'#D97706':'#B91C1C';
     var subNote = row.inverse ? '<div style="font-size:10px;color:#64748B;margin-top:2px;">Fewer = better (max '+row.max+' complaints)</div>'
-      : '';
+      : (isSales ? '<div style="font-size:10px;color:#1E40AF;margin-top:2px;">Score = (Weight × Actual) ÷ 100</div>' : '');
     var inputBg = locked ? '#F8FAFC' : '#FFFDE7';
     var inputBorder = locked ? '1.5px solid #E0DDD4' : '1.5px solid #FDE68A';
-    var inputAttrs = locked ? ' disabled' : ' oninput="updateOICIncRow(\''+row.id+'\','+row.max+','+row.weight+','+row.inverse+')"';
+    var inputAttrs = locked ? ' disabled' : ' oninput="updateOICIncRow(\\\'' + row.id + '\\\''  + ',' + row.max + ',' + row.weight + ',' + row.inverse + ')"';
+    // Target column: editable input for Sales, static display for others
+    var targetCell;
+    if (isSales) {
+      var tBg = locked ? '#F8FAFC' : '#EFF6FF';
+      var tBorder = locked ? '1.5px solid #E0DDD4' : '1.5px solid #BFDBFE';
+      targetCell = '<div style="padding:6px 8px;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;">' +
+        '<input id="oic_inc_target_sales" type="number" min="0" step="1" value="' + (savedSalesTarget !== '' ? savedSalesTarget : '') + '" placeholder="Target"' +
+        ' style="width:72px;padding:6px 6px;border:' + tBorder + ';border-radius:8px;font-size:12px;font-weight:600;text-align:center;background:' + tBg + ';outline:none;color:#1A3C5E;"' +
+        (locked ? ' disabled' : ' oninput="updateOICIncRow(\\\'sales\\\',' + row.max + ',' + row.weight + ',false)"') + '>' +
+        '</div>';
+    } else {
+      targetCell = '<div style="padding:10px 12px;font-size:12px;text-align:center;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;color:#475569;">' + row.max + (row.inverse?' max':'') + '</div>';
+    }
     rows += '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;border-bottom:.5px solid #E0DDD4;background:' + (i%2===0?'#fff':'#F8FAFC') + ';">' +
       '<div style="padding:10px 12px;font-size:12px;font-weight:500;border-right:1px solid #E0DDD4;display:flex;flex-direction:column;justify-content:center;">' + row.kpi + subNote + '</div>' +
       '<div style="padding:10px 12px;font-size:11px;color:#64748B;border-right:1px solid #E0DDD4;display:flex;align-items:center;">' + row.source + '</div>' +
       '<div style="padding:10px 12px;font-size:12px;font-weight:600;text-align:center;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;color:#1F4E79;">' + Math.round(row.weight*100) + '%</div>' +
-      '<div style="padding:10px 12px;font-size:12px;text-align:center;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;color:#475569;">' + row.max + (row.inverse?' max':'') + '</div>' +
+      targetCell +
       '<div style="padding:6px 10px;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;">' +
-        '<input id="oic_inc_' + row.id + '" type="number" min="0" step="0.1" value="' + val + '" placeholder="0\u2013' + row.max + '"' +
+        '<input id="oic_inc_' + row.id + '" type="number" min="0" step="0.1" value="' + val + '" placeholder="0–' + row.max + '"' +
         ' style="width:78px;padding:6px 8px;border:' + inputBorder + ';border-radius:8px;font-size:13px;font-weight:600;text-align:center;background:' + inputBg + ';outline:none;color:#1A3C5E;"' +
         inputAttrs + '>' +
       '</div>' +
@@ -2749,13 +2768,18 @@ function updateOICIncRow(id, max, weight, inverse) {
   var inp  = document.getElementById('oic_inc_' + id);
   var wsEl = document.getElementById('oic_inc_ws_' + id);
   if (!inp || !wsEl) return;
-  var ws = _oicIncWeighted(inp.value, max, weight, inverse);
+  var isSales = id === 'sales';
+  var salesTargetEl = document.getElementById('oic_inc_target_sales');
+  var salesTarget = salesTargetEl && salesTargetEl.value !== '' ? parseFloat(salesTargetEl.value) : max;
+  var effectiveMax = isSales ? salesTarget : max;
+  var ws = _oicIncWeighted(inp.value, effectiveMax, weight, inverse, isSales);
   var wsColor = ws===null?'#94A3B8':ws/(weight*100)>=0.95?'#15803D':ws/(weight*100)>=0.7?'#D97706':'#B91C1C';
   wsEl.textContent = ws !== null ? ws.toFixed(1) : '—';
   wsEl.style.color = wsColor;
   var actuals = {};
   OIC_INC_ROWS.forEach(function(row){ var el=document.getElementById('oic_inc_'+row.id); actuals[row.id]=el?el.value:''; });
-  var total = _oicIncTotal(actuals);
+  var curSalesTarget = salesTargetEl && salesTargetEl.value !== '' ? parseFloat(salesTargetEl.value) : null;
+  var total = _oicIncTotal(actuals, curSalesTarget);
   var totalEl = document.getElementById('oic_inc_total');
   if (totalEl) {
     totalEl.textContent = total!==null?total.toFixed(1)+'%':'—';
@@ -2785,10 +2809,12 @@ function saveOICIncentive(newStatus) {
   if (!month)  { showToast('Select month','warn'); return; }
   var actuals = {};
   OIC_INC_ROWS.forEach(function(row){ var el=document.getElementById('oic_inc_'+row.id); actuals[row.id]=el&&el.value!==''?parseFloat(el.value):null; });
-  var total = _oicIncTotal(actuals);
+  var salesTargetEl = document.getElementById('oic_inc_target_sales');
+  var salesTarget = salesTargetEl && salesTargetEl.value !== '' ? parseFloat(salesTargetEl.value) : null;
+  var total = _oicIncTotal(actuals, salesTarget);
   var record = {
     oicName:name, outlet:outlet, month:month,
-    actuals:actuals, totalScore:total,
+    actuals:actuals, salesTarget:salesTarget, totalScore:total,
     qualified:total!==null&&total>=95,
     status:newStatus||'draft',
     savedAt:new Date().toISOString(), savedBy:currentRole
@@ -2824,12 +2850,14 @@ function returnOICIncentiveForm() {
   if (note === null) return;
   var actuals = {};
   OIC_INC_ROWS.forEach(function(row){ var el=document.getElementById('oic_inc_'+row.id); actuals[row.id]=el&&el.value!==''?parseFloat(el.value):null; });
-  var total = _oicIncTotal(actuals);
+  var salesTargetEl3 = document.getElementById('oic_inc_target_sales');
+  var returnSalesTarget = salesTargetEl3 && salesTargetEl3.value !== '' ? parseFloat(salesTargetEl3.value) : null;
+  var total = _oicIncTotal(actuals, returnSalesTarget);
   var record = {
     oicName:((document.getElementById('oic_inc_name')||{}).value||'').trim(),
     outlet:(document.getElementById('oic_inc_outlet')||{}).value||'',
     month:(document.getElementById('oic_inc_month')||{}).value||'',
-    actuals:actuals, totalScore:total, qualified:total!==null&&total>=95,
+    actuals:actuals, salesTarget:returnSalesTarget, totalScore:total, qualified:total!==null&&total>=95,
     status:'returned', returnNote:note,
     returnedAt:new Date().toISOString(), returnedBy:currentRole
   };
@@ -2881,11 +2909,16 @@ function exportOICIncentivePDF() {
   y += 24;
   var actuals = {};
   OIC_INC_ROWS.forEach(function(row){ var el=document.getElementById('oic_inc_'+row.id); actuals[row.id]=el&&el.value!==''?parseFloat(el.value):null; });
+  var salesTargetEl2 = document.getElementById('oic_inc_target_sales');
+  var pdfSalesTarget = salesTargetEl2 && salesTargetEl2.value !== '' ? parseFloat(salesTargetEl2.value) : null;
   var tableBody = OIC_INC_ROWS.map(function(row){
-    var ws = _oicIncWeighted(actuals[row.id], row.max, row.weight, row.inverse);
-    return [row.kpi, row.source, Math.round(row.weight*100)+'%', row.max+(row.inverse?' max':''), actuals[row.id]!==null&&actuals[row.id]!==undefined?String(actuals[row.id]):'—', ws!==null?ws.toFixed(1):'—'];
+    var isSales = row.id === 'sales';
+    var effectiveMax = isSales && pdfSalesTarget !== null ? pdfSalesTarget : row.max;
+    var ws = _oicIncWeighted(actuals[row.id], effectiveMax, row.weight, row.inverse, isSales);
+    var targetDisplay = isSales ? (pdfSalesTarget !== null ? String(pdfSalesTarget) : 'N/A') : (row.max+(row.inverse?' max':''));
+    return [row.kpi, row.source, Math.round(row.weight*100)+'%', targetDisplay, actuals[row.id]!==null&&actuals[row.id]!==undefined?String(actuals[row.id]):'—', ws!==null?ws.toFixed(1):'—'];
   });
-  var total = _oicIncTotal(actuals);
+  var total = _oicIncTotal(actuals, pdfSalesTarget);
   tableBody.push(['Total / Final Performance','','100%','','',total!==null?total.toFixed(1)+'%':'—']);
   doc.autoTable({
     startY:y,
