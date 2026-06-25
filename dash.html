@@ -9107,7 +9107,9 @@ function buildProgressCell(staff) {
       obsDone ? CHK : BOX,
       obsDone      ? obsLabel + ' — ' + staff.oicEvalPct + '%' :
       obsExpected  ? obsLabel + ' — Not submitted' :
-      obsLabel + ' — Pending'
+      obsLabel + ' — Pending',
+      // Show verifier name under OIC/AM Observation pill
+      obsDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval')) : null
     );
   }
 
