@@ -8976,8 +8976,15 @@ function buildProgressCell(staff) {
   const BOX = '&#9744;';
 
   function row(pillStyle, icon, label, sub) {
+    // sub may contain multiple lines (all verifiers) — render each on its own line
+    const subHtml = sub
+      ? sub.split('\n').map(function(line, i) {
+          const pfx = i === 0 ? '\u2514 ' : '\u00a0\u00a0\u00a0\u00a0';
+          return '<div style="font-size:10px;color:#64748B;padding-left:4px;margin-top:1px;">' + pfx + line + '</div>';
+        }).join('')
+      : '';
     return '<div style="margin-bottom:3px;"><span style="' + pillStyle + '">' + icon + ' ' + label + '</span>'
-      + (sub ? '<div style="font-size:10px;color:#64748B;padding-left:4px;margin-top:1px;">\u2514 ' + sub + '</div>' : '')
+      + subHtml
       + '</div>';
   }
 
@@ -9018,20 +9025,25 @@ function buildProgressCell(staff) {
   function _lastVerifierFor(shiftKey) {
     const entries = _vlog.filter(function(e){ return e.shift === shiftKey; });
     if (!entries.length) return null;
-    const e = entries[entries.length - 1];
     const rl = { training:'Training', operations:'Ops', director:'Director', ceo:'CEO',
       areachef:'Area Chef', areamanager:'Area Mgr', kic:'KIC', oic:'OIC' };
-    const nameRole = (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
-    const dt = e.at ? _fmtDubaiDT(e.at) : '';
-    const dtStr = dt ? ' \xe2\x80\x93 ' + dt : '';
-    const ynCount = _shiftYNCount(shiftKey);  // works for opening, closing, and evaluation
-    // Check for re-verifier
-    const revEntries = _vlog.filter(function(e){ return e.shift === 'reverify'; });
-    const rev = revEntries.length ? revEntries[revEntries.length-1] : null;
-    const revStr = (shiftKey !== 'reverify' && rev)
-      ? ' \xe2\x94\x94 Re-verified: ' + (rev.by||'') + (rev.at ? ' \xe2\x80\x93 ' + _fmtDubaiDT(rev.at) : '')
-      : '';
-    return nameRole + dtStr + (ynCount ? ' \xe2\x80\x94 ' + ynCount : '') + revStr;
+    // Show ALL entries for this shift — first verify + all re-verifies
+    const shiftLines = entries.map(function(e, idx) {
+      const nameRole = (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
+      const dt = e.at ? _fmtDubaiDT(e.at) : '';
+      const dtStr = dt ? ' – ' + dt : '';
+      var ynStr = '';
+      if (e.yn_yes != null || e.yn_no != null) {
+        const ey = e.yn_yes || 0, en = e.yn_no || 0;
+        if (ey + en > 0) ynStr = ' | Yes: ' + ey + ' / No: ' + en;
+      } else if (idx === 0) {
+        const yc = _shiftYNCount(shiftKey);
+        if (yc) ynStr = ' | ' + yc;
+      }
+      const prefix = idx > 0 ? '🔄 ' : '';
+      return prefix + nameRole + dtStr + ynStr;
+    });
+    return shiftLines.join('\n');
   }
 
 
