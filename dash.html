@@ -1292,6 +1292,27 @@ let db = null;
 let maintenanceDb = null;
 let allMaintenanceLogs = [];
 let allStaff = [], allAudits = [];
+
+// ═══════════════════════════════════════════════════════════════════
+// GLOBAL SCORE HELPERS — single source of truth, called everywhere
+// ═══════════════════════════════════════════════════════════════════
+
+// A record is opening-only ONLY when Firebase key ends with '_opening'
+// AND closingPct is genuinely missing. Never decide based on status field.
+function isOpeningOnly(s) {
+  return !!(s && s._fbKey && s._fbKey.endsWith('_opening') &&
+    (s.closingPct == null || s.closingPct === undefined));
+}
+
+// A score is valid only when it exists AND is greater than 0
+// 0 means not submitted or uninitialized — treat same as null
+function safeScore(val) {
+  if (val == null || val === undefined) return null;
+  const n = parseFloat(val);
+  return (isNaN(n) || n <= 0) ? null : n;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 let currentRole = '', currentOutlet = '', currentName = '', currentStaffName = '';
 let fohDb = null;
 let allFOHStaff = [];
@@ -1764,8 +1785,10 @@ function loadData() {
         const rec = {...s};
         // Normalize week at load time so all records use consistent YYYY-MM-DD format
         rec.week = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-        // Opening-only record — clear any stale closingPct
-        if (rec.status === 'opening_submitted') rec.closingPct = null;
+        // Opening-only record — only clear closingPct if key explicitly ends with _opening
+        // Never null closingPct based on status alone — closing may have been submitted at 1AM
+        // and merged into the same record keeping status='opening_submitted'
+        if (rec._fbKey && rec._fbKey.endsWith('_opening') && rec.closingPct != null) rec.closingPct = null;
         // Set overallPct = whichever shift score exists
         if (rec.openingPct != null && rec.closingPct == null) rec.overallPct = rec.openingPct;
         else if (rec.closingPct != null && rec.openingPct == null) rec.overallPct = rec.closingPct;
@@ -1775,7 +1798,8 @@ function loadData() {
         const m = dedupBOH[key];
         if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
         // Merge closingPct from a real closing record (not an opening_submitted one)
-        const incomingHasClosing = s.closingPct != null && s.status !== 'opening_submitted';
+        // Accept closing from any status — status may stay 'opening_submitted' even after closing merge
+        const incomingHasClosing = s.closingPct != null;
         if (incomingHasClosing && m.closingPct == null) {
           m.closingPct = s.closingPct;
           // Promote status so the merged record is no longer treated as opening-only
@@ -1844,7 +1868,7 @@ function loadData() {
         // Normalize week at load time
         rec2.week = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
         // Opening-only record — clear any stale closingPct
-        if (rec2.status === 'opening_submitted') rec2.closingPct = null;
+        if (rec2._fbKey && rec2._fbKey.endsWith('_opening') && rec2.closingPct != null) rec2.closingPct = null;
         // Set overallPct = whichever shift score exists
         if (rec2.openingPct != null && rec2.closingPct == null) rec2.overallPct = rec2.openingPct;
         else if (rec2.closingPct != null && rec2.openingPct == null) rec2.overallPct = rec2.closingPct;
@@ -1854,11 +1878,9 @@ function loadData() {
         const m = dedupMap[key];
         if (s.openingPct != null && m.openingPct == null) m.openingPct = s.openingPct;
         // Merge closingPct from a real closing record (not an opening_submitted one)
-        const incomingHasClosing = s.closingPct != null && s.status !== 'opening_submitted';
+        const incomingHasClosing = s.closingPct != null;
         if (incomingHasClosing && m.closingPct == null) {
           m.closingPct = s.closingPct;
-          // Promote status so the merged record is no longer treated as opening-only
-          if (m.status === 'opening_submitted') m.status = 'closing_submitted';
         }
         if (s.taskData) {
           if (!m.taskData) m.taskData = {};
@@ -3835,6 +3857,11 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
     areachef:'Area Chef',areamanager:'Area Mgr',kic:'KIC',oic:'OIC'};
   // Filter entries for this shift
   var entries = log.filter(function(e){ return e.shift===shiftKey; });
+  // For evaluation score box: if no evaluation-tagged entry, fall back to opening/closing
+  // OIC may verify under Opening or Closing shift even when completing observation
+  if (!entries.length && shiftKey === 'evaluation') {
+    entries = log.filter(function(e){ return e.shift==='opening' || e.shift==='closing'; });
+  }
   if (!entries.length) return '';
   // Current taskData YN count — used as fallback when entry has no snapshot
   var openIds  = ['o1','o2','o3','o4','o5'];
@@ -3888,20 +3915,13 @@ function openStaffDetail(s) {
   const role = ROLES[s.role]||{label:s.role,icon:''};
   const sc   = parseFloat(s.overallPct)||0;
   const pass = sc >= 95;
-  const opO  = s.openingPct != null ? parseFloat(s.openingPct) : null;
+  const opO  = safeScore(s.openingPct);
   // Force closingPct=null for opening-only records
-  // A record is opening-only if: status=opening_submitted OR key ends with _opening OR no status but has openingPct
-  // Opening-only: only if closingPct is genuinely null/missing
-  // Don't rely solely on status — closing submitted at 1AM may merge with opening record
-  const _isOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
-    && (s.closingPct == null || s.closingPct === undefined);
-  const opC = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
-  // Clean stale closingPct from Firebase permanently
-  if (_isOpeningOnly && s.closingPct != null && s._fbKey) {
-    const _cleanDb = s._isFOH ? fohDb : db;
-    if (_cleanDb) _cleanDb.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
-    s.closingPct = null;
-  }
+  // A record is opening-only if key ends with _opening AND closingPct is genuinely missing
+  // IMPORTANT: Never treat a record as opening-only if closingPct exists — closing may have
+  // been submitted at 1AM and merged into the same record, with status still 'opening_submitted'
+  const _isOpeningOnly = isOpeningOnly(s);
+  const opC = safeScore(s.closingPct);
 
   function fmtDT(iso) {
     if (!iso) return '—';
@@ -4010,7 +4030,7 @@ function openStaffDetail(s) {
     else if (hasOpening)                     totalScore = opO;
     else if (hasClosing)                     totalScore = opC;
     else if (hasOIC)                         totalScore = oicEvalPct;
-    else                                     totalScore = sc;
+    else                                     totalScore = sc; // last resort: stored overallPct
     const pass = totalScore >= 95;
     
 
@@ -5685,14 +5705,10 @@ async function exportDetailPDF() {
   const role  = ROLES[s.role]||{label:s.role||'Staff'};
   const sc    = parseFloat(s.overallPct)||0;
   const pass  = sc >= 95;
-  const opO   = s.openingPct != null ? parseFloat(s.openingPct) : null;
-  const _isOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
-    && (s.closingPct == null || s.closingPct === undefined);
-  const opC   = _isOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null);
-  if (_isOpeningOnly && s.closingPct != null && s._fbKey && db) {
-    db.ref('submissions/' + s._fbKey + '/closingPct').remove().catch(()=>{});
-    s.closingPct = null;
-  }
+  const opO   = safeScore(s.openingPct);
+  // Same fix as score box — only opening-only if _opening key AND no closingPct
+  const _isOpeningOnly = isOpeningOnly(s);
+  const opC = safeScore(s.closingPct);
 
   const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
   const W = doc.internal.pageSize.getWidth();
@@ -7096,11 +7112,8 @@ function buildVerifyEditPanel(s) {
 function toggleEditMode(s) {
   const _isKIC = s.role === 'kic';
   _editMode = true;
-  // Force closingPct=null for opening-only records in edit mode too
-  const _editIsOpeningOnly = s.status === 'opening_submitted'
-    || (s._fbKey && s._fbKey.endsWith('_opening'))
-    || (!s.status && s.openingPct != null && s.shift !== 'closing');
-  if (_editIsOpeningOnly) s.closingPct = null;
+  // Opening-only: only if key ends with _opening AND closingPct genuinely missing
+  const _editIsOpeningOnly = isOpeningOnly(s);
   _editStaffData = s;
   _editChanges = {};
   _editPhotoChanges = {};
@@ -7966,7 +7979,7 @@ async function saveOverwrite(s) {
   if (opPct !== null) updates['submissions/' + fbKey + '/openingPct'] = opPct;
   if (clPct !== null) {
     updates['submissions/' + fbKey + '/closingPct'] = clPct;
-  } else if (s.status === 'opening_submitted') {
+  } else if (s._fbKey && s._fbKey.endsWith('_opening') && !s.closingPct) {
     await _saveDb.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
   }
   if (ePct !== null) {
@@ -8427,15 +8440,15 @@ function loadBOHData() {
         }
         // For shift-based submissions (delco/bartender) properly assign opening/closing
         if (sub.shift === 'opening') {
-          grouped[gKey].openingPct = sub.overallPct;
+          if (safeScore(sub.overallPct)) grouped[gKey].openingPct = safeScore(sub.overallPct);
         } else if (sub.shift === 'closing') {
           grouped[gKey].closingPct = sub.overallPct;
         } else {
           if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
         }
         // Also pick up closingPct/openingPct written directly (lc/st/kic don't set shift field)
-        if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
-        if (sub.closingPct != null) grouped[gKey].closingPct = sub.closingPct;
+        if (safeScore(sub.openingPct)) grouped[gKey].openingPct = safeScore(sub.openingPct);
+        if (safeScore(sub.closingPct)) grouped[gKey].closingPct = safeScore(sub.closingPct);
         // Track shift status — prefer closing_submitted over opening_submitted
         if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
         else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
@@ -8444,16 +8457,9 @@ function loadBOHData() {
           if (sub.shift === 'closing' || sub.status === 'closing_submitted') grouped[gKey]._fbKey = sub._fbKey;
           else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
         }
-        // Determine if this is an opening-only record using ALL available signals
-        const _subIsOpenOnly = sub.status === 'opening_submitted'
-          || (sub._fbKey && sub._fbKey.endsWith('_opening'))
-          || (!sub.status && sub.openingPct != null && sub.shift !== 'closing' && sub.closingPct == null);
-        if (sub.closingPct != null && !_subIsOpenOnly) {
-          grouped[gKey].closingPct = sub.closingPct;
-        } else if (_subIsOpenOnly && sub.closingPct != null) {
-          // Stale closingPct — delete from Firebase immediately
-          if (db && sub._fbKey) db.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
-          grouped[gKey].closingPct = null;
+        // Only treat as opening-only if key ends with _opening AND no closingPct
+        if (sub.closingPct != null) {
+          grouped[gKey].closingPct = safeScore(sub.closingPct) ?? sub.closingPct;
         }
         if (sub.oicEvalPct != null) grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
         // Recalculate overall from opening+closing+eval for KIC, opening+closing for others
@@ -9120,7 +9126,7 @@ function buildProgressCell(staff) {
       obsExpected  ? obsLabel + ' — Not submitted' :
       obsLabel + ' — Pending',
       // Show verifier name under OIC/AM Observation pill
-      obsDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval')) : null
+      obsDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval') || _lastVerifierFor('opening') || _lastVerifierFor('closing')) : null
     );
   }
 
@@ -9270,7 +9276,7 @@ function loadFOHData() {
         if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
         if (sub.verificationLog && (!grouped[gKey].verificationLog || sub.verificationLog.length > (grouped[gKey].verificationLog||[]).length)) grouped[gKey].verificationLog = sub.verificationLog;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
-        if (sub.openingPct != null) grouped[gKey].openingPct = sub.openingPct;
+        if (sub.openingPct != null && sub.openingPct > 0) grouped[gKey].openingPct = sub.openingPct;
         // Track shift status — prefer closing_submitted over opening_submitted
         if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
         else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
@@ -9280,15 +9286,15 @@ function loadFOHData() {
           else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
         }
         // Determine if this is an opening-only record
-        const _fohSubIsOpenOnly = sub.status === 'opening_submitted'
-          || (sub._fbKey && sub._fbKey.endsWith('_opening'))
-          || (!sub.status && sub.openingPct != null && sub.shift !== 'closing' && sub.closingPct == null);
-        if (sub.closingPct != null && !_fohSubIsOpenOnly) {
+        // IMPORTANT: never treat as opening-only if closingPct exists — closing may have been
+        // submitted at 1AM merging into the same record with status still 'opening_submitted'
+        const _fohHasClosingData = sub.closingPct != null;
+        const _fohSubIsOpenOnly = !_fohHasClosingData && (
+          (sub._fbKey && sub._fbKey.endsWith('_opening'))
+          || (!sub.status && sub.openingPct != null && sub.shift !== 'closing')
+        );
+        if (_fohHasClosingData) {
           grouped[gKey].closingPct = sub.closingPct;
-        } else if (_fohSubIsOpenOnly && sub.closingPct != null) {
-          // Stale closingPct — delete from Firebase immediately
-          if (fohDb && sub._fbKey) fohDb.ref('submissions/' + sub._fbKey + '/closingPct').remove().catch(()=>{});
-          grouped[gKey].closingPct = null;
         }
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
@@ -9510,18 +9516,10 @@ function openFOHDetail(idx) {
     : '';
 
   // Calculate opening/closing/oic scores from days data
-  const oPctFoh = staff.openingPct != null ? staff.openingPct : null;
-  // Force closingPct=null for opening-only records
-  const _isFohOpeningOnly = staff.status === 'opening_submitted'
-    || (staff._fbKey && staff._fbKey.endsWith('_opening'))
-    || (!staff.status && staff.openingPct != null && staff.shift !== 'closing');
-  const cPctFoh = _isFohOpeningOnly ? null : (staff.closingPct != null ? staff.closingPct : null);
-  // Clean stale closingPct from Firebase permanently
-  if (_isFohOpeningOnly && staff.closingPct != null && staff._fbKey) {
-    const _cleanDb2 = staff._isFOH ? fohDb : db;
-    if (_cleanDb2) _cleanDb2.ref('submissions/' + staff._fbKey + '/closingPct').remove().catch(()=>{});
-    staff.closingPct = null;
-  }
+  const oPctFoh = safeScore(staff.openingPct);
+  // Opening-only: only if key ends with _opening AND closingPct genuinely missing
+  const _isFohOpeningOnly = isOpeningOnly(staff);
+  const cPctFoh = safeScore(staff.closingPct);
   // For OIC role: oicEvalPct is set only when AM explicitly submits evaluation — don't fall back to oicPct
   const oicPctFoh = staff.role === 'oic'
     ? (staff.oicEvalPct != null ? parseFloat(staff.oicEvalPct) : null)
@@ -9714,7 +9712,7 @@ function openFOHDetail(idx) {
         });
         // Merge scores
         if (!subsByDate[d].closingPct && sub.closingPct) subsByDate[d].closingPct = sub.closingPct;
-        if (!subsByDate[d].openingPct && sub.openingPct) subsByDate[d].openingPct = sub.openingPct;
+        if (!subsByDate[d].openingPct && safeScore(sub.openingPct)) subsByDate[d].openingPct = safeScore(sub.openingPct);
         if (sub.submittedAt > (subsByDate[d].submittedAt||'')) subsByDate[d].submittedAt = sub.submittedAt;
       }
     });
@@ -10456,13 +10454,10 @@ function toggleFOHEditMode() {
   const staff = _fohFiltered[_fohDetailIdx];
   if (!staff) return;
 
-  // Force closingPct=null for opening-only records
-  const _fohIsOpenOnly = staff.status === 'opening_submitted'
-    || (staff._fbKey && staff._fbKey.endsWith('_opening'))
-    || (!staff.status && staff.openingPct != null && staff.shift !== 'closing');
+  // Opening-only: only if key ends with _opening AND closingPct genuinely missing
+  const _fohIsOpenOnly = isOpeningOnly(staff);
   if (_fohIsOpenOnly) {
-    staff.closingPct = null;
-    // Immediately clear closing box in the score display
+    // Clear closing box in score display only when genuinely opening-only
     document.querySelectorAll('[data-scorebox="closing"]').forEach(box => {
       const pctEl = box.querySelector('.sb-pct');
       const lblEl = box.querySelector('.sb-lbl');
