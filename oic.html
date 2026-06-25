@@ -264,7 +264,7 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       console.warn('Cloudinary unavailable, saving locally:', cloudErr);
     }
     // Fallback — save base64 locally, queue for retry
-    showToast('Cloud unavailable — photo saved locally 📱', 'warn');
+    showToast('Photo saved locally — will sync when online 📱', 'ok');
     const pendingKey = 'pending_photos_' + ROLE;
     const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
     const photoEntry = {
@@ -1122,7 +1122,7 @@ function renderDay() {
         const urls = [], td2 = _allTd[task.id] || {};
         // Check Cloudinary URL slots first (photo_url, photo_1_url...)
         // then fall back to local base64 (photo, photo_1...) for instant display
-        const slots = [['photo_url','photo'], ['photo_1_url','photo_1'], ['photo_2_url','photo_2'], ['photo_3_url','photo_3'], ['photo_4_url','photo_4']];
+        const slots = [['photo_url','photo'], ['photo_1_url','photo_1'], ['photo_2_url','photo_2'], ['photo_3_url','photo_3'], ['photo_4_url','photo_4'], ['photo_5_url','photo_5'], ['photo_6_url','photo_6'], ['photo_7_url','photo_7'], ['photo_8_url','photo_8'], ['photo_9_url','photo_9']];
         slots.forEach(([urlKey, b64Key]) => {
           const url = td2[urlKey] || td2[urlKey.replace('_url','Url')] || td2['photoUrl'] || '';
           const b64 = td2[b64Key] || '';
@@ -1247,11 +1247,11 @@ function submitDay() {
         });
         // If no Cloudinary URL yet, include base64 local photos so dashboard can display them
         if (!photoUrls.length) {
-          ['photo','photo_1','photo_2','photo_3','photo_4'].forEach(k => {
+          ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].forEach(k => {
             const u = td[k]; if (u && u.startsWith('data:') && !photoUrls.includes(u)) photoUrls.push(u);
           });
         }
-        const hasLocalPhoto = photoUrls.length > 0 || ['photo','photo_1','photo_2','photo_3','photo_4'].some(k => {
+        const hasLocalPhoto = photoUrls.length > 0 || ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(k => {
           const u = td[k]; return u && u.startsWith('data:');
         });
         if (yn || photoUrls.length || hasLocalPhoto) {
