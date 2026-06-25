@@ -3831,43 +3831,48 @@ function _fmtDubaiDT(iso) {
 // ── Verifier tag for score boxes (Option A) ───────────────────────────────────
 function _buildVerifierTag(vlog, taskData, shiftKey, role) {
   var log = Array.isArray(vlog) ? vlog : (vlog && typeof vlog==='object' ? Object.values(vlog) : []);
-  var rl = {training:'Training',operations:'Ops',director:'Director',ceo:'CEO',
+  var rl = {training:'Training & Dev',operations:'Ops',director:'Director',ceo:'CEO',
     areachef:'Area Chef',areamanager:'Area Mgr',kic:'KIC',oic:'OIC'};
+  // Filter entries for this shift
   var entries = log.filter(function(e){ return e.shift===shiftKey; });
-  var verifier = entries.length ? entries[entries.length-1] : null;
-  var revEntries = log.filter(function(e){ return e.shift==='reverify'; });
-  var reVerifier = revEntries.length ? revEntries[revEntries.length-1] : null;
-  // Yes/No count per shift
+  if (!entries.length) return '';
+  // Current taskData YN count — used as fallback when entry has no snapshot
   var openIds  = ['o1','o2','o3','o4','o5'];
   var closeIds = (role==='kic') ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
   var evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
     'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
-    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2'];
+    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
+    'f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
   var shiftIds = shiftKey==='opening' ? openIds : shiftKey==='closing' ? closeIds : evalIds;
-  var yes=0, no=0;
+  var tdYes=0, tdNo=0;
   if (taskData && shiftKey!=='total') {
     Object.entries(taskData).forEach(function(e){
       var tid=e[0].replace(/^d[0-9]+_/,''); var yn=(e[1]||{}).yn;
       if (!yn||yn==='na') return;
-      if (shiftIds.some(function(id){return tid===id;})){if(yn==='yes')yes++;else no++;}
+      if (shiftIds.some(function(id){return tid===id;})){if(yn==='yes')tdYes++;else tdNo++;}
     });
   }
-  var html='';
-  if (verifier) {
-    var dt = verifier.at ? _fmtDubaiDT(verifier.at) : '';
-    var nameRole=(verifier.by||'')+(verifier.role?' ('+( rl[verifier.role]||verifier.role)+')':'');
-    var ynStr=(yes+no>0)?' · Yes: '+yes+' / No: '+no:'';
-    html+='<div style="margin-top:5px;padding-top:5px;border-top:1px dashed #E0DDD4;text-align:left;">'
-      +'<div style="font-size:9px;font-weight:600;color:#15803D;">✅ '+nameRole+'</div>'
-      +(dt?'<div style="font-size:9px;color:#94A3B8;">'+dt+ynStr+'</div>':'')
-      +'</div>';
-  }
-  if (reVerifier) {
-    var rdt=reVerifier.at?_fmtDubaiDT(reVerifier.at):'';
-    var rn=(reVerifier.by||'')+(reVerifier.role?' ('+(rl[reVerifier.role]||reVerifier.role)+')':'');
-    html+='<div style="font-size:9px;font-weight:600;color:#92400E;margin-top:3px;">?? Re-verified: '+rn+'</div>'
-      +(rdt?'<div style="font-size:9px;color:#94A3B8;">'+rdt+'</div>':'');
-  }
+  // Show ALL entries for this shift — first verify + all re-verifies
+  var html='<div style="margin-top:5px;padding-top:5px;border-top:1px dashed #E0DDD4;text-align:left;">';
+  entries.forEach(function(entry, idx) {
+    var isRev = idx > 0 || entry.type === 'reverify';
+    var nameRole = (entry.by||'') + (entry.role ? ' (' + (rl[entry.role]||entry.role) + ')' : '');
+    var dt = entry.at ? _fmtDubaiDT(entry.at) : '';
+    var tagColor = isRev ? '#92400E' : '#15803D';
+    var tagIcon  = isRev ? '🔄' : '✅';
+    // Use per-entry YN snapshot if saved; fallback to current taskData for first entry only
+    var ynStr = '';
+    if (entry.yn_yes != null || entry.yn_no != null) {
+      var ey = entry.yn_yes || 0, en = entry.yn_no || 0;
+      if (ey + en > 0) ynStr = ' · Yes: ' + ey + ' / No: ' + en;
+    } else if (idx === 0 && (tdYes + tdNo > 0)) {
+      ynStr = ' · Yes: ' + tdYes + ' / No: ' + tdNo;
+    }
+    html += '<div style="font-size:9px;font-weight:600;color:' + tagColor + ';margin-top:' + (idx>0?'3':'0') + 'px;">'
+      + tagIcon + ' ' + nameRole + '</div>'
+      + (dt ? '<div style="font-size:9px;color:#94A3B8;">' + dt + ynStr + '</div>' : '');
+  });
+  html += '</div>';
   return html;
 }
 
@@ -8701,20 +8706,11 @@ function saveBOHVerification() {
         });
       });
       showToast('Verified by ' + name + ' ✓', 'ok');
-      // Refresh the verify panel in place
-      const verCard = document.getElementById('bohVerifiedByCard');
-      if (verCard) {
-        const panel = buildVerifyEditPanel(s);
-        const canVerify =
-          (currentRole==='kic' && ['linecook','steward'].includes(s.role)) ||
-          (currentRole==='oic' && ['service','bartender','delco'].includes(s.role)) ||
-          ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
-        verCard.innerHTML = '<div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>'
-          + panel
-          + (canVerify ? '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">✅ Verify</button>' : '');
-      } else {
-        openStaffDetail(s);
-      }
+      // Re-render full modal so score boxes and verif history all update immediately
+      openStaffDetail(s);
+      // Also refresh table
+      if (document.getElementById('page-boh')?.classList.contains('active')) renderBOHStaff();
+      if (document.getElementById('page-foh')?.classList.contains('active')) renderFOHStaff();
     }).catch(e => showToast('Save failed: ' + e.message, 'error'));
   });
 }
@@ -8770,13 +8766,6 @@ function saveVerification() {
             }
           });
         });
-        // Also sync _fohFiltered so FOH score box reflects immediately
-        if (_fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx] &&
-            _fohFiltered[_fohDetailIdx].staffName === s.staffName) {
-          _fohFiltered[_fohDetailIdx].verificationLog = s.verificationLog;
-          _fohFiltered[_fohDetailIdx].verifiedBy      = name;
-          _fohFiltered[_fohDetailIdx].verifiedByRole  = currentRole;
-        }
         // Sync _fohFiltered so FOH score box re-renders correctly
         if (_fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx] &&
             _fohFiltered[_fohDetailIdx].staffName === s.staffName) {
