@@ -4142,7 +4142,9 @@ function openStaffDetail(s) {
       html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><span>📅 ${daySubDate}</span>${dayScore!==null?`<span style="background:${dayScore>=95?'#15803D':dayScore>=70?'#D97706':'#B91C1C'};padding:2px 10px;border-radius:20px;font-size:11px;">${dayScore}%</span>`:''}</div>`;
 
       Object.entries(bySec).forEach(([sec, secTasks]) => {
-      html += `<div style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec || 'Tasks'}</div>`;
+      // Tag each section with data-shift so filter can show/hide individually
+      const _secShift = /^Closing/i.test(sec) ? 'closing' : /^Opening/i.test(sec) ? 'opening' : 'opening';
+      html += `<div data-ow-shift="${_secShift}" style="background:#2E6DA4;padding:5px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec || 'Tasks'}</div>`;
         secTasks.forEach((t,ti) => {
           const yn    = t.yn||'';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -4151,7 +4153,7 @@ function openStaffDetail(s) {
           const isLast = ti===secTasks.length-1;
           const taskKey = t.taskKey || (Object.keys(s.taskData||{}).find(k => s.taskData[k] === t) || '');
           const baseTaskId = taskKey.replace(/^d[0-9]+_/,'');
-          html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-taskkey="${taskKey}">
+          html += `<div data-ow-shift="${/^(cy?[0-9]|c[0-9])/.test(baseTaskId)?'closing':'opening'}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-taskkey="${taskKey}">
             <div style="flex:1;">
               <div style="font-size:9px;color:#94A3B8;font-weight:600;margin-bottom:2px;text-transform:uppercase;">${t.owner||''}</div>
               <div style="font-size:12px;font-weight:500;">${t.task||t.text||_bohTextMap[baseTaskId]||''}</div>
@@ -7515,6 +7517,15 @@ function _applyOverwriteShiftFilter(shift) {
   const checklistArea = document.getElementById('owChecklistArea');
   if (checklistArea) checklistArea.style.display = isEval ? 'none' : '';
 
+  // Within the checklist area — show only the selected shift section
+  if (!isEval && checklistArea) {
+    const targetShift = shift; // 'opening' or 'closing'
+    checklistArea.querySelectorAll('[data-ow-shift]').forEach(function(el) {
+      const elShift = el.getAttribute('data-ow-shift');
+      el.style.display = (elShift === targetShift) ? '' : 'none';
+    });
+  }
+
   // Toggle individual eval task rows in main checklist body (safety — already in eval sections)
   body.querySelectorAll('[data-taskkey]').forEach(function(row) {
     const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
@@ -9774,7 +9785,13 @@ function openFOHDetail(idx) {
         // Detect OIC-only sections
         const isOIC = secTasks.some(t => (t.owner||'').toLowerCase().includes('oic') || (t.owner||'').toLowerCase() === 'ot-verify' && (t.section||'').toLowerCase().includes('standard'));
         const secBg = isOIC ? '#C4533A' : '#2E6DA4';
-        html += `<div style="background:${secBg};padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec}</div>`;
+        // Detect shift from first task ID in section
+        const _fohSecShift = secTasks.length > 0
+          ? (/^(cy?[0-9]|c[0-9])/.test((secTasks[0]._key||'').replace(/^d[0-9]+_/,'')) ? 'closing'
+            : /^o[0-9]/.test((secTasks[0]._key||'').replace(/^d[0-9]+_/,'')) ? 'opening'
+            : 'opening')
+          : 'opening';
+        html += `<div data-foh-shift="${_fohSecShift}" style="background:${secBg};padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em;">${sec}</div>`;
         secTasks.forEach((t, ti) => {
           const yn = t.yn || '';
           const ynBg  = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
@@ -9801,7 +9818,8 @@ function openFOHDetail(idx) {
           };
           const ownerStyle = ownerCols[t.owner] || 'background:#F3F4F6;color:#374151';
           const taskKey = t._key || '';
-          html += `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${taskKey}">
+          const _fohTaskShift = /^(cy?[0-9]|c[0-9])/.test(fohBaseId) ? 'closing' : /^o[0-9]/.test(fohBaseId) ? 'opening' : 'opening';
+          html += `<div data-foh-shift="${_fohTaskShift}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${taskKey}">
             <div style="flex:1;">
               ${t.owner ? `<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;${ownerStyle};white-space:nowrap;">${t.owner}</span>` : ''}
               <div style="font-size:12px;font-weight:500;margin-top:3px;">${t.task || t.text || '—'}</div>
@@ -10391,6 +10409,15 @@ function _applyFOHShiftFilter(shift) {
   // Toggle the main FOH opening/closing checklist area
   const fohCl = document.getElementById('fohOwChecklistArea');
   if (fohCl) fohCl.style.display = isEval ? 'none' : '';
+
+  // Within the FOH checklist area — show only selected shift section
+  if (!isEval && fohCl) {
+    const targetShift = shift; // 'opening' or 'closing'
+    fohCl.querySelectorAll('[data-foh-shift]').forEach(function(el) {
+      const elShift = el.getAttribute('data-foh-shift');
+      el.style.display = (elShift === targetShift) ? '' : 'none';
+    });
+  }
 
   // Toggle individual FOH eval task rows in checklist body
   area.querySelectorAll('[data-fohtaskkey]').forEach(function(row) {
