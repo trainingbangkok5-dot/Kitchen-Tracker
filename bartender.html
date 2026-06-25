@@ -470,7 +470,7 @@ async function handlePhotoFile(file) {
     const compressed = await compressPhoto(dataUrl);
     // Find next empty photo slot
     let slotIdx=0;
-    for(let pi=0;pi<5;pi++){
+    for(let pi=0;pi<10;pi++){
       const existing=getVal(currentDay,tid,'photo_'+pi)||(pi===0?getVal(currentDay,tid,'photo'):null);
       if(!existing){slotIdx=pi;break;} slotIdx=pi+1;
     }
@@ -644,7 +644,7 @@ function renderDay() {
         ${(()=>{
           // Collect all photo slots — show both http and base64
           const photos=[];
-          ['photo','photo_1','photo_2','photo_3','photo_4'].forEach((pk,idx)=>{
+          ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].forEach((pk,idx)=>{
             const httpKey=idx===0?'photoUrl':'photoUrl_'+idx;
             const url=getVal(currentDay,task.id,httpKey)||getVal(currentDay,task.id,pk);
             if(url) photos.push({url,pk,urlKey:httpKey});
@@ -804,11 +804,11 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
   while (Date.now() - start < maxWaitMs) {
     const _td = load()[getTodayKey()] || {};
     const allDone = tasks.every(t => {
-      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk => {
         const p = _td[t.id]?.[pk]; return p && p.startsWith('data:');
       });
       if (!hasLocal) return true;
-      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => {
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].some(pk => {
         const p = _td[t.id]?.[pk]; return p && p.startsWith('http');
       });
     });
@@ -850,7 +850,7 @@ function submitDay() {
   if(unanswered.length){ showToast('Please answer all tasks first ('+unanswered.length+' remaining)','warn'); return; }
 
   // Photo check — only for self tasks (verify tasks are filled by OIC via dashboard)
-  const hasPhotoForTask = (tid) => !!(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => !!getVal(currentDay, tid, pk)));
+  const hasPhotoForTask = (tid) => !!(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].some(pk => !!getVal(currentDay, tid, pk)));
   const missingPhoto = selfTasks.filter(t=>t.photo&&!hasPhotoForTask(t.id));
   if(missingPhoto.length){ showToast('📷 Photo required for all tasks ('+missingPhoto.length+' missing)','warn'); return; }
 
@@ -882,10 +882,10 @@ function submitDay() {
     const yn=_tdNow[t.id]?.yn||'';
     const comment=_tdNow[t.id]?.comment||'';
     const _allPhotos=[];
-    ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk=>{
+    ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach(pk=>{
       const p=_tdNow[t.id]?.[pk]; if(p&&p.startsWith('http')&&!_allPhotos.includes(p)) _allPhotos.push(p);
     });
-    const _hasLocal=['photo','photo_1','photo_2','photo_3','photo_4'].some(pk=>{const p=_tdNow[t.id]?.[pk];return p&&p.startsWith('data:');});
+    const _hasLocal=['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk=>{const p=_tdNow[t.id]?.[pk];return p&&p.startsWith('data:');});
     taskData[`d1_${t.id}`]={day:1,section:s.title,task:t.text,owner:t.ownerLbl,yn,comment,
       photoUrl:_allPhotos[0]||'',photoUrls:_allPhotos,hasPhoto:_allPhotos.length>0||_hasLocal};
   }));
