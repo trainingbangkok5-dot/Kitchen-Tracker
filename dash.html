@@ -3966,7 +3966,7 @@ function openStaffDetail(s) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtDT(s.startedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtDT(s.submittedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) : '—'}</div>
-      <div id="bohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
+      <div id="bohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;grid-column:1/-1;">
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${(function() {
           const subRole = s.role || '';
@@ -7036,9 +7036,9 @@ function buildVerifyEditPanel(s) {
   // Shown as hint below dropdown — updated dynamically via JS after render
   const addSection = '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
     + '<div style="font-size:10px;font-weight:700;color:#1A3C5E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">ADD VERIFICATION</div>'
-    + '<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;">'
-    + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="flex:1;min-width:0;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
-    + '<select id="verifyShiftSelect" style="padding:5px 4px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;background:#fff;flex-shrink:0;">'
+    + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:3px;">'
+    + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
+    + '<select id="verifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;">'
     + '<option value="opening">🌅 Opening</option>'
     + '<option value="closing">🌙 Closing</option>'
     + '<option value="evaluation">📋 Evaluation</option>'
@@ -9356,7 +9356,7 @@ function openFOHDetail(idx) {
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">⏱ <strong>Started:</strong> ${fmtFohDT(staff.startedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">✅ <strong>Submitted:</strong> ${fmtFohDT(staff.submittedAt)}</div>
       <div style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">📅 <strong>Date submitted:</strong> ${fmtFohDate(staff.submittedAt)}</div>
-      <div id="fohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;">
+      <div id="fohVerifiedByCard" style="background:#F8FAFC;border-radius:8px;padding:8px 12px;grid-column:1/-1;">
         <div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${(function(){
           const _sr = staff.role || '';
