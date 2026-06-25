@@ -3790,7 +3790,7 @@ function buildPhotoHtml(t, role) {
   // Staff photos HTML
   let html = '';
   if (!imgs.length) {
-    if (t.hasPhoto) html += '<span style="font-size:11px;color:#0F766E;background:#DCFCE7;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;">📷 Photo taken</span>';
+    if (t.hasPhoto) html += '<span style="font-size:11px;color:#92400E;background:#FEF3C7;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;border:1px solid #FCD34D;">📷 Photo taken — pending sync</span>';
   } else {
     html += imgs.map(url =>
       url.startsWith('db:')
@@ -6973,11 +6973,11 @@ function buildVerifyEditPanel(s) {
   // ── Group entries by shift ──────────────────────────────────────────────────
   const shiftGroups = { opening:[], closing:[], evaluation:[], other:[] };
   log.forEach(function(entry) {
-    const sh = entry.shift || 'other';
+    const sh = entry.shift || 'opening'; // default untagged entries to opening
     if (sh === 'opening' || sh === 'opening_eval') shiftGroups.opening.push(entry);
     else if (sh === 'closing' || sh === 'closing_eval') shiftGroups.closing.push(entry);
     else if (sh === 'evaluation') shiftGroups.evaluation.push(entry);
-    else shiftGroups.other.push(entry);
+    else shiftGroups.opening.push(entry); // reverify/other → goes to opening as fallback
   });
 
   // ── Yes/No count per shift ──────────────────────────────────────────────────
@@ -7026,7 +7026,7 @@ function buildVerifyEditPanel(s) {
     buildShiftBlock(shiftGroups.opening, 'opening', '🌅', 'Opening Shift'),
     buildShiftBlock(shiftGroups.closing, 'closing', '🌙', 'Closing Shift'),
     buildShiftBlock(shiftGroups.evaluation, 'evaluation', '📋', 'Evaluation'),
-    buildShiftBlock(shiftGroups.other, 'other', '🔄', 'Other'),
+    // Other entries now defaulted to opening — not shown separately
   ].join('');
 
   const noVerify = '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
@@ -7040,9 +7040,7 @@ function buildVerifyEditPanel(s) {
     + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="flex:1;min-width:0;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
     + '<select id="verifyShiftSelect" style="padding:5px 4px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;background:#fff;flex-shrink:0;">'
     + '<option value="opening">🌅 Opening</option>'
-    + '<option value="opening_eval">🌅📋 Open+Eval</option>'
     + '<option value="closing">🌙 Closing</option>'
-    + '<option value="closing_eval">🌙📋 Close+Eval</option>'
     + '<option value="evaluation">📋 Evaluation</option>'
     + '</select>'
     + '</div>'
@@ -8905,7 +8903,7 @@ function buildProgressCell(staff) {
       evalDone
         ? evalLabel + ' — ' + staff.oicEvalPct + '%'
         : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted',
-      evalDone ? _lastVerifierFor('evaluation') : null
+      evalDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval')) : null
     );
   }
 
