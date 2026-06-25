@@ -5634,7 +5634,7 @@ function _collectTaskPhotos(t) {
   const add = (u) => { if (u && typeof u === 'string' && u.startsWith('http') && !seen.has(u)) { seen.add(u); photos.push(u); } };
   if (Array.isArray(t.photoUrls)) t.photoUrls.forEach(add);
   add(t.photoUrl);
-  for (let i = 1; i <= 4; i++) add(t['photoUrl_' + i]);
+  for (let i = 1; i <= 9; i++) add(t['photoUrl_' + i]);
   return photos;
 }
 
@@ -7557,7 +7557,6 @@ function _editTakePhoto(taskKey, withCapture) {
           fd.append('file', blob, 'photo.jpg');
           fd.append('upload_preset', 'culex_uploads');
           fd.append('quality', 'auto:best');
-          fd.append('format', 'jpg');
           fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
             .then(r => r.json())
             .then(j => {
@@ -9482,6 +9481,11 @@ function openFOHDetail(idx) {
             if (!existing.photoUrls && t.photoUrls) existing.photoUrls = t.photoUrls;
             else if (t.photoUrls) existing.photoUrls = [...(existing.photoUrls||[]), ...t.photoUrls].filter((u,i,a)=>a.indexOf(u)===i);
             if (!existing.photoUrl && t.photoUrl) existing.photoUrl = t.photoUrl;
+            // Merge sequential photoUrl keys (photoUrl_1..9)
+            for (let _pi = 1; _pi <= 9; _pi++) {
+              const _pk = 'photoUrl_' + _pi;
+              if (!existing[_pk] && t[_pk]) existing[_pk] = t[_pk];
+            }
             if (!existing.comment && t.comment) existing.comment = t.comment;
           }
         });
@@ -9861,7 +9865,6 @@ function handleFOHEditPhoto(input, cardEl) {
         fd.append('file', blob, 'photo.jpg');
         fd.append('upload_preset', 'culex_uploads');
         fd.append('quality', 'auto:best');
-        fd.append('format', 'jpg');
         fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd})
           .then(r => r.json())
           .then(j => {
@@ -11169,7 +11172,6 @@ function maintUploadPhoto(key) {
       fd.append('file', input.files[0]);
       fd.append('upload_preset', 'culex_uploads');
       fd.append('quality', 'auto:best');
-      fd.append('format', 'jpg');
       const res = await fetch('https://api.cloudinary.com/v1_1/db94rgiil/image/upload', {method:'POST', body:fd});
       const data = await res.json();
       if (!data.secure_url) throw new Error('Upload failed');
@@ -11538,7 +11540,7 @@ async function scanOldPhotos() {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
-  const photoFields = ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'];
+  const photoFields = ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'];
 
   async function scanDb(dbRef, label) {
     if (!dbRef) return;

@@ -347,7 +347,6 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
       fd.append('quality', 'auto:best');
-      fd.append('format', 'jpg');
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
         method: 'POST', body: fd
       });
@@ -355,9 +354,12 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       if (data.secure_url) {
         console.log('Photo uploaded to Cloudinary ✓');
         return data.secure_url;
+      } else {
+        console.warn('Cloudinary upload rejected:', JSON.stringify(data.error || data));
+        throw new Error(data.error?.message || 'No secure_url returned');
       }
     } catch(cloudErr) {
-      console.warn('Cloudinary unavailable, saving locally:', cloudErr);
+      console.warn('Cloudinary upload failed:', cloudErr.message || cloudErr);
     }
     // Fallback — save base64 locally
     showToast('Photo saved locally — will sync when online 📱', 'ok');
@@ -389,7 +391,6 @@ async function retryPendingPhotos() {
       fd.append('upload_preset', CLOUDINARY_PRESET);
       fd.append('folder', folder);
       fd.append('quality', 'auto:best');
-      fd.append('format', 'jpg');
       const resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUDINARY_CLOUD + '/image/upload', {
         method: 'POST', body: fd
       });
