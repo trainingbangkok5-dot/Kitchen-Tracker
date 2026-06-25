@@ -281,7 +281,7 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       console.warn('Cloudinary unavailable, saving locally:', cloudErr);
     }
     // Fallback — save base64 locally, queue for retry
-    showToast('Cloud unavailable — photo saved locally 📱', 'warn');
+    showToast('Photo saved locally — will sync when online 📱', 'ok');
     const pendingKey = 'pending_photos_' + ROLE;
     const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
     const photoEntry = {
@@ -1044,7 +1044,7 @@ function renderDay() {
       const comment=_allTd[task.id]?.comment||'';
       const photos=(() => {
         const urls=[],td2=_allTd[task.id]||{};
-        const slots=[['photo_url','photo'],['photo_1_url','photo_1'],['photo_2_url','photo_2'],['photo_3_url','photo_3'],['photo_4_url','photo_4']];
+        const slots=[['photo_url','photo'],['photo_1_url','photo_1'],['photo_2_url','photo_2'],['photo_3_url','photo_3'],['photo_4_url','photo_4'],['photo_5_url','photo_5'],['photo_6_url','photo_6'],['photo_7_url','photo_7'],['photo_8_url','photo_8'],['photo_9_url','photo_9']];
         slots.forEach(([uk,bk])=>{
           const url=td2[uk]||td2[uk.replace('_url','Url')]||'';
           const b64=td2[bk]||'';
@@ -1167,10 +1167,10 @@ function submitDay() {
       SECTIONS.forEach(s=>s.tasks.forEach(t=>{
         const td=d[dayKey][t.id]||{}; const yn=td.yn;
         const photoUrls=[];
-        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photo_url','photo_1_url','photo_2_url','photo_3_url','photo_4_url'].forEach(k=>{const u=td[k];if(u&&u.startsWith('http')&&!photoUrls.includes(u))photoUrls.push(u);});
+        ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photo_url','photo_1_url','photo_2_url','photo_3_url','photo_4_url','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9','photo_5_url','photo_6_url','photo_7_url','photo_8_url','photo_9_url'].forEach(k=>{const u=td[k];if(u&&u.startsWith('http')&&!photoUrls.includes(u))photoUrls.push(u);});
         // Include base64 fallback so dashboard shows photo even before Cloudinary upload completes
-        if(!photoUrls.length){['photo','photo_1','photo_2','photo_3','photo_4'].forEach(k=>{const u=td[k];if(u&&u.startsWith('data:')&&!photoUrls.includes(u))photoUrls.push(u);});}
-        const hasLocalPhoto=photoUrls.length>0||['photo','photo_1','photo_2','photo_3','photo_4'].some(k=>{const u=td[k];return u&&u.startsWith('data:');});
+        if(!photoUrls.length){['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].forEach(k=>{const u=td[k];if(u&&u.startsWith('data:')&&!photoUrls.includes(u))photoUrls.push(u);});}
+        const hasLocalPhoto=photoUrls.length>0||['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(k=>{const u=td[k];return u&&u.startsWith('data:');});
         if(yn||photoUrls.length||hasLocalPhoto) tasks[t.id]={day:currentDay,section:s.title,task:t.text,owner:t.ownerLbl,yn:yn||'',comment:td.comment||'',photoUrl:photoUrls[0]||'',photoUrls,hasPhoto:photoUrls.length>0||hasLocalPhoto};
       }));
       return tasks;
