@@ -461,6 +461,38 @@ async function uploadToCloudinary(dataUrl) {
     return j.secure_url || null;
   } catch(e) { console.warn('Cloudinary upload failed:', e); return null; }
 }
+
+// Update submitted Firebase record with Cloudinary photo URL
+async function _updateSubmittedPhoto(taskId, photoKey, photoUrl) {
+  if (!_db || !photoUrl || !photoUrl.startsWith('http')) return;
+  try {
+    const staffName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim() || '');
+    if (!staffName) return;
+    const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === ROLE && sub.taskData) {
+        Object.keys(sub.taskData).forEach(k => {
+          if (k === taskId || k.endsWith('_' + taskId) || k === 'd1_' + taskId) {
+            updates['submissions/' + child.key + '/taskData/' + k + '/' + photoKey] = photoUrl;
+            // Rebuild photoUrls array
+            const existing = sub.taskData[k] || {};
+            const allUrls = [];
+            ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach((pk) => {
+              const u = pk === photoKey ? photoUrl : (existing[pk] || '');
+              if (u && u.startsWith('http') && !allUrls.includes(u)) allUrls.push(u);
+            });
+            if (allUrls.length > 0) updates['submissions/' + child.key + '/taskData/' + k + '/photoUrls'] = allUrls;
+          }
+        });
+      }
+    });
+    if (Object.keys(updates).length > 0) await _db.ref().update(updates);
+  } catch(e) { console.warn('Photo Firebase update failed:', e); }
+}
+
 async function handlePhotoFile(file) {
   if(!file||!activePhotoTask) return;
   const tid=activePhotoTask; activePhotoTask=null;
@@ -485,6 +517,7 @@ async function handlePhotoFile(file) {
         setVal(currentDay,tid,cloudKey,url);
         renderDay();
         showToast('Photo synced ✓','ok');
+        _updateSubmittedPhoto(tid, cloudKey, url);
       } else { showToast('Photo saved locally only','warn'); }
     } catch(err){ showToast('Photo saved locally only','warn'); }
   };
@@ -825,7 +858,7 @@ function validateFullName(name) {
   return { valid: true, msg: '' };
 }
 
-function submitDay() {
+async function submitDay() {
   const name=getStaffName(), outlet=getOutlet();
   const _vn=validateFullName(name);
   if(!_vn.valid){ showToast(_vn.msg,'warn'); return; }
@@ -880,6 +913,7 @@ function submitDay() {
   if (currentShift==='closing' && _dayData2._openDone) {
     try { const _od=new Date(_dayData2._openDone).toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'}); const _ow=getWeekStartFromDate(_od); if(_ow)_weekStart2=_ow; } catch(e){}
   }
+  await waitForPhotoUploads(SECTIONS.filter(s=>s.shift===currentShift).flatMap(s=>s.tasks), 8000);
   const record={
     staffName:name, role:ROLE, roleLabel:ROLE_LABEL, outlet, week:_weekStart2,
     verifiedBy: '', // Filled by OIC via dashboard

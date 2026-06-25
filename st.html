@@ -1243,7 +1243,7 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
   showToast('Submitting with available photos...', 'warn');
 }
 
-function submitOpening() {
+async function submitOpening() {
   const name = getStaffName();
   const _vnO = validateFullName(name);
   if (!_vnO.valid) { showToast(_vnO.msg, 'warn'); document.getElementById('fName').focus(); return; }
@@ -1269,6 +1269,7 @@ function submitOpening() {
   let oY2=0,oM2=0;
   const openingTaskData = {};
   const _tdOpen = load()[getTodayKey()] || {};
+  await waitForPhotoUploads(SECTIONS[0].tasks, 8000);
   SECTIONS[0].tasks.forEach(t=>{
     const yn   = _tdOpen[t.id]?.yn;
     const pUrl = _tdOpen[t.id]?.photoUrl;
@@ -1317,7 +1318,7 @@ function submitOpening() {
   buildDayRail(); renderDay();
 }
 
-function submitDay() {
+async function submitDay() {
   const name = getStaffName();
   const _vnO = validateFullName(name);
   if (!_vnO.valid) { showToast(_vnO.msg, 'warn'); document.getElementById('fName').focus(); return; }

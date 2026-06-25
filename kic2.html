@@ -1117,7 +1117,7 @@ function renderDay() {
   }
 }
 
-function submitDay() {
+async function submitDay() {
   const name=getStaffName();
   const _vn=validateFullName(name);
   if(!_vn.valid){showToast(_vn.msg,'warn');document.getElementById('fName').focus();return;}
@@ -1125,6 +1125,7 @@ function submitDay() {
   if(!currentShift){showToast('Please select a shift first','warn');return;}
   SK=SK_BASE+'_'+name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   const shiftSec=SECTIONS.filter(s=>s.shift===currentShift);
+  await waitForPhotoUploads(shiftSec.flatMap(s=>s.tasks), 8000);
   const _tdNow=load()[getTodayKey()]||{};
   const unanswered=shiftSec.flatMap(s=>s.tasks).filter(t=>!_tdNow[t.id]?.yn);
   if(unanswered.length){showToast('Please answer all tasks before submitting','warn');return;}
@@ -1226,6 +1227,25 @@ function closePhotoModal() {
 // mbtnGallery is now a <label for="galInput"> — no onclick needed
 // prepareGallery() is called via onclick on the label
 
+
+async function waitForPhotoUploads(tasks, maxWaitMs) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const _td = load()[getTodayKey()] || {};
+    const allDone = tasks.every(t => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('data:');
+      });
+      if (!hasLocal) return true;
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('http');
+      });
+    });
+    if (allDone) return;
+    await new Promise(r => setTimeout(r, 300));
+  }
+}
+
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
   const taskId = activePhotoTask;
@@ -1251,6 +1271,7 @@ function handlePhotoFile(file) {
         const _urlKey = _idx === 0 ? 'photoUrl' : 'photoUrl_' + _idx;
         setVal(currentDay, taskId, _urlKey, dbRef);
         showToast('Photo synced ✓', 'ok');
+        _updateSubmittedPhoto(taskId, _urlKey, dbRef);
       }
     }
   });

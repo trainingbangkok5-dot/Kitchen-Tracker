@@ -1168,7 +1168,7 @@ function renderDay() {
   }
 }
 
-function submitDay() {
+async function submitDay() {
   const name = getStaffName();
   const _vn = validateFullName(name);
   if (!_vn.valid) { showToast(_vn.msg, 'warn'); document.getElementById('fName').focus(); return; }
@@ -1178,6 +1178,7 @@ function submitDay() {
   SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
 
   const shiftSections = SECTIONS.filter(s => s.shift === currentShift);
+  await waitForPhotoUploads(shiftSections.flatMap(s => s.tasks), 8000);
   const _tdNow = load()[getTodayKey()] || {};
   const unanswered = shiftSections.flatMap(s => s.tasks).filter(t => !_tdNow[t.id]?.yn);
   if (unanswered.length) { showToast('Please answer all tasks before submitting', 'warn'); return; }
@@ -1316,6 +1317,25 @@ function closePhotoModal() {
 // mbtnGallery is now a <label for="galInput"> — no onclick needed
 // prepareGallery() is called via onclick on the label
 
+
+async function waitForPhotoUploads(tasks, maxWaitMs) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const _td = load()[getTodayKey()] || {};
+    const allDone = tasks.every(t => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('data:');
+      });
+      if (!hasLocal) return true;
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].some(pk => {
+        const p = _td[t.id]?.[pk]; return p && p.startsWith('http');
+      });
+    });
+    if (allDone) return;
+    await new Promise(r => setTimeout(r, 300));
+  }
+}
+
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
   const taskId = activePhotoTask;
@@ -1346,6 +1366,11 @@ function handlePhotoFile(file) {
       if (dbRef) {
         setVal(currentDay, taskId, slot + '_url', dbRef);
         showToast('Photo synced ✓', 'ok');
+        // Also save as photoUrl key for dash compatibility
+        const _oicSlotIdx = slot === 'photo' ? 0 : parseInt(slot.replace('photo_','')) || 0;
+        const _oicUrlKey = _oicSlotIdx === 0 ? 'photoUrl' : 'photoUrl_' + _oicSlotIdx;
+        setVal(currentDay, taskId, _oicUrlKey, dbRef);
+        _updateSubmittedPhoto(taskId, _oicUrlKey, dbRef);
       }
     }
   });
