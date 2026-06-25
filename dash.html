@@ -7429,7 +7429,18 @@ function setTaskYN(btn, val) {
     b.style.background = labels[i] === val ? activeBg[i] : '#E5E7EB';
     b.style.color = labels[i] === val ? '#fff' : '#374151';
   });
-  // Auto-update score display immediately
+  // Update the display badge immediately (visible in both view and edit mode)
+  const displaySpan = row.querySelector('.task-yn-display span');
+  if (displaySpan) {
+    const ynBg  = val==='yes'?'#DCFCE7':val==='no'?'#FEE2E2':'#F3F4F6';
+    const ynCol = val==='yes'?'#15803D':val==='no'?'#B91C1C':'#6B6B60';
+    const ynLbl = val==='yes'?'✓ YES':val==='no'?'✗ NO':'N/A';
+    displaySpan.style.background = ynBg;
+    displaySpan.style.color = ynCol;
+    displaySpan.textContent = ynLbl;
+  }
+  // Auto-update score display - works in both edit mode and view mode
+  if (!_editStaffData && _currentDetailStaff) { _editStaffData = _currentDetailStaff; }
   if (_editStaffData) updateLiveScore();
 }
 
@@ -8903,7 +8914,7 @@ function buildProgressCell(staff) {
       evalDone
         ? evalLabel + ' — ' + staff.oicEvalPct + '%'
         : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted',
-      evalDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval')) : null
+      evalDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval') || (['linecook','steward'].includes(role) ? _lastVerifierFor('opening') : null)) : null
     );
   }
 
