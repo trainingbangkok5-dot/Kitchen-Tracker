@@ -816,18 +816,18 @@ function selectShift(shift) {
   const _hourNow = getDubaiHour();
   if (shift === 'opening') {
     const _openDoneSt = !!data[getTodayKey()]?._openDone;
-    if (!(_hourNow >= 7 && _hourNow < 15) && !_openDoneSt) {
-      showToast('Opening shift is available 7:00 AM – 3:00 PM only ⏰', 'warn');
+    if (!(_hourNow >= 7 && _hourNow < 14) && !_openDoneSt) {
+      showToast('Opening shift is available 7:00 AM – 2:00 PM only ⏰', 'warn');
       return;
     }
   }
   if (shift === 'closing') {
     const now = new Date();
     const hourNow = _hourNow;
-    const isAfter3pm = hourNow >= 15 || hourNow < 2;
+    const isAfter3pm = hourNow >= 14 || hourNow < 2;
     if (!isAfter3pm) {
       const minsLeft = (15 - hourNow - 1) * 60 + (60 - now.getMinutes());
-      showToast(`Closing opens at 3:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining ⏰`, 'warn');
+      showToast(`Closing opens at 2:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining ⏰`, 'warn');
       return;
     }
   }
@@ -896,7 +896,7 @@ function renderDay() {
   // Show shift picker if no shift selected
   if (!currentShift) {
     const nowH = getDubaiHour();
-    const isAfter3pm = nowH >= 15 || nowH < 2;
+    const isAfter3pm = nowH >= 14 || nowH < 2;
     const openerName = data[dayKey]?._openerName || '';
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     if (closingDone) {
@@ -1577,13 +1577,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Visually lock closing button before 3pm Dubai time
   (function() {
     const hour = getDubaiHour();
-    const isAfter3pm = hour >= 15 || hour < 2;
+    const isAfter3pm = hour >= 14 || hour < 2;
     const btnC = document.getElementById('btnCloseShift');
     if (btnC && !isAfter3pm) {
       const minsLeft = (15 - hour - 1) * 60 + (60 - new Date().getMinutes());
       const h = Math.floor(minsLeft/60), m = minsLeft%60;
       btnC.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);font-size:12px;font-weight:700;cursor:not-allowed;';
-      btnC.title = `Closing opens at 3:00 PM — ${h}h ${m}m remaining`;
+      btnC.title = `Closing opens at 2:00 PM — ${h}h ${m}m remaining`;
       btnC.textContent = `🌙 Closing (opens 3PM)`;
     }
   })();

@@ -832,13 +832,13 @@ function selectShift(shift) {
   const openingDone = !!data[dayKey]?._openDone;
   const closingDone = !!data[dayKey]?._closeDone;
   const nowH = getDubaiHour();
-  const openingOpen = nowH >= 7 && nowH < 15;
-  const closingOpen = nowH >= 15 || nowH < 2;
+  const openingOpen = nowH >= 7 && nowH < 14;
+  const closingOpen = nowH >= 14 || nowH < 2;
   if (shift === 'opening' && !openingOpen && !openingDone) {
-    showToast('Opening shift is only available 7:00 AM \u2013 3:00 PM', 'warn'); return;
+    showToast('Opening shift is only available 7:00 AM \u2013 2:00 PM', 'warn'); return;
   }
   if (shift === 'closing' && !closingOpen && !closingDone) {
-    showToast('Closing shift is only available 3:00 PM \u2013 2:00 AM', 'warn'); return;
+    showToast('Closing shift is only available 2:00 PM \u2013 2:00 AM', 'warn'); return;
   }
   currentShift = shift;
   try { localStorage.setItem('kic_currentShift_' + getTodayKey(), shift); } catch(e) {}
@@ -915,8 +915,8 @@ function renderDay() {
   const openingDone = !!data[dayKey]?._openDone;
   const closingDone = !!data[dayKey]?._closeDone;
   const nowH = getDubaiHour();
-  const openingOpen = nowH >= 7 && nowH < 15;
-  const closingOpen = nowH >= 15 || nowH < 2;
+  const openingOpen = nowH >= 7 && nowH < 14;
+  const closingOpen = nowH >= 14 || nowH < 2;
 
   // Shift picker
   if (!currentShift) {
@@ -925,11 +925,11 @@ function renderDay() {
     const openStyle = (openingOpen||openingDone)
       ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;'
       : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
-    const openNote = (!openingOpen&&!openingDone) ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;margin-bottom:12px;">Opening shift available 7:00 AM – 3:00 PM only</div>' : '';
+    const openNote = (!openingOpen&&!openingDone) ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;margin-bottom:12px;">Opening shift available 7:00 AM – 2:00 PM only</div>' : '';
     const closeStyle = (closingOpen||closingDone)
       ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:4px;background:linear-gradient(135deg,#1A4740,#0D9488);color:#fff;'
       : 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:not-allowed;margin-bottom:4px;background:#E2E8F0;color:#94A3B8;';
-    const closeNote = (!closingOpen&&!closingDone) ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Opens at 3:00 PM until 2:00 AM</div>'
+    const closeNote = (!closingOpen&&!closingDone) ? '<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Opens at 2:00 PM until 2:00 AM</div>'
       : (closingOpen&&!closingDone ? '<div style="font-size:11px;color:#0F766E;margin-top:4px;">\u2713 Available now</div>' : '');
     screen.innerHTML =
       '<div style="font-size:32px;margin-bottom:8px;">\ud83d\udc4b</div>'

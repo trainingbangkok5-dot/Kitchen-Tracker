@@ -533,16 +533,16 @@ function selectShift(shift) {
   const hour = getDubaiHour();
   if (shift === 'opening') {
     const _openDone = !!load()[getTodayKey()]?._openDone;
-    if (!(hour >= 7 && hour < 15) && !_openDone) {
-      showToast('Opening shift is available 7:00 AM – 3:00 PM only ⏰', 'warn');
+    if (!(hour >= 7 && hour < 14) && !_openDone) {
+      showToast('Opening shift is available 7:00 AM – 2:00 PM only ⏰', 'warn');
       return;
     }
   }
   if (shift === 'closing') {
-    const isAfter3pm = hour >= 15 || hour < 2;
+    const isAfter3pm = hour >= 14 || hour < 2;
     if (!isAfter3pm) {
       const minsLeft = (15 - hour - 1) * 60 + (60 - new Date().getMinutes());
-      showToast(`Closing opens at 3:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining ⏰`, 'warn');
+      showToast(`Closing opens at 2:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining ⏰`, 'warn');
       return;
     }
   }
@@ -587,8 +587,8 @@ function renderDay() {
   if (!currentShift) {
     document.getElementById('shiftScreen').style.display='block';
     const hour=getDubaiHour();
-    const openingOpen = hour >= 7 && hour < 15;
-    const closingOpen = hour >= 15 || hour < 2;
+    const openingOpen = hour >= 7 && hour < 14;
+    const closingOpen = hour >= 14 || hour < 2;
     const _dayData = data[dayKey] || {};
     const _openSubmitted = !!_dayData._openDone;
     const _closeSubmitted = !!_dayData._closeDone;
@@ -601,21 +601,21 @@ function renderDay() {
     const openingBtn = document.getElementById('openingBtn');
     if (openingBtn) {
       openingBtn.disabled = !openingOpen && !_anyOpenSubmitted;
-      openingBtn.title = (!openingOpen && !_anyOpenSubmitted) ? 'Opening shift is only available 7:00 AM – 3:00 PM' : (_anyOpenSubmitted ? 'View submitted opening checklist' : '');
+      openingBtn.title = (!openingOpen && !_anyOpenSubmitted) ? 'Opening shift is only available 7:00 AM – 2:00 PM' : (_anyOpenSubmitted ? 'View submitted opening checklist' : '');
     }
     const closingBtn = document.getElementById('closingBtn');
     if (closingBtn) {
       closingBtn.disabled = !closingOpen && !_anyCloseSubmitted;
-      closingBtn.title = (!closingOpen && !_anyCloseSubmitted) ? 'Closing shift is only available 3:00 PM – 2:00 AM' : (_anyCloseSubmitted ? 'View submitted closing checklist' : '');
+      closingBtn.title = (!closingOpen && !_anyCloseSubmitted) ? 'Closing shift is only available 2:00 PM – 2:00 AM' : (_anyCloseSubmitted ? 'View submitted closing checklist' : '');
     }
     const note = document.getElementById('shiftNote');
     if (note) {
       if (!openingOpen && !closingOpen) {
-        note.textContent = 'No shifts available right now. Opening: 7:00 AM – 3:00 PM | Closing: 3:00 PM – 2:00 AM';
+        note.textContent = 'No shifts available right now. Opening: 7:00 AM – 2:00 PM | Closing: 2:00 PM – 2:00 AM';
       } else if (!openingOpen) {
-        note.textContent = 'Opening shift is closed. Available 7:00 AM – 3:00 PM';
+        note.textContent = 'Opening shift is closed. Available 7:00 AM – 2:00 PM';
       } else if (!closingOpen) {
-        note.textContent = 'Closing shift opens at 3:00 PM';
+        note.textContent = 'Closing shift opens at 2:00 PM';
       } else {
         note.textContent = '';
       }
@@ -1074,12 +1074,12 @@ function scheduleNextMidnight() {
   // Visual lock on closing button before 3pm Dubai
   (function(){
     const _h = getDubaiHour ? getDubaiHour() : new Date().getHours();
-    const _after3 = _h >= 15 || _h < 2;
+    const _after3 = _h >= 14 || _h < 2;
     const _btnC = document.getElementById('closingBtn');
     if (_btnC && !_after3) {
       const _ml = (15-_h-1)*60+(60-new Date().getMinutes());
       _btnC.classList.add('locked');
-      _btnC.title='Closing opens at 3:00 PM — '+Math.floor(_ml/60)+'h '+(_ml%60)+'m';
+      _btnC.title='Closing opens at 2:00 PM — '+Math.floor(_ml/60)+'h '+(_ml%60)+'m';
       _btnC.textContent='🌙 Closing (opens 3PM)';
     }
   })();

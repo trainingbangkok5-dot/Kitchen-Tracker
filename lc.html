@@ -878,23 +878,23 @@ function selectShift(shift) {
 
   const _hour = getDubaiHour();
   if (shift === 'opening') {
-    // Opening window: 7:00 AM – 3:00 PM (but allow viewing if already submitted)
-    const openingAvail = _hour >= 7 && _hour < 15;
+    // Opening window: 7:00 AM – 2:00 PM (but allow viewing if already submitted)
+    const openingAvail = _hour >= 7 && _hour < 14;
     const _openingDone = !!load()[getTodayKey()]?._openDone;
     if (!openingAvail && !_openingDone) {
-      showToast('Opening shift is available 7:00 AM – 3:00 PM only ⏰', 'warn');
+      showToast('Opening shift is available 7:00 AM – 2:00 PM only ⏰', 'warn');
       return;
     }
   }
   if (shift === 'closing') {
     const now = new Date();
     const hour = _hour;
-    const isAfter3pm = hour >= 15 || hour < 2; // Closing window: 3:00 PM – 2:00 AM
+    const isAfter3pm = hour >= 14 || hour < 2; // Closing window: 2:00 PM – 2:00 AM
     if (!isAfter3pm) {
       const minutesLeft = (15 - hour - 1) * 60 + (60 - now.getMinutes());
       const h = Math.floor(minutesLeft / 60);
       const m = minutesLeft % 60;
-      showToast(`Closing opens at 3:00 PM until 2:00 AM — ${h}h ${m}m remaining ⏰`, 'warn');
+      showToast(`Closing opens at 2:00 PM until 2:00 AM — ${h}h ${m}m remaining ⏰`, 'warn');
       return;
     }
   }
@@ -968,9 +968,9 @@ function renderDay() {
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
     const openerName = data[dayKey]?._openerName || '';
     const nowH = getDubaiHour();
-    const isAfter3pm = nowH >= 15 || nowH < 2;
+    const isAfter3pm = nowH >= 14 || nowH < 2;
     // Opening: available 7AM-3PM
-    const openingAvailable = nowH >= 7 && nowH < 15;
+    const openingAvailable = nowH >= 7 && nowH < 14;
     let openingBtnStyle, openingBtnLabel, openingSubNote;
     if (openingDone) {
       openingBtnStyle = 'background:linear-gradient(135deg,#1A3C5E,#2E6DA4);color:#fff;cursor:pointer;';
@@ -1683,13 +1683,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Visually lock closing button before 3pm Dubai time
   (function() {
     const hour = getDubaiHour();
-    const isAfter3pm = hour >= 15 || hour < 2;
+    const isAfter3pm = hour >= 14 || hour < 2;
     const btnC = document.getElementById('btnCloseShift');
     if (btnC && !isAfter3pm) {
       const minsLeft = (15 - hour - 1) * 60 + (60 - new Date().getMinutes());
       const h = Math.floor(minsLeft/60), m = minsLeft%60;
       btnC.style.cssText = 'flex:1;padding:8px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);font-size:12px;font-weight:700;cursor:not-allowed;';
-      btnC.title = `Closing opens at 3:00 PM — ${h}h ${m}m remaining`;
+      btnC.title = `Closing opens at 2:00 PM — ${h}h ${m}m remaining`;
       btnC.textContent = `🌙 Closing (opens 3PM)`;
     }
   })();
