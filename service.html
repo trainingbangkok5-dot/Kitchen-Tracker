@@ -227,7 +227,7 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
             // Also rebuild photoUrls array from all current URL slots
             const existing = sub.taskData[k] || {};
             const allUrls = [];
-            ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach((pk, idx) => {
+            ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach((pk, idx) => {
               // For the current slot, use the new dbRef; for others use existing value
               const slotKey2 = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
               const url = slotKey2 === photoKey ? dbRef : (existing[pk] || '');
@@ -525,7 +525,7 @@ async function uploadPhotoToFirebase(dataUrl, taskId, staffName, day) {
       console.warn('Cloudinary unavailable, saving locally:', cloudErr);
     }
     // Fallback — save base64 locally, queue for retry
-    showToast('Cloud unavailable — photo saved locally 📱', 'warn');
+    showToast('Photo saved locally — will sync when online 📱', 'ok');
     const pendingKey = 'pending_photos_' + ROLE;
     const pending = JSON.parse(localStorage.getItem(pendingKey) || '[]');
     pending.push({ dataUrl: compressed, taskId, staffName, day, savedAt: new Date().toISOString() });
@@ -1292,7 +1292,7 @@ function renderDay() {
         const photos = [];
         const seenUrls = new Set();
         // Collect all photos: prefer Cloudinary URL (photoUrl), fallback to base64 (photo)
-        for (let pi = 0; pi < 5; pi++) {
+        for (let pi = 0; pi < 10; pi++) {
           const localKey = pi === 0 ? 'photo' : 'photo_' + pi;
           const urlKey   = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
           const url = getVal(currentDay, task.id, urlKey) || getVal(currentDay, task.id, localKey);
@@ -1613,13 +1613,13 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
     const _td = load()[getTodayKey()] || {};
     // Check if all tasks with local photos now have http URLs
     const allDone = tasks.every(t => {
-      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+      const hasLocal = ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk => {
         const p = _td[t.id]?.[pk];
         return p && p.startsWith('data:');
       });
       if (!hasLocal) return true; // no photo taken — OK
       // Has local photo — check if at least one http URL exists
-      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => {
+      return ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].some(pk => {
         const p = _td[t.id]?.[pk];
         return p && p.startsWith('http');
       });
@@ -1641,7 +1641,7 @@ async function submitOpening() {
   const unanswered = openingTasks.filter(t => !getVal(currentDay, t.id, 'yn'));
   if (unanswered.length > 0) { showToast('Please answer all Opening Tasks first', 'warn'); return; }
   // Mandatory photo check
-  const missingPhoto = openingTasks.filter(t => t.photo && !(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].some(pk => !!getVal(currentDay, t.id, pk))));
+  const missingPhoto = openingTasks.filter(t => t.photo && !(['photo','photo_0','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9','photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].some(pk => !!getVal(currentDay, t.id, pk))));
   if (missingPhoto.length > 0) { showToast('📷 Photo required for all tasks before submitting', 'warn'); return; }
   // Wait for any pending Cloudinary uploads to finish (max 8 seconds)
   showToast('⏳ Uploading photos...', 'ok');
@@ -1675,13 +1675,13 @@ async function submitOpening() {
       const _tdOpen = load()[getTodayKey()] || {};
       const _allPhotosOpen = [];
       // Collect Cloudinary URLs first (photoUrl, photoUrl_1...)
-      ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
+      ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach(pk => {
         const p = _tdOpen[t.id]?.[pk];
         if (p && p.startsWith('http') && !_allPhotosOpen.includes(p)) _allPhotosOpen.push(p);
       });
       // If no Cloudinary URLs yet, check if local photos exist (base64 slots)
       // hasPhoto flag tells dash a photo was taken even if URL not ready
-      const _hasLocalPhotos = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+      const _hasLocalPhotos = ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk => {
         const p = _tdOpen[t.id]?.[pk];
         return p && p.startsWith('data:');
       });
@@ -1814,13 +1814,13 @@ async function submitDay() {
           const pUrl  = _tdData[t.id]?.photoUrl;
           // Collect ALL Cloudinary URLs
           const _allPhotos = [];
-          ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4'].forEach(pk => {
+          ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach(pk => {
             const p = _tdData[t.id]?.[pk];
             if (p && p.startsWith('http') && !_allPhotos.includes(p)) _allPhotos.push(p);
           });
           const finalPhotoUrl = _allPhotos[0] || ((pUrl && pUrl.startsWith('http')) ? pUrl : '');
           // hasPhoto true if any local base64 photo exists even if Cloudinary not done
-          const _hasLocalClose = ['photo','photo_1','photo_2','photo_3','photo_4'].some(pk => {
+          const _hasLocalClose = ['photo','photo_1','photo_2','photo_3','photo_4','photo_5','photo_6','photo_7','photo_8','photo_9'].some(pk => {
             const p = _tdData[t.id]?.[pk];
             return p && p.startsWith('data:');
           });
@@ -1910,7 +1910,7 @@ function handlePhotoFile(file) {
     // Save locally first — find next empty slot (deduplicated)
     const legacyUrl = getVal(currentDay, taskId, 'photo');
     let slotIdx = legacyUrl ? 1 : 0; // if legacy 'photo' exists, start from photo_1
-    for (let pi = slotIdx; pi < 5; pi++) {
+    for (let pi = slotIdx; pi < 10; pi++) {
       const existing = getVal(currentDay, taskId, pi === 0 ? 'photo' : 'photo_' + pi);
       if (!existing) { slotIdx = pi; break; }
       slotIdx = pi + 1;
@@ -1941,7 +1941,7 @@ function handlePhotoFile(file) {
 function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
   // Shift both base64 and photoUrl slots down after removal
-  for (let pi = idx; pi < 5; pi++) {
+  for (let pi = idx; pi < 10; pi++) {
     const curKey    = pi === 0 ? 'photo'    : 'photo_'    + pi;
     const curUrlKey = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
     const nxtKey    = 'photo_'    + (pi + 1);
