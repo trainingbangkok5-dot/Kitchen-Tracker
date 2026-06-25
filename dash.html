@@ -6964,75 +6964,98 @@ function buildVerifyEditPanel(s) {
   const log = Array.isArray(rawVLog) ? [...rawVLog]
     : (rawVLog && typeof rawVLog === 'object') ? Object.values(rawVLog) : [];
   if (!log.length && s.verifiedBy) {
-    log.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
+    log.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '', shift: 'opening' });
   }
+
   const roleLabel = { training:'Training & Dev', operations:'Operations', director:'Director',
     ceo:'CEO', areachef:'Area Chef', areamanager:'Area Manager', kic:'KIC', oic:'OIC' };
-  const shiftLabel = { opening:'Opening', closing:'Closing', evaluation:'Evaluation', reverify:'Re-Verified' };
-  const shiftIcon  = { opening:'\u{1f305}', closing:'\u{1f319}', evaluation:'\u{1f4cb}', reverify:'\u{1f504}' };
-  // Build history
-  const historyHtml = log.map(function(entry, _hi) {
-    const dt = entry.at ? _fmtDubaiDT(entry.at) : '\u2014';
-    const rl = roleLabel[entry.role] || entry.role || '';
-    const isRev = entry.shift === 'reverify';
-    const sLabel = entry.shift ? (shiftLabel[entry.shift] || '') : '';
-    const sIcon  = entry.shift ? (shiftIcon[entry.shift]  || '\u2705') : '\u2705';
-    const eColor = isRev ? '#92400E' : '#15803D';
-    const eBg    = isRev ? '#FFF7ED' : '#F0FDF4';
-    return '<div style="display:flex;align-items:flex-start;gap:4px;padding:5px 8px;background:' + eBg + ';border-radius:6px;margin-bottom:4px;font-size:11px;">'
-      + '<div style="flex:1;">'
-      + (sLabel ? '<div style="font-size:10px;font-weight:700;color:' + eColor + ';text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">' + sIcon + ' ' + sLabel + '</div>' : '')
-      + '<span style="font-weight:700;color:' + eColor + ';">\u2705 ' + (entry.by||'\u2014') + '</span>'
-      + (rl ? ' <span style="color:#64748B;font-size:10px;">(' + rl + ')</span>' : '')
-      + '<div style="color:#94A3B8;font-size:10px;">\ud83d\udcc5 ' + dt + '</div>'
-      + '</div>'
-      + '<button onclick="deleteVerificationEntry(this,' + _hi + ')" title="Remove" style="background:none;border:none;cursor:pointer;color:#B91C1C;font-size:14px;padding:0 2px;line-height:1;flex-shrink:0;">&times;</button>'
+
+  // ── Group entries by shift ──────────────────────────────────────────────────
+  const shiftGroups = { opening:[], closing:[], evaluation:[], other:[] };
+  log.forEach(function(entry) {
+    const sh = entry.shift || 'other';
+    if (sh === 'opening' || sh === 'opening_eval') shiftGroups.opening.push(entry);
+    else if (sh === 'closing' || sh === 'closing_eval') shiftGroups.closing.push(entry);
+    else if (sh === 'evaluation') shiftGroups.evaluation.push(entry);
+    else shiftGroups.other.push(entry);
+  });
+
+  // ── Yes/No count per shift ──────────────────────────────────────────────────
+  const td = s.taskData || {};
+  function getYN(shiftKey) {
+    var openIds=['o1','o2','o3','o4','o5'];
+    var closeIds=(s.role==='kic')?['cy1','cy2','cy3','cy4']:['c1','c2','c3','c4','c5'];
+    var evalIds=['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
+      'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
+      's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2'];
+    var ids = shiftKey==='opening'?openIds:shiftKey==='closing'?closeIds:evalIds;
+    var yes=0,no=0;
+    Object.entries(td).forEach(function(e){
+      var tid=e[0].replace(/^d[0-9]+_/,''); var yn=(e[1]||{}).yn;
+      if(!yn||yn==='na') return;
+      if(ids.some(function(id){return tid===id;})){if(yn==='yes')yes++;else no++;}
+    });
+    return {yes:yes,no:no};
+  }
+
+  // ── Build one shift block ───────────────────────────────────────────────────
+  function buildShiftBlock(entries, shiftKey, icon, label) {
+    if (!entries.length) return '';
+    var yn = getYN(shiftKey);
+    var ynStr = (yn.yes+yn.no>0) ? ' &nbsp;|&nbsp; Yes: '+yn.yes+' / No: '+yn.no : '';
+    var rows = entries.map(function(entry, idx) {
+      var dt = entry.at ? _fmtDubaiDT(entry.at) : '—';
+      var rl = roleLabel[entry.role] || entry.role || '';
+      // Auto-detect: if idx>0 same shift = re-verified
+      var isRev = idx > 0 || entry.type === 'reverify';
+      var tag = isRev ? '🔄 Re-Verified by' : '✅ Verified by';
+      var tagColor = isRev ? '#92400E' : '#15803D';
+      return '<div style="margin-bottom:3px;padding-left:8px;border-left:2px solid '+(isRev?'#FCD34D':'#22C55E')+';">'
+        + '<span style="font-size:11px;font-weight:600;color:'+tagColor+';">'+tag+': '+(entry.by||'—')+'</span>'
+        + (rl ? ' <span style="font-size:10px;color:#64748B;">('+rl+')</span>' : '')
+        + '<div style="font-size:10px;color:#94A3B8;">'+dt+ynStr+'</div>'
+        + '</div>';
+    }).join('');
+    return '<div style="margin-bottom:8px;">'
+      + '<div style="font-size:10px;font-weight:700;color:#1A3C5E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">'+icon+' '+label+'</div>'
+      + rows
       + '</div>';
-  }).join('');
+  }
+
+  const historyHtml = [
+    buildShiftBlock(shiftGroups.opening, 'opening', '🌅', 'Opening Shift'),
+    buildShiftBlock(shiftGroups.closing, 'closing', '🌙', 'Closing Shift'),
+    buildShiftBlock(shiftGroups.evaluation, 'evaluation', '📋', 'Evaluation'),
+    buildShiftBlock(shiftGroups.other, 'other', '🔄', 'Other'),
+  ].join('');
 
   const noVerify = '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
-  const roleNote = 'Your role (' + currentRole + ') and timestamp will be added automatically';
-  // Management roles that can re-verify
-  const isMgmt = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
-  const reVerifySection = isMgmt
-    ? '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-      + '<div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">\ud83d\udd04 Re-Verify / Countersign</div>'
-      + '<input id="reVerifiedByInput" type="text" placeholder="Your name for re-verification..."'
-      + ' style="width:100%;padding:6px 8px;border:1.5px solid #FDE68A;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;margin-bottom:4px;background:#FFFDE7;">'
-      + '<select id="reVerifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;margin-bottom:4px;box-sizing:border-box;">'
-      + '<option value="opening">\ud83c\udf05 Opening</option>'
-      + '<option value="opening_eval">\ud83c\udf05\ud83d\udccb Opening / Evaluation</option>'
-      + '<option value="closing">\ud83c\udf19 Closing</option>'
-      + '<option value="closing_eval">\ud83c\udf19\ud83d\udccb Closing / Evaluation</option>'
-      + '<option value="evaluation">\ud83d\udccb Evaluation</option>'
-      + '<option value="reverify">\ud83d\udd04 General Re-Verify</option>'
-      + '</select>'
-      + '<div style="font-size:10px;color:#94A3B8;margin-bottom:4px;">' + roleNote + '</div>'
-      + '<button onclick="saveReVerification()" style="width:100%;padding:7px;background:#D97706;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\ud83d\udd04 Re-Verify / Countersign</button>'
-      + '</div>'
-    : '';
+  const roleNote = 'Your role ('+currentRole+') and timestamp will be added automatically';
 
-  return '<div style="margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;">'
-    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px;">\u2705 Verification History</div>'
-    + (historyHtml || noVerify)
-    + '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
+  // ── Auto-detect: is this a first verify or re-verify? ──────────────────────
+  // Shown as hint below dropdown — updated dynamically via JS after render
+  const addSection = '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
+    + '<div style="font-size:10px;font-weight:700;color:#1A3C5E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">ADD VERIFICATION</div>'
     + '<div style="display:flex;gap:4px;align-items:center;margin-bottom:3px;">'
     + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="flex:1;min-width:0;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
     + '<select id="verifyShiftSelect" style="padding:5px 4px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;background:#fff;flex-shrink:0;">'
-    + '<option value="opening">\ud83c\udf05 Opening</option>'
-    + '<option value="opening_eval">\ud83c\udf05\ud83d\udccb Opening / Evaluation</option>'
-    + '<option value="closing">\ud83c\udf19 Closing</option>'
-    + '<option value="closing_eval">\ud83c\udf19\ud83d\udccb Closing / Evaluation</option>'
-    + '<option value="evaluation">\ud83d\udccb Evaluation</option>'
+    + '<option value="opening">🌅 Opening</option>'
+    + '<option value="opening_eval">🌅📋 Open+Eval</option>'
+    + '<option value="closing">🌙 Closing</option>'
+    + '<option value="closing_eval">🌙📋 Close+Eval</option>'
+    + '<option value="evaluation">📋 Evaluation</option>'
     + '</select>'
     + '</div>'
-    + '<div style="font-size:10px;color:#94A3B8;margin-bottom:4px;">' + roleNote + '</div>'
-    + '</div>'
-    + reVerifySection
+    + '<div style="font-size:10px;color:#94A3B8;margin-bottom:6px;">'+roleNote+'</div>'
+    + '<button onclick="saveBOHVerification()" style="width:100%;padding:8px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;">✅ Add Verification</button>'
+    + '</div>';
+
+  return '<div style="margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;">'
+    + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:8px;">✅ Verification History</div>'
+    + (historyHtml || noVerify)
+    + addSection
     + '</div>';
 }
-
-
 function toggleEditMode(s) {
   const _isKIC = s.role === 'kic';
   _editMode = true;
@@ -7802,7 +7825,10 @@ async function saveOverwrite(s) {
   }
   // Append to verificationLog — preserve all previous entries
   if (verifiedBy) {
-    const _newEntry = { by: verifiedBy, role: currentRole, at: new Date().toISOString() };
+    const shift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+    const _owLog = Array.isArray(s.verificationLog) ? s.verificationLog : [];
+    const _owSameShift = _owLog.some(function(e){ return e.shift === shift; });
+    const _newEntry = { by: verifiedBy, role: currentRole, at: new Date().toISOString(), shift: shift, type: _owSameShift ? 'reverify' : 'verify' };
     const _existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
     if (s.verifiedBy && !_existingLog.length) {
       // Migrate legacy single verifiedBy to log
@@ -8468,11 +8494,13 @@ function saveBOHVerification() {
   if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
   const now = new Date().toISOString();
   const shift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
-  const newEntry = { by: name, role: currentRole, at: now, shift: shift };
   const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
   if (s.verifiedBy && !existingLog.length) {
-    existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '' });
+    existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '', shift: 'opening' });
   }
+  // Auto-detect re-verify: if same shift already has an entry → tag as reverify
+  const _sameShiftExists = existingLog.some(function(e){ return e.shift === shift; });
+  const newEntry = { by: name, role: currentRole, at: now, shift: shift, type: _sameShiftExists ? 'reverify' : 'verify' };
   // Prevent duplicate: skip if same name verified within last 10 seconds
   const _recentDup = existingLog.some(e => e.by === name && (Date.now() - new Date(e.at||0).getTime()) < 10000);
   if (_recentDup) { showToast('Already saved', 'warn'); return; }
@@ -9966,10 +9994,11 @@ function saveFOHMultiVerify() {
   if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
   const now = new Date().toISOString();
   const fohShift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
-  const newEntry = { by: name, role: currentRole, at: now, shift: fohShift };
   var rawLog = staff.verificationLog;
   const log = Array.isArray(rawLog) ? [...rawLog]
     : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
+  const _fohSameShift = log.some(function(e){ return e.shift === fohShift; });
+  const newEntry = { by: name, role: currentRole, at: now, shift: fohShift, type: _fohSameShift ? 'reverify' : 'verify' };
   if (staff.verifiedBy && !log.length) log.push({ by: staff.verifiedBy, role: staff.verifiedByRole||''});
   // Prevent duplicate: skip if same name verified within last 10 seconds
   const _fohRecentDup = log.some(e => e.by === name && (Date.now() - new Date(e.at||0).getTime()) < 10000);
