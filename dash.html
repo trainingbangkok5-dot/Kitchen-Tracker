@@ -7612,9 +7612,10 @@ function updateLiveScore() {
     else if (_lsCloseIds.includes(tid))  { clM++; if (t.yn==='yes') clY++; }
   });
 
-  const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
+  const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct  != null ? parseFloat(s.openingPct)  : null);
   const _lsIsOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
     && (s.closingPct == null || s.closingPct === undefined);
+  // Always fall back to existing closingPct so re-verification doesn't drop the closing score
   const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
   const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
 
@@ -7928,8 +7929,8 @@ async function saveOverwrite(s) {
     else if (_closeIds.includes(tid))  { clM++; if (t.yn==='yes') clY++; }
   });
 
-  const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct != null ? parseFloat(s.openingPct) : null);
-  const clPct = clM > 0 ? Math.round((clY/clM)*100) : null;
+  const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct  != null ? parseFloat(s.openingPct)  : null);
+  const clPct = clM > 0 ? Math.round((clY/clM)*100) : (s.closingPct != null ? parseFloat(s.closingPct) : null);
   const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
   // Total score formula: opening+eval, closing+eval, or opening+closing+eval
   let newScore = parseFloat(s.overallPct||0);
@@ -8769,11 +8770,25 @@ function saveVerification() {
             }
           });
         });
+        // Also sync _fohFiltered so FOH score box reflects immediately
+        if (_fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx] &&
+            _fohFiltered[_fohDetailIdx].staffName === s.staffName) {
+          _fohFiltered[_fohDetailIdx].verificationLog = s.verificationLog;
+          _fohFiltered[_fohDetailIdx].verifiedBy      = name;
+          _fohFiltered[_fohDetailIdx].verifiedByRole  = currentRole;
+        }
+        // Sync _fohFiltered so FOH score box re-renders correctly
+        if (_fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx] &&
+            _fohFiltered[_fohDetailIdx].staffName === s.staffName) {
+          _fohFiltered[_fohDetailIdx].verificationLog = s.verificationLog;
+          _fohFiltered[_fohDetailIdx].verifiedBy      = name;
+          _fohFiltered[_fohDetailIdx].verifiedByRole  = currentRole;
+        }
         // Also mark as qualified when verified
         s.verifiedBy = name;
         s.verifiedAt = now;
         showToast('Verified by ' + name + ' ✓', 'ok');
-        // Refresh modal
+        // Refresh modal — re-renders score boxes with updated verificationLog
         openStaffDetail(s);
         // Refresh table
         if (document.getElementById('page-boh')?.classList.contains('active')) renderBOHStaff();
@@ -9829,8 +9844,9 @@ function openFOHDetail(idx) {
       html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
     });
 
-    // Add OIC observation section for service role
-    if (staff.role === 'service') {
+    // Add OIC observation section for service role — VIEW MODE ONLY
+    // Only show when evaluation has actually been completed (oicEvalPct saved)
+    if (staff.role === 'service' && staff.oicEvalPct != null) {
       const oicEvalTasks = [
         {id:'u1', section:'💰 Upselling & Revenue Generation', text:'Does the staff actively promote offers, suggest add-ons, and recommend beverages to guests?'},
         {id:'s1', section:'⭐ Sequence of Service & Attentiveness', text:'Are guests greeted, seated, served, and thanked according to standards, with prompt attention given to their needs throughout?'},
@@ -9838,12 +9854,9 @@ function openFOHDetail(idx) {
         {id:'t1', section:'🤝 Teamwork & Operational Support', text:'Do they show a positive attitude, support their colleagues, and follow all instructions from the OIC/management without resistance?'},
         {id:'t4', section:'📅 Attendance & Reliability', text:'Did the staff member arrive on time, complete their full shift, and adhere to scheduling standards?'},
       ];
-      // Build lookup map — use global _oicTextMap
       const oicTextMap = _oicTextMap;
-      // Group by section
       const oicBySec = {};
       oicEvalTasks.forEach(t => {
-        // Check if already in taskData
         const existing = dedupedSubs.reduce((found, sub) => {
           if (found) return found;
           if (sub.taskData) {
@@ -9855,49 +9868,32 @@ function openFOHDetail(idx) {
         const yn = existing?.task?.yn || '';
         const comment = existing?.task?.comment || '';
         const taskKey = existing?.key || t.id;
-        // ONLY add to panel if task has been answered — skip blank tasks
         if (!yn) return;
         if (!oicBySec[t.section]) oicBySec[t.section] = [];
         oicBySec[t.section].push({...t, yn, comment, taskKey});
       });
-
-      // OIC observation section — wrapped in single container so hiding in edit mode removes all rows
-      html += '<div data-oic-view-section="1" style="margin-top:12px;border-radius:8px;overflow:hidden;">';
-      html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;">🧑‍💼 OIC Observation</div>';
-      // Only show if at least one OIC task has been answered
-      const hasAnyOIC = oicEvalTasks.some(t => {
-        const existing = dedupedSubs.reduce((found, sub) => {
-          if (found) return found;
-          if (sub.taskData) {
-            const k = Object.keys(sub.taskData).find(k => k===t.id||k.endsWith('_'+t.id)||k.startsWith(t.id+'_'));
-            return k ? sub.taskData[k] : null;
-          }
-          return null;
-        }, null);
-        return existing && existing.yn;
-      });
-      if (!hasAnyOIC && !_fohEditMode) {
-        html += '<div style="padding:12px;background:#fff;border-radius:0 0 8px 8px;text-align:center;font-size:12px;color:#94A3B8;">OIC observation not yet completed</div>';
-      } else {
+      if (Object.keys(oicBySec).length > 0) {
+        html += '<div data-oic-view-section="1" style="margin-top:12px;border-radius:8px;overflow:hidden;">';
+        html += '<div style="background:#7B2D42;padding:8px 12px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;">🧑‍💼 OIC Observation</div>';
         Object.entries(oicBySec).forEach(([sec, tasks]) => {
           html += `<div style="background:#C4533A;padding:4px 12px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${sec}</div>`;
           tasks.forEach((t, ti) => {
-          const yn = t.yn;
-          const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
-          const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
-          const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
-          const isLast = ti === tasks.length-1;
-          html += `<div style="padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
-            <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${oicTextMap[t.id] || t.text}</div>
-            <div class="foh-yn-display">
-              <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
-              ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:4px;font-style:italic;">💬 ${t.comment}</div>` : ''}
-            </div>
-          </div>`;
+            const yn = t.yn;
+            const ynBg = yn==='yes'?'#DCFCE7':yn==='no'?'#FEE2E2':'#F3F4F6';
+            const ynCol = yn==='yes'?'#15803D':yn==='no'?'#B91C1C':'#6B6B60';
+            const ynLbl = yn==='yes'?'✓ YES':yn==='no'?'✗ NO':yn==='na'?'N/A':'—';
+            const isLast = ti === tasks.length-1;
+            html += `<div style="padding:10px 12px;border-bottom:${isLast?'none':'.5px solid #E0DDD4'};background:#fff;" data-fohtaskkey="${t.taskKey}">
+              <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${oicTextMap[t.id] || t.text}</div>
+              <div class="foh-yn-display">
+                <span style="background:${ynBg};color:${ynCol};font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;white-space:nowrap;">${ynLbl}</span>
+                ${t.comment ? `<div style="font-size:11px;color:#64748B;margin-top:4px;font-style:italic;">💬 ${t.comment}</div>` : ''}
+              </div>
+            </div>`;
           });
-        }); // end Object.entries(oicBySec)
-      } // end hasAnyOIC else
-      html += '</div>'; // end data-oic-view-section container
+        });
+        html += '</div>'; // end data-oic-view-section
+      }
     }
 
     html = '<div id="fohOwChecklistArea">' + html + '</div>';
@@ -10218,28 +10214,24 @@ function saveFOHMultiVerify() {
       const hEl = document.getElementById('fohVerifiedBy');
       if (hEl) hEl.innerHTML = '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + log.length + ')</span>';
       const card = document.getElementById('fohVerifiedByCard');
-      // Sync allFOHData and allStaff so Progress column reflects immediately
-      allFOHData.forEach(function(r) {
-        if (r.staffName === staff.staffName && r.role === staff.role && r.week === staff.week) {
-          r.verificationLog = staff.verificationLog;
-          r.verifiedBy      = staff.verifiedBy;
-          r.verifiedByRole  = staff.verifiedByRole;
-        }
+      // Sync allFOHData, allStaff AND _fohFiltered so score box reflects immediately
+      [allFOHData, allStaff].forEach(function(arr) {
+        arr.forEach(function(r) {
+          if (r.staffName === staff.staffName && r.role === staff.role) {
+            r.verificationLog = staff.verificationLog;
+            r.verifiedBy      = staff.verifiedBy;
+            r.verifiedByRole  = staff.verifiedByRole;
+          }
+        });
       });
-      allStaff.forEach(function(r) {
-        if (r.staffName === staff.staffName && r.role === staff.role) {
-          r.verificationLog = staff.verificationLog;
-        }
-      });
-      if (card) {
-        const _cv =
-          (currentRole==='oic' && ['service','bartender','delco'].includes(staff.role)) ||
-          (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(staff.role)) ||
-          ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
-        card.innerHTML = '<div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>'
-          + buildVerifyEditPanel(staff)
-          + (_cv ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>' : '');
+      // Also update _fohFiltered directly so openFOHDetail re-renders score box correctly
+      if (_fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx]) {
+        _fohFiltered[_fohDetailIdx].verificationLog = staff.verificationLog;
+        _fohFiltered[_fohDetailIdx].verifiedBy      = staff.verifiedBy;
+        _fohFiltered[_fohDetailIdx].verifiedByRole  = staff.verifiedByRole;
       }
+      // Re-render the full FOH detail modal so score boxes and verif history update
+      openFOHDetail(_fohDetailIdx);
       showToast('Verified by ' + name + ' \u2713', 'ok');
     }).catch(e => showToast('Save failed: ' + e.message, 'error'));
   });
