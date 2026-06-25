@@ -995,7 +995,7 @@ function renderDay() {
       closingBtnLabel = '🌙 Closing Shift';
       closingSubNote = '<div style="font-size:11px;color:#15803D;margin-top:4px;">✓ Available now</div>';
     } else {
-      const minsLeft = (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+      const minsLeft = (14 - nowH - 1) * 60 + (60 - new Date().getMinutes());
       closingBtnStyle = 'background:#E2E8F0;color:#94A3B8;cursor:not-allowed;';
       closingBtnLabel = '🌙 Closing Shift ⏰';
       closingSubNote = `<div style="font-size:11px;color:#94A3B8;margin-top:4px;">Opens at 3:00 PM until 2:00 AM — ${Math.floor(minsLeft/60)}h ${minsLeft%60}m remaining</div>`;

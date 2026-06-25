@@ -3866,19 +3866,15 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
   var rl = {training:'Training & Dev',operations:'Ops',director:'Director',ceo:'CEO',
     areachef:'Area Chef',areamanager:'Area Mgr',kic:'KIC',oic:'OIC'};
   // Filter entries for this shift
+  // Also include entries with no shift tag (legacy — saved before shift tracking)
+  // For opening: include no-shift entries only if no closing entries exist
   var entries = log.filter(function(e){ return e.shift===shiftKey; });
-  // For evaluation score box ONLY: if no evaluation-tagged entry, fall back to opening/closing
-  // Do NOT apply this fallback to opening or closing score boxes — they must show own entries only
-  if (!entries.length && shiftKey === 'evaluation') {
-    // Only use entries that are NOT already tagged as opening or closing shift
-    var evalFallback = log.filter(function(e){ return e.shift !== 'closing' && e.shift !== 'opening'; });
-    if (!evalFallback.length) {
-      // Last resort: use most recent entry regardless of shift
-      var sorted = log.slice().sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); });
-      evalFallback = sorted.length ? [sorted[0]] : [];
-    }
-    entries = evalFallback;
+  if (!entries.length && shiftKey === 'opening') {
+    var noShiftEntries = log.filter(function(e){ return !e.shift || e.shift === ''; });
+    var hasClosing = log.some(function(e){ return e.shift === 'closing'; });
+    if (!hasClosing && noShiftEntries.length) entries = noShiftEntries;
   }
+  // No fallback for evaluation — if no evaluation entry exists, show nothing
   if (!entries.length) return '';
   // Current taskData YN count — used as fallback when entry has no snapshot
   var openIds  = ['o1','o2','o3','o4','o5'];
@@ -7022,7 +7018,10 @@ function buildVerifyEditPanel(s) {
     if (sh === 'opening' || sh === 'opening_eval') shiftGroups.opening.push(entry);
     else if (sh === 'closing' || sh === 'closing_eval') shiftGroups.closing.push(entry);
     else if (sh === 'evaluation') shiftGroups.evaluation.push(entry);
-    else shiftGroups.opening.push(entry); // reverify/other → goes to opening as fallback
+    else if (sh === 'reverify') { // legacy reverify entries — add to whichever shift has entries, or opening
+      if (shiftGroups.closing.length) shiftGroups.closing.push(entry);
+      else shiftGroups.opening.push(entry);
+    } else shiftGroups.opening.push(entry); // truly unknown → opening
   });
 
   // ── Yes/No count per shift ──────────────────────────────────────────────────
@@ -8484,10 +8483,7 @@ function loadBOHData() {
           if (sub.shift === 'closing' || sub.status === 'closing_submitted') grouped[gKey]._fbKey = sub._fbKey;
           else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
         }
-        // Only treat as opening-only if key ends with _opening AND no closingPct
-        if (sub.closingPct != null) {
-          grouped[gKey].closingPct = safeScore(sub.closingPct) ?? sub.closingPct;
-        }
+        // Note: closingPct already assigned in Priority 1 above — no duplicate needed
         if (sub.oicEvalPct != null) grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
         // Recalculate overall from opening+closing+eval for KIC, opening+closing for others
         const _op = grouped[gKey].openingPct;
@@ -9081,7 +9077,13 @@ function buildProgressCell(staff) {
     return 'Yes: ' + yes + ' / No: ' + no;
   }
   function _lastVerifierFor(shiftKey) {
-    const entries = _vlog.filter(function(e){ return e.shift === shiftKey; });
+    var entries = _vlog.filter(function(e){ return e.shift === shiftKey; });
+    // Legacy: include no-shift entries for opening when no closing exists
+    if (!entries.length && shiftKey === 'opening') {
+      var noShift = _vlog.filter(function(e){ return !e.shift || e.shift === ''; });
+      var hasClosing = _vlog.some(function(e){ return e.shift === 'closing'; });
+      if (!hasClosing && noShift.length) entries = noShift;
+    }
     if (!entries.length) return null;
     const rl = { training:'Training', operations:'Ops', director:'Director', ceo:'CEO',
       areachef:'Area Chef', areamanager:'Area Mgr', kic:'KIC', oic:'OIC' };
@@ -9152,7 +9154,7 @@ function buildProgressCell(staff) {
       obsExpected  ? obsLabel + ' — Not submitted' :
       obsLabel + ' — Pending',
       // Show verifier name under OIC/AM Observation pill
-      obsDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval')) : null
+      obsDone ? _lastVerifierFor('evaluation') : null
     );
   }
 

@@ -1199,7 +1199,7 @@ function renderDay() {
     const nowH = getDubaiHour();
     const isAfter3pm = nowH >= 14 || nowH < 2; // Closing window: 2:00 PM – 2:00 AM
     const openingOpen = nowH >= 7 && nowH < 14;  // Opening window: 7:00 AM – 2:00 PMM
-    const minsLeft = isAfter3pm ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+    const minsLeft = isAfter3pm ? 0 : (14 - nowH - 1) * 60 + (60 - new Date().getMinutes());
     const hLeft = Math.floor(minsLeft/60), mLeft = minsLeft%60;
     let closingBtnStyle, closingBtnLabel, closingSubNote;
     let openingBtnStyle = openingOpen

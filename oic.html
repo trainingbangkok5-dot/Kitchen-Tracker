@@ -966,7 +966,7 @@ function renderDay() {
   if (!currentShift) {
     const screen = document.createElement('div');
     screen.style.cssText = 'padding:24px 16px;text-align:center;';
-    const minsLeft = openingOpen ? 0 : (15 - nowH - 1) * 60 + (60 - new Date().getMinutes());
+    const minsLeft = openingOpen ? 0 : (14 - nowH - 1) * 60 + (60 - new Date().getMinutes());
 
     const openStyle = (openingOpen || openingDone)
       ? 'display:block;width:100%;padding:18px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;background:linear-gradient(135deg,#7B2D42,#C4533A);color:#fff;'
