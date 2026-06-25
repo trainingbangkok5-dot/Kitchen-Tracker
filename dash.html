@@ -1304,9 +1304,19 @@ function isOpeningOnly(s) {
     (s.closingPct == null || s.closingPct === undefined));
 }
 
-// A score is valid only when it exists AND is greater than 0
-// 0 means not submitted or uninitialized — treat same as null
+// safeScore: only reject null/undefined/NaN
+// 0% is valid when staff answered all NO — never block it
+// The distinction: openingPct field from Firebase = trusted (even if 0)
+//                  overallPct used as proxy for openingPct = only if > 0
 function safeScore(val) {
+  if (val == null || val === undefined) return null;
+  const n = parseFloat(val);
+  return isNaN(n) ? null : n;
+}
+
+// safeScoreProxy: for when overallPct is used as a proxy for opening/closing score
+// In this case 0 is NOT reliable — it may mean "not submitted" not "scored 0%"
+function safeScoreProxy(val) {
   if (val == null || val === undefined) return null;
   const n = parseFloat(val);
   return (isNaN(n) || n <= 0) ? null : n;
@@ -3857,10 +3867,17 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
     areachef:'Area Chef',areamanager:'Area Mgr',kic:'KIC',oic:'OIC'};
   // Filter entries for this shift
   var entries = log.filter(function(e){ return e.shift===shiftKey; });
-  // For evaluation score box: if no evaluation-tagged entry, fall back to opening/closing
-  // OIC may verify under Opening or Closing shift even when completing observation
+  // For evaluation score box ONLY: if no evaluation-tagged entry, fall back to opening/closing
+  // Do NOT apply this fallback to opening or closing score boxes — they must show own entries only
   if (!entries.length && shiftKey === 'evaluation') {
-    entries = log.filter(function(e){ return e.shift==='opening' || e.shift==='closing'; });
+    // Only use entries that are NOT already tagged as opening or closing shift
+    var evalFallback = log.filter(function(e){ return e.shift !== 'closing' && e.shift !== 'opening'; });
+    if (!evalFallback.length) {
+      // Last resort: use most recent entry regardless of shift
+      var sorted = log.slice().sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); });
+      evalFallback = sorted.length ? [sorted[0]] : [];
+    }
+    entries = evalFallback;
   }
   if (!entries.length) return '';
   // Current taskData YN count — used as fallback when entry has no snapshot
@@ -8438,17 +8455,27 @@ function loadBOHData() {
           const diffDays = Math.round((subDate - weekStart) / (1000*60*60*24)) + 1;
           if (diffDays >= 1 && diffDays <= 6) grouped[gKey].days[diffDays] = sub.overallPct || 0;
         }
-        // For shift-based submissions (delco/bartender) properly assign opening/closing
-        if (sub.shift === 'opening') {
-          if (safeScore(sub.overallPct)) grouped[gKey].openingPct = safeScore(sub.overallPct);
-        } else if (sub.shift === 'closing') {
-          grouped[gKey].closingPct = sub.overallPct;
-        } else {
-          if (sub.overallPct) grouped[gKey].overallPct = sub.overallPct;
+        // Assign opening/closing scores based on what each checklist saves:
+        // Priority 1: direct openingPct/closingPct fields (lc, service)
+        if (sub.openingPct != null && !isNaN(parseFloat(sub.openingPct))) {
+          grouped[gKey].openingPct = parseFloat(sub.openingPct);
         }
-        // Also pick up closingPct/openingPct written directly (lc/st/kic don't set shift field)
-        if (safeScore(sub.openingPct)) grouped[gKey].openingPct = safeScore(sub.openingPct);
-        if (safeScore(sub.closingPct)) grouped[gKey].closingPct = safeScore(sub.closingPct);
+        if (sub.closingPct != null && !isNaN(parseFloat(sub.closingPct))) {
+          grouped[gKey].closingPct = parseFloat(sub.closingPct);
+        }
+        // Priority 2: shift field (bartender, delco)
+        if (sub.shift === 'opening' && grouped[gKey].openingPct == null) {
+          if (sub.overallPct != null && !isNaN(parseFloat(sub.overallPct))) grouped[gKey].openingPct = parseFloat(sub.overallPct);
+        } else if (sub.shift === 'closing' && grouped[gKey].closingPct == null) {
+          if (sub.overallPct != null && !isNaN(parseFloat(sub.overallPct))) grouped[gKey].closingPct = parseFloat(sub.overallPct);
+        }
+        // Priority 3: status field (st, kic2, oic — only save overallPct)
+        if (!sub.shift && sub.status === 'opening_submitted' && grouped[gKey].openingPct == null) {
+          if (sub.overallPct != null && !isNaN(parseFloat(sub.overallPct))) grouped[gKey].openingPct = parseFloat(sub.overallPct);
+        }
+        if (!sub.shift && sub.status === 'closing_submitted' && grouped[gKey].closingPct == null) {
+          if (sub.overallPct != null && !isNaN(parseFloat(sub.overallPct))) grouped[gKey].closingPct = parseFloat(sub.overallPct);
+        }
         // Track shift status — prefer closing_submitted over opening_submitted
         if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
         else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
@@ -9020,7 +9047,7 @@ function buildProgressCell(staff) {
   }
 
   // ── Data ────────────────────────────────────────────────────
-  const openDone   = staff.openingPct != null && staff.openingPct > 0;
+  const openDone   = staff.openingPct != null && !isNaN(parseFloat(staff.openingPct));
   const closeDone  = staff.closingPct != null;  // null = not submitted
   const needsEval  = ['oic','kic','linecook','steward'].includes(role);
   const evalLabel  = role === 'oic' ? 'AM Evaluation' : role === 'kic' ? 'AC Evaluation' : 'KIC Evaluation';
@@ -9125,7 +9152,7 @@ function buildProgressCell(staff) {
       obsExpected  ? obsLabel + ' — Not submitted' :
       obsLabel + ' — Pending',
       // Show verifier name under OIC/AM Observation pill
-      obsDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval') || _lastVerifierFor('opening') || _lastVerifierFor('closing')) : null
+      obsDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval')) : null
     );
   }
 
@@ -9275,7 +9302,17 @@ function loadFOHData() {
         if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
         if (sub.verificationLog && (!grouped[gKey].verificationLog || sub.verificationLog.length > (grouped[gKey].verificationLog||[]).length)) grouped[gKey].verificationLog = sub.verificationLog;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
-        if (sub.openingPct != null && sub.openingPct > 0) grouped[gKey].openingPct = sub.openingPct;
+        // Direct openingPct (service saves this directly)
+        if (sub.openingPct != null && !isNaN(parseFloat(sub.openingPct))) {
+          grouped[gKey].openingPct = parseFloat(sub.openingPct);
+        }
+        // shift-based (bartender, delco use shift field)
+        else if (sub.shift === 'opening' && grouped[gKey].openingPct == null && sub.overallPct != null) {
+          grouped[gKey].openingPct = parseFloat(sub.overallPct);
+        }
+        else if (sub.shift === 'closing' && grouped[gKey].closingPct == null && sub.overallPct != null) {
+          grouped[gKey].closingPct = parseFloat(sub.overallPct);
+        }
         // Track shift status — prefer closing_submitted over opening_submitted
         if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
         else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;
@@ -9711,7 +9748,7 @@ function openFOHDetail(idx) {
         });
         // Merge scores
         if (!subsByDate[d].closingPct && sub.closingPct) subsByDate[d].closingPct = sub.closingPct;
-        if (!subsByDate[d].openingPct && safeScore(sub.openingPct)) subsByDate[d].openingPct = safeScore(sub.openingPct);
+        if (subsByDate[d].openingPct == null && sub.openingPct != null && !isNaN(parseFloat(sub.openingPct))) subsByDate[d].openingPct = parseFloat(sub.openingPct);
         if (sub.submittedAt > (subsByDate[d].submittedAt||'')) subsByDate[d].submittedAt = sub.submittedAt;
       }
     });
