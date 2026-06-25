@@ -9874,6 +9874,7 @@ function openFOHDetail(idx) {
       html += '</div>'; // end data-oic-view-section container
     }
 
+    html = '<div id="fohOwChecklistArea">' + html + '</div>';
     html += `<div style="font-size:11px;color:#94A3B8;text-align:center;padding:8px;">Role: ${roleLabels[staff.role]||staff.role} • Outlet: ${staff.outlet}</div>`;
     document.getElementById('fohChecklistArea').innerHTML = html;
 
@@ -10319,6 +10320,86 @@ function setFOHTaskYN(btn, val) {
 
 // ── FOH Overwrite / Edit Mode ─────────────────────────────────
 let _fohEditMode = false;
+
+// ── Show/hide eval vs opening/closing sections in FOH Overwrite edit mode ──
+function _applyFOHShiftFilter(shift) {
+  const area = document.getElementById('fohChecklistArea');
+  if (!area) return;
+
+  const isEval = shift === 'evaluation';
+
+  // Determine if current role has eval access for this FOH staff
+  const _s = _fohFiltered[_fohDetailIdx];
+  const _sr = _s ? (_s.role || '') : '';
+  const _canEval = (
+    (currentRole === 'oic'         && ['service','bartender','delco'].includes(_sr)) ||
+    (currentRole === 'areamanager' && ['oic','service','bartender','delco'].includes(_sr)) ||
+    ['director','training','operations','ceo'].includes(currentRole)
+  );
+
+  // Hide Evaluation option from dropdown if role has no eval access
+  const sel = document.getElementById('verifyShiftSelect');
+  if (sel) {
+    Array.from(sel.options).forEach(function(opt) {
+      if (opt.value === 'evaluation') {
+        opt.style.display = _canEval ? '' : 'none';
+        opt.disabled = !_canEval;
+      }
+    });
+    if (sel.value === 'evaluation' && !_canEval) {
+      sel.value = 'opening';
+      shift = 'opening';
+    }
+  }
+
+  // FOH eval section IDs
+  const evalSectionIds = ['oicEditSection','btFOHObsSection','dcFOHObsSection','oicAMEditSection'];
+
+  // All FOH eval task IDs
+  const allFOHEvalIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2',
+    'a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
+
+  // Toggle eval sections
+  evalSectionIds.forEach(function(id) {
+    const el = area.querySelector('#' + id) || document.getElementById(id);
+    if (el) el.style.display = (isEval && _canEval) ? '' : 'none';
+  });
+
+  // Toggle the main FOH opening/closing checklist area
+  const fohCl = document.getElementById('fohOwChecklistArea');
+  if (fohCl) fohCl.style.display = isEval ? 'none' : '';
+
+  // Toggle individual FOH eval task rows in checklist body
+  area.querySelectorAll('[data-fohtaskkey]').forEach(function(row) {
+    const tk = (row.getAttribute('data-fohtaskkey') || '').replace(/^d[0-9]+_/, '');
+    if (allFOHEvalIds.includes(tk)) {
+      row.style.display = (isEval && _canEval) ? '' : 'none';
+    }
+  });
+
+  // Hint banner
+  let hintEl = document.getElementById('_fohOwShiftHint');
+  if (!hintEl) {
+    hintEl = document.createElement('div');
+    hintEl.id = '_fohOwShiftHint';
+    hintEl.style.cssText = 'margin:8px 0;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;';
+    const cancelBtn = document.getElementById('fohCancelEditBtn');
+    if (cancelBtn && cancelBtn.parentNode) cancelBtn.parentNode.insertBefore(hintEl, cancelBtn);
+    else if (area) area.appendChild(hintEl);
+  }
+  if (isEval && _canEval) {
+    hintEl.style.background = '#DCFCE7';
+    hintEl.style.color = '#15803D';
+    hintEl.textContent = '📋 Evaluation mode — complete the observation section below';
+  } else {
+    hintEl.style.background = '#EFF6FF';
+    hintEl.style.color = '#1A3C5E';
+    hintEl.textContent = shift === 'opening'
+      ? '🌅 Opening mode — evaluation section is hidden'
+      : '🌙 Closing mode — evaluation section is hidden';
+  }
+}
+
 let _fohEditChanges = {}; // taskKey -> new yn value
 
 function toggleFOHEditMode() {
@@ -10569,6 +10650,18 @@ function toggleFOHEditMode() {
   // Clean up any stale bottom panel
   const _oldVbyDiv = area.querySelector('#fohVerifiedByDiv');
   if (_oldVbyDiv) _oldVbyDiv.remove();
+
+  // ── Wire shift dropdown to show/hide FOH eval sections ──────────────────
+  const _fohShiftSel = document.getElementById('verifyShiftSelect');
+  if (_fohShiftSel) {
+    _applyFOHShiftFilter(_fohShiftSel.value || 'opening');
+    // Remove any previous listener to avoid stacking
+    const _newSel = _fohShiftSel.cloneNode(true);
+    _fohShiftSel.parentNode.replaceChild(_newSel, _fohShiftSel);
+    _newSel.addEventListener('change', function() {
+      _applyFOHShiftFilter(this.value);
+    });
+  }
 }
 
 async function saveFOHOverwrite(staff) {
@@ -10594,7 +10687,9 @@ async function saveFOHOverwrite(staff) {
     const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
     // ── Verified By — runs independently of task changes ───────────────
     if (_fohVerifiedBy) {
-      const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString() };
+      const _fohShift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+      const _fohYNSnap = _snapYN(staff.taskData, _fohShift, staff.role);
+      const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString(), shift: _fohShift, yn_yes: _fohYNSnap.yes, yn_no: _fohYNSnap.no };
       const _fohExistingLog = Array.isArray(sub.verificationLog) ? [...sub.verificationLog] : [];
       if (sub.verifiedBy && !_fohExistingLog.length) {
         _fohExistingLog.push({ by: sub.verifiedBy, role: sub.verifiedByRole||'', at: sub.verifiedAt||'' });

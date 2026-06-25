@@ -1994,16 +1994,9 @@ window.addEventListener('DOMContentLoaded', () => {
   })();
   if (savedName) setTimeout(loadOicEvalPct, 1500);
 
-  // Photo input listeners
-  ['camInput','galInput'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('change', function(e) {
-      const file = (e.target.files && e.target.files.length > 0) ? e.target.files[0] : null;
-      if (file) { handlePhotoFile(file); setTimeout(() => { try { this.value = ''; } catch(e2) {} }, 600); }
-    });
-    el.addEventListener('cancel', function() { try { this.value = ''; } catch(e) {} });
-  });
+  // Photo input listeners intentionally omitted here —
+  // _setupFileInput() attaches a fresh listener with the correct taskId closure
+  // every time a photo button is tapped, preventing wrong-task photo assignment.
 
   window._selectShiftReady = selectShift;
   if (window._pendingShift) { selectShift(window._pendingShift); window._pendingShift = null; }

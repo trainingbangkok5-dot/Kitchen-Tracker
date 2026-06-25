@@ -1388,10 +1388,9 @@ function removePhoto(taskId, idx) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  const camIn = document.getElementById('camInput');
-  const galIn = document.getElementById('galInput');
-  if (camIn) camIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
-  if (galIn) galIn.addEventListener('change', e => handlePhotoFile(e.target.files[0]));
+  // Photo listeners intentionally omitted here —
+  // prepareCamera()/prepareGallery() set activePhotoTask before each click,
+  // preventing wrong-task photo assignment.
 
   // Restore currentShift from localStorage — so photo upload re-render
   // doesn't drop back to shift picker after handlePhotoFile calls renderDay()

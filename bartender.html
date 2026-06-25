@@ -368,24 +368,22 @@ function closePhotoModal() {
   activePhotoTask = null;
 }
 function triggerCamera() {
-  const savedTask = activePhotoTask;
+  const savedTask = activePhotoTask; // capture taskId before modal closes
   closePhotoModal();
   setTimeout(() => {
-    activePhotoTask = savedTask;
-    const input = _setupFileInput('camInput', true);
+    const input = _setupFileInput('camInput', true, savedTask);
     if (input) setTimeout(() => input.click(), 50);
   }, 150);
 }
 function triggerGallery() {
-  const savedTask = activePhotoTask;
+  const savedTask = activePhotoTask; // capture taskId before modal closes
   closePhotoModal();
   setTimeout(() => {
-    activePhotoTask = savedTask;
-    const input = _setupFileInput('galInput', false);
+    const input = _setupFileInput('galInput', false, savedTask);
     if (input) setTimeout(() => input.click(), 50);
   }, 150);
 }
-function _setupFileInput(id, withCapture) {
+function _setupFileInput(id, withCapture, taskId) {
   const old = document.getElementById(id);
   if (!old) return null;
   const input = document.createElement('input');
@@ -396,6 +394,8 @@ function _setupFileInput(id, withCapture) {
   input.addEventListener('change', function(e) {
     const file = e.target.files && e.target.files[0];
     if (file) {
+      // Use taskId from closure — never rely on global activePhotoTask at fire time
+      if (taskId) activePhotoTask = taskId;
       handlePhotoFile(file);
       setTimeout(() => { try { input.value = ''; } catch(e2) {} }, 600);
     }
