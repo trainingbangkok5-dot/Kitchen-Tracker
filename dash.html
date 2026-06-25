@@ -7872,9 +7872,13 @@ async function saveOverwrite(s) {
     if (clPct !== null) s.closingPct = clPct;
     if (ePct  !== null) s.oicEvalPct = ePct;
 
-    // Update allStaff in-memory
+    // Update allStaff / allBOHData / allFOHData in-memory so Progress pills reflect immediately
     const idx = allStaff.findIndex(st => st._fbKey === fbKey);
     if (idx >= 0) allStaff[idx] = {...allStaff[idx], ...s};
+    [allBOHData, allFOHData].forEach(arr => {
+      const ai = arr.findIndex(st => st._fbKey === fbKey || (st.staffName === s.staffName && st.role === s.role && st.week === s.week));
+      if (ai >= 0) arr[ai] = {...arr[ai], ...s};
+    });
 
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
     showToast('✓ Saved! Score: ' + newScore + '%', 'ok');
@@ -8606,7 +8610,13 @@ function saveVerification() {
         s.verifiedAt = now;
         // Update in allStaff / allBOHData / allFOHData
         [allStaff, allBOHData, allFOHData].forEach(arr => {
-          arr.forEach(r => { if (r.staffName===s.staffName && r.role===s.role && r.week===s.week) { r.verifiedBy=name; r.verifiedAt=now; } });
+          arr.forEach(r => {
+            if (r.staffName===s.staffName && r.role===s.role && r.week===s.week) {
+              r.verifiedBy=name; r.verifiedAt=now;
+              // Also sync verificationLog so Progress pill sub-text shows verifier name
+              if (s.verificationLog) r.verificationLog = s.verificationLog;
+            }
+          });
         });
         // Also mark as qualified when verified
         s.verifiedBy = name;
