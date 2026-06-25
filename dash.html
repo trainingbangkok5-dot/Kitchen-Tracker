@@ -283,7 +283,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span style="font-size:11px;color:rgba(255,255,255,0.4);" id="loadingIndicator"></span>
     </div>
     <!-- All Staff tab removed — BOH tab shows all staff -->
-    <div class="tab" onclick="showTab(this,'audits')">📋 Audits</div>
+    <div class="tab" id="tabAudits" onclick="showTab(this,'audits')" style="display:none;">📋 Audits</div>
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
     <div class="tab" id="tabBOH" onclick="showTab(this,'boh')" style="display:none;">🍳 BOH</div>
     <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
@@ -1583,6 +1583,10 @@ function doLogin() {
   // FOH tab — visible to OIC, Area Manager and full access roles
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
+  // Audits tab — visible to management roles
+  const auditRoles = ['training','operations','director','ceo','areamanager','areachef'];
+  const tabAudits = document.getElementById('tabAudits');
+  if (tabAudits) tabAudits.style.display = auditRoles.includes(currentRole) ? 'flex' : 'none';
   const fohSubOicBtn = document.getElementById('fohSubOic');
   if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
   // Set default tab — Overview removed, route each role to their primary tab
