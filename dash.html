@@ -7001,19 +7001,27 @@ function buildVerifyEditPanel(s) {
   // ── Build one shift block ───────────────────────────────────────────────────
   function buildShiftBlock(entries, shiftKey, icon, label) {
     if (!entries.length) return '';
-    var yn = getYN(shiftKey);
-    var ynStr = (yn.yes+yn.no>0) ? ' &nbsp;|&nbsp; Yes: '+yn.yes+' / No: '+yn.no : '';
+    // Current YN from taskData — used as fallback when entry has no snapshot
+    var currentYN = getYN(shiftKey);
+    var currentYNStr = (currentYN.yes+currentYN.no>0) ? ' &nbsp;|&nbsp; Yes: '+currentYN.yes+' / No: '+currentYN.no : '';
     var rows = entries.map(function(entry, idx) {
       var dt = entry.at ? _fmtDubaiDT(entry.at) : '—';
       var rl = roleLabel[entry.role] || entry.role || '';
-      // Auto-detect: if idx>0 same shift = re-verified
       var isRev = idx > 0 || entry.type === 'reverify';
       var tag = isRev ? '🔄 Re-Verified by' : '✅ Verified by';
       var tagColor = isRev ? '#92400E' : '#15803D';
+      // Use per-entry snapshot if saved, otherwise fallback to current taskData count
+      var entryYNStr;
+      if (entry.yn_yes != null || entry.yn_no != null) {
+        var ey = entry.yn_yes || 0, en = entry.yn_no || 0;
+        entryYNStr = (ey+en>0) ? ' &nbsp;|&nbsp; Yes: '+ey+' / No: '+en : '';
+      } else {
+        entryYNStr = currentYNStr;
+      }
       return '<div style="margin-bottom:3px;padding-left:8px;border-left:2px solid '+(isRev?'#FCD34D':'#22C55E')+';">'
         + '<span style="font-size:11px;font-weight:600;color:'+tagColor+';">'+tag+': '+(entry.by||'—')+'</span>'
         + (rl ? ' <span style="font-size:10px;color:#64748B;">('+rl+')</span>' : '')
-        + '<div style="font-size:10px;color:#94A3B8;">'+dt+ynStr+'</div>'
+        + '<div style="font-size:10px;color:#94A3B8;">'+dt+entryYNStr+'</div>'
         + '</div>';
     }).join('');
     return '<div style="margin-bottom:8px;">'
@@ -7837,7 +7845,8 @@ async function saveOverwrite(s) {
     const shift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
     const _owLog = Array.isArray(s.verificationLog) ? s.verificationLog : [];
     const _owSameShift = _owLog.some(function(e){ return e.shift === shift; });
-    const _newEntry = { by: verifiedBy, role: currentRole, at: new Date().toISOString(), shift: shift, type: _owSameShift ? 'reverify' : 'verify' };
+    const _owYN = _snapYN(updatedTaskData, shift, s.role);
+    const _newEntry = { by: verifiedBy, role: currentRole, at: new Date().toISOString(), shift: shift, type: _owSameShift ? 'reverify' : 'verify', yn_yes: _owYN.yes, yn_no: _owYN.no };
     const _existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
     if (s.verifiedBy && !_existingLog.length) {
       // Migrate legacy single verifiedBy to log
@@ -8497,6 +8506,27 @@ function deleteVerificationEntry(btn, idx) {
   }
 }
 
+// ── Snapshot current YN counts for a shift — stored on each verification log entry ──
+function _snapYN(taskData, shift, role) {
+  if (!taskData) return { yes: 0, no: 0 };
+  const openIds  = ['o1','o2','o3','o4','o5'];
+  const closeIds = (role === 'kic') ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
+  const evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
+    'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
+    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+  const ids = shift === 'opening' ? openIds : shift === 'closing' ? closeIds : evalIds;
+  let yes = 0, no = 0;
+  Object.entries(taskData).forEach(function(e) {
+    const tid = e[0].replace(/^d[0-9]+_/, '');
+    const yn = (e[1]||{}).yn;
+    if (!yn || yn === 'na') return;
+    if (ids.some(function(id){ return tid === id; })) {
+      if (yn === 'yes') yes++; else no++;
+    }
+  });
+  return { yes: yes, no: no };
+}
+
 function saveBOHVerification() {
   const name = (document.getElementById('verifiedByInput')?.value || '').trim();
   if (!name) { showToast('Please enter your name', 'warn'); return; }
@@ -8513,7 +8543,8 @@ function saveBOHVerification() {
   }
   // Auto-detect re-verify: if same shift already has an entry → tag as reverify
   const _sameShiftExists = existingLog.some(function(e){ return e.shift === shift; });
-  const newEntry = { by: name, role: currentRole, at: now, shift: shift, type: _sameShiftExists ? 'reverify' : 'verify' };
+  const _bohYN = _snapYN(s.taskData, shift, s.role);
+  const newEntry = { by: name, role: currentRole, at: now, shift: shift, type: _sameShiftExists ? 'reverify' : 'verify', yn_yes: _bohYN.yes, yn_no: _bohYN.no };
   // Prevent duplicate: skip if same name verified within last 10 seconds
   const _recentDup = existingLog.some(e => e.by === name && (Date.now() - new Date(e.at||0).getTime()) < 10000);
   if (_recentDup) { showToast('Already saved', 'warn'); return; }
@@ -8858,17 +8889,19 @@ function buildProgressCell(staff) {
   function _shiftYNCount(shiftPrefix) {
     if (!staff.taskData) return null;
     let yes = 0, no = 0;
-    const openIds = ['o1','o2','o3','o4','o5'];
-    const closeIds = ['c1','c2','c3','c4','c5'];
+    const openIds  = ['o1','o2','o3','o4','o5'];
+    const closeIds = (role === 'kic') ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
+    const evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
+      'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
+      's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+    const ids = shiftPrefix === 'opening' ? openIds : shiftPrefix === 'closing' ? closeIds : evalIds;
     Object.entries(staff.taskData).forEach(function(e) {
       const tid = e[0].replace(/^d[0-9]+_/, '');
       const yn = (e[1]||{}).yn;
       if (!yn || yn === 'na') return;
-      const isOpen = openIds.some(function(id){ return tid === id; });
-      const isClose = closeIds.some(function(id){ return tid === id; });
-      if (shiftPrefix === 'opening' && !isOpen) return;
-      if (shiftPrefix === 'closing' && !isClose) return;
-      if (yn === 'yes') yes++; else no++;
+      if (ids.some(function(id){ return tid === id; })) {
+        if (yn === 'yes') yes++; else no++;
+      }
     });
     if (yes + no === 0) return null;
     return 'Yes: ' + yes + ' / No: ' + no;
@@ -8882,7 +8915,7 @@ function buildProgressCell(staff) {
     const nameRole = (e.by||'') + (e.role ? ' (' + (rl[e.role]||e.role) + ')' : '');
     const dt = e.at ? _fmtDubaiDT(e.at) : '';
     const dtStr = dt ? ' \xe2\x80\x93 ' + dt : '';
-    const ynCount = (shiftKey === 'opening' || shiftKey === 'closing') ? _shiftYNCount(shiftKey) : null;
+    const ynCount = _shiftYNCount(shiftKey);  // works for opening, closing, and evaluation
     // Check for re-verifier
     const revEntries = _vlog.filter(function(e){ return e.shift === 'reverify'; });
     const rev = revEntries.length ? revEntries[revEntries.length-1] : null;
@@ -9946,7 +9979,8 @@ function saveReVerification() {
   const firebaseRef = isFOH ? fohDb : db;
   if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
   const now = new Date().toISOString();
-  const newEntry = { by: name, role: currentRole, at: now, shift: shift };
+  const _revYN = _snapYN(s.taskData, shift, s.role);
+  const newEntry = { by: name, role: currentRole, at: now, shift: shift, yn_yes: _revYN.yes, yn_no: _revYN.no };
   const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog]
     : (s.verificationLog && typeof s.verificationLog === 'object') ? Object.values(s.verificationLog) : [];
   if (s.verifiedBy && !existingLog.length) {
@@ -10017,7 +10051,8 @@ function saveFOHMultiVerify() {
   const log = Array.isArray(rawLog) ? [...rawLog]
     : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
   const _fohSameShift = log.some(function(e){ return e.shift === fohShift; });
-  const newEntry = { by: name, role: currentRole, at: now, shift: fohShift, type: _fohSameShift ? 'reverify' : 'verify' };
+  const _fohYN = _snapYN(staff.taskData, fohShift, staff.role);
+  const newEntry = { by: name, role: currentRole, at: now, shift: fohShift, type: _fohSameShift ? 'reverify' : 'verify', yn_yes: _fohYN.yes, yn_no: _fohYN.no };
   if (staff.verifiedBy && !log.length) log.push({ by: staff.verifiedBy, role: staff.verifiedByRole||''});
   // Prevent duplicate: skip if same name verified within last 10 seconds
   const _fohRecentDup = log.some(e => e.by === name && (Date.now() - new Date(e.at||0).getTime()) < 10000);
