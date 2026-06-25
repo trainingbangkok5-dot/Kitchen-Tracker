@@ -7844,17 +7844,9 @@ async function saveOverwrite(s) {
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
     showToast('✓ Saved! Score: ' + newScore + '%', 'ok');
 
-    // Re-fetch from Firebase to get the true saved state, then re-open detail
-    const freshSnap = await _saveDb.ref('submissions/' + fbKey).once('value');
-    if (freshSnap.exists()) {
-      const fresh = {...freshSnap.val(), _fbKey: fbKey, _isFOH: _isFOHRecord};
-      // Update allStaff with fresh data
-      const idx2 = allStaff.findIndex(st => st._fbKey === fbKey);
-      if (idx2 >= 0) allStaff[idx2] = fresh;
-      openStaffDetail(fresh);
-    } else {
-      openStaffDetail(s);
-    }
+    // Re-open detail with merged in-memory record (has all photos from both shifts)
+    // Do NOT re-fetch single Firebase record — it only has one shift's photos
+    openStaffDetail(s);
     // Re-render table so eval badges update immediately
     if (_isFOHRecord) renderFOHStaff(); else renderBOHStaff();
   } catch(e) {
@@ -10550,6 +10542,33 @@ async function saveFOHOverwrite(staff) {
   if (!Object.keys(updates).length) { showToast('No matching tasks found', 'warn'); return; }
 
   try {
+    // Preserve all existing staff photos in Firebase updates
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role !== staff.role || sub.week !== staff.week) return;
+      if (sub.taskData) {
+        Object.entries(sub.taskData).forEach(function(entry) {
+          const k = entry[0]; const t = entry[1];
+          if (!t) return;
+          // Preserve photoUrls array
+          if (Array.isArray(t.photoUrls) && t.photoUrls.length > 0) {
+            if (!updates['submissions/' + child.key + '/taskData/' + k + '/photoUrls'])
+              updates['submissions/' + child.key + '/taskData/' + k + '/photoUrls'] = t.photoUrls;
+          }
+          // Preserve sequential photoUrl keys
+          let _pi = 0;
+          while (_pi <= 9) {
+            const _pk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
+            const _fb = _pi === 0 ? 'photo' : 'photo_' + _pi;
+            const _url = t[_pk] || t[_fb];
+            if (!_url) { _pi++; if (!t[_pk] && !t[_fb]) break; continue; }
+            if (!updates['submissions/' + child.key + '/taskData/' + k + '/' + _pk])
+              updates['submissions/' + child.key + '/taskData/' + k + '/' + _pk] = _url;
+            _pi++;
+          }
+        });
+      }
+    });
     await fohDb.ref().update(updates);
     _fohEditMode = false; _fohEditChanges = {}; _fohPhotoUploading = false;
     const btn = document.getElementById('fohEditBtn');
