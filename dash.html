@@ -3920,8 +3920,9 @@ function openStaffDetail(s) {
     // Edit/Overwrite button — role-based access
     const canOverwrite = (
       (currentRole === 'kic' && ['linecook','steward'].includes(s.role)) ||
+      (currentRole === 'oic' && ['service','bartender','delco'].includes(s.role)) ||
       (currentRole === 'areachef' && ['linecook','steward','kic'].includes(s.role)) ||
-      (currentRole === 'areamanager' && ['linecook','steward','kic','service','delco','bartender'].includes(s.role)) ||
+      (currentRole === 'areamanager' && ['linecook','steward','kic','oic','service','delco','bartender'].includes(s.role)) ||
       (currentRole === 'director') ||
       (['training','operations','ceo'].includes(currentRole))
     );
@@ -4128,6 +4129,7 @@ function openStaffDetail(s) {
 
     // Single date header using submission date
     if (Object.keys(bySec).length > 0) {
+      html += '<div id="owChecklistArea">';
       const daySubDate = s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'}) : '—';
       const dayScore = s.overallPct != null ? Math.round(parseFloat(s.overallPct)) : null;
       html += `<div style="background:#1A3C5E;padding:8px 12px;border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:#fff;margin-top:10px;display:flex;justify-content:space-between;align-items:center;"><span>📅 ${daySubDate}</span>${dayScore!==null?`<span style="background:${dayScore>=95?'#15803D':dayScore>=70?'#D97706':'#B91C1C'};padding:2px 10px;border-radius:20px;font-size:11px;">${dayScore}%</span>`:''}</div>`;
@@ -4161,6 +4163,7 @@ function openStaffDetail(s) {
         });
       });
       html += `<div style="border-bottom:2px solid #E0DDD4;margin-bottom:4px;"></div>`;
+      html += '</div>'; // close #owChecklistArea
     }
   } else if (s.kpiScores && s.role === 'areamanager') {
     // ── Area Manager KPI Report ──────────────────────────────
@@ -6999,12 +7002,17 @@ function buildVerifyEditPanel(s) {
   }
 
   // ── Build one shift block ───────────────────────────────────────────────────
+  // canDelete: training/operations/director/ceo can always delete; others only their own entry
+  var _canDeleteAny = ['training','operations','director','ceo'].includes(currentRole);
   function buildShiftBlock(entries, shiftKey, icon, label) {
     if (!entries.length) return '';
     // Current YN from taskData — used as fallback when entry has no snapshot
     var currentYN = getYN(shiftKey);
     var currentYNStr = (currentYN.yes+currentYN.no>0) ? ' &nbsp;|&nbsp; Yes: '+currentYN.yes+' / No: '+currentYN.no : '';
     var rows = entries.map(function(entry, idx) {
+      // Find global index in the full log array for deleteVerificationEntry
+      var globalIdx = log.indexOf(entry);
+      if (globalIdx === -1) globalIdx = log.findIndex(function(e){ return e.at === entry.at && e.by === entry.by; });
       var dt = entry.at ? _fmtDubaiDT(entry.at) : '—';
       var rl = roleLabel[entry.role] || entry.role || '';
       var isRev = idx > 0 || entry.type === 'reverify';
@@ -7018,10 +7026,18 @@ function buildVerifyEditPanel(s) {
       } else {
         entryYNStr = currentYNStr;
       }
-      return '<div style="margin-bottom:3px;padding-left:8px;border-left:2px solid '+(isRev?'#FCD34D':'#22C55E')+';">'
+      // Show × only if: admin role OR entry belongs to current user
+      var showDel = globalIdx >= 0 && (_canDeleteAny || (entry.by && entry.by === (window._currentUserName||'')));
+      var delBtn = showDel
+        ? '<button onclick="deleteVerificationEntry(this,'+globalIdx+')" title="Remove this entry" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#B91C1C;font-size:15px;padding:0 2px;line-height:1;">&times;</button>'
+        : '';
+      return '<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:3px;padding-left:8px;border-left:2px solid '+(isRev?'#FCD34D':'#22C55E')+';">'
+        + '<div style="flex:1;">'
         + '<span style="font-size:11px;font-weight:600;color:'+tagColor+';">'+tag+': '+(entry.by||'—')+'</span>'
         + (rl ? ' <span style="font-size:10px;color:#64748B;">('+rl+')</span>' : '')
         + '<div style="font-size:10px;color:#94A3B8;">'+dt+entryYNStr+'</div>'
+        + '</div>'
+        + delBtn
         + '</div>';
     }).join('');
     return '<div style="margin-bottom:8px;">'
@@ -7183,7 +7199,7 @@ function toggleEditMode(s) {
   body.appendChild(cancelBtn);
 
   // ── OIC Observation injection (Area Manager overwriting service staff record via BOH modal) ──
-  if (s.role === 'service' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
+  if (s.role === 'service' && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole)) {
     const oicObsDefs = [
       {id:'u1', section:'💰 Upselling & Revenue Generation',      text:'Does the staff actively promote offers, suggest add-ons, and recommend beverages to guests?'},
       {id:'s1', section:'⭐ Sequence of Service & Attentiveness',  text:'Are guests greeted, seated, served, and thanked according to standards, with prompt attention given to their needs throughout?'},
@@ -7323,7 +7339,7 @@ function toggleEditMode(s) {
   }
 
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
-  if (s.role === 'kic') {
+  if (s.role === 'kic' && ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) {
     const allKicDefs = [
       {id:'fc1', section:'', text:'Did the KIC ensure all dishes were prepared strictly according to approved recipes, maintaining exact portion sizes as per the recipe cards?'},
       {id:'fc2', section:'', text:'Did all food items meet the required standards for taste, texture, temperature, and presentation before leaving the pass?'},
@@ -7368,7 +7384,7 @@ function toggleEditMode(s) {
   }
 
   // ── Line Cook / Steward KIC Observation (KIC overwriting LC/Steward record) ──
-  if (['linecook','steward'].includes(s.role)) {
+  if (['linecook','steward'].includes(s.role) && ['kic','areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) {
     const _obsIds = s.role === 'steward'
       ? ['st1','st2','st3','st4','st5']
       : ['lc1','lc2','lc3','lc4','lc5'];
@@ -7421,6 +7437,98 @@ function toggleEditMode(s) {
       </div>`;
     });
     lcEditContainer.innerHTML = lcHtml;
+  }
+
+  // ── Wire shift dropdown to show/hide eval sections on change ────────────
+  const _owShiftSel = document.getElementById('verifyShiftSelect');
+  if (_owShiftSel) {
+    _applyOverwriteShiftFilter(_owShiftSel.value || 'opening');
+    _owShiftSel.addEventListener('change', function() {
+      _applyOverwriteShiftFilter(this.value);
+    });
+  }
+}
+
+// ── Show/hide eval vs opening/closing sections in Overwrite edit mode ─────────
+function _applyOverwriteShiftFilter(shift) {
+  const body = document.getElementById('modalBody');
+  if (!body) return;
+
+  const isEval = shift === 'evaluation';
+
+  // Determine if current role can access eval for this staff record
+  const _s = _editStaffData;
+  const _sr = _s ? (_s.role || '') : '';
+  const _canEval = (
+    (currentRole === 'kic'          && ['linecook','steward'].includes(_sr)) ||
+    (currentRole === 'oic'          && ['service','bartender','delco'].includes(_sr)) ||
+    (currentRole === 'areachef'     && ['linecook','steward','kic'].includes(_sr)) ||
+    (currentRole === 'areamanager'  && ['linecook','steward','kic','oic','service','bartender','delco'].includes(_sr)) ||
+    ['director','training','operations','ceo'].includes(currentRole)
+  );
+
+  // Hide Evaluation option from dropdown if role has no eval access
+  const sel = document.getElementById('verifyShiftSelect');
+  if (sel) {
+    Array.from(sel.options).forEach(function(opt) {
+      if (opt.value === 'evaluation') {
+        opt.style.display = _canEval ? '' : 'none';
+        opt.disabled = !_canEval;
+      }
+    });
+    // If current value is evaluation but user has no eval access, reset to opening
+    if (sel.value === 'evaluation' && !_canEval) {
+      sel.value = 'opening';
+      shift = 'opening';
+    }
+  }
+
+  // Eval section IDs (all possible eval panels)
+  const evalSectionIds = ['kicEditSection','lcObsSection','oicBOHEditSection','btObsSection','dcObsSection'];
+
+  // All eval task IDs
+  const allEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
+    'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
+    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
+    'bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5','t1','t4','f1'];
+
+  // Toggle eval sections — only show if eval selected AND role has access
+  evalSectionIds.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (isEval && _canEval) ? '' : 'none';
+  });
+
+  // Toggle the main opening/closing checklist area
+  const checklistArea = document.getElementById('owChecklistArea');
+  if (checklistArea) checklistArea.style.display = isEval ? 'none' : '';
+
+  // Toggle individual eval task rows in main checklist body (safety — already in eval sections)
+  body.querySelectorAll('[data-taskkey]').forEach(function(row) {
+    const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
+    if (allEvalIds.includes(tk)) {
+      row.style.display = (isEval && _canEval) ? '' : 'none';
+    }
+  });
+
+  // Hint banner
+  let hintEl = document.getElementById('_owShiftHint');
+  if (!hintEl) {
+    hintEl = document.createElement('div');
+    hintEl.id = '_owShiftHint';
+    hintEl.style.cssText = 'margin:8px 0;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;';
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (cancelBtn && cancelBtn.parentNode) cancelBtn.parentNode.insertBefore(hintEl, cancelBtn);
+  }
+  if (isEval && _canEval) {
+    hintEl.style.background = '#DCFCE7';
+    hintEl.style.color = '#15803D';
+    hintEl.textContent = '📋 Evaluation mode — complete the observation section below';
+  } else {
+    hintEl.style.background = '#EFF6FF';
+    hintEl.style.color = '#1A3C5E';
+    hintEl.textContent = shift === 'opening'
+      ? '🌅 Opening mode — evaluation section is hidden'
+      : '🌙 Closing mode — evaluation section is hidden';
   }
 }
 
