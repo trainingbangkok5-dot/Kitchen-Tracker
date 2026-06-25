@@ -6990,7 +6990,8 @@ function buildVerifyEditPanel(s) {
     var closeIds=(s.role==='kic')?['cy1','cy2','cy3','cy4']:['c1','c2','c3','c4','c5'];
     var evalIds=['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
       'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
-      's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2'];
+      's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2',
+      'f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
     var ids = shiftKey==='opening'?openIds:shiftKey==='closing'?closeIds:evalIds;
     var yes=0,no=0;
     Object.entries(td).forEach(function(e){
@@ -8621,7 +8622,8 @@ function _snapYN(taskData, shift, role) {
   const closeIds = (role === 'kic') ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
   const evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
     'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
-    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1'];
+    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
+    'f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
   const ids = shift === 'opening' ? openIds : shift === 'closing' ? closeIds : evalIds;
   let yes = 0, no = 0;
   Object.entries(taskData).forEach(function(e) {
@@ -9252,7 +9254,7 @@ function loadFOHData() {
         if (!grouped[gKey].startedAt && sub.startedAt) grouped[gKey].startedAt = sub.startedAt;
         // Track if OIC sections were filled (tasks with oicOnly flag)
         if (sub.taskData) {
-          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
+          const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs — must match toggleFOHEditMode task defs
           const hasOICData = oicTaskIds.some(tid => {
             // Check both 'd1_u1' format and direct 'u1' format
             return Object.keys(sub.taskData).some(k =>
@@ -10779,7 +10781,7 @@ async function saveFOHOverwrite(staff) {
       });
       // Calculate opening, closing, oic scores separately
       // OIC task IDs — never count these toward opening or closing score
-      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
+      const oicTaskIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','aud1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
       // Opening task IDs — o1..o5
       const openTaskIds = ['o1','o2','o3','o4','o5'];
       // Closing task IDs — c1..c5
@@ -10892,6 +10894,22 @@ async function saveFOHOverwrite(staff) {
             }
           }
         });
+      });
+    }
+    // Sync allFOHData so Progress column and table reflect immediately
+    if (staffMem) {
+      allFOHData.forEach(function(r) {
+        if (r.staffName === staffMem.staffName && r.role === staffMem.role && r.week === staffMem.week) {
+          r.overallPct      = staffMem.overallPct;
+          r.qualified       = staffMem.qualified;
+          r.openingPct      = staffMem.openingPct;
+          r.closingPct      = staffMem.closingPct;
+          r.oicEvalPct      = staffMem.oicEvalPct;
+          r.verifiedBy      = staffMem.verifiedBy;
+          r.verifiedByRole  = staffMem.verifiedByRole;
+          r.verificationLog = staffMem.verificationLog;
+          r.taskData        = staffMem.taskData;
+        }
       });
     }
     // Reopen immediately with updated data
