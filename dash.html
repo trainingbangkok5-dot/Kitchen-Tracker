@@ -3971,8 +3971,10 @@ function openStaffDetail(s) {
         <div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${(function() {
           const subRole = s.role || '';
-          // Standalone Verify button — management only (KIC/OIC verify via Save Changes)
+          // Verify button — KIC/OIC can verify their staff; management can verify all
           const canVerify =
+            (currentRole==='kic' && ['linecook','steward'].includes(subRole)) ||
+            (currentRole==='oic' && ['service','bartender','delco'].includes(subRole)) ||
             (currentRole==='areachef' && ['linecook','steward','kic'].includes(subRole)) ||
             (currentRole==='areamanager' && ['linecook','steward','kic','oic','service','bartender','delco'].includes(subRole)) ||
             ['training','operations','director','ceo'].includes(currentRole);
@@ -7057,25 +7059,26 @@ function buildVerifyEditPanel(s) {
   const noVerify = '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">No verifications yet</div>';
   const roleNote = 'Your role ('+currentRole+') and timestamp will be added automatically';
 
-  // ── ADD VERIFICATION section — management only ───────────────────────────
-  // KIC and OIC verify through Save Changes only — not through Add Verification
+  // ── VERIFICATION section — name input + shift dropdown for all roles ───────
+  // Add Verification button: management only (re-verification sign-off)
+  // Verify button: KIC/OIC use the standalone Verify button below the panel
   const _mgmtRoles = ['areachef','areamanager','training','operations','director','ceo'];
   const _canAddVerif = _mgmtRoles.includes(currentRole);
-  const addSection = _canAddVerif
-    ? '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
-      + '<div style="font-size:10px;font-weight:700;color:#1A3C5E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">ADD VERIFICATION</div>'
-      + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:3px;">'
-      + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
-      + '<select id="verifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;">'
-      + '<option value="opening">🌅 Opening</option>'
-      + '<option value="closing">🌙 Closing</option>'
-      + '<option value="evaluation">📋 Evaluation</option>'
-      + '</select>'
-      + '</div>'
-      + '<div style="font-size:10px;color:#94A3B8;margin-bottom:6px;">'+roleNote+'</div>'
-      + '<button onclick="saveBOHVerification()" style="width:100%;padding:8px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;">✅ Add Verification</button>'
-      + '</div>'
-    : ''; // KIC/OIC — no Add Verification, they verify through Save Changes
+  const addSection = '<div style="margin-top:8px;padding-top:8px;border-top:.5px solid #E0DDD4;">'
+    + '<div style="font-size:10px;font-weight:700;color:#1A3C5E;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">VERIFICATION</div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:3px;">'
+    + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
+    + '<select id="verifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;">'
+    + '<option value="opening">🌅 Opening</option>'
+    + '<option value="closing">🌙 Closing</option>'
+    + '<option value="evaluation">📋 Evaluation</option>'
+    + '</select>'
+    + '</div>'
+    + '<div style="font-size:10px;color:#94A3B8;margin-bottom:6px;">'+roleNote+'</div>'
+    + (_canAddVerif
+      ? '<button onclick="saveBOHVerification()" style="width:100%;padding:8px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;">✅ Add Verification</button>'
+      : '')
+    + '</div>';
 
   return '<div style="margin-top:8px;padding:10px 12px;background:#F8F7F2;border:1px solid #E0DDD4;border-radius:10px;">'
     + '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:8px;">✅ Verification History</div>'
@@ -8590,7 +8593,11 @@ function deleteVerificationEntry(btn, idx) {
           : '<span style="color:#94A3B8;font-size:11px;">Pending</span>';
         const card = document.getElementById('fohVerifiedByCard');
         if (card) {
-          const _cv = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
+          const _cv =
+            (currentRole==='oic' && ['service','bartender','delco'].includes(s.role)) ||
+            (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(s.role)) ||
+            (currentRole==='areachef' && ['linecook','steward','kic','service','bartender','delco'].includes(s.role)) ||
+            ['training','operations','director','ceo'].includes(currentRole);
           card.innerHTML = '<div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>'
             + buildVerifyEditPanel(s)
             + (_cv ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>' : '');
@@ -8697,7 +8704,10 @@ function saveBOHVerification() {
       const verCard = document.getElementById('bohVerifiedByCard');
       if (verCard) {
         const panel = buildVerifyEditPanel(s);
-        const canVerify = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
+        const canVerify =
+          (currentRole==='kic' && ['linecook','steward'].includes(s.role)) ||
+          (currentRole==='oic' && ['service','bartender','delco'].includes(s.role)) ||
+          ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
         verCard.innerHTML = '<div style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>'
           + panel
           + (canVerify ? '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">✅ Verify</button>' : '');
@@ -9535,10 +9545,11 @@ function openFOHDetail(idx) {
         <div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">👤 VERIFIED BY</div>
         ${(function(){
           const _sr = staff.role || '';
-          // Standalone Verify button — management only (OIC verifies via Save Changes)
+          // Verify button — OIC can verify their staff; management can verify all
           const _cv =
+            (currentRole==='oic' && ['service','bartender','delco'].includes(_sr)) ||
             (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(_sr)) ||
-            (currentRole==='areachef' && ['service','bartender','delco'].includes(_sr)) ||
+            (currentRole==='areachef' && ['service','bartender','delco','kic'].includes(_sr)) ||
             ['training','operations','director','ceo'].includes(currentRole);
           return buildVerifyEditPanel(staff) + (_cv
             ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>'
@@ -10146,7 +10157,9 @@ function saveReVerification() {
       const card = document.getElementById(cardId);
       if (card) {
         const isMgmtRole = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
-        const canVerify = isMgmtRole; // KIC/OIC verify through Save Changes only
+        const canVerify = isMgmtRole
+          || (currentRole==='kic' && ['linecook','steward'].includes(s.role))
+          || (currentRole==='oic' && ['service','bartender','delco'].includes(s.role));
         const verifyBtn = isFOH
           ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>'
           : '<button onclick="saveBOHVerification()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>';
@@ -10205,7 +10218,10 @@ function saveFOHMultiVerify() {
       if (hEl) hEl.innerHTML = '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + log.length + ')</span>';
       const card = document.getElementById('fohVerifiedByCard');
       if (card) {
-        const _cv = ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
+        const _cv =
+          (currentRole==='oic' && ['service','bartender','delco'].includes(staff.role)) ||
+          (currentRole==='areamanager' && ['oic','service','bartender','delco'].includes(staff.role)) ||
+          ['training','operations','director','ceo','areachef','areamanager'].includes(currentRole);
         card.innerHTML = '<div class="vby-header" style="font-size:10px;font-weight:700;color:#64748B;margin-bottom:4px;">\ud83d\udc64 VERIFIED BY</div>'
           + buildVerifyEditPanel(staff)
           + (_cv ? '<button onclick="saveFOHMultiVerify()" style="width:100%;margin-top:6px;padding:7px;background:#15803D;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">\u2705 Verify</button>' : '');
