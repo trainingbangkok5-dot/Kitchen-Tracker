@@ -1347,12 +1347,14 @@ function handlePhotoFile(file) {
     const dayKey = getTodayKey();
     if (!data[dayKey]) data[dayKey] = {};
     if (!data[dayKey][taskId]) data[dayKey][taskId] = {};
-    // Find next photo slot (photo, photo_1, photo_2 ...)
+    // Find next photo slot — check BOTH base64 (photo) and Cloudinary (photoUrl) keys
     let slot = 'photo';
-    if (data[dayKey][taskId]['photo']) {
-      let i = 1;
-      while (data[dayKey][taskId]['photo_' + i]) i++;
-      slot = 'photo_' + i;
+    for (let _pi = 0; _pi < 10; _pi++) {
+      const _lk = _pi === 0 ? 'photo' : 'photo_' + _pi;
+      const _uk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
+      if (!data[dayKey][taskId][_lk] && !data[dayKey][taskId][_uk]) {
+        slot = _lk; break;
+      }
     }
     // Save locally first for instant display
     setVal(currentDay, taskId, slot, dataUrl);

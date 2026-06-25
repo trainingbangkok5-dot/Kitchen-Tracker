@@ -1586,7 +1586,9 @@ function handlePhotoFile(file) {
     // Save locally first for instant display — multi-photo: find next empty slot
     let slotIdx = 0;
     for (let pi = 0; pi < 10; pi++) {
-      const existing = getVal(currentDay, taskId, 'photo_' + pi) || (pi===0 ? getVal(currentDay, taskId, 'photo') : null);
+      const _lk = pi === 0 ? 'photo' : 'photo_' + pi;
+      const _uk = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
+      const existing = getVal(currentDay, taskId, _lk) || getVal(currentDay, taskId, _uk);
       if (!existing) { slotIdx = pi; break; }
       slotIdx = pi + 1;
     }

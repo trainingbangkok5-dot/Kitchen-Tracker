@@ -1905,11 +1905,13 @@ function handlePhotoFile(file) {
   activePhotoTask = null;
   closePhotoModal();
   compressAndReturn(file, async function(dataUrl) {
-    // Save locally first — find next empty slot (deduplicated)
-    const legacyUrl = getVal(currentDay, taskId, 'photo');
-    let slotIdx = legacyUrl ? 1 : 0; // if legacy 'photo' exists, start from photo_1
-    for (let pi = slotIdx; pi < 10; pi++) {
-      const existing = getVal(currentDay, taskId, pi === 0 ? 'photo' : 'photo_' + pi);
+    // Save locally first — find next empty slot
+    // Check BOTH base64 (photo) and Cloudinary URL (photoUrl) so slot 0 is not overwritten
+    let slotIdx = 0;
+    for (let pi = 0; pi < 10; pi++) {
+      const localKey = pi === 0 ? 'photo' : 'photo_' + pi;
+      const urlKey   = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
+      const existing = getVal(currentDay, taskId, localKey) || getVal(currentDay, taskId, urlKey);
       if (!existing) { slotIdx = pi; break; }
       slotIdx = pi + 1;
     }

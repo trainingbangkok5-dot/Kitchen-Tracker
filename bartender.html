@@ -502,7 +502,9 @@ async function handlePhotoFile(file) {
     // Find next empty photo slot
     let slotIdx=0;
     for(let pi=0;pi<10;pi++){
-      const existing=getVal(currentDay,tid,'photo_'+pi)||(pi===0?getVal(currentDay,tid,'photo'):null);
+      const _lk=pi===0?'photo':'photo_'+pi;
+      const _uk=pi===0?'photoUrl':'photoUrl_'+pi;
+      const existing=getVal(currentDay,tid,_lk)||getVal(currentDay,tid,_uk);
       if(!existing){slotIdx=pi;break;} slotIdx=pi+1;
     }
     const slotKey=slotIdx===0?'photo':'photo_'+slotIdx;

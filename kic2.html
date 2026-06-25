@@ -1257,7 +1257,8 @@ function handlePhotoFile(file) {
     if (!_d[_dk]) _d[_dk] = {};
     if (!_d[_dk][taskId]) _d[_dk][taskId] = {};
     let _idx = 0;
-    while (_d[_dk][taskId][_idx === 0 ? 'photo' : 'photo_' + _idx]) _idx++;
+    while ((_d[_dk][taskId][_idx === 0 ? 'photo' : 'photo_' + _idx]) ||
+           (_d[_dk][taskId][_idx === 0 ? 'photoUrl' : 'photoUrl_' + _idx])) _idx++;
     const _photoKey = _idx === 0 ? 'photo' : 'photo_' + _idx;
     setVal(currentDay, taskId, _photoKey, dataUrl);
     renderDay();
