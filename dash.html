@@ -8607,8 +8607,7 @@ function deleteVerificationEntry(btn, idx) {
       // Re-render the staff list so the card/table row also reflects the deletion
       if (isFOH) { if (typeof renderFOHStaff === 'function') renderFOHStaff(); }
       else { if (typeof renderBOHStaff === 'function') renderBOHStaff(); }
-      // Refresh display
-      const isFOH = ['service','oic','delco','bartender'].includes(s.role);
+      // Refresh display — reuse isFOH from outer scope (already declared above)
       if (isFOH) {
         const hEl = document.getElementById('fohVerifiedBy');
         if (hEl) hEl.innerHTML = log.length
