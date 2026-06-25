@@ -7585,7 +7585,7 @@ function updateLiveScore() {
     ? ['bt1','bt2','bt3','bt4']
     : s.role === 'delco'
     ? ['dc1','dc2','dc3','dc4','dc5']
-    : ['s1','m1','p1','u1','w1','mp1'];
+    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
 
@@ -7843,7 +7843,7 @@ async function saveOverwrite(s) {
     ? ['st1','st2','st3','st4','st5']
     : _isLC
     ? ['lc1','lc2','lc3','lc4','lc5']
-    : ['s1','m1','p1','u1','w1','mp1'];
+    : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _openIds  = ['o1','o2','o3','o4','o5'];
   const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
 
@@ -8761,9 +8761,10 @@ function saveVerification() {
         // Update in allStaff / allBOHData / allFOHData
         [allStaff, allBOHData, allFOHData].forEach(arr => {
           arr.forEach(r => {
-            if (r.staffName===s.staffName && r.role===s.role && r.week===s.week) {
-              r.verifiedBy=name; r.verifiedAt=now;
-              // Also sync verificationLog so Progress pill sub-text shows verifier name
+            if (r.staffName===s.staffName && r.role===s.role) {
+              r.verifiedBy     = name;
+              r.verifiedAt     = now;
+              r.verifiedByRole = currentRole;
               if (s.verificationLog) r.verificationLog = s.verificationLog;
             }
           });
@@ -10217,6 +10218,19 @@ function saveFOHMultiVerify() {
       const hEl = document.getElementById('fohVerifiedBy');
       if (hEl) hEl.innerHTML = '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + log.length + ')</span>';
       const card = document.getElementById('fohVerifiedByCard');
+      // Sync allFOHData and allStaff so Progress column reflects immediately
+      allFOHData.forEach(function(r) {
+        if (r.staffName === staff.staffName && r.role === staff.role && r.week === staff.week) {
+          r.verificationLog = staff.verificationLog;
+          r.verifiedBy      = staff.verifiedBy;
+          r.verifiedByRole  = staff.verifiedByRole;
+        }
+      });
+      allStaff.forEach(function(r) {
+        if (r.staffName === staff.staffName && r.role === staff.role) {
+          r.verificationLog = staff.verificationLog;
+        }
+      });
       if (card) {
         const _cv =
           (currentRole==='oic' && ['service','bartender','delco'].includes(staff.role)) ||
@@ -10285,7 +10299,7 @@ function setFOHTaskYN(btn, val) {
     else merged[k] = {yn};
   });
   // Use task IDs to split scores correctly
-  const oicIds   = ['s1','m1','p1','u1','w1','mp1','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
+  const oicIds   = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
   const openIds  = ['o1','o2','o3','o4','o5'];
   const closeIds = ['c1','c2','c3','c4','c5'];
   let oicY=0, oicT=0, opY=0, opT=0, clY=0, clT=0;
