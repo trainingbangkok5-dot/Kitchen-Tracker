@@ -7654,24 +7654,27 @@ function updateLiveScore() {
   });
 
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0, eNA_boh = 0;
-  // Only count eval tasks that are in _editChanges (user explicitly set them)
-  // OR tasks in taskData that were NOT overridden — but if _editChanges has ANY eval key,
-  // only count eval tasks from _editChanges to avoid stale YES/NO from previous submissions
-  const _editEvalKeys = Object.keys(_editChanges).filter(k => _lsEvalIds.includes(k.replace(/^d[0-9]+_/, '')));
-  const _hasEditEval = _editEvalKeys.length > 0;
+  // Build eval snapshot: taskData answers merged with _editChanges (_editChanges wins)
+  // This ensures ALL eval tasks are counted, with session changes taking priority
+  const _evalSnap = {};
+  Object.entries(updatedTaskData).forEach(([k, t]) => {
+    const tid = k.replace(/^d[0-9]+_/, '');
+    if (_lsEvalIds.includes(tid) && t && t.yn) _evalSnap[k] = t.yn;
+  });
+  Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (_lsEvalIds.includes(k.replace(/^d[0-9]+_/, ''))) _evalSnap[k] = yn;
+  });
+  Object.values(_evalSnap).forEach(yn => {
+    if (yn === 'na') eNA_boh++;
+    else { eM++; if (yn === 'yes') eY++; }
+  });
   Object.entries(updatedTaskData).forEach(([k, t]) => {
     if (!t || !t.yn) return;
     const tid = k.replace(/^d[0-9]+_/, '');
-    if (_lsEvalIds.includes(tid)) {
-      // If user has edited any eval tasks, only count tasks that were explicitly set in this session
-      if (_hasEditEval && !_editChanges[k]) return;
-      if (t.yn === 'na') { eNA_boh++; return; }
-      eM++; if (t.yn==='yes') eY++;
-    } else {
-      if (t.yn === 'na') return;
-      if (_lsOpenIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
-      else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
-    }
+    if (_lsEvalIds.includes(tid)) return; // already counted in _evalSnap
+    if (t.yn === 'na') return;
+    if (_lsOpenIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
+    else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
   const _lsAllEvalNA = eNA_boh > 0 && eM === 0;
 
@@ -7992,22 +7995,25 @@ async function saveOverwrite(s) {
   });
 
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0, eNA = 0;
-  // Only count eval tasks from _editChanges if user has edited any eval tasks
-  // Prevents stale YES/NO from previous submissions interfering with N/A detection
-  const _saveEditEvalKeys = Object.keys(_editChanges).filter(k => _evalIds.includes(k.replace(/^d[0-9]+_/, '')));
-  const _saveHasEditEval = _saveEditEvalKeys.length > 0;
+  // Build eval snapshot: taskData answers merged with _editChanges (_editChanges wins)
+  const _saveEvalSnap = {};
   Object.entries(updatedTaskData).forEach(([k, t]) => {
     const tid = k.replace(/^d[0-9]+_/, '');
-    if (_evalIds.includes(tid)) {
-      if (_saveHasEditEval && !_editChanges[k]) return;
-      if (t.yn === 'na') { eNA++; return; }
-      if (!t.yn) return;
-      eM++; if (t.yn==='yes') eY++;
-    } else {
-      if (!t.yn || t.yn === 'na') return;
-      if (_openIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
-      else if (_closeIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
-    }
+    if (_evalIds.includes(tid) && t && t.yn) _saveEvalSnap[k] = t.yn;
+  });
+  Object.entries(_editChanges).forEach(([k, yn]) => {
+    if (_evalIds.includes(k.replace(/^d[0-9]+_/, ''))) _saveEvalSnap[k] = yn;
+  });
+  Object.values(_saveEvalSnap).forEach(yn => {
+    if (yn === 'na') eNA++;
+    else { eM++; if (yn === 'yes') eY++; }
+  });
+  Object.entries(updatedTaskData).forEach(([k, t]) => {
+    const tid = k.replace(/^d[0-9]+_/, '');
+    if (_evalIds.includes(tid)) return; // already counted in _saveEvalSnap
+    if (!t.yn || t.yn === 'na') return;
+    if (_openIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
+    else if (_closeIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
   });
 
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct  != null ? parseFloat(s.openingPct)  : null);
