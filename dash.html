@@ -7484,11 +7484,13 @@ function toggleEditMode(s) {
     lcEditContainer.innerHTML = lcHtml;
   }
 
-  // ── Wire shift dropdown to show/hide eval sections on change ────────────
+  // ── Wire shift dropdown — clone to remove stacked listeners ───────────────
   const _owShiftSel = document.getElementById('verifyShiftSelect');
   if (_owShiftSel) {
     _applyOverwriteShiftFilter(_owShiftSel.value || 'opening');
-    _owShiftSel.addEventListener('change', function() {
+    const _newOwSel = _owShiftSel.cloneNode(true);
+    _owShiftSel.parentNode.replaceChild(_newOwSel, _owShiftSel);
+    _newOwSel.addEventListener('change', function() {
       _applyOverwriteShiftFilter(this.value);
     });
   }
@@ -7631,6 +7633,8 @@ function updateLiveScore() {
     ? ['bt1','bt2','bt3','bt4']
     : s.role === 'delco'
     ? ['dc1','dc2','dc3','dc4','dc5']
+    : s.role === 'bartender' ? ['bt1','bt2','bt3','bt4']
+    : s.role === 'delco' ? ['dc1','dc2','dc3','dc4','dc5']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -8703,8 +8707,12 @@ function deleteVerificationEntry(btn, idx) {
 // ── Snapshot current YN counts for a shift — stored on each verification log entry ──
 function _snapYN(taskData, shift, role) {
   if (!taskData) return { yes: 0, no: 0 };
+  // Use all answered tasks for the shift — count everything staff answered
   const openIds  = ['o1','o2','o3','o4','o5'];
-  const closeIds = (role === 'kic') ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
+  const closeIds = role === 'kic' ? ['cy1','cy2','cy3','cy4']
+    : role === 'bartender' ? ['c1','c2','c3','c4','c5']
+    : role === 'delco' ? ['c1','c2','c3','c4','c5']
+    : ['c1','c2','c3','c4','c5'];
   const evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
     'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
     's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
