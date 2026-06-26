@@ -8023,7 +8023,7 @@ async function saveOverwrite(s) {
   } else if (s._fbKey && s._fbKey.endsWith('_opening') && !s.closingPct) {
     await _saveDb.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
   }
-  if (_lsEvalNotVisited) {
+  if (_evalNotVisited) {
     // All N/A — mark as not visited, clear old score
     updates['submissions/' + fbKey + '/oicEvalPct'] = null;
     updates['submissions/' + fbKey + '/evalNotVisited'] = true;
