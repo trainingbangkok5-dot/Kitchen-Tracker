@@ -7701,11 +7701,6 @@ function updateLiveScore() {
         pctEl.textContent = '—';
         pctEl.style.color = '#94A3B8';
         if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
-      } else if (type === 'oic' && _lsAllEvalNA) {
-        // All eval answers are N/A — show Not visited
-        pctEl.textContent = 'N/A';
-        pctEl.style.color = '#94A3B8';
-        if (lblEl) { lblEl.textContent = '🚫 Not visited'; lblEl.style.color = '#94A3B8'; }
       }
       return;
     }
@@ -8029,8 +8024,8 @@ async function saveOverwrite(s) {
     await _saveDb.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
   }
   if (_evalNotVisited) {
-    // All N/A — mark as not visited, clear old score
-    updates['submissions/' + fbKey + '/oicEvalPct'] = null;
+    // All N/A — mark as not visited. Do NOT put null in updates (Firebase ignores null).
+    // We remove oicEvalPct after the main update using .remove()
     updates['submissions/' + fbKey + '/evalNotVisited'] = true;
     s.oicEvalPct = null;
     s.evalNotVisited = true;
@@ -8069,6 +8064,10 @@ async function saveOverwrite(s) {
   try {
     showToast('💾 Saving...', 'ok');
     await _saveDb.ref().update(updates);
+    // If all eval N/A — explicitly remove oicEvalPct from Firebase (null in updates is ignored by Firebase)
+    if (_evalNotVisited) {
+      await _saveDb.ref('submissions/' + fbKey + '/oicEvalPct').remove().catch(()=>{});
+    }
     // Update in-memory record with ALL changes so nothing is lost
     s._fbKey = fbKey;
     s.overallPct = newScore;
@@ -8079,14 +8078,15 @@ async function saveOverwrite(s) {
     if (verifiedBy) s.verifiedBy = verifiedBy;
     if (opPct !== null) s.openingPct = opPct;
     if (clPct !== null) s.closingPct = clPct;
-    if (ePct  !== null) s.oicEvalPct = ePct;
+    if (_evalNotVisited) { s.oicEvalPct = null; s.evalNotVisited = true; }
+    else if (ePct !== null) s.oicEvalPct = ePct;
 
     // Update allStaff / allBOHData / allFOHData in-memory so Progress pills reflect immediately
     const idx = allStaff.findIndex(st => st._fbKey === fbKey);
-    if (idx >= 0) allStaff[idx] = {...allStaff[idx], ...s};
+    if (idx >= 0) { allStaff[idx] = {...allStaff[idx], ...s}; if (_evalNotVisited) { allStaff[idx].oicEvalPct = null; allStaff[idx].evalNotVisited = true; } }
     [allBOHData, allFOHData].forEach(arr => {
       const ai = arr.findIndex(st => st._fbKey === fbKey || (st.staffName === s.staffName && st.role === s.role && st.week === s.week));
-      if (ai >= 0) arr[ai] = {...arr[ai], ...s};
+      if (ai >= 0) { arr[ai] = {...arr[ai], ...s}; if (_evalNotVisited) { arr[ai].oicEvalPct = null; arr[ai].evalNotVisited = true; } }
     });
 
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
