@@ -11024,6 +11024,7 @@ async function saveFOHOverwrite(staff) {
         if (updates['submissions/' + child.key + '/closingPct'] != null) staffMem.closingPct = updates['submissions/' + child.key + '/closingPct'];
         else if (child.key.endsWith('_opening')) staffMem.closingPct = null;
         if (updates['submissions/' + child.key + '/oicEvalPct'] != null) staffMem.oicEvalPct = updates['submissions/' + child.key + '/oicEvalPct'];
+        if (updates['submissions/' + child.key + '/evalNotVisited'] === true) { staffMem.oicEvalPct = null; staffMem.evalNotVisited = true; }
         // Update verifiedBy in memory so header reflects immediately
         if (_fohVerifiedBy) {
           staffMem.verifiedBy = _fohVerifiedBy;
@@ -11065,7 +11066,7 @@ async function saveFOHOverwrite(staff) {
     // Re-render table so AM/OIC Eval Needed badge disappears immediately
     renderFOHStaff();
     // Also reload in background for next open
-    setTimeout(() => loadFOHData(), 3000);
+    setTimeout(() => loadFOHData(), 15000); // Delay 15s so Firebase .remove() propagates before reload
   } catch(e) {
     alert('Save failed: ' + e.message);
   }
