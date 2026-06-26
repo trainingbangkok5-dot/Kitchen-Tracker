@@ -9304,17 +9304,17 @@ function loadFOHData() {
         if (sub.verifiedBy) { grouped[gKey].verifiedBy = sub.verifiedBy; grouped[gKey].verifiedByRole = sub.verifiedByRole||''; }
         if (sub.verificationLog && (!grouped[gKey].verificationLog || sub.verificationLog.length > (grouped[gKey].verificationLog||[]).length)) grouped[gKey].verificationLog = sub.verificationLog;
         if (sub.verifiedAt) grouped[gKey].verifiedAt = sub.verifiedAt;
-        // Direct openingPct (service saves this directly)
-        if (sub.openingPct != null && !isNaN(parseFloat(sub.openingPct))) {
-          grouped[gKey].openingPct = parseFloat(sub.openingPct);
-        }
-        // shift-based (bartender, delco use shift field)
-        else if (sub.shift === 'opening' && grouped[gKey].openingPct == null && sub.overallPct != null) {
-          grouped[gKey].openingPct = parseFloat(sub.overallPct);
-        }
-        else if (sub.shift === 'closing' && grouped[gKey].closingPct == null && sub.overallPct != null) {
-          grouped[gKey].closingPct = parseFloat(sub.overallPct);
-        }
+        // All checklists now save openingPct/closingPct/shift consistently
+        const _fop = sub.openingPct != null ? parseFloat(sub.openingPct)
+          : sub.shift === 'opening' ? parseFloat(sub.overallPct||0)
+          : sub.status === 'opening_submitted' ? parseFloat(sub.overallPct||0)
+          : null;
+        const _fcl = sub.closingPct != null ? parseFloat(sub.closingPct)
+          : sub.shift === 'closing' ? parseFloat(sub.overallPct||0)
+          : sub.status === 'closing_submitted' ? parseFloat(sub.overallPct||0)
+          : null;
+        if (_fop != null && !isNaN(_fop) && grouped[gKey].openingPct == null) grouped[gKey].openingPct = _fop;
+        if (_fcl != null && !isNaN(_fcl) && grouped[gKey].closingPct == null) grouped[gKey].closingPct = _fcl;
         // Track shift status — prefer closing_submitted over opening_submitted
         if (sub.status === 'closing_submitted') grouped[gKey].status = 'closing_submitted';
         else if (!grouped[gKey].status && sub.status) grouped[gKey].status = sub.status;

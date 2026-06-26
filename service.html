@@ -8,6 +8,34 @@
 <meta name="apple-mobile-web-app-title" content="Service Checklist">
 <meta name="application-name" content="Culex Kitchen">
 <script>
+// ── Auto-clear base64 on startup — prevents storage full error ────────────
+(function() {
+  try {
+    Object.keys(localStorage).forEach(function(key) {
+      try {
+        var raw = localStorage.getItem(key);
+        if (!raw || raw.indexOf('data:image') === -1) return;
+        var d = JSON.parse(raw);
+        var changed = false;
+        Object.keys(d).forEach(function(dk) {
+          if (!d[dk] || typeof d[dk] !== 'object') return;
+          Object.keys(d[dk]).forEach(function(tk) {
+            var task = d[dk][tk];
+            if (!task || typeof task !== 'object') return;
+            ['photo','photo_1','photo_2','photo_3','photo_4','photo_5',
+             'photo_6','photo_7','photo_8','photo_9'].forEach(function(pk) {
+              if (task[pk] && typeof task[pk] === 'string' && task[pk].startsWith('data:')) {
+                delete task[pk]; changed = true;
+              }
+            });
+          });
+        });
+        if (changed) localStorage.setItem(key, JSON.stringify(d));
+      } catch(e) {}
+    });
+  } catch(e) {}
+})();
+
 (function() {
   var v = '20260619360000';
   var stored = localStorage.getItem('app_version');
@@ -1012,7 +1040,27 @@ let oicMode = false;
 let oicTargetStaff = '';
 // ── Storage ───────────────────────────────────────────────────
 function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
-function save(d) { try { localStorage.setItem(SK, JSON.stringify(d)); } catch(e) { showToast('Storage full — clear browser data','error'); } }
+
+function _stripBase64(d) {
+  try {
+    var clean = JSON.parse(JSON.stringify(d));
+    Object.keys(clean).forEach(function(dk) {
+      if (!clean[dk] || typeof clean[dk] !== 'object') return;
+      Object.keys(clean[dk]).forEach(function(tk) {
+        var task = clean[dk][tk];
+        if (!task || typeof task !== 'object') return;
+        ['photo','photo_1','photo_2','photo_3','photo_4','photo_5',
+         'photo_6','photo_7','photo_8','photo_9'].forEach(function(pk) {
+          if (task[pk] && typeof task[pk] === 'string' && task[pk].startsWith('data:'))
+            delete task[pk];
+        });
+      });
+    });
+    return clean;
+  } catch(e) { return d; }
+}
+
+function save(d) { try { localStorage.setItem(SK, JSON.stringify(_stripBase64(d))); } catch(e) { showToast('Storage full — clear browser data','error'); } }
 
 // ── Track Submitted Dates (for weekly attendance/eligibility) ──
 function trackSubmittedDate(weekStart) {
@@ -1710,7 +1758,9 @@ async function submitOpening() {
     week:        getWeekStart(),
     overallPct:  opO2,
     openingPct:  opO2,
-    qualified:   false,
+    closingPct:  null,
+    shift:       'opening',
+    qualified:   opO2>=95,
     day:         currentDay,
     status:      'opening_submitted',
     startedAt:   d[getTodayKey()]?._start || new Date().toISOString(),
@@ -1781,8 +1831,10 @@ async function submitDay() {
     verifiedBy:   getVerified(),
     overallPct:   op,
     openingPct:   null,
+    openingPct:  null,
     closingPct:   opC,
-    qualified:    false,
+    shift:       'closing',
+    qualified:    opC>=95,
     status:       'closing_submitted',
     businessDate: (function() {
       const _h = parseInt(new Date().toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
