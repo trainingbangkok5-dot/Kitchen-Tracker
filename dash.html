@@ -9380,10 +9380,15 @@ function loadFOHData() {
             });
           });
           if(oicT>0 && sub.role === 'service') { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
-          if (['bartender','delco'].includes(sub.role) && sub.oicEvalPct != null) {
+          // Read evalNotVisited and oicEvalPct from Firebase for ALL FOH eval roles
+          if (sub.evalNotVisited === true) {
+            grouped[gKey].evalNotVisited = true;
+            grouped[gKey].oicEvalPct = null; // ensure score is null when not visited
+          } else if (sub.evalNotVisited === false) {
+            grouped[gKey].evalNotVisited = false;
+          }
+          if (['bartender','delco','oic'].includes(sub.role) && sub.oicEvalPct != null && !sub.evalNotVisited) {
             grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
-            if (sub.evalNotVisited === true) grouped[gKey].evalNotVisited = true;
-            else if (sub.evalNotVisited === false) grouped[gKey].evalNotVisited = false;
           }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
@@ -10709,12 +10714,21 @@ function toggleFOHEditMode() {
   // -- Area Manager Observation -- OIC role
   if (staff && staff.role === 'oic') {
     const oicObsDefs = [
-      {id:'s1',  section:'', text:'Does the OIC actively manage the floor to ensure the sequence of service, guest interaction, hygiene, and brand compliance are consistently upheld?'},
-      {id:'m1',  section:'', text:'Does the OIC lead by example, delegating tasks effectively, maintaining high staff morale, and ensuring all FOH checklists are submitted on time?'},
-      {id:'p1',  section:'', text:'Is the OIC highly visible on the floor, holding FOH staff accountable for their performance, and executing opening/closing duties correctly?'},
-      {id:'u1',  section:'', text:'Is the OIC aware of daily sales targets, and do they actively coach/monitor the team on upselling techniques to drive results?'},
-      {id:'w1',  section:'', text:'Does the OIC handle staff/guest conflicts calmly on the spot and ensure any major incidents or complaints are reported to you promptly?'},
-      {id:'mp1', section:'', text:'Did the OIC arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
+      {id:'s1',  section:'⭐ Service Standards',      text:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.'},
+      {id:'s2',  section:'⭐ Service Standards',      text:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.'},
+      {id:'s3',  section:'⭐ Service Standards',      text:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.'},
+      {id:'s4',  section:'⭐ Service Standards',      text:'Service leadership: OIC leads by example and maintains service standards throughout the shift.'},
+      {id:'m1',  section:'🔧 Maintenance & Cleanliness', text:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.'},
+      {id:'m2',  section:'🔧 Maintenance & Cleanliness', text:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.'},
+      {id:'u1',  section:'💰 Upselling',              text:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.'},
+      {id:'u2',  section:'💰 Upselling',              text:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.'},
+      {id:'w1',  section:'♻️ Waste & Stock',          text:'Waste Management: Food and material waste is minimized and properly handled.'},
+      {id:'w2',  section:'♻️ Waste & Stock',          text:'Stock Control: Stock levels are monitored and controlled effectively.'},
+      {id:'p1',  section:'🤝 Team & Attendance',      text:'Team Performance: Overall team performance meets or exceeds the 90% target.'},
+      {id:'p2',  section:'🤝 Team & Attendance',      text:'Staff Punctuality: All staff arrive on time and are ready for their shifts.'},
+      {id:'mp1', section:'📋 Compliance',             text:'Compliance: All SOPs and policies are followed consistently during the shift.'},
+      {id:'mp2', section:'📋 Compliance',             text:'Reporting: All incidents, issues, and observations are reported accurately.'},
+      {id:'a1',  section:'📋 Compliance',             text:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.'},
     ];
     let oicAMContainer = area.querySelector('#oicAMEditSection');
     if (!oicAMContainer) {
