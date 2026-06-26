@@ -7697,6 +7697,7 @@ function updateLiveScore() {
   else if (hasOp)              newScore = opPct;
   else if (hasCl)              newScore = clPct;
   else if (hasEv)              newScore = ePct;
+  else                         newScore = parseFloat(_editStaffData.overallPct||0);
 
   const pass = newScore >= 95;
 
@@ -7711,7 +7712,7 @@ function updateLiveScore() {
         pctEl.textContent = '—';
         pctEl.style.color = '#94A3B8';
         if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
-      } else if (type === 'oic' && _lsAllEvalNA) {
+      } else if (type === 'oic') {
         // All eval answers N/A — show Not visited live
         pctEl.textContent = 'N/A';
         pctEl.style.color = '#94A3B8';
@@ -8106,10 +8107,10 @@ async function saveOverwrite(s) {
 
     // Update allStaff / allBOHData / allFOHData in-memory so Progress pills reflect immediately
     const idx = allStaff.findIndex(st => st._fbKey === fbKey);
-    if (idx >= 0) { allStaff[idx] = {...allStaff[idx], ...s}; if (_evalNotVisited) { allStaff[idx].oicEvalPct = null; allStaff[idx].evalNotVisited = true; } }
+    if (idx >= 0) { allStaff[idx] = {...allStaff[idx], ...s}; allStaff[idx].oicEvalPct = s.oicEvalPct; allStaff[idx].evalNotVisited = s.evalNotVisited || false; }
     [allBOHData, allFOHData].forEach(arr => {
       const ai = arr.findIndex(st => st._fbKey === fbKey || (st.staffName === s.staffName && st.role === s.role && st.week === s.week));
-      if (ai >= 0) { arr[ai] = {...arr[ai], ...s}; if (_evalNotVisited) { arr[ai].oicEvalPct = null; arr[ai].evalNotVisited = true; } }
+      if (ai >= 0) { arr[ai] = {...arr[ai], ...s}; arr[ai].oicEvalPct = s.oicEvalPct; arr[ai].evalNotVisited = s.evalNotVisited || false; }
     });
 
     _editMode = false; _editChanges = {}; _editPhotoChanges = {};
@@ -11060,6 +11061,7 @@ async function saveFOHOverwrite(staff) {
           r.openingPct      = staffMem.openingPct;
           r.closingPct      = staffMem.closingPct;
           r.oicEvalPct      = staffMem.oicEvalPct;
+          r.evalNotVisited  = staffMem.evalNotVisited || false;
           r.verifiedBy      = staffMem.verifiedBy;
           r.verifiedByRole  = staffMem.verifiedByRole;
           r.verificationLog = staffMem.verificationLog;
