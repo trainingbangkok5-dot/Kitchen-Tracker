@@ -203,8 +203,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="modal-box">
     <div class="modal-title">📷 Photo Proof</div>
     <div class="modal-sub" id="modalLabel">Take a clear photo of this task</div>
-    <label class="mbtn mbtn-cam" for="camInput" onclick="prepareCamera()">📸 Take Photo Now</label>
-    <label class="mbtn mbtn-gal" for="galInput" onclick="prepareGallery()">🖼 Choose from Gallery</label>
+    <button class="mbtn mbtn-cam" onclick="triggerCamera()">📸 Take Photo Now</button>
+    <button class="mbtn mbtn-gal" onclick="triggerGallery()">🖼 Choose from Gallery</button>
     <button class="mbtn mbtn-cancel" onclick="closePhotoModal()">Cancel</button>
   </div>
 </div>
@@ -477,8 +477,40 @@ function prepareGallery() {
   input.setAttribute('accept', 'image/*');
   input.value = '';
 }
-function triggerCamera() { prepareCamera(); document.getElementById('camInput')?.click(); }
-function triggerGallery() { prepareGallery(); document.getElementById('galInput')?.click(); }
+function _setupFileInput(id, withCapture, taskId) {
+  const old = document.getElementById(id);
+  if (!old) return null;
+  const input = document.createElement('input');
+  input.type = 'file'; input.id = id; input.accept = 'image/*';
+  input.style.cssText = 'position:fixed;top:-200px;left:-200px;opacity:0;width:1px;height:1px;';
+  if (withCapture) input.setAttribute('capture', 'environment');
+  old.parentNode.replaceChild(input, old);
+  input.addEventListener('change', function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+      if (taskId) activePhotoTask = taskId;
+      handlePhotoFile(file);
+      setTimeout(function(){ try { input.value=''; } catch(e2){} }, 600);
+    }
+  });
+  return input;
+}
+function triggerCamera() {
+  const savedTask = activePhotoTask;
+  closePhotoModal();
+  setTimeout(function() {
+    const input = _setupFileInput('camInput', true, savedTask);
+    if (input) setTimeout(function() { input.click(); }, 50);
+  }, 150);
+}
+function triggerGallery() {
+  const savedTask = activePhotoTask;
+  closePhotoModal();
+  setTimeout(function() {
+    const input = _setupFileInput('galInput', false, savedTask);
+    if (input) setTimeout(function() { input.click(); }, 50);
+  }, 150);
+}
 
 function iosPhotoFix(inputEl, onDataUrl) {
   inputEl.setAttribute('accept', 'image/*');
@@ -1303,6 +1335,29 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
   }
 }
 
+async function _updateSubmittedPhoto(taskId, urlKey, dbRef) {
+  if (!_db || !dbRef) return;
+  try {
+    const staffName = getStaffName();
+    if (!staffName) return;
+    const snap = await _db.ref('submissions')
+      .orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
+    if (!snap.exists()) return;
+    const updates = {};
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role === ROLE && sub.taskData) {
+        Object.keys(sub.taskData).forEach(k => {
+          if (k === taskId || k.endsWith('_' + taskId)) {
+            updates['submissions/' + child.key + '/taskData/' + k + '/' + urlKey] = dbRef;
+          }
+        });
+      }
+    });
+    if (Object.keys(updates).length > 0) await _db.ref().update(updates);
+  } catch(e) { console.warn('_updateSubmittedPhoto failed:', e); }
+}
+
 function handlePhotoFile(file) {
   if (!file || !activePhotoTask) return;
   const taskId = activePhotoTask;
@@ -1346,19 +1401,7 @@ function removePhoto(taskId, idx) {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Photo input listeners — wire change events on camInput and galInput
-  ['camInput','galInput'].forEach(function(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('change', function(e) {
-      const file = e.target.files && e.target.files[0];
-      if (file) {
-        handlePhotoFile(file);
-        setTimeout(function(){ try { el.value=''; } catch(e2){} }, 600);
-      }
-    });
-    el.addEventListener('cancel', function(){ try { el.value=''; } catch(e){} });
-  });
+  // Photo listeners handled by _setupFileInput in triggerCamera/triggerGallery
 
   // Restore currentShift so photo re-renders stay on the correct shift tab
   try {
