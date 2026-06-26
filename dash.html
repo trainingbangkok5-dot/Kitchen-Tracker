@@ -4034,7 +4034,8 @@ function openStaffDetail(s) {
     // Total score formula: opening+eval, closing+eval, or opening+closing+eval
     const hasOpening = opO !== null;
     const hasClosing = opC !== null;
-    const hasOIC = oicEvalPct !== null;
+    const _evalNotVisited = s.evalNotVisited === true;
+    const hasOIC = oicEvalPct !== null && !_evalNotVisited;
     let totalScore;
     if (hasOpening && hasClosing && hasOIC)  totalScore = Math.round((opO+opC+oicEvalPct)/3);
     else if (hasOpening && hasOIC)           totalScore = Math.round((opO+oicEvalPct)/2);
@@ -4075,8 +4076,8 @@ function openStaffDetail(s) {
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;text-align:center;">' +
           '<div data-scorebox="oic" style="background:#F5F3EE;border-radius:10px;padding:10px;">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
-            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
-            '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+            '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (_evalNotVisited?'N/A':oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
+            '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (_evalNotVisited?'🚫 Not visited':oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
             _buildVerifierTag(_sbVlog,_sbTd,'evaluation',_sbRole) +
           '</div>' +
           '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
@@ -7648,21 +7649,30 @@ function updateLiveScore() {
     }
   });
 
-  let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
+  let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0, eNA_boh = 0;
   Object.entries(updatedTaskData).forEach(([k, t]) => {
-    if (!t || !t.yn || t.yn === 'na') return;
+    if (!t || !t.yn) return;
     const tid = k.replace(/^d[0-9]+_/, '');
-    if (_lsEvalIds.includes(tid))        { eM++;  if (t.yn==='yes') eY++;  }
-    else if (_lsOpenIds.includes(tid))   { opM++; if (t.yn==='yes') opY++; }
-    else if (_lsCloseIds.includes(tid))  { clM++; if (t.yn==='yes') clY++; }
+    if (_lsEvalIds.includes(tid)) {
+      if (t.yn === 'na') { eNA_boh++; return; }
+      eM++; if (t.yn==='yes') eY++;
+    } else {
+      if (t.yn === 'na') return;
+      if (_lsOpenIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
+      else if (_lsCloseIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
+    }
   });
+  const _lsAllEvalNA = eNA_boh > 0 && eM === 0;
 
   const opPct  = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct  != null ? parseFloat(s.openingPct)  : null);
   const _lsIsOpeningOnly = (s.status === 'opening_submitted' || (s._fbKey && s._fbKey.endsWith('_opening')))
     && (s.closingPct == null || s.closingPct === undefined);
   // Always fall back to existing closingPct so re-verification doesn't drop the closing score
   const clPct  = clM > 0 ? Math.round((clY/clM)*100) : (_lsIsOpeningOnly ? null : (s.closingPct != null ? parseFloat(s.closingPct) : null));
-  const ePct   = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
+  const ePct   = _lsAllEvalNA ? null
+    : eM  > 0 ? Math.round((eY/eM)*100)
+    : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
+  const _lsEvalNotVisited = _lsAllEvalNA;
 
   const hasOp = opPct !== null, hasCl = clPct !== null, hasEv = ePct !== null;
   let newScore = 0;
@@ -7965,18 +7975,29 @@ async function saveOverwrite(s) {
     };
   });
 
-  let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0;
+  let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0, eNA = 0;
   Object.entries(updatedTaskData).forEach(([k, t]) => {
-    if (!t.yn || t.yn === 'na') return;
     const tid = k.replace(/^d[0-9]+_/, '');
-    if (_evalIds.includes(tid))        { eM++;  if (t.yn==='yes') eY++;  }
-    else if (_openIds.includes(tid))   { opM++; if (t.yn==='yes') opY++; }
-    else if (_closeIds.includes(tid))  { clM++; if (t.yn==='yes') clY++; }
+    if (_evalIds.includes(tid)) {
+      if (t.yn === 'na') { eNA++; return; }
+      if (!t.yn) return;
+      eM++; if (t.yn==='yes') eY++;
+    } else {
+      if (!t.yn || t.yn === 'na') return;
+      if (_openIds.includes(tid))  { opM++; if (t.yn==='yes') opY++; }
+      else if (_closeIds.includes(tid)) { clM++; if (t.yn==='yes') clY++; }
+    }
   });
 
   const opPct = opM > 0 ? Math.round((opY/opM)*100) : (s.openingPct  != null ? parseFloat(s.openingPct)  : null);
   const clPct = clM > 0 ? Math.round((clY/clM)*100) : (s.closingPct != null ? parseFloat(s.closingPct) : null);
-  const ePct  = eM  > 0 ? Math.round((eY/eM)*100)   : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
+  // If all eval answers are N/A — treat as "not visited", set null not a score
+  const _allEvalNA = eNA > 0 && eM === 0;
+  const ePct  = _allEvalNA ? null  // not visited — excluded from total
+    : eM > 0 ? Math.round((eY/eM)*100)
+    : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
+  // Track whether eval was intentionally skipped (all N/A)
+  const _evalNotVisited = _allEvalNA;
   // Total score formula: opening+eval, closing+eval, or opening+closing+eval
   let newScore = parseFloat(s.overallPct||0);
   if (opPct!==null && clPct!==null && ePct!==null) newScore = Math.round((opPct+clPct+ePct)/3);
@@ -7998,9 +8019,17 @@ async function saveOverwrite(s) {
   } else if (s._fbKey && s._fbKey.endsWith('_opening') && !s.closingPct) {
     await _saveDb.ref('submissions/' + fbKey + '/closingPct').remove().catch(()=>{});
   }
-  if (ePct !== null) {
+  if (_lsEvalNotVisited) {
+    // All N/A — mark as not visited, clear old score
+    updates['submissions/' + fbKey + '/oicEvalPct'] = null;
+    updates['submissions/' + fbKey + '/evalNotVisited'] = true;
+    s.oicEvalPct = null;
+    s.evalNotVisited = true;
+  } else if (ePct !== null) {
     updates['submissions/' + fbKey + '/oicEvalPct'] = ePct;
+    updates['submissions/' + fbKey + '/evalNotVisited'] = false;
     s.oicEvalPct = ePct;
+    s.evalNotVisited = false;
   }
   // Append to verificationLog — preserve all previous entries
   if (verifiedBy) {
@@ -8485,6 +8514,8 @@ function loadBOHData() {
         }
         // Note: closingPct already assigned in Priority 1 above — no duplicate needed
         if (sub.oicEvalPct != null) grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+        if (sub.evalNotVisited === true) grouped[gKey].evalNotVisited = true;
+        else if (sub.evalNotVisited === false) grouped[gKey].evalNotVisited = false;
         // Recalculate overall from opening+closing+eval for KIC, opening+closing for others
         const _op = grouped[gKey].openingPct;
         const _cl = grouped[gKey].closingPct;
@@ -9048,8 +9079,9 @@ function buildProgressCell(staff) {
   const needsEval  = ['oic','kic','linecook','steward'].includes(role);
   const evalLabel  = role === 'oic' ? 'AM Evaluation' : role === 'kic' ? 'AC Evaluation' : 'KIC Evaluation';
   const evalDone   = needsEval
-    ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined)
+    ? (staff.oicEvalPct != null && staff.oicEvalPct !== undefined && !staff.evalNotVisited)
     : true;
+  const _evalNA = needsEval && staff.evalNotVisited === true;
   const verDone    = !!staff.verifiedBy;
 
   // Per-shift verifier lookup from verificationLog
@@ -9133,12 +9165,14 @@ function buildProgressCell(staff) {
 
   if (needsEval) {
     html += row(
-      evalDone ? PILL_DONE : !openDone ? PILL_WAIT : PILL_NEED,
-      evalDone ? CHK : BOX,
-      evalDone
-        ? evalLabel + ' — ' + staff.oicEvalPct + '%'
-        : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted',
-      evalDone ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval') || (['linecook','steward'].includes(role) ? _lastVerifierFor('opening') : null)) : null
+      (_evalNA ? PILL_GREY : evalDone ? PILL_DONE : !openDone ? PILL_WAIT : PILL_NEED),
+      (_evalNA ? '—' : evalDone ? CHK : BOX),
+      _evalNA
+        ? evalLabel + ' — N/A (Not visited)'
+        : evalDone
+          ? evalLabel + ' — ' + staff.oicEvalPct + '%'
+          : !openDone ? evalLabel + ' — waiting' : evalLabel + ' — Not submitted',
+      (!_evalNA && evalDone) ? (_lastVerifierFor('evaluation') || _lastVerifierFor('opening_eval') || _lastVerifierFor('closing_eval') || (['linecook','steward'].includes(role) ? _lastVerifierFor('opening') : null)) : null
     );
   }
 
@@ -9150,6 +9184,7 @@ function buildProgressCell(staff) {
       obsExpected ? PILL_NEED :
       PILL_GREY,
       obsDone ? CHK : BOX,
+      _evalNA       ? obsLabel + ' — N/A (Not visited)' :
       obsDone      ? obsLabel + ' — ' + staff.oicEvalPct + '%' :
       obsExpected  ? obsLabel + ' — Not submitted' :
       obsLabel + ' — Pending',
@@ -9358,6 +9393,8 @@ function loadFOHData() {
           if(oicT>0 && sub.role === 'service') { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
           if (['bartender','delco'].includes(sub.role) && sub.oicEvalPct != null) {
             grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+            if (sub.evalNotVisited === true) grouped[gKey].evalNotVisited = true;
+            else if (sub.evalNotVisited === false) grouped[gKey].evalNotVisited = false;
           }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
