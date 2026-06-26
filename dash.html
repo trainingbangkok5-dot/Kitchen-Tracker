@@ -8807,11 +8807,25 @@ function saveBOHVerification() {
       [allStaff, allBOHData, allFOHData].forEach(arr => {
         arr.forEach(r => {
           if (r.staffName === s.staffName && r.role === s.role && r.week === s.week) {
-            r.verifiedBy = name; r.verifiedByRole = currentRole;
-            r.verifiedAt = now; r.verificationLog = existingLog;
+            r.verifiedBy      = name;
+            r.verifiedByRole  = currentRole;
+            r.verifiedAt      = now;
+            r.verificationLog = existingLog;
+            // Preserve evalNotVisited and oicEvalPct so N/A is not lost after verification
+            r.evalNotVisited  = s.evalNotVisited || false;
+            r.oicEvalPct      = s.oicEvalPct != null ? s.oicEvalPct : null;
           }
         });
       });
+      // Also sync _fohFiltered so openFOHDetail re-renders score box correctly
+      if (_fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx] &&
+          _fohFiltered[_fohDetailIdx].staffName === s.staffName) {
+        _fohFiltered[_fohDetailIdx].verificationLog = existingLog;
+        _fohFiltered[_fohDetailIdx].verifiedBy      = name;
+        _fohFiltered[_fohDetailIdx].verifiedByRole  = currentRole;
+        _fohFiltered[_fohDetailIdx].evalNotVisited  = s.evalNotVisited || false;
+        _fohFiltered[_fohDetailIdx].oicEvalPct      = s.oicEvalPct != null ? s.oicEvalPct : null;
+      }
       showToast('Verified by ' + name + ' ✓', 'ok');
       // Re-render full modal so score boxes and verif history all update immediately
       openStaffDetail(s);
