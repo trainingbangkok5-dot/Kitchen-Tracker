@@ -7247,21 +7247,12 @@ function toggleEditMode(s) {
   // ── OIC Evaluation Observation injection (Area Manager overwriting OIC record) ──
   if (s.role === 'oic' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
     const oicEvalDefs = [
-      {id:'s1', section:'⭐ Service Standards', text:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.'},
-      {id:'s2', section:'⭐ Service Standards', text:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.'},
-      {id:'s3', section:'⭐ Service Standards', text:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.'},
-      {id:'s4', section:'⭐ Service Standards', text:'Service leadership: OIC leads by example and maintains service standards throughout the shift.'},
-      {id:'m1', section:'🔧 Maintenance & Cleanliness', text:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.'},
-      {id:'m2', section:'🔧 Maintenance & Cleanliness', text:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.'},
-      {id:'u1', section:'💰 Upselling', text:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.'},
-      {id:'u2', section:'💰 Upselling', text:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.'},
-      {id:'w1', section:'♻️ Waste & Stock', text:'Waste Management: Food and material waste is minimized and properly handled.'},
-      {id:'w2', section:'♻️ Waste & Stock', text:'Stock Control: Stock levels are monitored and controlled effectively.'},
-      {id:'p1', section:'🤝 Team & Attendance', text:'Team Performance: Overall team performance meets or exceeds the 90% target.'},
-      {id:'p2', section:'🤝 Team & Attendance', text:'Staff Punctuality: All staff arrive on time and are ready for their shifts.'},
-      {id:'mp1', section:'📋 Compliance', text:'Compliance: All SOPs and policies are followed consistently during the shift.'},
-      {id:'mp2', section:'📋 Compliance', text:'Reporting: All incidents, issues, and observations are reported accurately.'},
-      {id:'a1', section:'📋 Compliance', text:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.'},
+      {id:'s1',  section:'⭐ Service & Quality Standards',        text:'Does the OIC actively manage the floor to ensure the sequence of service, guest interaction, hygiene, and brand compliance are consistently upheld?'},
+      {id:'m1',  section:'🤝 Shift Control & Team Leadership',    text:'Does the OIC lead by example, delegating tasks effectively, maintaining high staff morale, and ensuring all FOH checklists are submitted on time?'},
+      {id:'p1',  section:'👁️ Floor Presence & Accountability',    text:'Is the OIC highly visible on the floor, holding FOH staff accountable for their performance, and executing opening/closing duties correctly?'},
+      {id:'u1',  section:'💰 Revenue Drive & Coaching',           text:'Is the OIC aware of daily sales targets, and do they actively coach/monitor the team on upselling techniques to drive results?'},
+      {id:'w1',  section:'⚡ Incident Resolution & Escalation',   text:'Does the OIC handle staff/guest conflicts calmly on the spot and ensure any major incidents or complaints are reported to you promptly?'},
+      {id:'mp1', section:'📅 Attendance & Punctuality',           text:'Did the OIC arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
     ];
     let oicEvalContainer = body.querySelector('#oicEvalEditSection');
     if (!oicEvalContainer) {
@@ -7271,12 +7262,7 @@ function toggleEditMode(s) {
       body.insertBefore(oicEvalContainer, body.querySelector('#cancelEditBtn'));
     }
     let oicEvalHtml = '<div style="background:#1F4E79;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">👥 Area Manager Observation — OIC Evaluation</div>';
-    let lastSecOIC = '';
     oicEvalDefs.forEach(t => {
-      if (t.section !== lastSecOIC) {
-        lastSecOIC = t.section;
-        oicEvalHtml += `<div style="background:#2563EB;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
-      }
       const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
       const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
       const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
@@ -7561,7 +7547,7 @@ function updateLiveScore() {
     : s.role === 'oic'
     ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
     : s.role === 'oic'
-    ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
+    ? ['s1','m1','p1','u1','w1','mp1']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -7847,7 +7833,7 @@ async function saveOverwrite(s) {
     : _isLC
     ? ['lc1','lc2','lc3','lc4','lc5']
     : s.role === 'oic'
-    ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
+    ? ['s1','m1','p1','u1','w1','mp1']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _openIds  = ['o1','o2','o3','o4','o5'];
   const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -9835,8 +9821,10 @@ function openFOHDetail(idx) {
       const bySec = {};
       tasks.forEach(t => {
         const key = t._key || '';
-        const isOicTask = !isOICRole && oicObsIds.some(id => key===id || key.endsWith('_'+id) || key.startsWith(id+'_'));
-        if (isOicTask || (!isOICRole && (t.owner||'').toLowerCase() === 'oic only')) return;
+        const isOicTask = oicObsIds.some(id => key===id || key.endsWith('_'+id) || key.startsWith(id+'_'));
+        // For OIC role: skip eval tasks (shown in eval section) AND 'OIC Only' tasks
+        // For other roles: skip OIC obs tasks and 'OIC Only' owner tasks
+        if (isOicTask || (t.owner||'').toLowerCase() === 'oic only') return;
         // Skip phantom photo-only tasks (no task text and no yn)
         if ((!t.task || t.task.trim() === '') && (!t.yn || t.yn === '')) return;
         const sec = t.section || 'Tasks';
@@ -10714,21 +10702,12 @@ function toggleFOHEditMode() {
   // -- Area Manager Observation -- OIC role
   if (staff && staff.role === 'oic') {
     const oicObsDefs = [
-      {id:'s1',  section:'⭐ Service Standards',      text:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.'},
-      {id:'s2',  section:'⭐ Service Standards',      text:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.'},
-      {id:'s3',  section:'⭐ Service Standards',      text:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.'},
-      {id:'s4',  section:'⭐ Service Standards',      text:'Service leadership: OIC leads by example and maintains service standards throughout the shift.'},
-      {id:'m1',  section:'🔧 Maintenance & Cleanliness', text:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.'},
-      {id:'m2',  section:'🔧 Maintenance & Cleanliness', text:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.'},
-      {id:'u1',  section:'💰 Upselling',              text:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.'},
-      {id:'u2',  section:'💰 Upselling',              text:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.'},
-      {id:'w1',  section:'♻️ Waste & Stock',          text:'Waste Management: Food and material waste is minimized and properly handled.'},
-      {id:'w2',  section:'♻️ Waste & Stock',          text:'Stock Control: Stock levels are monitored and controlled effectively.'},
-      {id:'p1',  section:'🤝 Team & Attendance',      text:'Team Performance: Overall team performance meets or exceeds the 90% target.'},
-      {id:'p2',  section:'🤝 Team & Attendance',      text:'Staff Punctuality: All staff arrive on time and are ready for their shifts.'},
-      {id:'mp1', section:'📋 Compliance',             text:'Compliance: All SOPs and policies are followed consistently during the shift.'},
-      {id:'mp2', section:'📋 Compliance',             text:'Reporting: All incidents, issues, and observations are reported accurately.'},
-      {id:'a1',  section:'📋 Compliance',             text:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.'},
+      {id:'s1',  section:'⭐ Service & Quality Standards',        text:'Does the OIC actively manage the floor to ensure the sequence of service, guest interaction, hygiene, and brand compliance are consistently upheld?'},
+      {id:'m1',  section:'🤝 Shift Control & Team Leadership',    text:'Does the OIC lead by example, delegating tasks effectively, maintaining high staff morale, and ensuring all FOH checklists are submitted on time?'},
+      {id:'p1',  section:'👁️ Floor Presence & Accountability',    text:'Is the OIC highly visible on the floor, holding FOH staff accountable for their performance, and executing opening/closing duties correctly?'},
+      {id:'u1',  section:'💰 Revenue Drive & Coaching',           text:'Is the OIC aware of daily sales targets, and do they actively coach/monitor the team on upselling techniques to drive results?'},
+      {id:'w1',  section:'⚡ Incident Resolution & Escalation',   text:'Does the OIC handle staff/guest conflicts calmly on the spot and ensure any major incidents or complaints are reported to you promptly?'},
+      {id:'mp1', section:'📅 Attendance & Punctuality',           text:'Did the OIC arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
     ];
     let oicAMContainer = area.querySelector('#oicAMEditSection');
     if (!oicAMContainer) {
@@ -10739,13 +10718,8 @@ function toggleFOHEditMode() {
       if (cancelExisting) area.insertBefore(oicAMContainer, cancelExisting);
       else area.appendChild(oicAMContainer);
     }
-    let oicAMHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑 Area Manager Observation — OIC Evaluation</div>';
-    let lastAMSec = '';
+    let oicAMHtml = '<div style="background:#1F4E79;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">👥 Area Manager Observation — OIC Evaluation</div>';
     oicObsDefs.forEach(function(t) {
-      if (t.section && t.section !== lastAMSec) {
-        lastAMSec = t.section;
-        oicAMHtml += '<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">' + t.section + '</div>';
-      }
       const existingYN = (staff.taskData && staff.taskData[t.id]) ? staff.taskData[t.id].yn : '';
       const existingComment = (staff.taskData && staff.taskData[t.id]) ? (staff.taskData[t.id].comment || '') : '';
       const yS = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
