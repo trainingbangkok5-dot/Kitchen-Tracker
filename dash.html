@@ -8879,6 +8879,8 @@ function saveVerification() {
           _fohFiltered[_fohDetailIdx].verificationLog = s.verificationLog;
           _fohFiltered[_fohDetailIdx].verifiedBy      = name;
           _fohFiltered[_fohDetailIdx].verifiedByRole  = currentRole;
+          _fohFiltered[_fohDetailIdx].evalNotVisited  = s.evalNotVisited || false;
+          _fohFiltered[_fohDetailIdx].oicEvalPct      = s.oicEvalPct != null ? s.oicEvalPct : null;
         }
         // Also mark as qualified when verified
         s.verifiedBy = name;
@@ -9542,6 +9544,8 @@ function renderFOHStaff() {
   const scoreBg = p => p >= 95 ? '#DCFCE7' : p >= 70 ? '#FEF3C7' : '#FEE2E2';
 
   filtered.sort((a,b) => new Date(b.submittedAt||b.lastUpdated||0) - new Date(a.submittedAt||a.lastUpdated||0));
+  // Ensure evalNotVisited is carried through from allFOHData into _fohFiltered
+  filtered.forEach(r => { if (r.evalNotVisited === undefined) r.evalNotVisited = false; });
   _fohFiltered = filtered;
   filtered.forEach((staff, staffIdx) => {
     const tr = document.createElement('tr');
@@ -10293,12 +10297,15 @@ function saveReVerification() {
 }
 
 
+let _fohVerifySaving = false;
 function saveFOHMultiVerify() {
+  if (_fohVerifySaving) { showToast('Already saving...', 'warn'); return; }
   const staff = _fohFiltered[_fohDetailIdx];
   if (!staff) return;
   const name = (document.getElementById('verifiedByInput')?.value || '').trim();
   if (!name) { showToast('Please enter your name', 'warn'); return; }
   if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
+  _fohVerifySaving = true;
   const now = new Date().toISOString();
   const fohShift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
   var rawLog = staff.verificationLog;
@@ -10357,8 +10364,8 @@ function saveFOHMultiVerify() {
       }
       // Re-render the full FOH detail modal so score boxes and verif history update
       openFOHDetail(_fohDetailIdx);
-      showToast('Verified by ' + name + ' \u2713', 'ok');
-    }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+      showToast('Verified by ' + name + ' \u2713', 'ok'); _fohVerifySaving = false;
+    }).catch(e => { showToast('Save failed: ' + e.message, 'error'); _fohVerifySaving = false; });
   });
 }
 
