@@ -413,6 +413,14 @@ function getOutlet()    { return document.getElementById('fOutlet')?.value||''; 
 // ── Photo ────────────────────────────────────────────────────
 let activePhotoTask = null;
 function openPhotoModal(tid) {
+  // Max 5 photos per task
+  let _photoCount = 0;
+  for (let _pi = 0; _pi < 5; _pi++) {
+    const _lk = _pi === 0 ? 'photo' : 'photo_' + _pi;
+    const _uk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
+    if (getVal(currentDay, tid, _lk) || getVal(currentDay, tid, _uk)) _photoCount++;
+  }
+  if (_photoCount >= 5) { showToast('Maximum 5 photos reached for this task', 'warn'); return; }
   activePhotoTask = tid;
   document.getElementById('modalLabel').textContent = 'Take a clear photo of this task';
   document.getElementById('photoModal').classList.add('open');
