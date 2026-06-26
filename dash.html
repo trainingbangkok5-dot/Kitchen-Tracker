@@ -7800,7 +7800,7 @@ async function saveOverwrite(s) {
     const orig = (s.taskData && s.taskData[k] && s.taskData[k].comment) || '';
     return el.value.trim() !== orig;
   });
-  const hasChanges = Object.keys(_editChanges).length > 0 || Object.keys(_editPhotoChanges).length > 0 || commentChanges;
+  const hasChanges = Object.keys(_editChanges).length > 0 || Object.keys(_editPhotoChanges).length > 0 || commentChanges || !!verifiedBy;
 
   if (!hasChanges) { showToast('⚠ No changes detected. Tap YES / NO / N·A on a task first.', 'warn'); return; }
 
@@ -7997,7 +7997,7 @@ async function saveOverwrite(s) {
     : eM > 0 ? Math.round((eY/eM)*100)
     : (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null);
   // Track whether eval was intentionally skipped (all N/A)
-  const _evalNotVisited = _allEvalNA;
+  const _evalNotVisited = _allEvalNA || false;
   // Total score formula: opening+eval, closing+eval, or opening+closing+eval
   let newScore = parseFloat(s.overallPct||0);
   if (opPct!==null && clPct!==null && ePct!==null) newScore = Math.round((opPct+clPct+ePct)/3);

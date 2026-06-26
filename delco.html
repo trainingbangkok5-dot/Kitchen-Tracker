@@ -28,7 +28,10 @@
             if (!task || typeof task !== 'object') return;
             ['photo','photo_1','photo_2','photo_3','photo_4','photo_5',
              'photo_6','photo_7','photo_8','photo_9'].forEach(function(pk) {
-              if (task[pk] && typeof task[pk] === 'string' && task[pk].startsWith('data:')) {
+              var urlKey = pk === 'photo' ? 'photoUrl' : pk.replace('photo_','photoUrl_');
+              var hasCloudUrl = task[urlKey] && task[urlKey].startsWith('http');
+              // Only strip base64 if Cloudinary URL already exists for this slot
+              if (hasCloudUrl && task[pk] && typeof task[pk] === 'string' && task[pk].startsWith('data:')) {
                 delete task[pk]; changed = true;
               }
             });
@@ -359,9 +362,12 @@ function _stripBase64(d) {
       Object.keys(clean[dk]).forEach(function(tk) {
         var task = clean[dk][tk];
         if (!task || typeof task !== 'object') return;
+        // Only strip base64 if a Cloudinary URL already exists for that slot
         ['photo','photo_1','photo_2','photo_3','photo_4','photo_5',
          'photo_6','photo_7','photo_8','photo_9'].forEach(function(pk) {
-          if (task[pk] && typeof task[pk] === 'string' && task[pk].startsWith('data:'))
+          var urlKey = pk === 'photo' ? 'photoUrl' : pk.replace('photo_','photoUrl_');
+          var hasCloudUrl = task[urlKey] && task[urlKey].startsWith('http');
+          if (hasCloudUrl && task[pk] && typeof task[pk] === 'string' && task[pk].startsWith('data:'))
             delete task[pk];
         });
       });
