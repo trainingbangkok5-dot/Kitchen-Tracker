@@ -7654,10 +7654,17 @@ function updateLiveScore() {
   });
 
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0, eNA_boh = 0;
+  // Only count eval tasks that are in _editChanges (user explicitly set them)
+  // OR tasks in taskData that were NOT overridden — but if _editChanges has ANY eval key,
+  // only count eval tasks from _editChanges to avoid stale YES/NO from previous submissions
+  const _editEvalKeys = Object.keys(_editChanges).filter(k => _lsEvalIds.includes(k.replace(/^d[0-9]+_/, '')));
+  const _hasEditEval = _editEvalKeys.length > 0;
   Object.entries(updatedTaskData).forEach(([k, t]) => {
     if (!t || !t.yn) return;
     const tid = k.replace(/^d[0-9]+_/, '');
     if (_lsEvalIds.includes(tid)) {
+      // If user has edited any eval tasks, only count tasks that were explicitly set in this session
+      if (_hasEditEval && !_editChanges[k]) return;
       if (t.yn === 'na') { eNA_boh++; return; }
       eM++; if (t.yn==='yes') eY++;
     } else {
@@ -7701,6 +7708,11 @@ function updateLiveScore() {
         pctEl.textContent = '—';
         pctEl.style.color = '#94A3B8';
         if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
+      } else if (type === 'oic' && _lsAllEvalNA) {
+        // All eval answers N/A — show Not visited live
+        pctEl.textContent = 'N/A';
+        pctEl.style.color = '#94A3B8';
+        if (lblEl) { lblEl.textContent = '🚫 Not visited'; lblEl.style.color = '#94A3B8'; }
       }
       return;
     }
@@ -7980,9 +7992,14 @@ async function saveOverwrite(s) {
   });
 
   let opY = 0, opM = 0, clY = 0, clM = 0, eY = 0, eM = 0, eNA = 0;
+  // Only count eval tasks from _editChanges if user has edited any eval tasks
+  // Prevents stale YES/NO from previous submissions interfering with N/A detection
+  const _saveEditEvalKeys = Object.keys(_editChanges).filter(k => _evalIds.includes(k.replace(/^d[0-9]+_/, '')));
+  const _saveHasEditEval = _saveEditEvalKeys.length > 0;
   Object.entries(updatedTaskData).forEach(([k, t]) => {
     const tid = k.replace(/^d[0-9]+_/, '');
     if (_evalIds.includes(tid)) {
+      if (_saveHasEditEval && !_editChanges[k]) return;
       if (t.yn === 'na') { eNA++; return; }
       if (!t.yn) return;
       eM++; if (t.yn==='yes') eY++;
