@@ -7383,6 +7383,59 @@ function toggleEditMode(s) {
     dcEditContainer.innerHTML = dcHtml;
   }
 
+  // ── OIC Evaluation Observation injection (Area Manager overwriting OIC record) ──
+  if (s.role === 'oic' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
+    const oicEvalDefs = [
+      {id:'s1', section:'⭐ Service Standards', text:'Customer interaction: OIC ensures staff engage with guests in a friendly, professional, and attentive manner.'},
+      {id:'s2', section:'⭐ Service Standards', text:'Sequence of Service: OIC ensures guests are greeted, seated, served, and thanked according to the established sequence.'},
+      {id:'s3', section:'⭐ Service Standards', text:'Service Awareness: OIC demonstrates good awareness of guest needs and responds promptly.'},
+      {id:'s4', section:'⭐ Service Standards', text:'Service leadership: OIC leads by example and maintains service standards throughout the shift.'},
+      {id:'m1', section:'🔧 Maintenance & Cleanliness', text:'Maintenance: All equipment is in proper working condition. Any issues are reported promptly.'},
+      {id:'m2', section:'🔧 Maintenance & Cleanliness', text:'Cleanliness: All areas are clean, organized, and meet hygiene standards throughout the shift.'},
+      {id:'u1', section:'💰 Upselling', text:'Upselling: Staff follow upselling techniques by promoting offers and recommending add-ons.'},
+      {id:'u2', section:'💰 Upselling', text:'Guest Satisfaction: Overall guest satisfaction is maintained at a high standard.'},
+      {id:'w1', section:'♻️ Waste & Stock', text:'Waste Management: Food and material waste is minimized and properly handled.'},
+      {id:'w2', section:'♻️ Waste & Stock', text:'Stock Control: Stock levels are monitored and controlled effectively.'},
+      {id:'p1', section:'🤝 Team & Attendance', text:'Team Performance: Overall team performance meets or exceeds the 90% target.'},
+      {id:'p2', section:'🤝 Team & Attendance', text:'Staff Punctuality: All staff arrive on time and are ready for their shifts.'},
+      {id:'mp1', section:'📋 Compliance', text:'Compliance: All SOPs and policies are followed consistently during the shift.'},
+      {id:'mp2', section:'📋 Compliance', text:'Reporting: All incidents, issues, and observations are reported accurately.'},
+      {id:'a1', section:'📋 Compliance', text:'Audit: The outlet achieved a score above 90% in the last monthly audit visit.'},
+    ];
+    let oicEvalContainer = body.querySelector('#oicEvalEditSection');
+    if (!oicEvalContainer) {
+      oicEvalContainer = document.createElement('div');
+      oicEvalContainer.id = 'oicEvalEditSection';
+      oicEvalContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
+      body.insertBefore(oicEvalContainer, body.querySelector('#cancelEditBtn'));
+    }
+    let oicEvalHtml = '<div style="background:#1F4E79;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">👥 Area Manager Observation — OIC Evaluation</div>';
+    let lastSecOIC = '';
+    oicEvalDefs.forEach(t => {
+      if (t.section !== lastSecOIC) {
+        lastSecOIC = t.section;
+        oicEvalHtml += `<div style="background:#2563EB;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
+      }
+      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
+      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
+      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
+      oicEvalHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
+        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
+        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:4px;">
+            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
+            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
+            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
+          </div>
+          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Area Manager comment...">${existingComment}</textarea>
+        </div>
+      </div>`;
+    });
+    oicEvalContainer.innerHTML = oicEvalHtml;
+  }
+
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
   if (s.role === 'kic' && ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) {
     const allKicDefs = [
@@ -7511,7 +7564,8 @@ function _applyOverwriteShiftFilter(shift) {
     (currentRole === 'oic'          && ['service','bartender','delco'].includes(_sr)) ||
     (currentRole === 'areachef'     && ['linecook','steward','kic'].includes(_sr)) ||
     (currentRole === 'areamanager'  && ['linecook','steward','kic','oic','service','bartender','delco'].includes(_sr)) ||
-    ['director','training','operations','ceo'].includes(currentRole)
+    ['director','training','operations','ceo'].includes(currentRole) ||
+    (_sr === 'oic' && ['areamanager','director','training','operations','ceo'].includes(currentRole))
   );
 
   // Hide Evaluation option from dropdown if role has no eval access
@@ -7531,7 +7585,7 @@ function _applyOverwriteShiftFilter(shift) {
   }
 
   // Eval section IDs (all possible eval panels)
-  const evalSectionIds = ['kicEditSection','lcObsSection','oicBOHEditSection','btObsSection','dcObsSection'];
+  const evalSectionIds = ['kicEditSection','lcObsSection','oicBOHEditSection','btObsSection','dcObsSection','oicEvalEditSection'];
 
   // All eval task IDs
   const allEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
