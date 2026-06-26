@@ -7243,145 +7243,6 @@ function toggleEditMode(s) {
   }
   body.appendChild(cancelBtn);
 
-  // ── OIC Observation injection (Area Manager overwriting service staff record via BOH modal) ──
-  if (s.role === 'service' && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole)) {
-    const oicObsDefs = [
-      {id:'u1', section:'💰 Upselling & Revenue Generation',      text:'Does the staff actively promote offers, suggest add-ons, and recommend beverages to guests?'},
-      {id:'s1', section:'⭐ Sequence of Service & Attentiveness',  text:'Are guests greeted, seated, served, and thanked according to standards, with prompt attention given to their needs throughout?'},
-      {id:'f1', section:'📝 Professionalism & Grooming',           text:'Does the staff member maintain a well-groomed appearance and handle all guest interactions—including complaints—professionally and calmly?'},
-      {id:'t1', section:'🤝 Teamwork & Operational Support',       text:'Do they show a positive attitude, support their colleagues, and follow all instructions from the OIC/management without resistance?'},
-      {id:'t4', section:'📅 Attendance & Reliability',             text:'Did the staff member arrive on time, complete their full shift, and adhere to scheduling standards?'},
-    ];
-
-    let oicBOHEditContainer = body.querySelector('#oicBOHEditSection');
-    if (!oicBOHEditContainer) {
-      oicBOHEditContainer = document.createElement('div');
-      oicBOHEditContainer.id = 'oicBOHEditSection';
-      oicBOHEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      body.insertBefore(oicBOHEditContainer, body.querySelector('#cancelEditBtn'));
-    }
-
-    let oicBOHHtml = '<div style="background:#7B2D42;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">🧑‍💼 OIC Observation</div>';
-    let lastSecBOH = '';
-    oicObsDefs.forEach(t => {
-      if (t.section !== lastSecBOH) {
-        lastSecBOH = t.section;
-        oicBOHHtml += `<div style="background:#C4533A;padding:5px 14px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;">${t.section}</div>`;
-      }
-      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
-      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
-      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      oicBOHHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;gap:4px;">
-            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
-            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
-            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
-          </div>
-          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC observation comment...">${existingComment}</textarea>
-          <div class="oic-photo-preview" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${(s.taskData&&s.taskData[t.id]&&s.taskData[t.id].oicPhotoUrl)?'<img src="'+s.taskData[t.id].oicPhotoUrl+'" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;" onclick="openLightbox(this.src)">':''}</div>
-          <div style="display:flex;gap:6px;margin-top:6px;">
-            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#1A3C5E;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
-              📷 Take Photo
-              <input type="file" accept="image/*" capture="environment" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))">
-            </label>
-            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:7px;background:#475569;color:#fff;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
-              🖼 Gallery
-              <input type="file" accept="image/*" style="display:none;" data-fohtaskkey="${t.id}" onchange="handleFOHEditPhoto(this, this.closest('[data-taskkey]'))">
-            </label>
-          </div>
-        </div>
-      </div>`;
-    });
-    oicBOHEditContainer.innerHTML = oicBOHHtml;
-  }
-
-  // ── OIC Observation for Bartender (BOH modal) ──
-  if (s.role === 'bartender' && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole)) {
-    const btObsDefs = [
-      {id:'bt1', text:'Does the staff member strictly follow drink recipes and portion control, ensuring all beverages meet required standards for taste, temperature, and presentation before service?'},
-      {id:'bt2', text:'Does the staff member ensure the bar station, garnishes, ice, and glassware are fully prepared before service and kept organized and replenished throughout the shift?'},
-      {id:'bt3', text:'Does the staff member maintain excellent personal grooming, follow proper handwashing and glove-wear practices, and ensure the bar counters, tools, and ice wells stay clean and sanitary?'},
-      {id:'bt4', text:'Does the staff member handle beverage orders efficiently to support floor ticket times, communicate clearly with the service team, and maintain a positive attitude?'},
-    ];
-    // Hide any existing bt1-bt4 rows from main body to prevent duplication
-    body.querySelectorAll('[data-taskkey]').forEach(row => {
-      const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
-      if (['bt1','bt2','bt3','bt4'].includes(tk)) row.style.display = 'none';
-    });
-    let btEditContainer = body.querySelector('#btObsSection');
-    if (!btEditContainer) {
-      btEditContainer = document.createElement('div');
-      btEditContainer.id = 'btObsSection';
-      btEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      body.insertBefore(btEditContainer, body.querySelector('#cancelEditBtn'));
-    }
-    let btHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">🍹 OIC OBSERVATION</div>';
-    btObsDefs.forEach(t => {
-      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
-      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
-      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      btHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;gap:4px;">
-            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
-            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
-            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
-          </div>
-          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC comment...">${existingComment}</textarea>
-        </div>
-      </div>`;
-    });
-    btEditContainer.innerHTML = btHtml;
-  }
-
-  // ── OIC Observation for Delco (BOH modal) ──
-  if (s.role === 'delco' && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole)) {
-    const dcObsDefs = [
-      {id:'dc1', text:'Does the staff member double-check all delivery slips against physical items, ensuring correct modifications, tight seals, proper temperature control, and correct branding before dispatch?'},
-      {id:'dc2', text:'Does the staff member assign orders quickly to available aggregators or internal drivers, keeping delivery ticket times within company targets?'},
-      {id:'dc3', text:'Is the delivery station fully prepared with sufficient packing materials (bags, tissue, cutlery, tapes) before peak hours, and kept clean and organized?'},
-      {id:'dc4', text:'Does the staff member communicate effectively with both kitchen staff and delivery riders, handle delay complaints calmly, and maintain a positive attitude?'},
-      {id:'dc5', text:'Did the staff member arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
-    ];
-    body.querySelectorAll('[data-taskkey]').forEach(row => {
-      const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
-      if (['dc1','dc2','dc3','dc4','dc5'].includes(tk)) row.style.display = 'none';
-    });
-    let dcEditContainer = body.querySelector('#dcObsSection');
-    if (!dcEditContainer) {
-      dcEditContainer = document.createElement('div');
-      dcEditContainer.id = 'dcObsSection';
-      dcEditContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      body.insertBefore(dcEditContainer, body.querySelector('#cancelEditBtn'));
-    }
-    let dcHtml = '<div style="background:#2E6DA4;padding:9px 14px;font-size:11px;font-weight:700;color:#fff;letter-spacing:.04em;">🛵 OIC OBSERVATION</div>';
-    dcObsDefs.forEach(t => {
-      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
-      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
-      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      dcHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;gap:4px;">
-            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
-            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
-            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
-          </div>
-          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="OIC comment...">${existingComment}</textarea>
-        </div>
-      </div>`;
-    });
-    dcEditContainer.innerHTML = dcHtml;
-  }
 
   // ── OIC Evaluation Observation injection (Area Manager overwriting OIC record) ──
   if (s.role === 'oic' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
@@ -7540,6 +7401,14 @@ function toggleEditMode(s) {
   // ── Wire shift dropdown — clone to remove stacked listeners ───────────────
   const _owShiftSel = document.getElementById('verifyShiftSelect');
   if (_owShiftSel) {
+    // Auto-switch to evaluation tab if this record needs eval and no opening/closing yet changed
+    const _needsEvalDefault = (
+      (s.role === 'kic' && ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) ||
+      (s.role === 'oic' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) ||
+      (['linecook','steward'].includes(s.role) && ['kic','areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) ||
+      (['service','bartender','delco'].includes(s.role) && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole))
+    );
+    if (_needsEvalDefault && _owShiftSel.value !== 'evaluation') _owShiftSel.value = 'evaluation';
     _applyOverwriteShiftFilter(_owShiftSel.value || 'opening');
     const _newOwSel = _owShiftSel.cloneNode(true);
     _owShiftSel.parentNode.replaceChild(_newOwSel, _owShiftSel);
@@ -7585,7 +7454,7 @@ function _applyOverwriteShiftFilter(shift) {
   }
 
   // Eval section IDs (all possible eval panels)
-  const evalSectionIds = ['kicEditSection','lcObsSection','oicBOHEditSection','btObsSection','dcObsSection','oicEvalEditSection'];
+  const evalSectionIds = ['kicEditSection','lcObsSection','oicEvalEditSection','btObsSection','dcObsSection'];
 
   // All eval task IDs
   const allEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
@@ -7689,6 +7558,10 @@ function updateLiveScore() {
     ? ['dc1','dc2','dc3','dc4','dc5']
     : s.role === 'bartender' ? ['bt1','bt2','bt3','bt4']
     : s.role === 'delco' ? ['dc1','dc2','dc3','dc4','dc5']
+    : s.role === 'oic'
+    ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
+    : s.role === 'oic'
+    ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _lsOpenIds  = ['o1','o2','o3','o4','o5'];
   const _lsCloseIds = _isKICRole ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
@@ -7973,6 +7846,8 @@ async function saveOverwrite(s) {
     ? ['st1','st2','st3','st4','st5']
     : _isLC
     ? ['lc1','lc2','lc3','lc4','lc5']
+    : s.role === 'oic'
+    ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
   const _openIds  = ['o1','o2','o3','o4','o5'];
   const _closeIds = _isKIC ? ['cy1','cy2','cy3','cy4'] : ['c1','c2','c3','c4','c5'];
