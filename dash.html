@@ -10286,8 +10286,13 @@ function saveFOHMultiVerify() {
       staff.verifiedBy = name; staff.verifiedByRole = currentRole;
       staff.verifiedAt = now; staff.verificationLog = log;
       allFOHData.forEach(r => {
-        if (r.staffName===staff.staffName && r.role===staff.role && r.week===staff.week)
-          Object.assign(r, {verifiedBy:name, verifiedByRole:currentRole, verificationLog:log});
+        if (r.staffName===staff.staffName && r.role===staff.role && r.week===staff.week) {
+          r.verifiedBy      = name;
+          r.verifiedByRole  = currentRole;
+          r.verificationLog = log;
+          r.evalNotVisited  = staff.evalNotVisited === true;
+          r.oicEvalPct      = staff.oicEvalPct != null ? staff.oicEvalPct : null;
+        }
       });
       const hEl = document.getElementById('fohVerifiedBy');
       if (hEl) hEl.innerHTML = '<span style="color:#86EFAC;font-size:11px;">\u2705 Verified (' + log.length + ')</span>';
@@ -10312,7 +10317,8 @@ function saveFOHMultiVerify() {
       }
       // Re-render the full FOH detail modal so score boxes and verif history update
       openFOHDetail(_fohDetailIdx);
-      showToast('Verified by ' + name + ' \u2713', 'ok'); _fohVerifySaving = false;
+      renderFOHStaff(); // refresh table so progress column reflects evalNotVisited
+      showToast('Verified by ' + name + ' ✓', 'ok'); _fohVerifySaving = false;
     }).catch(e => { showToast('Save failed: ' + e.message, 'error'); _fohVerifySaving = false; });
   });
 }
