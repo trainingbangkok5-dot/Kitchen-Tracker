@@ -7701,6 +7701,11 @@ function updateLiveScore() {
         pctEl.textContent = '—';
         pctEl.style.color = '#94A3B8';
         if (lblEl) { lblEl.textContent = 'N/A'; lblEl.style.color = '#94A3B8'; }
+      } else if (type === 'oic' && _lsAllEvalNA) {
+        // All eval answers are N/A — show Not visited
+        pctEl.textContent = 'N/A';
+        pctEl.style.color = '#94A3B8';
+        if (lblEl) { lblEl.textContent = '🚫 Not visited'; lblEl.style.color = '#94A3B8'; }
       }
       return;
     }
