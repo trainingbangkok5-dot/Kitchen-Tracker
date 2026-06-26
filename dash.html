@@ -10307,7 +10307,7 @@ function saveFOHMultiVerify() {
         _fohFiltered[_fohDetailIdx].verificationLog = staff.verificationLog;
         _fohFiltered[_fohDetailIdx].verifiedBy      = staff.verifiedBy;
         _fohFiltered[_fohDetailIdx].verifiedByRole  = staff.verifiedByRole;
-        _fohFiltered[_fohDetailIdx].evalNotVisited  = staff.evalNotVisited || false;
+        _fohFiltered[_fohDetailIdx].evalNotVisited  = staff.evalNotVisited === true;
         _fohFiltered[_fohDetailIdx].oicEvalPct      = staff.oicEvalPct != null ? staff.oicEvalPct : null;
       }
       // Re-render the full FOH detail modal so score boxes and verif history update
@@ -10946,7 +10946,14 @@ async function saveFOHOverwrite(staff) {
       } else if (sub.status === 'opening_submitted') {
         updates['submissions/' + child.key + '/closingPct'] = null;
       }
-      if (fohEPct2 !== null) updates['submissions/' + child.key + '/oicEvalPct'] = fohEPct2;
+      const _fohAllNA = eAnswered > 0 && eT === 0; // all eval answers are N/A
+      if (_fohAllNA) {
+        updates['submissions/' + child.key + '/evalNotVisited'] = true;
+        // oicEvalPct will be removed after update via .remove()
+      } else if (fohEPct2 !== null) {
+        updates['submissions/' + child.key + '/oicEvalPct'] = fohEPct2;
+        updates['submissions/' + child.key + '/evalNotVisited'] = false;
+      }
     }
   });
 
@@ -10981,6 +10988,16 @@ async function saveFOHOverwrite(staff) {
       }
     });
     await fohDb.ref().update(updates);
+    // Remove oicEvalPct for any submission where all eval answers are N/A
+    const _naRemovePromises = [];
+    snap.forEach(child => {
+      const sub = child.val();
+      if (sub.role !== staff.role || sub.week !== staff.week) return;
+      if (updates['submissions/' + child.key + '/evalNotVisited'] === true) {
+        _naRemovePromises.push(fohDb.ref('submissions/' + child.key + '/oicEvalPct').remove().catch(()=>{}));
+      }
+    });
+    if (_naRemovePromises.length) await Promise.all(_naRemovePromises);
     _fohEditMode = false; _fohEditChanges = {}; _fohPhotoUploading = false;
     const btn = document.getElementById('fohEditBtn');
     if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; btn.disabled = false; btn.style.opacity = '1'; }
@@ -10998,8 +11015,12 @@ async function saveFOHOverwrite(staff) {
         if (updates['submissions/' + child.key + '/openingPct'] != null) staffMem.openingPct = updates['submissions/' + child.key + '/openingPct'];
         if (updates['submissions/' + child.key + '/closingPct'] != null) staffMem.closingPct = updates['submissions/' + child.key + '/closingPct'];
         else if (child.key.endsWith('_opening')) staffMem.closingPct = null;
-        if (updates['submissions/' + child.key + '/oicEvalPct'] != null) staffMem.oicEvalPct = updates['submissions/' + child.key + '/oicEvalPct'];
-        if (updates['submissions/' + child.key + '/evalNotVisited'] === true) { staffMem.oicEvalPct = null; staffMem.evalNotVisited = true; }
+        if (updates['submissions/' + child.key + '/evalNotVisited'] === true) {
+          staffMem.oicEvalPct = null; staffMem.evalNotVisited = true;
+        } else if (updates['submissions/' + child.key + '/oicEvalPct'] != null) {
+          staffMem.oicEvalPct = updates['submissions/' + child.key + '/oicEvalPct'];
+          staffMem.evalNotVisited = false;
+        }
         // Update verifiedBy in memory so header reflects immediately
         if (_fohVerifiedBy) {
           staffMem.verifiedBy = _fohVerifiedBy;
@@ -11028,8 +11049,8 @@ async function saveFOHOverwrite(staff) {
           r.qualified       = staffMem.qualified;
           r.openingPct      = staffMem.openingPct;
           r.closingPct      = staffMem.closingPct;
-          r.oicEvalPct      = staffMem.oicEvalPct;
-          r.evalNotVisited  = staffMem.evalNotVisited || false;
+          r.oicEvalPct      = staffMem.oicEvalPct != null ? staffMem.oicEvalPct : null;
+          r.evalNotVisited  = staffMem.evalNotVisited === true;
           r.verifiedBy      = staffMem.verifiedBy;
           r.verifiedByRole  = staffMem.verifiedByRole;
           r.verificationLog = staffMem.verificationLog;
