@@ -7,12 +7,26 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
-// Force fresh load — clear old cached version
+// Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260627010000';
+  var v = '20260627020000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
+    // Clear all service worker caches so PWA gets fresh files
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(name) { caches.delete(name); });
+      });
+    }
+    // Unregister service workers except OneSignal
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(reg) {
+          if (reg.scope && !reg.scope.includes('OneSignal')) reg.unregister();
+        });
+      });
+    }
     if (stored) {
       // Old version detected — reload without cache
       window.location.reload(true);
@@ -10510,6 +10524,12 @@ function _applyFOHShiftFilter(shift) {
   const area = document.getElementById('fohChecklistArea');
   if (!area) return;
 
+  // Hide FOH placeholder when a real selection is made
+  const _fohPH2 = document.getElementById('_fohShiftPlaceholder');
+  if (_fohPH2) _fohPH2.style.display = shift ? 'none' : 'block';
+
+  if (!shift) return; // nothing to show until type selected
+
   const isEval = shift === 'evaluation';
 
   // Determine if current role has eval access for this FOH staff
@@ -10624,10 +10644,19 @@ function toggleFOHEditMode() {
   _fohEditChanges = {};
 
   const btn = document.getElementById('fohEditBtn');
-  if (btn) { btn.textContent = '💾 Save Changes'; btn.style.background = '#16A34A'; }
+  if (btn) {
+    btn.textContent = '💾 Save Changes';
+    btn.style.background = '#94A3B8';
+    btn.style.cursor = 'not-allowed';
+    btn.style.opacity = '0.7';
+    btn.disabled = true;
+  }
 
   const area = document.getElementById('fohChecklistArea');
   if (!area) return;
+
+  // Hide checklist area immediately — only shown after shift type is selected
+  area.style.display = 'none';
 
   // Show edit buttons, hide yn display badges — but KEEP photos visible
   area.querySelectorAll('.foh-yn-display').forEach(el => el.style.display = 'none');
@@ -10839,13 +10868,49 @@ function toggleFOHEditMode() {
   // ── Wire shift dropdown to show/hide FOH eval sections ──────────────────
   const _fohShiftSel = document.getElementById('verifyShiftSelect');
   if (_fohShiftSel) {
-    _applyFOHShiftFilter(_fohShiftSel.value || 'opening');
+    // Always start blank — verifier must consciously select checklist type
+    _fohShiftSel.value = '';
+    _applyFOHShiftFilter('');
     // Remove any previous listener to avoid stacking
     const _newSel = _fohShiftSel.cloneNode(true);
     _fohShiftSel.parentNode.replaceChild(_newSel, _fohShiftSel);
     _newSel.addEventListener('change', function() {
-      _applyFOHShiftFilter(this.value);
+      const val = this.value;
+      if (val) {
+        // Show checklist area and enable save button
+        const _fohArea = document.getElementById('fohChecklistArea');
+        if (_fohArea) _fohArea.style.display = '';
+        const _saveBtn = document.getElementById('fohEditBtn');
+        if (_saveBtn) {
+          _saveBtn.disabled = false;
+          _saveBtn.style.background = '#16A34A';
+          _saveBtn.style.cursor = 'pointer';
+          _saveBtn.style.opacity = '1';
+        }
+        // Enable Add Verification button
+        const _verifBtn = document.getElementById('addVerifBtn');
+        if (_verifBtn) {
+          _verifBtn.disabled = false;
+          _verifBtn.style.background = '#15803D';
+          _verifBtn.style.cursor = 'pointer';
+          _verifBtn.style.opacity = '1';
+        }
+      }
+      _applyFOHShiftFilter(val);
     });
+    // Show placeholder in FOH area
+    const _fohArea2 = document.getElementById('fohChecklistArea');
+    if (_fohArea2) {
+      let _fohPH = document.getElementById('_fohShiftPlaceholder');
+      if (!_fohPH) {
+        _fohPH = document.createElement('div');
+        _fohPH.id = '_fohShiftPlaceholder';
+        _fohPH.style.cssText = 'padding:24px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic;border:1.5px dashed #E0DDD4;border-radius:10px;margin:12px 0;';
+        _fohPH.textContent = '👆 Please select a checklist type above to begin.';
+        _fohArea2.parentNode.insertBefore(_fohPH, _fohArea2.nextSibling);
+      }
+      _fohPH.style.display = 'block';
+    }
   }
 }
 
