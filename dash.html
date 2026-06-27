@@ -2457,47 +2457,55 @@ function openStaffWeeklyDetail(idx) {
 
 
 // ══════════════════════════════════════════════════════════════
-// LIVE REPORT TAB
+// LIVE REPORT TAB — v2 (date range, live indicator, mobile-responsive)
 // ══════════════════════════════════════════════════════════════
+var _lrAutoRefresh = null;
+var _lrCountdown = 60;
+
 function renderLiveReport() {
   const container = document.getElementById('liveReportContainer');
   if (!container) return;
-  container.innerHTML = '<div style="text-align:center;padding:30px;color:#94A3B8;">⏳ Loading...</div>';
 
-  // ── Build week options from allBOHData + allFOHData ──
-  const allWeeks = new Set();
-  [...allBOHData, ...allFOHData].forEach(s => { if (s.week) allWeeks.add(s.week); });
-  const sortedWeeks = Array.from(allWeeks).sort().reverse();
-  const currentWeek = getSelectedWeek ? getSelectedWeek() : (sortedWeeks[0] || '');
+  // Clear previous auto-refresh
+  if (_lrAutoRefresh) clearInterval(_lrAutoRefresh);
 
-  // ── Build outlet list ──
-  const allOutlets = new Set();
-  [...allBOHData, ...allFOHData].forEach(s => { if (s.outlet) allOutlets.add(s.outlet); });
-  const sortedOutlets = Array.from(allOutlets).sort();
+  // Dubai date helper
+  function dubaiDateStr(offsetDays) {
+    const d = new Date();
+    const dubai = new Date(d.toLocaleString('en-US', {timeZone:'Asia/Dubai'}));
+    dubai.setDate(dubai.getDate() + (offsetDays||0));
+    return dubai.toISOString().substring(0,10);
+  }
 
-  // ── Tier logic ──
+  // Tier logic
   function getTier(pct) {
     if (pct === null || pct === undefined) return null;
     const p = parseFloat(pct);
-    if (p >= 95) return { label:'Excellent', bg:'#EAF3DE', color:'#3B6D11' };
-    if (p >= 90) return { label:'Good',      bg:'#FAEEDA', color:'#854F0B' };
-    if (p >= 85) return { label:'Satisfactory', bg:'#FAECE7', color:'#993C1D' };
-    return { label:'Below Target', bg:'#FCEBEB', color:'#A32D2D' };
+    if (p >= 95) return {label:'Excellent',   bg:'#EAF3DE', color:'#3B6D11'};
+    if (p >= 90) return {label:'Good',         bg:'#FAEEDA', color:'#854F0B'};
+    if (p >= 85) return {label:'Satisfactory', bg:'#FAECE7', color:'#993C1D'};
+    return             {label:'Below',         bg:'#FCEBEB', color:'#A32D2D'};
   }
-
   function tierBadge(pct) {
-    if (pct === null || pct === undefined) return '<span style="color:#94A3B8;font-size:11px;">—</span>';
+    if (pct === null || pct === undefined) return '<span style="background:#F1F5F9;color:#64748B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;">—</span>';
     const t = getTier(pct);
-    return '<span style="background:'+t.bg+';color:'+t.color+';font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">'+t.label+'</span>';
+    return '<span style="background:'+t.bg+';color:'+t.color+';font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;">'+t.label+'</span>';
   }
-
+  function scoreColor(pct) {
+    if (pct === null || pct === undefined) return '#94A3B8';
+    const p = parseFloat(pct);
+    return p>=95?'#3B6D11':p>=90?'#854F0B':p>=85?'#993C1D':'#A32D2D';
+  }
   function scoreSpan(pct) {
     if (pct === null || pct === undefined) return '<span style="color:#94A3B8;font-size:11px;">N/A</span>';
-    const p = parseFloat(pct);
-    const c = p>=95?'#3B6D11':p>=90?'#854F0B':p>=85?'#993C1D':'#A32D2D';
-    return '<span style="color:'+c+';font-weight:600;">'+Math.round(p)+'%</span>';
+    const p = Math.round(parseFloat(pct));
+    const c = scoreColor(p);
+    const barW = Math.round((p/100)*36);
+    return '<div style="display:flex;align-items:center;gap:5px;">'
+      +'<div style="width:36px;height:5px;border-radius:3px;background:#F1F5F9;flex-shrink:0;">'
+      +'<div style="width:'+barW+'px;height:5px;border-radius:3px;background:'+c+';"></div></div>'
+      +'<span style="font-weight:600;color:'+c+';font-size:12px;">'+p+'%</span></div>';
   }
-
   function calcAvg(s) {
     const scores = [];
     if (s.openingPct != null) scores.push(parseFloat(s.openingPct));
@@ -2506,150 +2514,248 @@ function renderLiveReport() {
     if (!scores.length) return null;
     return Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
   }
+  function avgOf(arr) {
+    const vals = arr.map(s=>calcAvg(s)).filter(v=>v!==null);
+    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  }
 
-  // ── Filter & render ──
-  function doRender(selWeek, selOutlet, selRole) {
-    let bohData = allBOHData.filter(s => s.week === selWeek);
-    let fohData = allFOHData.filter(s => s.week === selWeek);
-    if (selOutlet) { bohData = bohData.filter(s=>s.outlet===selOutlet); fohData = fohData.filter(s=>s.outlet===selOutlet); }
-    if (selRole)   { bohData = bohData.filter(s=>s.role===selRole);   fohData = fohData.filter(s=>s.role===selRole);   }
+  // Filter data by date range
+  function filterByDate(arr, fromStr, toStr) {
+    if (!fromStr && !toStr) return arr;
+    return arr.filter(function(s) {
+      if (!s.submittedAt) return false;
+      const d = s.submittedAt.substring(0,10);
+      if (fromStr && d < fromStr) return false;
+      if (toStr && d > toStr) return false;
+      return true;
+    });
+  }
 
-    function avgOf(arr) {
-      const vals = arr.map(s=>calcAvg(s)).filter(v=>v!==null);
-      return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+  // Build outlet list
+  const allOutlets = new Set();
+  [...allBOHData, ...allFOHData].forEach(s => { if (s.outlet) allOutlets.add(s.outlet); });
+
+  // Role labels
+  const roleLbl = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',bartender:'Bartender',delco:'Delco'};
+  const roleColor = {linecook:'#3730A3',steward:'#1D6FA5',kic:'#0F6E56',oic:'#7B2D42',service:'#854F0B',bartender:'#6B3FA0',delco:'#2D6A4F'};
+  const roleBg = {linecook:'#EEF2FF',steward:'#E6F1FB',kic:'#E1F5EE',oic:'#FCE7F3',service:'#FAEEDA',bartender:'#EDE9FE',delco:'#D1FAE5'};
+
+  function roleChip(role) {
+    const lbl = roleLbl[role]||role;
+    const c = roleColor[role]||'#374151';
+    const bg = roleBg[role]||'#F3F4F6';
+    return '<span style="background:'+bg+';color:'+c+';font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;">'+lbl+'</span>';
+  }
+
+  function summaryCard(label, val, color, sub) {
+    return '<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;padding:12px 14px;min-width:0;">'
+      +'<div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">'+label+'</div>'
+      +'<div style="font-size:22px;font-weight:600;color:'+color+';">'+val+'</div>'
+      +'<div style="font-size:10px;color:#94A3B8;margin-top:2px;">'+sub+'</div>'
+      +'</div>';
+  }
+
+  function buildTable(data, sectionLabel) {
+    if (!data.length) {
+      return '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:12px;border:0.5px dashed #E0DDD4;border-radius:8px;">No data for selected filters</div>';
     }
+    const sectionAvg = avgOf(data);
 
+    // Mobile: card layout. Desktop: table layout
+    // We use a responsive approach — table with overflow-x on mobile
+    const rows = data.map(function(s) {
+      const avg = calcAvg(s);
+      const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
+      const tAvg = avg !== null ? getTier(avg) : null;
+      return '<tr style="border-bottom:0.5px solid #F1F5F9;">'
+        +'<td style="padding:9px 8px;white-space:nowrap;">'
+        +'<div style="font-weight:600;color:#1A3C5E;font-size:12px;">'+( s.staffName||'—')+'</div>'
+        +'<div style="margin-top:2px;">'+roleChip(s.role)+'</div>'
+        +'</td>'
+        +'<td style="padding:9px 8px;font-size:11px;color:#94A3B8;white-space:nowrap;">'+(s.outlet||'—')+'</td>'
+        +'<td style="padding:9px 8px;">'+scoreSpan(s.openingPct)+'</td>'
+        +'<td style="padding:9px 8px;">'+scoreSpan(s.closingPct)+'</td>'
+        +'<td style="padding:9px 8px;">'+scoreSpan(evalScore)+'</td>'
+        +'<td style="padding:9px 8px;text-align:center;">'
+        +(avg!==null?'<span style="font-weight:700;color:'+scoreColor(avg)+';font-size:13px;">'+avg+'%</span>':'<span style="color:#94A3B8;">—</span>')
+        +'</td>'
+        +'<td style="padding:9px 8px;">'+tierBadge(avg)+'</td>'
+        +'</tr>';
+    }).join('');
+
+    const avgRow = '<tr style="background:#F8FAFC;border-top:1px solid #E0DDD4;">'
+      +'<td colspan="2" style="padding:8px;font-size:11px;color:#94A3B8;">'+sectionLabel+' avg — '+data.length+' staff</td>'
+      +'<td></td><td></td><td></td>'
+      +'<td style="padding:8px;text-align:center;">'
+      +(sectionAvg!==null?'<span style="font-weight:700;color:'+scoreColor(sectionAvg)+';font-size:13px;">'+sectionAvg+'%</span>':'—')
+      +'</td>'
+      +'<td style="padding:8px;">'+tierBadge(sectionAvg)+'</td>'
+      +'</tr>';
+
+    return '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
+      +'<table style="width:100%;min-width:520px;border-collapse:collapse;font-size:12px;">'
+      +'<thead><tr style="background:#F8FAFC;">'
+      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Staff</th>'
+      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Outlet</th>'
+      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Opening</th>'
+      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Closing</th>'
+      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Eval</th>'
+      +'<th style="padding:7px 8px;text-align:center;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Average</th>'
+      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Tier</th>'
+      +'</tr></thead>'
+      +'<tbody>'+rows+avgRow+'</tbody></table></div>';
+  }
+
+  function doRender(fromStr, toStr, selOutlet, selRole) {
+    let bohData = filterByDate(allBOHData, fromStr, toStr);
+    let fohData = filterByDate(allFOHData, fromStr, toStr);
+    if (selOutlet) { bohData = bohData.filter(s=>s.outlet===selOutlet); fohData = fohData.filter(s=>s.outlet===selOutlet); }
+    if (selRole) {
+      const bohRoles = ['linecook','steward','kic'];
+      const fohRoles = ['service','oic','bartender','delco'];
+      if (bohRoles.includes(selRole)) { bohData = bohData.filter(s=>s.role===selRole); fohData = []; }
+      else if (fohRoles.includes(selRole)) { fohData = fohData.filter(s=>s.role===selRole); bohData = []; }
+    }
     const bohAvg = avgOf(bohData), fohAvg = avgOf(fohData);
     const totalStaff = bohData.length + fohData.length;
     const belowCount = [...bohData,...fohData].filter(s=>{ const a=calcAvg(s); return a!==null&&a<85; }).length;
 
-    function buildTable(data, label) {
-      if (!data.length) return '<div style="color:#94A3B8;font-size:12px;padding:12px 0;">No data for selected filters.</div>';
-      const rows = data.map(s => {
-        const avg = calcAvg(s);
-        const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
-        return '<tr style="border-bottom:0.5px solid #F1F5F9;">'
-          +'<td style="padding:8px 10px;font-size:12px;">'+( s.staffName||'—')+'</td>'
-          +'<td style="padding:8px 10px;font-size:11px;color:#64748B;">'+(ROLES[s.role]?ROLES[s.role].label:s.role||'—')+'</td>'
-          +'<td style="padding:8px 10px;font-size:11px;color:#64748B;">'+(s.outlet||'—')+'</td>'
-          +'<td style="padding:8px 10px;text-align:center;">'+scoreSpan(s.openingPct)+'</td>'
-          +'<td style="padding:8px 10px;text-align:center;">'+scoreSpan(s.closingPct)+'</td>'
-          +'<td style="padding:8px 10px;text-align:center;">'+scoreSpan(evalScore)+'</td>'
-          +'<td style="padding:8px 10px;text-align:center;">'+scoreSpan(avg)+'</td>'
-          +'<td style="padding:8px 10px;text-align:center;">'+tierBadge(avg)+'</td>'
-          +'</tr>';
-      }).join('');
+    // Summary cards
+    const cardsHtml = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">'
+      + summaryCard('BOH average', bohAvg!==null?bohAvg+'%':'—', bohAvg!==null?scoreColor(bohAvg):'#94A3B8', bohData.length+' staff')
+      + summaryCard('FOH average', fohAvg!==null?fohAvg+'%':'—', fohAvg!==null?scoreColor(fohAvg):'#94A3B8', fohData.length+' staff')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">'
+      + summaryCard('Total staff', totalStaff, '#1A3C5E', 'in selected range')
+      + summaryCard('Below target', belowCount, belowCount>0?'#A32D2D':'#3B6D11', belowCount>0?'need attention':'all on track')
+      +'</div></div>';
 
-      const sectionAvg = avgOf(data);
-      const avgRow = '<tr style="background:#F8FAFC;border-top:1.5px solid #E0DDD4;">'
-        +'<td colspan="5" style="padding:8px 10px;font-size:11px;color:#64748B;">'+label+' average — '+data.length+' staff</td>'
-        +'<td></td>'
-        +'<td style="padding:8px 10px;text-align:center;">'+scoreSpan(sectionAvg)+'</td>'
-        +'<td style="padding:8px 10px;text-align:center;">'+tierBadge(sectionAvg)+'</td>'
-        +'</tr>';
-
-      return '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
-        +'<thead><tr style="background:#F8FAFC;">'
-        +'<th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Staff</th>'
-        +'<th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Role</th>'
-        +'<th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Outlet</th>'
-        +'<th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Opening</th>'
-        +'<th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Closing</th>'
-        +'<th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DED4;">Eval</th>'
-        +'<th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Average</th>'
-        +'<th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:600;color:#64748B;border-bottom:0.5px solid #E0DDD4;">Tier</th>'
-        +'</tr></thead>'
-        +'<tbody>'+rows+avgRow+'</tbody></table>';
-    }
-
-    // ── Summary cards ──
-    function summaryCard(label, val, pct) {
-      const c = pct!==null ? (pct>=95?'#3B6D11':pct>=90?'#854F0B':pct>=85?'#993C1D':'#A32D2D') : '#1A3C5E';
-      const disp = pct!==null ? Math.round(pct)+'%' : val;
-      return '<div style="background:#F8FAFC;border-radius:8px;padding:12px 14px;border:0.5px solid #E0DDD4;">'
-        +'<div style="font-size:10px;color:#94A3B8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">'+label+'</div>'
-        +'<div style="font-size:20px;font-weight:600;color:'+c+';">'+disp+'</div>'
-        +'</div>';
-    }
-
-    const cardsHtml = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">'
-      + summaryCard('BOH avg', '—', bohAvg)
-      + summaryCard('FOH avg', '—', fohAvg)
-      + summaryCard('Total staff', totalStaff, null)
-      + summaryCard('Below target', belowCount, null)
-      + '</div>';
-
-    // ── Legend ──
-    const legendHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">'
-      +'<span style="font-size:11px;color:#64748B;">Tiers:</span>'
-      +'<span style="background:#EAF3DE;color:#3B6D11;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Excellent ≥95%</span>'
-      +'<span style="background:#FAEEDA;color:#854F0B;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Good ≥90%</span>'
-      +'<span style="background:#FAECE7;color:#993C1D;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Satisfactory ≥85%</span>'
-      +'<span style="background:#FCEBEB;color:#A32D2D;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">Below &lt;85%</span>'
+    // Legend
+    const legendHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">'
+      +'<span style="font-size:10px;color:#94A3B8;">Tiers:</span>'
+      +'<span style="background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Excellent ≥95%</span>'
+      +'<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Good ≥90%</span>'
+      +'<span style="background:#FAECE7;color:#993C1D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Satisfactory ≥85%</span>'
+      +'<span style="background:#FCEBEB;color:#A32D2D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Below &lt;85%</span>'
       +'</div>';
 
-    // ── BOH section ──
-    const bohSection = bohData.length || !selRole || ['linecook','steward','kic'].includes(selRole)
+    const bohHtml = (!selRole || ['linecook','steward','kic'].includes(selRole))
       ? '<div style="margin-bottom:20px;">'
-        +'<div style="font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E0DDD4;">🍳 BOH — Back of House</div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E0DDD4;">'
+        +'<div style="font-size:13px;font-weight:600;color:#1A3C5E;">🍳 BOH — Back of House</div>'
+        +'<span style="font-size:11px;color:#94A3B8;">'+bohData.length+' staff</span></div>'
         + buildTable(bohData,'BOH')
         +'</div>' : '';
 
-    // ── FOH section ──
-    const fohSection = fohData.length || !selRole || ['service','oic','bartender','delco'].includes(selRole)
+    const fohHtml = (!selRole || ['service','oic','bartender','delco'].includes(selRole))
       ? '<div style="margin-bottom:20px;">'
-        +'<div style="font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E0DDD4;">🛎️ FOH — Front of House</div>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E0DDD4;">'
+        +'<div style="font-size:13px;font-weight:600;color:#1A3C5E;">🛎️ FOH — Front of House</div>'
+        +'<span style="font-size:11px;color:#94A3B8;">'+fohData.length+' staff</span></div>'
         + buildTable(fohData,'FOH')
         +'</div>' : '';
 
-    container.querySelector('#lr-body').innerHTML = cardsHtml + legendHtml + bohSection + fohSection;
+    const body = document.getElementById('lr-body');
+    if (body) body.innerHTML = cardsHtml + legendHtml + bohHtml + fohHtml;
   }
 
-  // ── Build week options ──
-  const weekOpts = sortedWeeks.map(w => '<option value="'+w+'"'+(w===currentWeek?' selected':'')+'>Week: '+w+'</option>').join('');
-  const outletOpts = '<option value="">All Outlets</option>'+sortedOutlets.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+  // Build outlet options
+  const outletOpts = '<option value="">All Outlets</option>'
+    +Array.from(allOutlets).sort().map(o=>'<option value="'+o+'">'+o+'</option>').join('');
   const roleOpts = '<option value="">All Roles</option>'
     +'<option value="linecook">Line Cook</option><option value="steward">Steward</option>'
     +'<option value="kic">KIC</option><option value="oic">OIC</option>'
     +'<option value="service">Service</option><option value="bartender">Bartender</option>'
     +'<option value="delco">Delco</option>';
 
-  container.innerHTML = '<div style="padding:4px 0;">'
-    // Header
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">'
-    +'<div style="font-size:16px;font-weight:600;color:#1A3C5E;">📊 Live Report</div>'
-    +'<button onclick="renderLiveReport()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid #E0DDD4;background:#F8FAFC;cursor:pointer;color:#1A3C5E;">🔄 Refresh</button>'
+  const toDay = dubaiDateStr(0);
+  const fromDay = dubaiDateStr(-6);
+  const nowStr = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Dubai'});
+
+  container.innerHTML =
+    // Top bar
+    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">'
+    +'<div style="display:flex;align-items:center;gap:10px;">'
+    +'<span style="font-size:16px;font-weight:600;color:#1A3C5E;">📊 Live Report</span>'
+    +'<span id="lr-live-badge" style="display:flex;align-items:center;gap:5px;background:#EAF3DE;color:#3B6D11;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;">'
+    +'<span id="lr-dot" style="width:7px;height:7px;background:#3B6D11;border-radius:50%;display:inline-block;"></span> Live</span>'
     +'</div>'
-    // Filters
-    +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">'
-    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">Period</div>'
-    +'<select id="lr-week" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #E0DDD4;background:#fff;color:#1A3C5E;">'+weekOpts+'</select></div>'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+    +'<span id="lr-countdown" style="font-size:11px;color:#94A3B8;background:#F1F5F9;padding:4px 10px;border-radius:6px;">Refreshing in 60s</span>'
+    +'<span id="lr-ts" style="font-size:11px;color:#94A3B8;">Updated '+nowStr+'</span>'
+    +'<button onclick="renderLiveReport()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:0.5px solid #E0DDD4;background:#F8FAFC;cursor:pointer;color:#1A3C5E;">🔄 Refresh now</button>'
+    +'</div></div>'
+
+    // Filters — responsive wrap
+    +'<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:14px;padding:10px 12px;background:#F8FAFC;border-radius:10px;border:0.5px solid #E0DDD4;">'
+    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">From</div>'
+    +'<input type="date" id="lr-from" value="'+fromDay+'" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:140px;"></div>'
+    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">To</div>'
+    +'<input type="date" id="lr-to" value="'+toDay+'" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:140px;"></div>'
     +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">Outlet</div>'
-    +'<select id="lr-outlet" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #E0DDD4;background:#fff;color:#1A3C5E;">'+outletOpts+'</select></div>'
+    +'<select id="lr-outlet" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:140px;">'+outletOpts+'</select></div>'
     +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">Role</div>'
-    +'<select id="lr-role" style="font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #E0DDD4;background:#fff;color:#1A3C5E;">'+roleOpts+'</select></div>'
+    +'<select id="lr-role" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:130px;">'+roleOpts+'</select></div>'
     +'</div>'
+
     // Body
-    +'<div id="lr-body"></div>'
-    +'</div>';
+    +'<div id="lr-body"></div>';
 
   // Wire filters
   function onFilter() {
-    const w = document.getElementById('lr-week').value;
+    const f = document.getElementById('lr-from').value;
+    const t = document.getElementById('lr-to').value;
     const o = document.getElementById('lr-outlet').value;
     const r = document.getElementById('lr-role').value;
-    doRender(w, o, r);
+    doRender(f, t, o, r);
   }
-  document.getElementById('lr-week').addEventListener('change', onFilter);
-  document.getElementById('lr-outlet').addEventListener('change', onFilter);
-  document.getElementById('lr-role').addEventListener('change', onFilter);
+  ['lr-from','lr-to','lr-outlet','lr-role'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('change', onFilter);
+  });
 
   // Initial render
-  doRender(currentWeek, '', '');
+  doRender(fromDay, toDay, '', '');
+
+  // Auto-refresh countdown
+  _lrCountdown = 60;
+  _lrAutoRefresh = setInterval(function() {
+    _lrCountdown--;
+    const cdEl = document.getElementById('lr-countdown');
+    const dotEl = document.getElementById('lr-dot');
+    if (cdEl) cdEl.textContent = 'Refreshing in '+_lrCountdown+'s';
+    if (dotEl) dotEl.style.opacity = _lrCountdown % 2 === 0 ? '1' : '0.4';
+    if (_lrCountdown <= 0) {
+      _lrCountdown = 60;
+      // Reload BOH+FOH data then re-render
+      const f = document.getElementById('lr-from') ? document.getElementById('lr-from').value : fromDay;
+      const t2 = document.getElementById('lr-to') ? document.getElementById('lr-to').value : toDay;
+      const o = document.getElementById('lr-outlet') ? document.getElementById('lr-outlet').value : '';
+      const r = document.getElementById('lr-role') ? document.getElementById('lr-role').value : '';
+      if (typeof loadBOHData === 'function') {
+        loadBOHData();
+        setTimeout(function() {
+          if (typeof loadFOHData === 'function') loadFOHData();
+          setTimeout(function() {
+            doRender(f, t2, o, r);
+            const tsEl = document.getElementById('lr-ts');
+            if (tsEl) tsEl.textContent = 'Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Dubai'});
+          }, 2000);
+        }, 2000);
+      } else {
+        doRender(f, t2, o, r);
+      }
+    }
+  }, 1000);
 }
 // ── End Live Report ──────────────────────────────────────────────────────────
 
 function showTab(el,id) {
+  // Clear live report auto-refresh when leaving that tab
+  if (id !== 'livereport' && typeof _lrAutoRefresh !== 'undefined' && _lrAutoRefresh) {
+    clearInterval(_lrAutoRefresh); _lrAutoRefresh = null;
+  }
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
