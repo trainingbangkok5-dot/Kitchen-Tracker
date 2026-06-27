@@ -7109,6 +7109,7 @@ function buildVerifyEditPanel(s) {
     + '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:3px;">'
     + '<input id="verifiedByInput" type="text" value="" placeholder="Your name..." style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;box-sizing:border-box;outline:none;">'
     + '<select id="verifyShiftSelect" style="width:100%;padding:6px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;background:#fff;box-sizing:border-box;">'
+    + '<option value="" disabled selected>— Select Checklist Type —</option>'
     + '<option value="opening">🌅 Opening</option>'
     + '<option value="closing">🌙 Closing</option>'
     + '<option value="evaluation">📋 Evaluation</option>'
@@ -7116,7 +7117,7 @@ function buildVerifyEditPanel(s) {
     + '</div>'
     + '<div style="font-size:10px;color:#94A3B8;margin-bottom:6px;">'+roleNote+'</div>'
     + (_canAddVerif
-      ? '<button onclick="saveBOHVerification()" style="width:100%;padding:8px;background:#15803D;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;">✅ Add Verification</button>'
+      ? '<button id="addVerifBtn" onclick="saveBOHVerification()" disabled style="width:100%;padding:8px;background:#94A3B8;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:not-allowed;letter-spacing:.3px;opacity:0.7;">✅ Add Verification</button>'
       : '')
     + '</div>';
 
@@ -7149,10 +7150,16 @@ function toggleEditMode(s) {
   if (!btn || !body) return;
 
   btn.textContent = '💾 Save Changes';
-  btn.style.background = '#16A34A';
+  btn.style.background = '#94A3B8';
+  btn.style.cursor = 'not-allowed';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
   btn.onclick = () => saveOverwrite(s);
 
-  // Show edit buttons, hide display
+  // Show edit buttons, hide display — but hide owChecklistArea immediately
+  // _applyOverwriteShiftFilter will show the correct section once user selects a type
+  const _owAreaEarly = document.getElementById('owChecklistArea');
+  if (_owAreaEarly) _owAreaEarly.style.display = 'none';
   body.querySelectorAll('.task-yn-display').forEach(el => el.style.display = 'none');
   body.querySelectorAll('.task-yn-edit').forEach(el => el.style.display = 'flex');
 
@@ -7394,12 +7401,31 @@ function toggleEditMode(s) {
       (['linecook','steward'].includes(s.role) && ['kic','areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) ||
       (['service','bartender','delco'].includes(s.role) && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole))
     );
-    if (_needsEvalDefault && _owShiftSel.value !== 'evaluation') _owShiftSel.value = 'evaluation';
-    _applyOverwriteShiftFilter(_owShiftSel.value || 'opening');
+    // Always start blank — verifier must consciously select checklist type
+    _owShiftSel.value = '';
+    // Hide all task sections until selection made
+    _applyOverwriteShiftFilter('');
     const _newOwSel = _owShiftSel.cloneNode(true);
     _owShiftSel.parentNode.replaceChild(_newOwSel, _owShiftSel);
     _newOwSel.addEventListener('change', function() {
-      _applyOverwriteShiftFilter(this.value);
+      const val = this.value;
+      _applyOverwriteShiftFilter(val);
+      // Enable Save Changes button once a type is selected
+      const _saveBtn = document.querySelector('.edit-report-btn');
+      if (_saveBtn && val) {
+        _saveBtn.disabled = false;
+        _saveBtn.style.background = '#16A34A';
+        _saveBtn.style.cursor = 'pointer';
+        _saveBtn.style.opacity = '1';
+      }
+      // Enable Add Verification button once a type is selected
+      const _verifBtn = document.getElementById('addVerifBtn');
+      if (_verifBtn && val) {
+        _verifBtn.disabled = false;
+        _verifBtn.style.background = '#15803D';
+        _verifBtn.style.cursor = 'pointer';
+        _verifBtn.style.opacity = '1';
+      }
     });
   }
 }
@@ -7408,6 +7434,42 @@ function toggleEditMode(s) {
 function _applyOverwriteShiftFilter(shift) {
   const body = document.getElementById('modalBody');
   if (!body) return;
+
+  // Eval section IDs needed in both the empty-shift block and normal flow
+  const evalSectionIds = ['kicEditSection','lcObsSection','oicEvalEditSection','btObsSection','dcObsSection'];
+
+  // If no selection yet — hide ALL task sections and show placeholder
+  if (!shift) {
+    // Hide the main checklist area (opening/closing rows)
+    const _owArea = document.getElementById('owChecklistArea');
+    if (_owArea) _owArea.style.display = 'none';
+    // Hide all eval sections
+    evalSectionIds.forEach(function(id) {
+      const sec = document.getElementById(id);
+      if (sec) sec.style.display = 'none';
+    });
+    // Hide hint banner
+    const _hint = document.getElementById('_owShiftHint');
+    if (_hint) _hint.style.display = 'none';
+    // Show placeholder message
+    let _placeholder = body.querySelector('#_shiftPlaceholder');
+    if (!_placeholder) {
+      _placeholder = document.createElement('div');
+      _placeholder.id = '_shiftPlaceholder';
+      _placeholder.style.cssText = 'padding:24px;text-align:center;color:#94A3B8;font-size:13px;font-style:italic;border:1.5px dashed #E0DDD4;border-radius:10px;margin:12px 0;';
+      _placeholder.textContent = '👆 Please select a checklist type above to begin.';
+      const _cancelBtn = document.getElementById('cancelEditBtn');
+      if (_cancelBtn) _cancelBtn.parentNode.insertBefore(_placeholder, _cancelBtn);
+      else body.appendChild(_placeholder);
+    }
+    _placeholder.style.display = 'block';
+    return;
+  }
+
+  // Hide placeholder once selection made
+  const _placeholder = body.querySelector('#_shiftPlaceholder');
+  if (_placeholder) _placeholder.style.display = 'none';
+  body.querySelectorAll('[data-taskkey]').forEach(el => el.style.display = '');
 
   const isEval = shift === 'evaluation';
 
@@ -7439,8 +7501,7 @@ function _applyOverwriteShiftFilter(shift) {
     }
   }
 
-  // Eval section IDs (all possible eval panels)
-  const evalSectionIds = ['kicEditSection','lcObsSection','oicEvalEditSection','btObsSection','dcObsSection'];
+  // Eval section IDs defined above
 
   // All eval task IDs
   const allEvalIds = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
@@ -7956,6 +8017,7 @@ async function saveOverwrite(s) {
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
   updates['submissions/' + fbKey + '/overwrittenBy'] = currentRole;
   updates['submissions/' + fbKey + '/overwrittenAt'] = new Date().toISOString();
+  updates['submissions/' + fbKey + '/submittedAt']   = new Date().toISOString();
   if (opPct !== null) updates['submissions/' + fbKey + '/openingPct'] = opPct;
   if (clPct !== null) {
     updates['submissions/' + fbKey + '/closingPct'] = clPct;
@@ -7976,7 +8038,8 @@ async function saveOverwrite(s) {
   }
   // Append to verificationLog — preserve all previous entries
   if (verifiedBy) {
-    const shift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+    const shift = (document.getElementById('verifyShiftSelect')?.value) || '';
+  if (!shift) { showToast('Please select a checklist type first', 'warn'); return; }
     const _owLog = Array.isArray(s.verificationLog) ? s.verificationLog : [];
     const _owSameShift = _owLog.some(function(e){ return e.shift === shift; });
     const _owYN = _snapYN(updatedTaskData, shift, s.role);
@@ -8012,6 +8075,7 @@ async function saveOverwrite(s) {
     s.overallPct = newScore;
     s.qualified  = newQualified;
     s.overwrittenBy = currentRole;
+    s.submittedAt = new Date().toISOString();
     // Merge updatedTaskData back so eval answers are preserved
     s.taskData = updatedTaskData;
     if (verifiedBy) s.verifiedBy = verifiedBy;
@@ -8688,7 +8752,8 @@ function saveBOHVerification() {
   const firebaseRef = isFOH ? fohDb : db;
   if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
   const now = new Date().toISOString();
-  const shift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+  const shift = (document.getElementById('verifyShiftSelect')?.value) || '';
+  if (!shift) { showToast('Please select a checklist type first', 'warn'); return; }
   const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
   if (s.verifiedBy && !existingLog.length) {
     existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '', shift: 'opening' });
@@ -10248,7 +10313,8 @@ function saveFOHMultiVerify() {
   if (!fohDb) { showToast('FOH Firebase not ready', 'error'); return; }
   _fohVerifySaving = true;
   const now = new Date().toISOString();
-  const fohShift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+  const fohShift = (document.getElementById('verifyShiftSelect')?.value) || '';
+  if (!fohShift) { showToast('Please select a checklist type first', 'warn'); return; }
   var rawLog = staff.verificationLog;
   const log = Array.isArray(rawLog) ? [...rawLog]
     : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
@@ -10806,7 +10872,8 @@ async function saveFOHOverwrite(staff) {
     const oicIds = ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5']; // OIC eval task IDs
     // ── Verified By — runs independently of task changes ───────────────
     if (_fohVerifiedBy) {
-      const _fohShift = (document.getElementById('verifyShiftSelect')?.value) || 'opening';
+      const _fohShift = (document.getElementById('verifyShiftSelect')?.value) || '';
+  if (!_fohShift) { showToast('Please select a checklist type first', 'warn'); return; }
       const _fohYNSnap = _snapYN(staff.taskData, _fohShift, staff.role);
       const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString(), shift: _fohShift, yn_yes: _fohYNSnap.yes, yn_no: _fohYNSnap.no };
       const _fohExistingLog = Array.isArray(sub.verificationLog) ? [...sub.verificationLog] : [];
@@ -10934,6 +11001,7 @@ async function saveFOHOverwrite(staff) {
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
+      updates['submissions/' + child.key + '/submittedAt']   = new Date().toISOString();
       if (fohOpPct2 !== null) updates['submissions/' + child.key + '/openingPct'] = fohOpPct2;
       if (fohClPct2 !== null) {
         updates['submissions/' + child.key + '/closingPct'] = fohClPct2;
