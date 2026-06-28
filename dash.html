@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629110000';
+  var v = '20260629120000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2560,100 +2560,150 @@ function renderSummaryScoring() {
     const rcolor = rc[role0]||['#F1F5F9','#374151'];
     const roleChip = '<span style="background:'+rcolor[0]+';color:'+rcolor[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;">'+(e.roleNames[0]||'—')+'</span>';
 
-    // Build detail panel — days submitted table + final average
+    // Build detail panel — score cards + days table + final average
     const raws = e.rawRows||[];
 
-    // Collect all submitted dates across all rawRows, per shift type
+    // Find shift records
+    const _sortedR = raws.slice().sort(function(a,b){ return (!!(b.shift||b.status)?1:0)-(!!(a.shift||a.status)?1:0); });
+    const _openRec = _sortedR.find(function(r){ return (r.shift==='opening'||r.status==='opening_submitted')&&r.openingPct!=null; })
+      || _sortedR.find(function(r){ return r.openingPct!=null; }) || raws[0] || {};
+    const _closeRec = _sortedR.find(function(r){ return (r.shift==='closing'||r.status==='closing_submitted')&&r.closingPct!=null; })
+      || _sortedR.find(function(r){ return r.closingPct!=null; }) || (_openRec.closingPct!=null?_openRec:{});
+    const _evalRec = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
+
+    // Overwrite info
+    const _opOW  = !!((_openRec.overwrittenBy)||(_openRec.overwrittenAt));
+    const _clOW  = !!((_closeRec.overwrittenBy)||(_closeRec.overwrittenAt));
+    const _evOW  = !!((_evalRec.overwrittenBy)||(_evalRec.overwrittenAt));
+
+    // Get verifier from vlog or direct fields
+    function _getVer(rec, shiftType) {
+      const vl = rec.verificationLog;
+      const vlog = Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]);
+      const e2 = vlog.slice().reverse().find(function(v){return v.shift===shiftType;});
+      if (e2&&e2.by) return e2;
+      if (vlog.length) return vlog[vlog.length-1];
+      if (rec.verifiedBy) return {by:rec.verifiedBy,role:rec.verifiedByRole||'',at:rec.verifiedAt||''};
+      return null;
+    }
+    function _fmtYN(v) {
+      if (!v) return '';
+      var parts=[];
+      if (v.yn_yes!=null) parts.push('<span style="color:#3B6D11;font-weight:600;">Yes:'+v.yn_yes+'</span>');
+      if (v.yn_no!=null)  parts.push('<span style="color:#A32D2D;font-weight:600;">No:'+v.yn_no+'</span>');
+      if (v.yn_na!=null)  parts.push('<span style="color:#94A3B8;">N/A:'+v.yn_na+'</span>');
+      return parts.join(' ');
+    }
+
+    // Build score cards
+    function _scoreCard(label, pct, isOW, owBy, owAt, verEntry, ynHtml) {
+      const border = isOW?'#FCD34D':'#E0DDD4';
+      const bg     = isOW?'#FFFBEB':'#fff';
+      const lcolor = isOW?'#92400E':'#1A3C5E';
+      let h = '<div style="background:'+bg+';border:0.5px solid '+border+';border-radius:8px;padding:10px 14px;flex:1;min-width:0;">';
+      h += '<div style="font-size:9px;font-weight:600;color:'+lcolor+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">'+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:8px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
+      if (pct==null) {
+        h += '<div style="font-size:12px;color:#94A3B8;">Not submitted</div>';
+      } else {
+        h += '<div style="font-size:18px;font-weight:700;color:'+scoreColor(pct)+';margin-bottom:4px;">'+pct+'%</div>';
+        if (isOW&&owBy) h += '<div style="font-size:9px;color:#92400E;margin-bottom:2px;">Changed by '+(owBy)+(owAt?' · '+fmtDT(owAt):'')+'</div>';
+        if (verEntry&&verEntry.by) {
+          h += '<div style="font-size:9px;color:#64748B;">Verified by '+verEntry.by+(verEntry.role?' ('+verEntry.role+')':'')+(verEntry.at?' · '+fmtDT(verEntry.at):'')+'</div>';
+          if (ynHtml) h += '<div style="font-size:9px;margin-top:2px;">'+ynHtml+'</div>';
+        }
+      }
+      h += '</div>';
+      return h;
+    }
+
+    const _opVer  = _getVer(_openRec,'opening');
+    const _clVer  = _getVer(_closeRec,'closing');
+    const _evVlog = (function(vl){return Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); })(_evalRec.verificationLog);
+    const _evVer  = _evVlog.slice().reverse().find(function(v){return v.shift==='evaluation';})||(_evVlog.length?_evVlog[_evVlog.length-1]:null)||(_evalRec.verifiedBy?{by:_evalRec.verifiedBy,role:_evalRec.verifiedByRole||'',at:_evalRec.verifiedAt||''}:null);
+
+    let scoreCards = '<div style="display:flex;gap:10px;margin-bottom:12px;">';
+    if (op!=null) scoreCards += _scoreCard('🌅 Opening shift', op, _opOW, _openRec.overwrittenBy, _openRec.overwrittenAt, _opVer, _fmtYN(_opVer));
+    if (cl!=null) scoreCards += _scoreCard('🌙 Closing shift', cl, _clOW, _closeRec.overwrittenBy, _closeRec.overwrittenAt, _clVer, _fmtYN(_clVer));
+    if (ev!=null) scoreCards += _scoreCard('📋 Evaluation', ev, _evOW, _evalRec.overwrittenBy, _evalRec.overwrittenAt, _evVer, _fmtYN(_evVer));
+    if (op==null&&cl==null&&ev==null) scoreCards += '<div style="font-size:11px;color:#94A3B8;">No scores available</div>';
+    scoreCards += '</div>';
+
+    // Collect submitted dates per shift
     const _openDates = new Set();
     const _closeDates = new Set();
     const _evalDates  = new Set();
     raws.forEach(function(r) {
       const vl = r.verificationLog;
-      const vlog = Array.isArray(vl) ? vl : (vl && typeof vl==='object' ? Object.values(vl) : []);
-      // Eval dates from vlog evaluation entries
-      vlog.forEach(function(v) { if (v.shift==='evaluation' && v.at) _evalDates.add(v.at.substring(0,10)); });
-      // submittedDates — opening or closing based on shift field
+      const vlog = Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]);
+      vlog.forEach(function(v){ if (v.shift==='evaluation'&&v.at) _evalDates.add(v.at.substring(0,10)); });
       const isClose = r.shift==='closing'||r.status==='closing_submitted';
       const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
-      const dates   = Array.isArray(r.submittedDates) ? r.submittedDates : [];
-      if (r.oicEvalPct!=null && !r.evalNotVisited && !_evalDates.size) {
-        if (r.verifiedAt) _evalDates.add(r.verifiedAt.substring(0,10));
-      }
+      const dates   = Array.isArray(r.submittedDates)?r.submittedDates:[];
+      if (r.oicEvalPct!=null&&!r.evalNotVisited&&!_evalDates.size&&r.verifiedAt) _evalDates.add(r.verifiedAt.substring(0,10));
       if (isClose) {
-        dates.forEach(function(d){ _closeDates.add(d); });
-        // fallback: use submittedAt date if no submittedDates stored
-        if (dates.length===0 && r.submittedAt) _closeDates.add(r.submittedAt.substring(0,10));
+        dates.forEach(function(d){_closeDates.add(d);});
+        if (dates.length===0&&r.submittedAt) _closeDates.add(r.submittedAt.substring(0,10));
       } else if (isOpen) {
-        dates.forEach(function(d){ _openDates.add(d); });
-        if (dates.length===0 && r.submittedAt) _openDates.add(r.submittedAt.substring(0,10));
+        dates.forEach(function(d){_openDates.add(d);});
+        if (dates.length===0&&r.submittedAt) _openDates.add(r.submittedAt.substring(0,10));
       } else {
-        // merged record (has both openingPct + closingPct, or shift not set)
-        // assign submittedDates to opening; if closingPct exists assign same dates to closing too
-        dates.forEach(function(d){ _openDates.add(d); if (r.closingPct!=null) _closeDates.add(d); });
-        // fallback: use submittedAt if no submittedDates stored
-        if (dates.length===0 && r.submittedAt) {
-          var _fb = r.submittedAt.substring(0,10);
-          if (r.openingPct!=null) _openDates.add(_fb);
-          if (r.closingPct!=null) _closeDates.add(_fb);
+        dates.forEach(function(d){_openDates.add(d); if(r.closingPct!=null)_closeDates.add(d);});
+        if (dates.length===0&&r.submittedAt) {
+          var _fb=r.submittedAt.substring(0,10);
+          if(r.openingPct!=null)_openDates.add(_fb);
+          if(r.closingPct!=null)_closeDates.add(_fb);
         }
-        // also check submittedDates from the opening-specific record in raws
-        // (some records store dates only on the opening record)
-        raws.forEach(function(r2) {
-          if (r2 === r) return;
-          var d2 = Array.isArray(r2.submittedDates) ? r2.submittedDates : [];
-          var isO2 = r2.shift==='opening'||r2.status==='opening_submitted';
-          var isC2 = r2.shift==='closing'||r2.status==='closing_submitted';
-          d2.forEach(function(d){ if(isC2) _closeDates.add(d); else _openDates.add(d); });
-          if (d2.length===0 && r2.submittedAt) {
-            if (isC2) _closeDates.add(r2.submittedAt.substring(0,10));
-            else _openDates.add(r2.submittedAt.substring(0,10));
-          }
+        raws.forEach(function(r2){
+          if(r2===r)return;
+          var d2=Array.isArray(r2.submittedDates)?r2.submittedDates:[];
+          var isC2=r2.shift==='closing'||r2.status==='closing_submitted';
+          d2.forEach(function(d){if(isC2)_closeDates.add(d);else _openDates.add(d);});
+          if(d2.length===0&&r2.submittedAt){if(isC2)_closeDates.add(r2.submittedAt.substring(0,10));else _openDates.add(r2.submittedAt.substring(0,10));}
         });
       }
     });
 
-    // Build 7-day range Mon–Sun from the week start
-    // Use date range start if available, otherwise use e.week
-    const _fromStr = document.getElementById('ssDateFrom') ? document.getElementById('ssDateFrom').value : '';
-    const _toStr   = document.getElementById('ssDateTo')   ? document.getElementById('ssDateTo').value   : '';
-    const _weekStart = (_fromStr && _toStr) ? _fromStr : (e.week||'').split(' ')[0];
-    const _weekEnd   = (_fromStr && _toStr) ? _toStr   : (e.week||'').split(' to ')[1] || '';
+    // Build 7-day range
+    const _fromStr = document.getElementById('ssDateFrom')?document.getElementById('ssDateFrom').value:'';
+    const _toStr   = document.getElementById('ssDateTo')?document.getElementById('ssDateTo').value:'';
+    const _weekStart = (_fromStr&&_toStr)?_fromStr:(e.week||'').split(' ')[0];
+    const _weekEnd   = (_fromStr&&_toStr)?_toStr:((e.week||'').split(' to ')[1]||'');
     const _days = [];
-    if (_weekStart && _weekStart.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Parse as local date parts to avoid timezone shift
-      const _p = _weekStart.split('-');
-      const _ws = new Date(parseInt(_p[0]), parseInt(_p[1])-1, parseInt(_p[2]));
-      const _pe = _weekEnd ? _weekEnd.split('-') : null;
-      const _we = _pe ? new Date(parseInt(_pe[0]), parseInt(_pe[1])-1, parseInt(_pe[2])) : null;
-      const _days_count = _we ? Math.min(Math.round((_we-_ws)/(86400000))+1, 7) : 7;
-      for (let d=0; d<_days_count; d++) {
-        const _dd = new Date(_ws.getFullYear(), _ws.getMonth(), _ws.getDate()+d);
-        const _iso = _dd.getFullYear()+'-'+String(_dd.getMonth()+1).padStart(2,'0')+'-'+String(_dd.getDate()).padStart(2,'0');
-        const _label = _dd.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-        const _day   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][_dd.getDay()];
-        _days.push({iso:_iso, label:_label, day:_day});
+    if (_weekStart&&_weekStart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const _p=_weekStart.split('-');
+      const _ws=new Date(parseInt(_p[0]),parseInt(_p[1])-1,parseInt(_p[2]));
+      const _pe=_weekEnd?_weekEnd.split('-'):null;
+      const _we=_pe?new Date(parseInt(_pe[0]),parseInt(_pe[1])-1,parseInt(_pe[2])):null;
+      const _dc=_we?Math.min(Math.round((_we-_ws)/86400000)+1,7):7;
+      for(let d=0;d<_dc;d++){
+        const _dd=new Date(_ws.getFullYear(),_ws.getMonth(),_ws.getDate()+d);
+        const _iso=_dd.getFullYear()+'-'+String(_dd.getMonth()+1).padStart(2,'0')+'-'+String(_dd.getDate()).padStart(2,'0');
+        _days.push({iso:_iso,label:_dd.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),day:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][_dd.getDay()]});
       }
     }
 
-    function _dot(has, text, color) {
-      return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;">'        +'<div style="width:7px;height:7px;border-radius:50%;background:'+(has?color:'#E0DDD4')+';flex-shrink:0;"></div>'        +'<span style="font-size:10px;color:'+(has?color:'#94A3B8')+';">'+(has?text:'—')+'</span></div>';
+    // Legend
+    const _legend = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">'      +(op!=null?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#3B6D11;"></div>Opening</div>':'')      +(cl!=null?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#185FA5;"></div>Closing</div>':'')      +(hasOW?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#F59E0B;"></div>Overwritten</div>':'')      +(ev!=null?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#854F0B;"></div>Evaluated</div>':'')      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div>Not submitted</div>'      +'</div>';
+
+    // Cell renderer — dot + score
+    function _cell(has, score, isOW, color, owColor) {
+      if (!has) return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div><span style="font-size:10px;color:#94A3B8;">—</span></div>';
+      const dc = isOW ? owColor : color;
+      const sc = score!=null ? score+'%' : '✓';
+      return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:'+dc+';"></div><span style="font-size:11px;font-weight:700;color:'+dc+';">'+sc+'</span></div>';
     }
 
-    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:40px;">Day</th>'      +(op!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>':'')      +(cl!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>':'')      +(ev!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>':'')      +'</tr></thead><tbody>';
-
-    _days.forEach(function(d,idx) {
-      const hasOpen = _openDates.has(d.iso);
-      const hasClose= _closeDates.has(d.iso);
-      const hasEval = _evalDates.has(d.iso);
+    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:38px;">Day</th>'      +(op!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>':'')      +(cl!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>':'')      +(ev!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>':'')      +'</tr></thead><tbody>';
+    _days.forEach(function(d,idx){
+      const hasOpen  = _openDates.has(d.iso);
+      const hasClose = _closeDates.has(d.iso);
+      const hasEval  = _evalDates.has(d.iso);
       const bg = idx%2===0?'#fff':'#FAFBFC';
-      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +(op!=null?'<td style="padding:6px 10px;text-align:center;">'+_dot(hasOpen,'Submitted','#3B6D11')+'</td>':'')        +(cl!=null?'<td style="padding:6px 10px;text-align:center;">'+_dot(hasClose,'Submitted','#185FA5')+'</td>':'')        +(ev!=null?'<td style="padding:6px 10px;text-align:center;">'+_dot(hasEval,'Evaluated','#854F0B')+'</td>':'')        +'</tr>';
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +(op!=null?'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,op,_opOW&&hasOpen,'#3B6D11','#F59E0B')+'</td>':'')        +(cl!=null?'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,cl,_clOW&&hasClose,'#185FA5','#F59E0B')+'</td>':'')        +(ev!=null?'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,ev,false,'#854F0B','#854F0B')+'</td>':'')        +'</tr>';
     });
     tableHtml += '</tbody></table>';
 
-    // Scores summary row above table
-    let scoresSummary = '<div style="display:flex;gap:10px;margin-bottom:8px;">'      +(op!=null?'<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:6px;padding:6px 12px;text-align:center;"><div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">🌅 Opening</div><div style="font-size:14px;font-weight:700;color:'+scoreColor(op)+';margin-top:2px;">'+op+'%</div></div>':'')      +(cl!=null?'<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:6px;padding:6px 12px;text-align:center;"><div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">🌙 Closing</div><div style="font-size:14px;font-weight:700;color:'+scoreColor(cl)+';margin-top:2px;">'+cl+'%</div></div>':'')      +(ev!=null?'<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:6px;padding:6px 12px;text-align:center;"><div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">📋 Eval</div><div style="font-size:14px;font-weight:700;color:'+scoreColor(ev)+';margin-top:2px;">'+ev+'%</div></div>':'')      +'</div>';
-
-    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'      +scoresSummary      +tableHtml      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'      +'</div></div>';
+    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'      +scoreCards      +_legend      +tableHtml      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'      +'</div></div>';
 
     const mainBg = hasOW?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC');
     rowsHtml += '<tr class="ss-audit-main" data-idx="'+i+'" style="border-bottom:0.5px solid #F1F5F9;background:'+mainBg+';cursor:pointer;" onclick="ssToggleDetail(this,'+(i)+')">'
