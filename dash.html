@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260627020000';
+  var v = '20260628010000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2670,9 +2670,11 @@ function renderLiveReport() {
     const TDC = TD + 'text-align:center;';
 
     sortedGroups.forEach(function(group) {
-      const isMulti = group.length > 1;
-      // Sort outlets within group — lowest avg first
-      group.sort(function(a,b){ const av=calcAvg(a),bv=calcAvg(b); return (av===null?999:av)-(bv===null?999:bv); });
+      // isMulti = true only when staff worked at DIFFERENT outlets
+      const uniqueOutlets = [...new Set(group.map(function(s){return s.outlet||'Unknown';}))];
+      const isMulti = uniqueOutlets.length > 1;
+      // Sort by outlet name for consistent display
+      group.sort(function(a,b){ return (a.outlet||'').localeCompare(b.outlet||''); });
       const firstRecord = group[0];
       const rc = roleColor[firstRecord.role]||['#F1F5F9','#374151'];
       const roleChipHtml = '<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[firstRecord.role]||firstRecord.role)+'</span>';
@@ -2697,34 +2699,53 @@ function renderLiveReport() {
       } else {
         // Multi-outlet staff — grouped with sub-rows per outlet
         // Calculate total average across all outlets
-        const outletAvgs = group.map(s=>calcAvg(s)).filter(v=>v!==null);
-        const totalAvg = outletAvgs.length ? Math.round(outletAvgs.reduce((a,b)=>a+b,0)/outletAvgs.length) : null;
+        // Total avg = average of each unique outlet's average
+        const outletAvgs = uniqueOutlets.map(function(o) {
+          const recs = group.filter(function(s){ return (s.outlet||'Unknown')===o; });
+          const vals = recs.map(calcAvg).filter(function(v){return v!==null;});
+          return vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length) : null;
+        }).filter(function(v){return v!==null;});
+        const totalAvg = outletAvgs.length ? Math.round(outletAvgs.reduce(function(a,b){return a+b;},0)/outletAvgs.length) : null;
 
         // Staff header row
-        html += '<tr style="background:#EEF2F7;border-bottom:0.5px solid #D0D8E4;">'
-          +'<td colspan="5" style="padding:8px 10px;">'
-          +'<span style="font-weight:500;color:#1A3C5E;font-size:12px;">'+(firstRecord.staffName||'—')+'</span>'
+        html += '<tr>'
+          +'<td colspan="5" style="padding:8px 10px;background:#2C5282;border-bottom:0.5px solid #1A3C5E;">'
+          +'<span style="font-weight:600;color:#fff;font-size:12px;">'+(firstRecord.staffName||'—')+'</span>'
           +' '+roleChipHtml
-          +' <span style="font-size:9px;color:#185FA5;background:#E6F1FB;padding:2px 6px;border-radius:10px;margin-left:4px;">'+group.length+' outlets</span>'
+          +' <span style="font-size:9px;color:#1A3C5E;background:#E6F1FB;padding:2px 6px;border-radius:10px;margin-left:4px;">'+uniqueOutlets.length+' outlets</span>'
           +'</td>'
-          +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:#94A3B8;">Total avg</td>'
-          +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:#94A3B8;">Overall</td>'
+          +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:rgba(255,255,255,0.7);background:#2C5282;border-bottom:0.5px solid #1A3C5E;">Total avg</td>'
+          +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:rgba(255,255,255,0.7);background:#2C5282;border-bottom:0.5px solid #1A3C5E;">Overall</td>'
           +'</tr>';
 
-        // Outlet sub-rows
+        // Outlet sub-rows — merge same outlet (avg across weeks)
+        const outletMerged = {};
         group.forEach(function(s) {
-          const avg = calcAvg(s);
-          const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
+          const ok = s.outlet||'Unknown';
+          if (!outletMerged[ok]) outletMerged[ok] = [];
+          outletMerged[ok].push(s);
+        });
+        Object.keys(outletMerged).sort().forEach(function(outletKey) {
+          const recs = outletMerged[outletKey];
+          function avgF(f) {
+            const v = recs.map(function(s){return s[f]!=null?parseFloat(s[f]):null;}).filter(function(v){return v!==null;});
+            return v.length ? Math.round(v.reduce(function(a,b){return a+b;},0)/v.length) : null;
+          }
+          const mO = avgF('openingPct');
+          const mC = avgF('closingPct');
+          const mE = recs.every(function(s){return s.evalNotVisited;}) ? null : avgF('oicEvalPct');
+          const mScores = [mO,mC,mE].filter(function(v){return v!==null;});
+          const mAvg = mScores.length ? Math.round(mScores.reduce(function(a,b){return a+b;},0)/mScores.length) : null;
+          const wk = recs.length > 1 ? ' <span style="font-size:9px;color:#94A3B8;">('+recs.length+' weeks)</span>' : '';
           html += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
             +'<td style="'+TD+'padding-left:20px;font-weight:500;color:#1A3C5E;">'
-            +'<span style="color:#94A3B8;margin-right:4px;">&#8627;</span>'+(s.outlet||'—')
-            +'</td>'
+            +'<span style="color:#94A3B8;margin-right:4px;">&#8627;</span>'+outletKey+wk+'</td>'
             +'<td style="'+TD+'"></td>'
-            +'<td style="'+TDC+'">'+scoreBarCenter(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
-            +'<td style="'+TDC+'">'+scoreBarCenter(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
-            +'<td style="'+TDC+'">'+scoreBarCenter(evalScore!=null?parseFloat(evalScore):null)+'</td>'
-            +'<td style="'+TDC+'font-weight:600;color:'+scoreColor(avg)+';">'+(avg!==null?avg+'%':'—')+'</td>'
-            +'<td style="'+TDC+'">'+pill(avg)+'</td>'
+            +'<td style="'+TDC+'">'+scoreBarCenter(mO)+'</td>'
+            +'<td style="'+TDC+'">'+scoreBarCenter(mC)+'</td>'
+            +'<td style="'+TDC+'">'+scoreBarCenter(mE)+'</td>'
+            +'<td style="'+TDC+'font-weight:600;color:'+scoreColor(mAvg)+';">'+(mAvg!==null?mAvg+'%':'—')+'</td>'
+            +'<td style="'+TDC+'">'+pill(mAvg)+'</td>'
             +'</tr>';
         });
 
