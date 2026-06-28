@@ -2534,9 +2534,16 @@ function renderLiveReport() {
         if (selOutlet && s.outlet !== selOutlet) return false;
         if (selRole   && s.role   !== selRole)   return false;
         if (selFrom || selTo) {
-          const d = (s.submittedAt||s.week||'').substring(0,10);
-          if (selFrom && d < selFrom) return false;
-          if (selTo   && d > selTo)   return false;
+          const submitted = (s.submittedAt||'').substring(0,10);
+          const weekStart = (s.week||'').substring(0,10);
+          const d = submitted || weekStart;
+          if (!d) return true; // no date — include
+          // For week-based records: week spans 7 days
+          const weekEnd = weekStart
+            ? new Date(new Date(weekStart+'T00:00:00Z').getTime()+6*86400000).toISOString().substring(0,10)
+            : d;
+          if (selFrom && (submitted ? d < selFrom : weekEnd < selFrom)) return false;
+          if (selTo   && (submitted ? d > selTo   : weekStart > selTo))  return false;
         }
         return true;
       });
@@ -2544,6 +2551,27 @@ function renderLiveReport() {
 
     const rawBOH = filterArr(allBOHData);
     const rawFOH = filterArr(allFOHData);
+
+    // Consolidate staff across outlets — merge records by name+role, keep best scores
+    const selConsolidate = document.getElementById('lr-consolidate') && document.getElementById('lr-consolidate').checked;
+    function consolidateArr(arr) {
+      if (!selConsolidate) return arr;
+      const merged = {};
+      arr.forEach(function(s) {
+        const key = normName(s.staffName) + '_' + s.role;
+        if (!merged[key]) {
+          merged[key] = Object.assign({}, s, { outlet: s.outlet, _outlets: [s.outlet] });
+        } else {
+          // Keep highest scores across outlets
+          if (s.openingPct != null && (merged[key].openingPct == null || parseFloat(s.openingPct) > parseFloat(merged[key].openingPct))) merged[key].openingPct = s.openingPct;
+          if (s.closingPct != null && (merged[key].closingPct == null || parseFloat(s.closingPct) > parseFloat(merged[key].closingPct))) merged[key].closingPct = s.closingPct;
+          if (s.oicEvalPct != null && !s.evalNotVisited) { merged[key].oicEvalPct = s.oicEvalPct; merged[key].evalNotVisited = false; }
+          if (!merged[key]._outlets.includes(s.outlet)) merged[key]._outlets.push(s.outlet);
+          merged[key].outlet = merged[key]._outlets.join(', ');
+        }
+      });
+      return Object.values(merged);
+    }
 
     // Detect genuine duplicates:
     // Same normalised name + same role + same outlet + same week = duplicate
@@ -2564,8 +2592,8 @@ function renderLiveReport() {
     const bohDups = detectDups(rawBOH);
     const fohDups = detectDups(rawFOH);
 
-    const cleanBOH = rawBOH.filter(s=>!bohDups.has(s));
-    const cleanFOH = rawFOH.filter(s=>!fohDups.has(s));
+    const cleanBOH = consolidateArr(rawBOH.filter(s=>!bohDups.has(s)));
+    const cleanFOH = consolidateArr(rawFOH.filter(s=>!fohDups.has(s)));
     const dupList  = [...bohDups,...fohDups];
 
     // Sort lowest average first
@@ -2590,68 +2618,120 @@ function renderLiveReport() {
   function buildTable(data) {
     if (!data.length) return '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:12px;border:0.5px dashed #E0DDD4;border-radius:8px;">No data for selected filters.</div>';
 
-    // Group by outlet
-    const outlets={};
+    // Group by staff name+role — so multi-outlet staff are grouped together
+    const staffGroups = {};
     data.forEach(function(s) {
-      const o=s.outlet||'Unknown';
-      if (!outlets[o]) outlets[o]=[];
-      outlets[o].push(s);
+      const key = normName(s.staffName) + '_' + s.role;
+      if (!staffGroups[key]) staffGroups[key] = [];
+      staffGroups[key].push(s);
     });
 
-    // Fixed column widths for consistent alignment on all screen sizes
-    const COLS = [
-      {label:'Staff',   w:'180px', align:'left'},
-      {label:'Role',    w:'90px',  align:'left'},
-      {label:'Outlet',  w:'100px', align:'left'},
-      {label:'Opening', w:'100px', align:'center'},
-      {label:'Closing', w:'100px', align:'center'},
-      {label:'Eval',    w:'90px',  align:'center'},
-      {label:'Average', w:'80px',  align:'center'},
-      {label:'Tier',    w:'90px',  align:'center'},
-    ];
+    // Sort staff groups by their total average (lowest first = needs attention)
+    const sortedGroups = Object.values(staffGroups).sort(function(a, b) {
+      const aAvg = avgOf(a.map(function(s){ return { openingPct:s.openingPct, closingPct:s.closingPct, oicEvalPct:s.oicEvalPct, evalNotVisited:s.evalNotVisited }; }));
+      const bAvg = avgOf(b.map(function(s){ return { openingPct:s.openingPct, closingPct:s.closingPct, oicEvalPct:s.oicEvalPct, evalNotVisited:s.evalNotVisited }; }));
+      if (aAvg === null && bAvg === null) return 0;
+      if (aAvg === null) return 1;
+      if (bAvg === null) return -1;
+      return aAvg - bAvg;
+    });
 
-    const TH_BASE = 'padding:7px 10px;font-size:10px;font-weight:500;color:#fff;background:#1A3C5E;white-space:nowrap;border-right:0.5px solid rgba(255,255,255,0.1);';
+    const TH = 'padding:7px 10px;font-size:10px;font-weight:500;color:#fff;background:#1A3C5E;white-space:nowrap;border-right:0.5px solid rgba(255,255,255,0.1);';
+    const THC = TH + 'text-align:center;';
     let html = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:6px;border:0.5px solid #E0DDD4;">'
-      +'<table style="width:100%;table-layout:fixed;min-width:830px;border-collapse:collapse;font-size:12px;">'
-      +'<colgroup>'+COLS.map(c=>'<col style="width:'+c.w+'">').join('')+'</colgroup>'
+      +'<table style="width:100%;table-layout:fixed;min-width:760px;border-collapse:collapse;font-size:12px;">'
+      +'<colgroup>'
+      +'<col style="width:170px"><col style="width:85px"><col style="width:100px">'
+      +'<col style="width:100px"><col style="width:100px"><col style="width:80px">'
+      +'<col style="width:75px"><col style="width:80px">'
+      +'</colgroup>'
       +'<thead><tr>'
-      +COLS.map(c=>'<th style="'+TH_BASE+'text-align:'+c.align+';">'+c.label+'</th>').join('')
+      +'<th style="'+TH+'">Staff / Outlet</th>'
+      +'<th style="'+TH+'">Role</th>'
+      +'<th style="'+THC+'">Opening</th>'
+      +'<th style="'+THC+'">Closing</th>'
+      +'<th style="'+THC+'">Eval</th>'
+      +'<th style="'+THC+'">Average</th>'
+      +'<th style="'+THC+'">Tier</th>'
       +'</tr></thead><tbody>';
 
-    Object.keys(outlets).sort().forEach(function(outletName) {
-      const outletStaff = outlets[outletName];
-      const outletAvg = avgOf(outletStaff);
-      const oc = scoreColor(outletAvg);
+    const TD  = 'padding:8px 10px;border-bottom:0.5px solid #F1F5F9;vertical-align:middle;';
+    const TDC = TD + 'text-align:center;';
 
-      // Outlet header row — brighter background for visibility
-      html += '<tr style="background:#1A3C5E;">'
-        +'<td colspan="7" style="padding:7px 12px;font-weight:500;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">'+outletName+'</td>'
-        +'<td style="padding:7px 12px;text-align:center;font-size:12px;font-weight:700;color:'+(outletAvg!==null?'#fff':'rgba(255,255,255,0.5)')+';background:'+(outletAvg!==null?oc:'transparent')+';border-radius:4px;">'+(outletAvg!==null?outletAvg+'%':'—')+'</td>'
-        +'</tr>';
+    sortedGroups.forEach(function(group) {
+      const isMulti = group.length > 1;
+      // Sort outlets within group — lowest avg first
+      group.sort(function(a,b){ const av=calcAvg(a),bv=calcAvg(b); return (av===null?999:av)-(bv===null?999:bv); });
+      const firstRecord = group[0];
+      const rc = roleColor[firstRecord.role]||['#F1F5F9','#374151'];
+      const roleChipHtml = '<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[firstRecord.role]||firstRecord.role)+'</span>';
 
-      outletStaff.forEach(function(s) {
+      if (!isMulti) {
+        // Single outlet staff — one clean row
+        const s = firstRecord;
         const avg = calcAvg(s);
-        const rc = roleColor[s.role]||['#F1F5F9','#374151'];
         const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
-        const TD = 'padding:8px 10px;border-bottom:0.5px solid #F1F5F9;vertical-align:middle;';
-        const TDC = TD+'text-align:center;';
-        html += '<tr style="border-bottom:0.5px solid #F1F5F9;" onmouseover="this.style.background=\"#F8FAFC\"" onmouseout="this.style.background=\"#fff\"">'
-          +'<td style="'+TD+'"><div style="font-weight:500;color:#1A3C5E;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.staffName||'—')+'</div></td>'
-          +'<td style="'+TD+'"><span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[s.role]||s.role)+'</span></td>'
-          +'<td style="'+TD+'font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.outlet||'—')+'</td>'
+        html += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
+          +'<td style="'+TD+'">'
+          +'<div style="font-weight:500;color:#1A3C5E;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.staffName||'—')+'</div>'
+          +'<div style="font-size:10px;color:#94A3B8;margin-top:1px;">'+(s.outlet||'—')+'</div>'
+          +'</td>'
+          +'<td style="'+TD+'">'+roleChipHtml+'</td>'
           +'<td style="'+TDC+'">'+scoreBarCenter(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
           +'<td style="'+TDC+'">'+scoreBarCenter(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
           +'<td style="'+TDC+'">'+scoreBarCenter(evalScore!=null?parseFloat(evalScore):null)+'</td>'
           +'<td style="'+TDC+'font-size:14px;font-weight:600;color:'+scoreColor(avg)+';">'+(avg!==null?avg+'%':'—')+'</td>'
           +'<td style="'+TDC+'">'+pill(avg)+'</td>'
           +'</tr>';
-      });
+      } else {
+        // Multi-outlet staff — grouped with sub-rows per outlet
+        // Calculate total average across all outlets
+        const outletAvgs = group.map(s=>calcAvg(s)).filter(v=>v!==null);
+        const totalAvg = outletAvgs.length ? Math.round(outletAvgs.reduce((a,b)=>a+b,0)/outletAvgs.length) : null;
+
+        // Staff header row
+        html += '<tr style="background:#EEF2F7;border-bottom:0.5px solid #D0D8E4;">'
+          +'<td colspan="5" style="padding:8px 10px;">'
+          +'<span style="font-weight:500;color:#1A3C5E;font-size:12px;">'+(firstRecord.staffName||'—')+'</span>'
+          +' '+roleChipHtml
+          +' <span style="font-size:9px;color:#185FA5;background:#E6F1FB;padding:2px 6px;border-radius:10px;margin-left:4px;">'+group.length+' outlets</span>'
+          +'</td>'
+          +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:#94A3B8;">Total avg</td>'
+          +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:#94A3B8;">Overall</td>'
+          +'</tr>';
+
+        // Outlet sub-rows
+        group.forEach(function(s) {
+          const avg = calcAvg(s);
+          const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
+          html += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
+            +'<td style="'+TD+'padding-left:20px;font-weight:500;color:#1A3C5E;">'
+            +'<span style="color:#94A3B8;margin-right:4px;">&#8627;</span>'+(s.outlet||'—')
+            +'</td>'
+            +'<td style="'+TD+'"></td>'
+            +'<td style="'+TDC+'">'+scoreBarCenter(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
+            +'<td style="'+TDC+'">'+scoreBarCenter(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
+            +'<td style="'+TDC+'">'+scoreBarCenter(evalScore!=null?parseFloat(evalScore):null)+'</td>'
+            +'<td style="'+TDC+'font-weight:600;color:'+scoreColor(avg)+';">'+(avg!==null?avg+'%':'—')+'</td>'
+            +'<td style="'+TDC+'">'+pill(avg)+'</td>'
+            +'</tr>';
+        });
+
+        // Total average row
+        html += '<tr style="background:#F0F4F8;border-top:1px solid #1A3C5E;border-bottom:1.5px solid #D0D8E4;">'
+          +'<td colspan="5" style="padding:7px 10px;padding-left:20px;font-size:11px;font-weight:500;color:#1A3C5E;">'
+          +'<span style="color:#94A3B8;margin-right:4px;">&#8627;</span>Total average across all outlets'
+          +'</td>'
+          +'<td style="padding:7px 10px;text-align:center;font-size:14px;font-weight:700;color:'+scoreColor(totalAvg)+';">'+(totalAvg!==null?totalAvg+'%':'—')+'</td>'
+          +'<td style="padding:7px 10px;text-align:center;">'+pill(totalAvg)+'</td>'
+          +'</tr>';
+      }
     });
 
-    // Overall average row
+    // Overall table average row
     const overall = avgOf(data);
     html += '<tr style="background:#1A3C5E;">'
-      +'<td colspan="5" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+data.length+' staff</td>'
+      +'<td colspan="4" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+sortedGroups.length+' staff ('+(isMultiOutlet?'consolidated':'')+')</td>'
       +'<td></td>'
       +'<td style="padding:9px 12px;text-align:center;font-size:14px;font-weight:700;color:#fff;">'+(overall!==null?overall+'%':'—')+'</td>'
       +'<td style="padding:9px 12px;text-align:center;">'+pill(overall)+'</td>'
@@ -2776,6 +2856,9 @@ function renderLiveReport() {
       +'<select id="lr-outlet" style="font-size:12px;padding:5px 7px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;">'+outletOpts+'</select></div>'
       +'<div><div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Role</div>'
       +'<select id="lr-role" style="font-size:12px;padding:5px 7px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;">'+roleOpts+'</select></div>'
+      +'<div style="display:flex;align-items:flex-end;padding-bottom:2px;">'
+      +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:#1A3C5E;white-space:nowrap;">'
+      +'<input type="checkbox" id="lr-consolidate" style="width:14px;height:14px;cursor:pointer;"> Consolidate staff</label></div>'
       +'</div>'
       // Export buttons
       +'<div style="display:flex;gap:8px;">'
@@ -2812,7 +2895,7 @@ function renderLiveReport() {
     container.innerHTML = html;
 
     // Wire filters
-    ['lr-from','lr-to','lr-outlet','lr-role'].forEach(function(id) {
+    ['lr-from','lr-to','lr-outlet','lr-role','lr-consolidate'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', function() {
         doRender(
@@ -3074,7 +3157,14 @@ function showTab(el,id) {
   if (id === 'oicincentive') { initOICIncentive(); }
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'summaryscoring') { initSummaryScoring(); }
-  if (id === 'livereport') { renderLiveReport(); }
+  if (id === 'livereport') {
+    // Ensure both BOH and FOH data are loaded before rendering
+    const container = document.getElementById('liveReportContainer');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">⏳ Loading data...</div>';
+    if (typeof loadBOHData === 'function') loadBOHData();
+    if (typeof loadFOHData === 'function') loadFOHData();
+    setTimeout(function() { renderLiveReport(); }, 3000);
+  }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
     db.ref('audits').once('value', snap => {
