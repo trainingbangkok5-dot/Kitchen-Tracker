@@ -2383,7 +2383,11 @@ function renderSummaryScoring() {
   // ── Build audit rows ────────────────────────────────────────
   function fmtDT(iso) {
     if (!iso) return '—';
-    try { return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}); } catch(e){return iso;}
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});
+    } catch(e){return iso||'—';}
   }
   function scoreColor(p) {
     if (p==null) return '#94A3B8';
@@ -2477,9 +2481,20 @@ function renderSummaryScoring() {
     }
 
     // Extract shift-specific data from rawRows
-    const openRec  = raws.find(function(r){ return r.shift==='opening'||r.status==='opening_submitted'||(r.openingPct!=null&&r.closingPct==null); }) || raws.find(function(r){return r.openingPct!=null;}) || {};
-    const closeRec = raws.find(function(r){ return r.shift==='closing'||r.status==='closing_submitted'||(r.closingPct!=null); }) || {};
-    const evalRec  = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
+    // For staff with single record containing both openingPct — use that record
+    // Sort: prefer records with shift field set
+    const sortedRaws = raws.slice().sort(function(a,b){
+      const aHasShift = !!(a.shift||a.status) ? 1 : 0;
+      const bHasShift = !!(b.shift||b.status) ? 1 : 0;
+      return bHasShift - aHasShift;
+    });
+    const openRec = sortedRaws.find(function(r){
+      return r.shift==='opening'||r.status==='opening_submitted';
+    }) || sortedRaws.find(function(r){ return r.openingPct!=null; }) || raws[0] || {};
+    const closeRec = sortedRaws.find(function(r){
+      return r.shift==='closing'||r.status==='closing_submitted';
+    }) || sortedRaws.find(function(r){ return r.closingPct!=null; }) || {};
+    const evalRec = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
 
     // Get verifiedBy from verificationLog or direct fields
     function getVerifier(rec) {
@@ -2509,10 +2524,10 @@ function renderSummaryScoring() {
     const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'
       +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">'
       +buildShiftCard('Opening Shift','🌅',op,
-          openRec.submittedAt, openVby?openVby.by:null, openVby?openVby.role:null, openVby?openVby.at:null, openRec.verificationLog,
+          openRec.submittedAt||openRec.lastUpdated||null, openVby?openVby.by:null, openVby?openVby.role:null, openVby?openVby.at:null, openRec.verificationLog,
           openRec.overwrittenBy, openRec.overwrittenAt)
       +buildShiftCard('Closing Shift','🌙',cl,
-          closeRec.submittedAt, closeVby?closeVby.by:null, closeVby?closeVby.role:null, closeVby?closeVby.at:null, closeRec.verificationLog,
+          closeRec.submittedAt||closeRec.lastUpdated||null, closeVby?closeVby.by:null, closeVby?closeVby.role:null, closeVby?closeVby.at:null, closeRec.verificationLog,
           closeRec.overwrittenBy, closeRec.overwrittenAt)
       +evalCardHtml
       +'</div>'
