@@ -550,6 +550,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button onclick="deleteSelectedBOH()" style="padding:6px 14px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🗑 Delete Selected</button>
         <button onclick="toggleBOHSelectMode(false)" style="padding:6px 14px;background:#F1F5F9;color:#64748B;border:none;border-radius:8px;font-size:12px;cursor:pointer;">✕ Cancel</button>
       </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+        <div style="border:0.5px solid #E0DDD4;border-radius:8px;padding:10px;text-align:center;background:#fff;">
+          <div style="font-size:20px;font-weight:500;color:#1A3C5E;" id="ssTotalCount">—</div>
+          <div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Total Staff</div>
+        </div>
+        <div style="border:0.5px solid #E0DDD4;border-radius:8px;padding:10px;text-align:center;background:#fff;">
+          <div style="font-size:20px;font-weight:500;color:#3B6D11;" id="ssEligCount">—</div>
+          <div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Eligible ≥95%</div>
+        </div>
+        <div style="border:0.5px solid #E0DDD4;border-radius:8px;padding:10px;text-align:center;background:#fff;">
+          <div style="font-size:20px;font-weight:500;color:#A32D2D;" id="ssNotCount">—</div>
+          <div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Not Eligible</div>
+        </div>
+        <div style="border:0.5px solid #E0DDD4;border-radius:8px;padding:10px;text-align:center;background:#fff;">
+          <div style="font-size:20px;font-weight:500;color:#F59E0B;" id="ssOWCount">—</div>
+          <div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">Has Overwrite 🟡</div>
+        </div>
+      </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">
           <thead>
@@ -733,17 +751,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px;">
         <thead>
           <tr style="background:#1A3C5E;">
-            <th class="ss-chk-cell" id="ssChkAllHeader" style="display:none;padding:9px 6px;text-align:center;color:#fff;"><input type="checkbox" id="ssSelectAll" onchange="toggleSSSelectAll(this.checked)"></th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Rank</th>
-            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Staff Name</th>
-            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Roles Worked</th>
-            <th style="padding:9px 10px;text-align:left;color:#fff;font-size:11px;font-weight:600;">Outlet</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Week / Range</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Days Submitted</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Checklists</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Combined Score</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Overall Average %</th>
-            <th style="padding:9px 10px;text-align:center;color:#fff;font-size:11px;font-weight:600;">Eligibility</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;width:32px;"></th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;min-width:150px;">Staff Name</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;width:90px;">Role</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;width:90px;">Outlet</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;text-align:center;width:90px;">Opening</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;text-align:center;width:90px;">Closing</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;text-align:center;width:80px;">Eval</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;text-align:center;width:85px;">Weekly Avg</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;text-align:center;width:90px;">Eligible</th>
+            <th style="padding:8px 10px;color:#fff;font-size:10px;font-weight:500;text-align:center;width:75px;">Overwrite</th>
           </tr>
         </thead>
         <tbody id="ssTableBody"></tbody>
@@ -2349,27 +2366,169 @@ function renderSummaryScoring() {
   }
   empty.style.display = 'none';
 
-  tbody.innerHTML = employees.map((e, i) => `
-    <tr style="border-bottom:1px solid #F1F5F9;background:${e.invalidWeek?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC')};cursor:pointer;" onclick="openStaffWeeklyDetail(${i})">
-      <td class="ss-chk-cell" style="display:none;padding:8px 6px;text-align:center;" onclick="event.stopPropagation()">
-        <input type="checkbox" class="ss-row-chk" data-key="${(e.staffName||'').replace(/"/g,'')}_${(e.outlet||'').replace(/"/g,'')}_${(e.week||'').replace(/"/g,'')}" onchange="updateSSSelectCount()">
-      </td>
-      <td style="padding:8px 10px;text-align:center;font-weight:700;color:${e.rank===1?'#D97706':'#1A3C5E'};">${e.rank!=null?(e.rank===1?'🥇 1':e.rank===2?'🥈 2':e.rank===3?'🥉 3':e.rank):'—'}</td>
-      <td style="padding:8px 10px;font-weight:600;color:#1A3C5E;text-decoration:underline;">${e.staffName}</td>
-      <td style="padding:8px 10px;color:#475569;font-size:11px;">${e.roleNames.join(', ')}</td>
-      <td style="padding:8px 10px;color:#475569;">${e.outlet||'—'}</td>
-      <td style="padding:8px 10px;text-align:center;color:${e.invalidWeek?'#B45309':'#475569'};">${e.invalidWeek?'⚠️ Invalid week data':(e.week||'—')}</td>
-      <td style="padding:8px 10px;text-align:center;color:#1A3C5E;font-weight:700;">${e.daysSubmitted}</td>
-      <td style="padding:8px 10px;text-align:center;color:#475569;">${e.combinedChecklists}</td>
-      <td style="padding:8px 10px;text-align:center;font-weight:700;color:#1A3C5E;">${e.combinedScore}</td>
-      <td style="padding:8px 10px;text-align:center;">
-        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${ssPctColor(e.combinedAvg)}22;color:${ssPctColor(e.combinedAvg)};">${e.combinedAvg!=null?e.combinedAvg+'%':'—'}</span>
-      </td>
-      <td style="padding:8px 10px;text-align:center;">
-        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${e.eligible?'#DCFCE7':'#FEE2E2'};color:${e.eligible?'#15803D':'#B91C1C'};">${e.eligible?'✅ Eligible':'❌ Not Eligible'}</span>
-      </td>
-    </tr>
-  `).join('');
+  // ── Build audit rows ────────────────────────────────────────
+  function fmtDT(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}); } catch(e){return iso;}
+  }
+  function scoreColor(p) {
+    if (p==null) return '#94A3B8';
+    return p>=95?'#3B6D11':p>=90?'#854F0B':p>=85?'#993C1D':'#A32D2D';
+  }
+  function tierLabel(p) {
+    if (p==null) return '—';
+    if (p>=95) return 'Excellent';
+    if (p>=90) return 'Good';
+    if (p>=85) return 'Satisfactory';
+    return 'Below';
+  }
+  function scoreBar(p) {
+    if (p==null) return '<span style="background:#F1F5F9;color:#64748B;font-size:10px;padding:2px 6px;border-radius:20px;">N/A</span>';
+    const c=scoreColor(p), w=Math.round((p/100)*28);
+    return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;">'
+      +'<div style="width:28px;height:4px;border-radius:2px;background:#EAEAEA;flex-shrink:0;">'
+      +'<div style="width:'+w+'px;height:4px;border-radius:2px;background:'+c+';"></div></div>'
+      +'<span style="font-weight:600;color:'+c+';min-width:30px;font-size:11px;">'+p+'%</span></div>';
+  }
+
+  // Count overwrites across all employees
+  const overwriteCount = employees.filter(e => {
+    const rrs = e.rawRows||[];
+    return rrs.some(r => r.overwrittenBy || r.overwrittenAt);
+  }).length;
+
+  // Update summary cards
+  const ssTotal  = document.getElementById('ssTotalCount');
+  const ssElig   = document.getElementById('ssEligCount');
+  const ssNot    = document.getElementById('ssNotCount');
+  const ssOW     = document.getElementById('ssOWCount');
+  if (ssTotal) ssTotal.textContent = employees.length;
+  if (ssElig)  ssElig.textContent  = employees.filter(e=>e.eligible).length;
+  if (ssNot)   ssNot.textContent   = employees.filter(e=>!e.eligible).length;
+  if (ssOW)    ssOW.textContent    = overwriteCount;
+
+  let rowsHtml = '';
+  employees.forEach(function(e, i) {
+    const hasOW = (e.rawRows||[]).some(r=>r.overwrittenBy||r.overwrittenAt);
+    const op = e.roles&&e.roles[0] ? e.roles[0].openingAvg : null;
+    const cl = e.roles&&e.roles[0] ? e.roles[0].closingAvg : null;
+    const ev = e.roles&&e.roles[0] ? e.roles[0].oicAvg     : null;
+    const avg = e.combinedAvg;
+    const rc = {linecook:['#FFF0E8','#7C3A00'],steward:['#E6F1FB','#185FA5'],kic:['#E1F5EE','#0F6E56'],oic:['#FCE7F3','#7B2D42'],service:['#FAEEDA','#854F0B'],bartender:['#EDE9FE','#6B3FA0'],delco:['#D1FAE5','#2D6A4F']};
+    const role0 = e.roles&&e.roles[0]?e.roles[0].role:'';
+    const rcolor = rc[role0]||['#F1F5F9','#374151'];
+    const roleChip = '<span style="background:'+rcolor[0]+';color:'+rcolor[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;">'+(e.roleNames[0]||'—')+'</span>';
+
+    // Build detail panel
+    // Get all raw submissions for this employee
+    const raws = e.rawRows||[];
+    function buildShiftCard(label, emoji, pct, recs) {
+      const rec = recs[0]||{};
+      const isOW = rec.overwrittenBy||rec.overwrittenAt;
+      const origPct = rec._origOverallPct!=null ? rec._origOverallPct : null;
+      let html = '<div style="background:#fff;border-radius:8px;border:0.5px solid '+(isOW?'#FCD34D':'#E0DDD4')+';padding:10px 12px;">';
+      html += '<div style="font-size:10px;font-weight:600;color:'+(isOW?'#92400E':'#1A3C5E')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">'+emoji+' '+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:9px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
+      if (pct==null) {
+        html += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not submitted</div>';
+      } else {
+        if (isOW && origPct!=null) {
+          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
+            +'<span style="font-size:10px;color:#64748B;">Original</span>'
+            +'<div><div style="font-size:11px;font-weight:600;text-decoration:line-through;color:#94A3B8;">'+origPct+'%</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(rec.submittedAt)+'</div></div></div>';
+          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
+            +'<span style="font-size:10px;color:#92400E;font-weight:500;">Overwritten to</span>'
+            +'<div><div style="font-size:13px;font-weight:700;color:#A32D2D;">'+pct+'%</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+(rec.overwrittenBy||'—')+' · '+fmtDT(rec.overwrittenAt)+'</div></div></div>';
+        } else {
+          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
+            +'<span style="font-size:10px;color:#64748B;">Submitted</span>'
+            +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(rec.submittedAt)+'</div></div></div>';
+        }
+        // Verified by
+        const vlog = rec.verificationLog;
+        const vby = (Array.isArray(vlog)&&vlog.length) ? vlog[vlog.length-1] : (rec.verifiedBy?{by:rec.verifiedBy,at:rec.verifiedAt,role:rec.verifiedByRole||''}:null);
+        if (vby) {
+          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;">'
+            +'<span style="font-size:10px;color:#64748B;">Verified by</span>'
+            +'<div><div style="font-size:11px;font-weight:500;color:#1A3C5E;">'+(vby.by||'—')+(vby.role?' ('+vby.role+')':'')+'</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(vby.at)+'</div></div></div>';
+        }
+      }
+      html += '</div>';
+      return html;
+    }
+
+    const openRecs  = raws.filter(r=>r.shift==='opening'||r.status==='opening_submitted'||r.openingPct!=null);
+    const closeRecs = raws.filter(r=>r.shift==='closing'||r.status==='closing_submitted'||r.closingPct!=null);
+    const evalRec   = raws.find(r=>r.oicEvalPct!=null&&!r.evalNotVisited);
+
+    let evalCardHtml = '<div style="background:#fff;border-radius:8px;border:0.5px solid #E0DDD4;padding:10px 12px;">';
+    evalCardHtml += '<div style="font-size:10px;font-weight:600;color:#1A3C5E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📋 Evaluation</div>';
+    if (ev!=null && evalRec) {
+      evalCardHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;">'
+        +'<span style="font-size:10px;color:#64748B;">Score</span>'
+        +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(ev)+';">'+ev+'%</div>'
+        +'<div style="font-size:9px;color:#94A3B8;">'+(evalRec.overwrittenBy||evalRec.verifiedBy||'—')+' · '+fmtDT(evalRec.overwrittenAt||evalRec.verifiedAt)+'</div></div></div>';
+    } else {
+      evalCardHtml += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not yet evaluated</div>';
+    }
+    evalCardHtml += '</div>';
+
+    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">'
+      +buildShiftCard('Opening Shift','🌅',op,openRecs)
+      +buildShiftCard('Closing Shift','🌙',cl,closeRecs)
+      +evalCardHtml
+      +'</div>'
+      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">'
+      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'
+      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'
+      +'</div></div>';
+
+    const mainBg = hasOW?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC');
+    rowsHtml += '<tr class="ss-audit-main" data-idx="'+i+'" style="border-bottom:0.5px solid #F1F5F9;background:'+mainBg+';cursor:pointer;" onclick="ssToggleDetail(this,'+(i)+')">'
+      +'<td style="padding:8px 10px;text-align:center;">'
+      +'<div style="width:22px;height:22px;border-radius:50%;border:0.5px solid #E0DDD4;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748B;" id="ss-btn-'+i+'">▼</div>'
+      +'</td>'
+      +'<td style="padding:8px 10px;">'
+      +'<div style="font-weight:600;color:#1A3C5E;font-size:12px;">'+(hasOW?'<span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block;margin-right:5px;vertical-align:middle;"></span>':'')+(e.staffName||'—')+'</div>'
+      +'<div style="font-size:10px;color:#94A3B8;margin-top:1px;">'+(e.week||'—')+'</div>'
+      +'</td>'
+      +'<td style="padding:8px 10px;">'+roleChip+'</td>'
+      +'<td style="padding:8px 10px;font-size:11px;color:#64748B;">'+(e.outlet||'—')+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;">'+scoreBar(op)+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;">'+scoreBar(cl)+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;">'+scoreBar(ev)+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;font-size:15px;font-weight:700;color:'+scoreColor(avg)+'">'+(avg!=null?avg+'%':'—')+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;">'
+      +'<span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:500;background:'+(e.eligible?'#EAF3DE':'#FCEBEB')+';color:'+(e.eligible?'#3B6D11':'#A32D2D')+'">'+(e.eligible?'✓ Eligible':'✗ Not eligible')+'</span>'
+      +'</td>'
+      +'<td style="padding:8px 10px;text-align:center;">'+(hasOW?'<span style="background:#FEF3C7;color:#92400E;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:500;">Changed</span>':'<span style="font-size:10px;color:#94A3B8;">None</span>')+'</td>'
+      +'</tr>'
+      +'<tr class="ss-audit-detail" id="ss-detail-'+i+'" style="display:none;">'
+      +'<td colspan="10" style="padding:0;">'+detailHtml+'</td>'
+      +'</tr>';
+  });
+
+  tbody.innerHTML = rowsHtml;
+}
+
+window.ssToggleDetail = function(row, idx) {
+  const detail = document.getElementById('ss-detail-'+idx);
+  const btn    = document.getElementById('ss-btn-'+idx);
+  if (!detail) return;
+  const isOpen = detail.style.display !== 'none';
+  // Close all
+  document.querySelectorAll('.ss-audit-detail').forEach(r=>r.style.display='none');
+  document.querySelectorAll('[id^="ss-btn-"]').forEach(b=>{ b.textContent='▼'; b.style.background='#fff'; });
+  document.querySelectorAll('.ss-audit-main').forEach(r=>{ if(r.style.background==='rgb(238, 244, 251)') r.style.background=r.dataset.origbg||''; });
+  if (!isOpen) {
+    detail.style.display='table-row';
+    btn.textContent='▲'; btn.style.background='#EEF4FB';
+    row.style.background='#EEF4FB';
+  }
 }
 
 function openStaffWeeklyDetail(idx) {
