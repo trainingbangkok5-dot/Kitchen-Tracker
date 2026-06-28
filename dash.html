@@ -2026,13 +2026,20 @@ function initSummaryScoring() {
         if (isOutletRole && currentRole === 'oic') return;
         _ssData.push({
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week||''),
-          // openingPct fallback: older KIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'kic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
-          oicEvalPct: s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null, // Area Chef eval for KIC
+          oicEvalPct: s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
-          days: s.days || null
+          days: s.days || null,
+          shift: s.shift || s.status || null,
+          verifiedBy: s.verifiedBy || null,
+          verifiedAt: s.verifiedAt || null,
+          verifiedByRole: s.verifiedByRole || null,
+          verificationLog: s.verificationLog || null,
+          overwrittenBy: s.overwrittenBy || null,
+          overwrittenAt: s.overwrittenAt || null,
+          evalNotVisited: s.evalNotVisited || false
         });
       });
       done();
@@ -2052,13 +2059,20 @@ function initSummaryScoring() {
         if (isOutletRole && currentRole === 'kic') return;
         _ssData.push({
           staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week||''),
-          // openingPct fallback: older OIC records only have overallPct, not openingPct
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: (['service','oic','bartender','delco','linecook','steward'].includes(s.role)) ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
           submittedDates: Array.isArray(s.submittedDates) ? s.submittedDates : [],
           submittedAt: s.submittedAt || null,
-          days: s.days || null
+          days: s.days || null,
+          shift: s.shift || s.status || null,
+          verifiedBy: s.verifiedBy || null,
+          verifiedAt: s.verifiedAt || null,
+          verifiedByRole: s.verifiedByRole || null,
+          verificationLog: s.verificationLog || null,
+          overwrittenBy: s.overwrittenBy || null,
+          overwrittenAt: s.overwrittenAt || null,
+          evalNotVisited: s.evalNotVisited || false
         });
       });
       done();
@@ -2461,28 +2475,44 @@ function renderSummaryScoring() {
       return html;
     }
 
-    const evalRec = raws.find(function(r){return r.oicEvalPct!=null&&!r.evalNotVisited;});
+    // Extract shift-specific data from rawRows
+    const openRec  = raws.find(function(r){ return r.shift==='opening'||r.status==='opening_submitted'||(r.openingPct!=null&&r.closingPct==null); }) || raws.find(function(r){return r.openingPct!=null;}) || {};
+    const closeRec = raws.find(function(r){ return r.shift==='closing'||r.status==='closing_submitted'||(r.closingPct!=null); }) || {};
+    const evalRec  = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
+
+    // Get verifiedBy from verificationLog or direct fields
+    function getVerifier(rec) {
+      const vlog = Array.isArray(rec.verificationLog) ? rec.verificationLog : [];
+      if (vlog.length) { const v=vlog[vlog.length-1]; return {by:v.by||'—',role:v.role||'',at:v.at||''}; }
+      if (rec.verifiedBy) return {by:rec.verifiedBy,role:rec.verifiedByRole||'',at:rec.verifiedAt||''};
+      return null;
+    }
 
     let evalCardHtml = '<div style="background:#fff;border-radius:8px;border:0.5px solid #E0DDD4;padding:10px 12px;">';
     evalCardHtml += '<div style="font-size:10px;font-weight:600;color:#1A3C5E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📋 Evaluation</div>';
-    if (ev!=null && evalRec) {
+    if (ev!=null) {
+      const evalBy = evalRec.overwrittenBy||evalRec.verifiedBy||'—';
+      const evalAt = evalRec.overwrittenAt||evalRec.verifiedAt||'';
       evalCardHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;">'
         +'<span style="font-size:10px;color:#64748B;">Score</span>'
         +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(ev)+';">'+ev+'%</div>'
-        +'<div style="font-size:9px;color:#94A3B8;">'+(evalRec.overwrittenBy||evalRec.verifiedBy||'—')+' · '+fmtDT(evalRec.overwrittenAt||evalRec.verifiedAt)+'</div></div></div>';
+        +'<div style="font-size:9px;color:#94A3B8;">'+evalBy+' · '+fmtDT(evalAt)+'</div></div></div>';
     } else {
       evalCardHtml += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not yet evaluated</div>';
     }
     evalCardHtml += '</div>';
 
+    const openVby = getVerifier(openRec);
+    const closeVby = getVerifier(closeRec);
+
     const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'
       +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">'
       +buildShiftCard('Opening Shift','🌅',op,
-          e._openSubmittedAt,e._openVerifiedBy,e._openVerifiedRole,e._openVerifiedAt,e._openVlog,
-          e._openOverwrittenBy,e._openOverwrittenAt)
+          openRec.submittedAt, openVby?openVby.by:null, openVby?openVby.role:null, openVby?openVby.at:null, openRec.verificationLog,
+          openRec.overwrittenBy, openRec.overwrittenAt)
       +buildShiftCard('Closing Shift','🌙',cl,
-          e._closeSubmittedAt,e._closeVerifiedBy,e._closeVerifiedRole,e._closeVerifiedAt,e._closeVlog,
-          e._closeOverwrittenBy,e._closeOverwrittenAt)
+          closeRec.submittedAt, closeVby?closeVby.by:null, closeVby?closeVby.role:null, closeVby?closeVby.at:null, closeRec.verificationLog,
+          closeRec.overwrittenBy, closeRec.overwrittenAt)
       +evalCardHtml
       +'</div>'
       +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">'
