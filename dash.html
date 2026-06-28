@@ -3158,12 +3158,25 @@ function showTab(el,id) {
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'summaryscoring') { initSummaryScoring(); }
   if (id === 'livereport') {
-    // Ensure both BOH and FOH data are loaded before rendering
     const container = document.getElementById('liveReportContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">⏳ Loading data...</div>';
-    if (typeof loadBOHData === 'function') loadBOHData();
-    if (typeof loadFOHData === 'function') loadFOHData();
-    setTimeout(function() { renderLiveReport(); }, 3000);
+    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:13px;">⏳ Loading data...</div>';
+    // If data already loaded — render immediately
+    if (allBOHData.length > 0 || allFOHData.length > 0) {
+      renderLiveReport();
+    } else {
+      // Data not yet loaded — trigger load then wait for Firebase
+      if (typeof loadBOHData === 'function') loadBOHData();
+      if (typeof loadFOHData === 'function') loadFOHData();
+      // Poll every 500ms until data arrives, max 10 seconds
+      let _lrPollCount = 0;
+      const _lrPoll = setInterval(function() {
+        _lrPollCount++;
+        if (allBOHData.length > 0 || allFOHData.length > 0 || _lrPollCount >= 20) {
+          clearInterval(_lrPoll);
+          renderLiveReport();
+        }
+      }, 500);
+    }
   }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
