@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260628020000';
+  var v = '20260629010000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -677,7 +677,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">📈 Consolidated Weekly Staff Report</h2>
         <p style="font-size:12px;color:#94A3B8;margin-top:2px;">One report per employee — combines all roles worked during the week. Click a name for the full breakdown.</p>
       </div>
-      <button onclick="toggleSSSelectMode(true)" id="ssSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button onclick="exportSSPDF()" style="padding:5px 12px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📄 PDF</button>
+        <button onclick="exportSSExcel()" style="padding:5px 12px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📊 Excel</button>
+        <button onclick="toggleSSSelectMode(true)" id="ssSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
+      </div>
     </div>
     <div id="ssSelectBar" style="display:none;background:#FFF1F0;border:1px solid #FCA5A5;border-radius:10px;padding:10px 14px;align-items:center;gap:10px;margin-bottom:14px;">
       <span id="ssSelectCount" style="font-size:12px;font-weight:600;color:#B91C1C;">0 selected</span>
@@ -2312,11 +2316,123 @@ let _ssConsolidatedRows = [];
 function ssClearDateRange() {
   document.getElementById('ssDateFrom').value = '';
   document.getElementById('ssDateTo').value = '';
+  // Re-enable week dropdown when date range is cleared
+  const _wdd = document.getElementById('ssWeekFilter');
+  if (_wdd) { _wdd.disabled = false; _wdd.style.opacity = '1'; }
   // CRITICAL: re-render immediately so the table reflects single-week mode right away.
   // Without this, the table kept showing stale date-range-consolidated rows after
   // clearing the range, and selecting/deleting from those stale rows could match
   // and delete far more Firebase records than intended.
   renderSummaryScoring();
+}
+function exportSSPDF() {
+  if (!_ssConsolidatedRows || !_ssConsolidatedRows.length) { alert('No data to export. Apply filters first.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const from = document.getElementById('ssDateFrom').value;
+  const to   = document.getElementById('ssDateTo').value;
+  const weekF = document.getElementById('ssWeekFilter').value;
+  const outF  = document.getElementById('ssOutletFilter').value;
+  const roleF = document.getElementById('ssRoleFilter').value;
+  const periodLabel = (from && to) ? (from + ' to ' + to) : (weekF !== 'all' ? 'Week: ' + weekF : 'All Weeks');
+  const outletLabel = outF !== 'all' ? outF : 'All Outlets';
+  const roleLabel   = roleF !== 'all' ? ssRoleLabel(roleF) : 'All Roles';
+
+  doc.setFontSize(13); doc.setTextColor(26,60,94);
+  doc.text('Consolidated Weekly Staff Report', 14, 12);
+  doc.setFontSize(8); doc.setTextColor(100,116,139);
+  doc.text('Period: ' + periodLabel + '  |  Outlet: ' + outletLabel + '  |  Role: ' + roleLabel + '  |  Generated: ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), 14, 18);
+
+  const roleMap = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',delco:'Delco',bartender:'Bartender'};
+  const rows = _ssConsolidatedRows.map(function(e) {
+    const mainRole = e.roles && e.roles.length ? e.roles[0] : {};
+    const op  = mainRole.openingAvg != null ? mainRole.openingAvg + '%' : '—';
+    const cl  = mainRole.closingAvg != null ? mainRole.closingAvg + '%' : '—';
+    const ev  = mainRole.oicAvg     != null ? mainRole.oicAvg     + '%' : '—';
+    const avg = e.combinedAvg       != null ? e.combinedAvg       + '%' : '—';
+    return [
+      e.staffName || '—',
+      (e.roles||[]).map(function(r){return roleMap[r.role]||r.role;}).join(', '),
+      e.outlet || '—',
+      op, cl, ev, avg,
+      e.eligible ? 'Eligible' : 'Not Eligible'
+    ];
+  });
+
+  doc.autoTable({
+    startY: 23,
+    head: [['Staff Name','Role','Outlet','Opening','Closing','Eval','Weekly Avg','Status']],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 2.5 },
+    headStyles: { fillColor: [26,60,94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    alternateRowStyles: { fillColor: [248,250,252] },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 20, halign: 'center' },
+      5: { cellWidth: 20, halign: 'center' },
+      6: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
+      7: { cellWidth: 25, halign: 'center' }
+    },
+    didParseCell: function(data) {
+      if (data.section === 'body') {
+        if (data.column.index === 7) {
+          if (data.cell.raw === 'Eligible')     { data.cell.styles.textColor = [59,109,17]; }
+          else if (data.cell.raw === 'Not Eligible') { data.cell.styles.textColor = [163,45,45]; }
+        }
+        if ([3,4,5,6].includes(data.column.index)) {
+          const v = parseFloat(data.cell.raw);
+          if (!isNaN(v)) {
+            data.cell.styles.textColor = v>=95?[59,109,17]:v>=90?[133,79,11]:v>=85?[153,60,29]:[163,45,45];
+          }
+        }
+      }
+    },
+    margin: { left: 14, right: 14 }
+  });
+
+  // Summary footer
+  const total   = _ssConsolidatedRows.length;
+  const elig    = _ssConsolidatedRows.filter(function(e){return e.eligible;}).length;
+  const notElig = total - elig;
+  const finalY  = doc.lastAutoTable.finalY + 6;
+  doc.setFontSize(8); doc.setTextColor(100,116,139);
+  doc.text('Total: ' + total + '  |  Eligible ≥95%: ' + elig + '  |  Not Eligible: ' + notElig, 14, finalY);
+
+  doc.save('Weekly_Staff_Report_' + (from || weekF) + '.pdf');
+}
+
+function exportSSExcel() {
+  if (!_ssConsolidatedRows || !_ssConsolidatedRows.length) { alert('No data to export.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Excel library not loaded. Please refresh and try again.'); return; }
+  const from = document.getElementById('ssDateFrom').value;
+  const to   = document.getElementById('ssDateTo').value;
+  const weekF = document.getElementById('ssWeekFilter').value;
+  const roleMap = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',delco:'Delco',bartender:'Bartender'};
+  const wsData = [['Staff Name','Role','Outlet','Week/Period','Opening %','Closing %','Eval %','Weekly Avg %','Eligible','Days Submitted']];
+  _ssConsolidatedRows.forEach(function(e) {
+    const mainRole = e.roles && e.roles.length ? e.roles[0] : {};
+    wsData.push([
+      e.staffName||'—',
+      (e.roles||[]).map(function(r){return roleMap[r.role]||r.role;}).join(', '),
+      e.outlet||'—',
+      e.week||((from&&to)?from+' to '+to:weekF),
+      mainRole.openingAvg != null ? mainRole.openingAvg : '',
+      mainRole.closingAvg != null ? mainRole.closingAvg : '',
+      mainRole.oicAvg     != null ? mainRole.oicAvg     : '',
+      e.combinedAvg       != null ? e.combinedAvg       : '',
+      e.eligible ? 'Yes' : 'No',
+      (e.allDates||[]).length || ''
+    ]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{wch:30},{wch:20},{wch:20},{wch:25},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Weekly Staff Report');
+  XLSX.writeFile(wb, 'Weekly_Staff_Report_' + (from||weekF||'export') + '.xlsx');
 }
 
 function renderSummaryScoring() {
@@ -2335,11 +2451,15 @@ function renderSummaryScoring() {
 
   document.getElementById('ssRangeNote').style.display = useDateRange ? 'block' : 'none';
 
+  // When date range is active, disable week dropdown to avoid filter conflict
+  const _weekDd = document.getElementById('ssWeekFilter');
+  if (_weekDd) { _weekDd.disabled = useDateRange; _weekDd.style.opacity = useDateRange ? '0.4' : '1'; }
+
   let rows = _ssData.filter(s => {
     if (useDateRange) {
-      // Match if the record's week falls within range, OR any of its submitted dates fall within range
-      const dates = [s.week, ...(s.submittedDates||[])].filter(Boolean);
-      const inRange = dates.some(d => d >= dateFromStr && d <= dateToStr);
+      // Match if the record's week falls within range, OR submittedAt date falls within range
+      const allDates = [s.week, s.submittedAt ? s.submittedAt.substring(0,10) : null, ...(s.submittedDates||[])].filter(Boolean);
+      const inRange = allDates.some(d => d >= dateFromStr && d <= dateToStr);
       if (!inRange) return false;
     } else if (weekF !== 'all' && s.week !== weekF) {
       return false;
@@ -2481,19 +2601,29 @@ function renderSummaryScoring() {
     }
 
     // Extract shift-specific data from rawRows
-    // For staff with single record containing both openingPct — use that record
-    // Sort: prefer records with shift field set
+    // Firebase records are merged — one row can have both openingPct AND closingPct.
+    // Strategy: find best opening record and best closing record independently.
+    // A record qualifies as an opening record if it has openingPct != null (regardless of shift field).
+    // A record qualifies as a closing record if it has closingPct != null.
+    // Prefer records where shift field matches explicitly, then fall back to any with the right pct.
     const sortedRaws = raws.slice().sort(function(a,b){
       const aHasShift = !!(a.shift||a.status) ? 1 : 0;
       const bHasShift = !!(b.shift||b.status) ? 1 : 0;
       return bHasShift - aHasShift;
     });
+    // Opening: prefer explicit opening shift, then any record with openingPct
     const openRec = sortedRaws.find(function(r){
+      return (r.shift==='opening'||r.status==='opening_submitted') && r.openingPct!=null;
+    }) || sortedRaws.find(function(r){
       return r.shift==='opening'||r.status==='opening_submitted';
     }) || sortedRaws.find(function(r){ return r.openingPct!=null; }) || raws[0] || {};
+    // Closing: prefer explicit closing shift, then any record with closingPct
+    // If the openRec itself also has closingPct (merged record), use it for closing too
     const closeRec = sortedRaws.find(function(r){
+      return (r.shift==='closing'||r.status==='closing_submitted') && r.closingPct!=null;
+    }) || sortedRaws.find(function(r){
       return r.shift==='closing'||r.status==='closing_submitted';
-    }) || sortedRaws.find(function(r){ return r.closingPct!=null; }) || {};
+    }) || sortedRaws.find(function(r){ return r.closingPct!=null; }) || (openRec.closingPct!=null ? openRec : {});
     const evalRec = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
 
     // Get verifiedBy from verificationLog or direct fields
