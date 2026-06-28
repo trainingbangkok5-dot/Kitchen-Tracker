@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629090000';
+  var v = '20260629110000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2288,6 +2288,7 @@ function ssConsolidateByEmployee(rows) {
         combinedChecklists: e.combinedChecklists,
         combinedAvg,
         invalidWeek,
+        rawRows: e.rawRows||[],
       };
     }
 
@@ -2300,13 +2301,14 @@ function ssConsolidateByEmployee(rows) {
       staffName: e.staffName, outlet: e.outlet, week: e.week,
       roles: e.roles,
       roleNames: e.roles.map(r => ssRoleLabel(r.role)),
-      dailyBreakdown: null, // signals "no daily list available for this week"
+      dailyBreakdown: null,
       daysSubmitted,
       eligible: combinedAvg != null && combinedAvg >= 95 && !invalidWeek,
       combinedScore: Math.round(e.combinedScore * 10) / 10,
       combinedChecklists: e.combinedChecklists,
       combinedAvg,
       invalidWeek,
+      rawRows: e.rawRows||[],
     };
   });
 }
@@ -2611,12 +2613,21 @@ function renderSummaryScoring() {
     });
 
     // Build 7-day range Mon–Sun from the week start
-    const _weekStart = (e.week||'').split(' ')[0]; // handles "2026-06-22" or "2026-06-22 to 2026-06-28"
+    // Use date range start if available, otherwise use e.week
+    const _fromStr = document.getElementById('ssDateFrom') ? document.getElementById('ssDateFrom').value : '';
+    const _toStr   = document.getElementById('ssDateTo')   ? document.getElementById('ssDateTo').value   : '';
+    const _weekStart = (_fromStr && _toStr) ? _fromStr : (e.week||'').split(' ')[0];
+    const _weekEnd   = (_fromStr && _toStr) ? _toStr   : (e.week||'').split(' to ')[1] || '';
     const _days = [];
     if (_weekStart && _weekStart.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      const _ws = new Date(_weekStart + 'T00:00:00');
-      for (let d=0; d<7; d++) {
-        const _dd = new Date(_ws); _dd.setDate(_ws.getDate()+d);
+      // Parse as local date parts to avoid timezone shift
+      const _p = _weekStart.split('-');
+      const _ws = new Date(parseInt(_p[0]), parseInt(_p[1])-1, parseInt(_p[2]));
+      const _pe = _weekEnd ? _weekEnd.split('-') : null;
+      const _we = _pe ? new Date(parseInt(_pe[0]), parseInt(_pe[1])-1, parseInt(_pe[2])) : null;
+      const _days_count = _we ? Math.min(Math.round((_we-_ws)/(86400000))+1, 7) : 7;
+      for (let d=0; d<_days_count; d++) {
+        const _dd = new Date(_ws.getFullYear(), _ws.getMonth(), _ws.getDate()+d);
         const _iso = _dd.getFullYear()+'-'+String(_dd.getMonth()+1).padStart(2,'0')+'-'+String(_dd.getDate()).padStart(2,'0');
         const _label = _dd.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
         const _day   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][_dd.getDay()];
