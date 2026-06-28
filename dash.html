@@ -2468,6 +2468,16 @@ function renderLiveReport() {
   if (!container) return;
   if (_lrAutoRefresh) clearInterval(_lrAutoRefresh);
 
+  // If no data at all — show message and auto-retry
+  if (!allBOHData.length && !allFOHData.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;">'
+      +'<div style="font-size:14px;color:#94A3B8;margin-bottom:12px;">⏳ Waiting for data to load...</div>'
+      +'<div style="font-size:11px;color:#CBD5E1;margin-bottom:16px;">Please open the BOH or FOH tab first, then return to Live Report.</div>'
+      +'<button onclick="renderLiveReport()" style="padding:8px 16px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:12px;cursor:pointer;">🔄 Try Again</button>'
+      +'</div>';
+    return;
+  }
+
   // ── Helpers ──────────────────────────────────────────────────
   function dubaiDateStr(offset) {
     const d = new Date();
@@ -3158,25 +3168,9 @@ function showTab(el,id) {
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'summaryscoring') { initSummaryScoring(); }
   if (id === 'livereport') {
-    const container = document.getElementById('liveReportContainer');
-    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:13px;">⏳ Loading data...</div>';
-    // If data already loaded — render immediately
-    if (allBOHData.length > 0 || allFOHData.length > 0) {
-      renderLiveReport();
-    } else {
-      // Data not yet loaded — trigger load then wait for Firebase
-      if (typeof loadBOHData === 'function') loadBOHData();
-      if (typeof loadFOHData === 'function') loadFOHData();
-      // Poll every 500ms until data arrives, max 10 seconds
-      let _lrPollCount = 0;
-      const _lrPoll = setInterval(function() {
-        _lrPollCount++;
-        if (allBOHData.length > 0 || allFOHData.length > 0 || _lrPollCount >= 20) {
-          clearInterval(_lrPoll);
-          renderLiveReport();
-        }
-      }, 500);
-    }
+    // Always render with whatever data is currently loaded
+    // Data is already loaded from BOH/FOH tabs — no need to reload
+    renderLiveReport();
   }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
