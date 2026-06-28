@@ -2742,7 +2742,7 @@ function renderLiveReport() {
     // Overall table average row
     const overall = avgOf(data);
     html += '<tr style="background:#1A3C5E;">'
-      +'<td colspan="4" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+sortedGroups.length+' staff ('+(isMultiOutlet?'consolidated':'')+')</td>'
+      +'<td colspan="4" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+sortedGroups.length+' staff</td>'
       +'<td></td>'
       +'<td style="padding:9px 12px;text-align:center;font-size:14px;font-weight:700;color:#fff;">'+(overall!==null?overall+'%':'—')+'</td>'
       +'<td style="padding:9px 12px;text-align:center;">'+pill(overall)+'</td>'
