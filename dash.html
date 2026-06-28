@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260628010000';
+  var v = '20260628020000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2629,38 +2629,59 @@ function renderLiveReport() {
   function buildTable(data) {
     if (!data.length) return '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:12px;border:0.5px dashed #E0DDD4;border-radius:8px;">No data for selected filters.</div>';
 
-    // Step 1: Group all records by staff name+role across all outlets
+    // Group all records by staff name+role (across all outlets)
     const staffMap = {};
     data.forEach(function(s) {
       const key = normName(s.staffName)+'_'+s.role;
-      if (!staffMap[key]) staffMap[key] = [];
-      staffMap[key].push(s);
+      if (!staffMap[key]) staffMap[key] = { name:s.staffName, role:s.role, outlets:{} };
+      const outletKey = s.outlet||'Unknown';
+      if (!staffMap[key].outlets[outletKey]) staffMap[key].outlets[outletKey] = [];
+      staffMap[key].outlets[outletKey].push(s);
     });
 
-    // Step 2: For each staff group, compute their total average (for sorting)
-    function staffTotalAvg(records) {
-      const outletKeys = [...new Set(records.map(function(r){return r.outlet||'Unknown';}))];
-      const oAvgs = outletKeys.map(function(o) {
-        const recs = records.filter(function(r){return (r.outlet||'Unknown')===o;});
-        const vals = recs.map(calcAvg).filter(function(v){return v!==null;});
-        return vals.length ? Math.round(vals.reduce(function(a,b){return a+b;},0)/vals.length) : null;
+    // Compute avg for a set of records at one outlet
+    function outletAvgScore(recs) {
+      function avgF(f) {
+        const v = recs.map(function(r){return r[f]!=null?parseFloat(r[f]):null;}).filter(function(v){return v!==null;});
+        return v.length ? Math.round(v.reduce(function(a,b){return a+b;},0)/v.length) : null;
+      }
+      const mO = avgF('openingPct');
+      const mC = avgF('closingPct');
+      const mE = recs.every(function(r){return r.evalNotVisited;}) ? null : avgF('oicEvalPct');
+      const sc = [mO,mC,mE].filter(function(v){return v!==null;});
+      const avg = sc.length ? Math.round(sc.reduce(function(a,b){return a+b;},0)/sc.length) : null;
+      return { mO:mO, mC:mC, mE:mE, avg:avg };
+    }
+
+    // Compute total average across all outlets for a staff
+    function staffTotalAvg(staffEntry) {
+      const oAvgs = Object.values(staffEntry.outlets).map(function(recs){
+        return outletAvgScore(recs).avg;
       }).filter(function(v){return v!==null;});
       return oAvgs.length ? Math.round(oAvgs.reduce(function(a,b){return a+b;},0)/oAvgs.length) : null;
     }
 
-    // Step 3: Group by outlet — each outlet has a list of staff (with their full records)
-    const outletMap = {};
-    Object.keys(staffMap).forEach(function(staffKey) {
-      const records = staffMap[staffKey];
-      const outlets = [...new Set(records.map(function(r){return r.outlet||'Unknown';}))];
-      // Add this staff to each outlet they appear in
-      outlets.forEach(function(o) {
-        if (!outletMap[o]) outletMap[o] = [];
-        // Check if already added (multi-outlet staff appears in multiple outlets)
-        if (!outletMap[o].find(function(g){return g.staffKey===staffKey;})) {
-          outletMap[o].push({ staffKey:staffKey, records:records, totalAvg:staffTotalAvg(records) });
-        }
-      });
+    // Sort staff by total average (lowest first)
+    const sortedStaff = Object.values(staffMap).sort(function(a,b){
+      const av = staffTotalAvg(a), bv = staffTotalAvg(b);
+      return (av===null?999:av)-(bv===null?999:bv);
+    });
+
+    // Group sorted staff by their PRIMARY outlet (first/most common outlet) for outlet headers
+    // But multi-outlet staff appear ONCE in their own grouped block, not under each outlet
+    // Build outlet sections: each outlet lists single-outlet staff first, then multi-outlet staff at end
+    const outletSections = {};
+    const multiOutletStaff = [];
+
+    sortedStaff.forEach(function(g) {
+      const outletKeys = Object.keys(g.outlets);
+      if (outletKeys.length === 1) {
+        const o = outletKeys[0];
+        if (!outletSections[o]) outletSections[o] = [];
+        outletSections[o].push(g);
+      } else {
+        multiOutletStaff.push(g);
+      }
     });
 
     const TH  = 'padding:7px 10px;font-size:10px;font-weight:500;color:#fff;background:#1A3C5E;white-space:nowrap;border-right:0.5px solid rgba(255,255,255,0.1);';
@@ -2684,98 +2705,91 @@ function renderLiveReport() {
       +'<th style="'+THC+'">Tier</th>'
       +'</tr></thead><tbody>';
 
-    // Step 4: Render outlet by outlet, staff sorted lowest avg first within each outlet
-    Object.keys(outletMap).sort().forEach(function(outletName) {
-      const staffInOutlet = outletMap[outletName];
-      // Sort staff by their outlet-specific avg (lowest first)
-      staffInOutlet.sort(function(a,b) {
-        const aRecs = a.records.filter(function(r){return (r.outlet||'Unknown')===outletName;});
-        const bRecs = b.records.filter(function(r){return (r.outlet||'Unknown')===outletName;});
-        function outletAvg(recs) {
-          const vals = recs.map(calcAvg).filter(function(v){return v!==null;});
-          return vals.length ? vals.reduce(function(x,y){return x+y;},0)/vals.length : null;
-        }
-        const av = outletAvg(aRecs), bv = outletAvg(bRecs);
-        return (av===null?999:av)-(bv===null?999:bv);
+    function renderSingleRow(g) {
+      const outletKey = Object.keys(g.outlets)[0];
+      const recs = g.outlets[outletKey];
+      const sc = outletAvgScore(recs);
+      const rc = roleColor[g.role]||['#F1F5F9','#374151'];
+      const roleChip = '<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[g.role]||g.role)+'</span>';
+      return '<tr style="border-bottom:0.5px solid #F1F5F9;">'
+        +'<td style="'+TD+'"><div style="font-weight:500;color:#1A3C5E;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(g.name||'—')+'</div></td>'
+        +'<td style="'+TD+'">'+roleChip+'</td>'
+        +'<td style="'+TDC+'">'+scoreBarCenter(sc.mO)+'</td>'
+        +'<td style="'+TDC+'">'+scoreBarCenter(sc.mC)+'</td>'
+        +'<td style="'+TDC+'">'+scoreBarCenter(sc.mE)+'</td>'
+        +'<td style="'+TDC+'font-size:14px;font-weight:600;color:'+scoreColor(sc.avg)+';">'+(sc.avg!==null?sc.avg+'%':'—')+'</td>'
+        +'<td style="'+TDC+'">'+pill(sc.avg)+'</td>'
+        +'</tr>';
+    }
+
+    function renderMultiRow(g) {
+      const outletKeys = Object.keys(g.outlets).sort();
+      const totalAvg = staffTotalAvg(g);
+      const rc = roleColor[g.role]||['#F1F5F9','#374151'];
+      const roleChip = '<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[g.role]||g.role)+'</span>';
+      let rows = '';
+      // Staff name header
+      rows += '<tr>'
+        +'<td colspan="5" style="padding:8px 10px;background:#2C5282;border-bottom:0.5px solid #1A3C5E;">'
+        +'<span style="font-weight:600;color:#fff;font-size:12px;">'+(g.name||'—')+'</span> '
+        +roleChip
+        +' <span style="font-size:9px;color:#1A3C5E;background:#E6F1FB;padding:2px 6px;border-radius:10px;margin-left:4px;">'+outletKeys.length+' outlets</span>'
+        +'</td>'
+        +'<td style="padding:8px 10px;text-align:center;font-size:10px;color:rgba(255,255,255,0.7);background:#2C5282;border-bottom:0.5px solid #1A3C5E;">Total avg</td>'
+        +'<td style="padding:8px 10px;text-align:center;background:#2C5282;border-bottom:0.5px solid #1A3C5E;"></td>'
+        +'</tr>';
+      // One row per outlet
+      outletKeys.forEach(function(o) {
+        const recs = g.outlets[o];
+        const sc = outletAvgScore(recs);
+        rows += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
+          +'<td style="'+TD+'padding-left:18px;color:#1A3C5E;font-weight:500;">'
+          +'<span style="color:#94A3B8;margin-right:4px;">&#8627;</span>'+o+'</td>'
+          +'<td style="'+TD+'"></td>'
+          +'<td style="'+TDC+'">'+scoreBarCenter(sc.mO)+'</td>'
+          +'<td style="'+TDC+'">'+scoreBarCenter(sc.mC)+'</td>'
+          +'<td style="'+TDC+'">'+scoreBarCenter(sc.mE)+'</td>'
+          +'<td style="'+TDC+'font-weight:600;color:'+scoreColor(sc.avg)+';">'+(sc.avg!==null?sc.avg+'%':'—')+'</td>'
+          +'<td style="'+TDC+'">'+pill(sc.avg)+'</td>'
+          +'</tr>';
       });
+      // Total row
+      rows += '<tr style="background:#F0F4F8;border-top:1px solid #1A3C5E;border-bottom:1.5px solid #D0D8E4;">'
+        +'<td colspan="5" style="padding:6px 10px 6px 18px;font-size:11px;font-weight:500;color:#1A3C5E;">'
+        +'<span style="color:#94A3B8;margin-right:4px;">&#8627;</span>Total average across all outlets'
+        +'</td>'
+        +'<td style="padding:6px 10px;text-align:center;font-size:14px;font-weight:700;color:'+scoreColor(totalAvg)+';">'+(totalAvg!==null?totalAvg+'%':'—')+'</td>'
+        +'<td style="padding:6px 10px;text-align:center;">'+pill(totalAvg)+'</td>'
+        +'</tr>';
+      return rows;
+    }
 
-      // Outlet average
-      const allOutletRecs = staffInOutlet.reduce(function(acc,g){
-        return acc.concat(g.records.filter(function(r){return (r.outlet||'Unknown')===outletName;}));
-      },[]);
-      const outletAvgVal = avgOf(allOutletRecs);
-
-      // Outlet header row — dark navy
+    // Render: outlet sections first (single-outlet staff only)
+    Object.keys(outletSections).sort().forEach(function(outletName) {
+      const staffList = outletSections[outletName];
+      const allRecs = staffList.reduce(function(acc,g){return acc.concat(Object.values(g.outlets).flat());}, []);
+      const outletAvgVal = avgOf(allRecs);
+      // Outlet header
       html += '<tr>'
         +'<td colspan="6" style="padding:7px 12px;background:#1A3C5E;color:#fff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid #0F2849;">'+outletName+'</td>'
         +'<td style="padding:7px 12px;background:#1A3C5E;text-align:center;font-size:11px;font-weight:700;color:'+(outletAvgVal!==null?'#fff':'rgba(255,255,255,0.4)')+';border-bottom:0.5px solid #0F2849;">'+(outletAvgVal!==null?outletAvgVal+'%':'—')+'</td>'
         +'</tr>';
-
-      // Render each staff member for this outlet
-      staffInOutlet.forEach(function(g) {
-        const allRecords = g.records;
-        const uniqueOutlets = [...new Set(allRecords.map(function(r){return r.outlet||'Unknown';}))];
-        const isMultiOutlet = uniqueOutlets.length > 1;
-        const firstRec = allRecords[0];
-        const rc = roleColor[firstRec.role]||['#F1F5F9','#374151'];
-        const roleChip = '<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[firstRec.role]||firstRec.role)+'</span>';
-
-        // This outlet's records for this staff
-        const thisOutletRecs = allRecords.filter(function(r){return (r.outlet||'Unknown')===outletName;});
-        function avgF(f) {
-          const v = thisOutletRecs.map(function(r){return r[f]!=null?parseFloat(r[f]):null;}).filter(function(v){return v!==null;});
-          return v.length ? Math.round(v.reduce(function(a,b){return a+b;},0)/v.length) : null;
-        }
-        const mO = avgF('openingPct');
-        const mC = avgF('closingPct');
-        const mE = thisOutletRecs.every(function(r){return r.evalNotVisited;}) ? null : avgF('oicEvalPct');
-        const mScores = [mO,mC,mE].filter(function(v){return v!==null;});
-        const mAvg = mScores.length ? Math.round(mScores.reduce(function(a,b){return a+b;},0)/mScores.length) : null;
-
-        if (!isMultiOutlet) {
-          // Single outlet — clean row
-          html += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
-            +'<td style="'+TD+'">'
-            +'<div style="font-weight:500;color:#1A3C5E;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(firstRec.staffName||'—')+'</div>'
-            +'</td>'
-            +'<td style="'+TD+'">'+roleChip+'</td>'
-            +'<td style="'+TDC+'">'+scoreBarCenter(mO)+'</td>'
-            +'<td style="'+TDC+'">'+scoreBarCenter(mC)+'</td>'
-            +'<td style="'+TDC+'">'+scoreBarCenter(mE)+'</td>'
-            +'<td style="'+TDC+'font-size:14px;font-weight:600;color:'+scoreColor(mAvg)+';">'+(mAvg!==null?mAvg+'%':'—')+'</td>'
-            +'<td style="'+TDC+'">'+pill(mAvg)+'</td>'
-            +'</tr>';
-        } else {
-          // Multi-outlet — show staff name row + this outlet's scores + "also at" note
-          const totalAvg = g.totalAvg;
-          html += '<tr>'
-            +'<td style="'+TD+'background:#EEF4FB;">'
-            +'<div style="font-weight:600;color:#1A3C5E;font-size:12px;">'+(firstRec.staffName||'—')+'</div>'
-            +'<div style="font-size:9px;color:#185FA5;margin-top:2px;">'+roleChip+' <span style="background:#E6F1FB;color:#185FA5;padding:1px 5px;border-radius:8px;">'+uniqueOutlets.length+' outlets</span></div>'
-            +'</td>'
-            +'<td style="'+TD+'background:#EEF4FB;text-align:center;font-size:10px;color:#94A3B8;">This outlet</td>'
-            +'<td style="'+TDC+'background:#EEF4FB;">'+scoreBarCenter(mO)+'</td>'
-            +'<td style="'+TDC+'background:#EEF4FB;">'+scoreBarCenter(mC)+'</td>'
-            +'<td style="'+TDC+'background:#EEF4FB;">'+scoreBarCenter(mE)+'</td>'
-            +'<td style="'+TDC+'background:#EEF4FB;font-size:14px;font-weight:600;color:'+scoreColor(mAvg)+';">'+(mAvg!==null?mAvg+'%':'—')+'</td>'
-            +'<td style="'+TDC+'background:#EEF4FB;">'+pill(mAvg)+'</td>'
-            +'</tr>'
-            // Total avg across all outlets
-            +'<tr style="background:#F0F4F8;border-bottom:1px solid #D0D8E4;">'
-            +'<td colspan="5" style="padding:5px 10px 5px 20px;font-size:10px;color:#64748B;">&#8627; Total avg all outlets: '
-            +uniqueOutlets.filter(function(o){return o!==outletName;}).join(', ')
-            +'</td>'
-            +'<td style="padding:5px 10px;text-align:center;font-size:13px;font-weight:700;color:'+scoreColor(totalAvg)+';">'+(totalAvg!==null?totalAvg+'%':'—')+'</td>'
-            +'<td style="padding:5px 10px;text-align:center;">'+pill(totalAvg)+'</td>'
-            +'</tr>';
-        }
-      });
+      staffList.forEach(function(g){ html += renderSingleRow(g); });
     });
+
+    // Multi-outlet staff section — appears ONCE after all outlet sections
+    if (multiOutletStaff.length) {
+      html += '<tr>'
+        +'<td colspan="6" style="padding:7px 12px;background:#4A5568;color:#fff;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:0.5px solid #2D3748;">Multi-Outlet Staff</td>'
+        +'<td style="padding:7px 12px;background:#4A5568;border-bottom:0.5px solid #2D3748;"></td>'
+        +'</tr>';
+      multiOutletStaff.forEach(function(g){ html += renderMultiRow(g); });
+    }
 
     // Overall average row
     const overall = avgOf(data);
     html += '<tr style="background:#1A3C5E;">'
-      +'<td colspan="4" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+Object.keys(staffMap).length+' staff</td>'
+      +'<td colspan="4" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+sortedStaff.length+' staff</td>'
       +'<td></td>'
       +'<td style="padding:9px 12px;text-align:center;font-size:14px;font-weight:700;color:#fff;">'+(overall!==null?overall+'%':'—')+'</td>'
       +'<td style="padding:9px 12px;text-align:center;">'+pill(overall)+'</td>'
