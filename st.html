@@ -162,7 +162,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <h1>6-Day Incentive Checklist</h1>
   <div class="header-sub">Complete tasks • Take photos • Submit each day</div>
   <div class="info-grid">
-    <div class="info-field"><label>Staff Name</label><input id="fName" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div></div>
+    <div class="info-field"><label>Staff Name</label><input id="fName" oninput="this.value=toTitleCase(this.value)" type="text" placeholder="Your name..." autocomplete="name" autocorrect="off" autocapitalize="words"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div></div>
     <div class="info-field"><label>Outlet</label><select id="fOutlet" style="background:transparent;border:none;outline:none;color:#fff;font-size:13px;font-weight:500;width:100%;cursor:pointer;">
 <option value="" style="color:#000">Select outlet...</option>
 <optgroup label="Little Bangkok" style="color:#000">
@@ -854,7 +854,10 @@ function getWeekStart() {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   } catch(e) { return getDubaiDateStr(); }
 }
-function getStaffName() { return document.getElementById('fName').value.trim(); }
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, function(txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
+}
+function getStaffName() { return toTitleCase(document.getElementById('fName').value.trim()); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; } // Filled by manager via dashboard
 
@@ -1525,12 +1528,14 @@ function openPhotoModal(tid, label) {
   if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
     showToast('Day submitted — cannot change photos', 'error'); return;
   }
-  // Check current photo count — max 5 photos per task
+  // Max 5 photos per task — count occupied slots only
   let _photoCount = 0;
   for (let _pi = 0; _pi < 5; _pi++) {
     const _lk = _pi === 0 ? 'photo' : 'photo_' + _pi;
     const _uk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
-    if (getVal(currentDay, tid, _lk) || getVal(currentDay, tid, _uk)) _photoCount++;
+    const _lv = getVal(currentDay, tid, _lk);
+    const _uv = getVal(currentDay, tid, _uk);
+    if ((_lv && _lv !== 'null' && _lv !== '') || (_uv && _uv !== 'null' && _uv !== '')) _photoCount++;
   }
   if (_photoCount >= 5) { showToast('Maximum 5 photos per task reached', 'warn'); return; }
   activePhotoTask = tid;

@@ -172,7 +172,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
   <div class="info-grid">
     <div class="info-field" style="position:relative;">
       <label>Staff Name</label>
-      <input id="fName" type="text" placeholder="Type your name..." autocomplete="off" autocorrect="off" autocapitalize="words" oninput="onNameInput(this.value)" style="width:100%;"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div>
+      <input id="fName" oninput="this.value=toTitleCase(this.value)" type="text" placeholder="Type your name..." autocomplete="off" autocorrect="off" autocapitalize="words" oninput="onNameInput(this.value)" style="width:100%;"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;">e.g. Juan dela Cruz — Full name, proper case</div>
       <input id="fEmpNo" type="hidden" value="">
       <div id="nameDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:999;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
     </div>
@@ -1156,7 +1156,10 @@ function getWeekStart() {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   } catch(e) { return getDubaiDateStr(); }
 }
-function getStaffName() { return document.getElementById('fName').value.trim(); }
+function toTitleCase(str) {
+  return str.replace(/\w\S*/g, function(txt) { return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase(); });
+}
+function getStaffName() { return toTitleCase(document.getElementById('fName').value.trim()); }
 function getOutlet() { return document.getElementById('fOutlet').value.trim(); }
 function getVerified() { return ''; } // Filled by manager via dashboard
 
@@ -1946,12 +1949,15 @@ function openPhotoModal(tid, label) {
   if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
     showToast('Day submitted — cannot change photos', 'error'); return;
   }
-  // Max 5 photos per task
+  // Max 5 photos per task — count occupied slots only
   let _photoCount = 0;
   for (let _pi = 0; _pi < 5; _pi++) {
     const _lk = _pi === 0 ? 'photo' : 'photo_' + _pi;
     const _uk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
-    if (getVal(currentDay, tid, _lk) || getVal(currentDay, tid, _uk)) _photoCount++;
+    const _lv = getVal(currentDay, tid, _lk);
+    const _uv = getVal(currentDay, tid, _uk);
+    // Count slot as occupied only if it has a real non-empty value
+    if ((_lv && _lv !== 'null' && _lv !== '') || (_uv && _uv !== 'null' && _uv !== '')) _photoCount++;
   }
   if (_photoCount >= 5) { showToast('Maximum 5 photos reached for this task', 'warn'); return; }
   activePhotoTask = tid;

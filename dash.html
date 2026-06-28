@@ -770,7 +770,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <div>
         <h2 style="font-size:16px;font-weight:700;color:#1A3C5E;">🗄️ Archive</h2>
-        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">Submissions older than 60 days — stored permanently</p>
+        <p style="font-size:12px;color:#94A3B8;margin-top:2px;">Submissions older than 14 days — stored permanently</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <select id="archiveRoleFilter" onchange="renderArchive()" style="padding:6px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:12px;">
@@ -803,8 +803,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <label style="font-size:12px;color:#9A3412;font-weight:600;">Delete photos older than:</label>
         <select id="photoCleanupDays" style="padding:6px 10px;border:1px solid #FED7AA;border-radius:8px;font-size:12px;">
-          <option value="30">30 days</option>
-          <option value="60" selected>60 days</option>
+          <option value="14">14 days</option>
+          <option value="30" selected>30 days</option>
           <option value="90">90 days</option>
           <option value="180">180 days</option>
         </select>
@@ -1776,7 +1776,7 @@ function loadData() {
   if (!db) { setSyncStatus('error','Firebase not ready — refresh page'); return; }
   setSyncStatus('syncing','Connecting...');
   setLoadingIndicator('⏳ Loading...');
-  // Auto-archive submissions older than 60 days on every load
+  // Auto-archive submissions older than 14 days on every load
   // autoArchiveOldSubmissions(); // Disabled — run manually via Archive tab only
   // Load all submissions — no week filter (week formats differ between files)
   const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(3000);
@@ -8809,9 +8809,10 @@ function loadBOHData() {
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : (sub.lastUpdated ? sub.lastUpdated.substring(0,10) : new Date().toISOString().substring(0,10));
         const bohRoles = ['linecook','steward','kic'];
         if (!bohRoles.includes(sub.role)) return;
-        const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
+        const _normName = (sub.staffName||'').trim().replace(/\s+/g,' ');
+        const gKey = _normName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
-          grouped[gKey] = { staffName:sub.staffName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false };
+          grouped[gKey] = { staffName:_normName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false };
         }
         // Day deduplication — use latest submission per day
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
@@ -9660,10 +9661,11 @@ function loadFOHData() {
         sub._fbKey = child.key; // CRITICAL: set _fbKey so opening/closing detection works
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : 'unknown';
-        const gKey = sub.staffName + '_' + sub.role + '_' + sub.week;
+        const _normNameFOH = (sub.staffName||'').trim().replace(/\s+/g,' ');
+        const gKey = _normNameFOH + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
           grouped[gKey] = {
-            staffName: sub.staffName,
+            staffName: _normNameFOH,
             role: sub.role,
             outlet: sub.outlet || '—',
             week: sub.week,
@@ -12373,7 +12375,7 @@ function initWeeklyDates() {
 // ── Auto Archive (runs on every dashboard load) ──────────────
 async function autoArchiveOldSubmissions() {
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 60);
+  cutoff.setDate(cutoff.getDate() - 14); // Auto-archive checklist submissions older than 14 days
   const cutoffStr = cutoff.toISOString().substring(0,10);
   let archived = 0;
 
@@ -12411,7 +12413,7 @@ async function autoArchiveOldSubmissions() {
     }
   } catch(e) {}
 
-  if (archived > 0) console.log(`Auto-archived ${archived} submissions older than 60 days`);
+  if (archived > 0) console.log(`Auto-archived ${archived} submissions older than 14 days`);
 }
 
 // ── Photo Storage Cleanup ───────────────────────────────────────
@@ -12559,9 +12561,9 @@ let _archiveData = [];
 async function runArchive() {
   if (!['training','director','admin','operations','ceo'].includes(currentRole)) return;
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 60);
+  cutoff.setDate(cutoff.getDate() - 14); // Archive checklist submissions older than 14 days
   const cutoffStr = cutoff.toISOString().substring(0,10);
-  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 60 days...';
+  document.getElementById('archiveStatus').textContent = '⏳ Checking for submissions older than 14 days...';
 
   let archived = 0;
   try {
@@ -12638,7 +12640,7 @@ function renderArchive() {
   if (!list) return;
   const sc2col = p => p>=95?'#0F766E':p>=70?'#D97706':'#B91C1C';
   if (!filtered.length) {
-    list.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:13px;">No archived records found.<br><br>Records older than 60 days will appear here after clicking <strong>🗄️ Archive Now</strong>.</div>';
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;font-size:13px;">No archived records found.<br><br>Records older than 14 days will appear here after clicking <strong>🗄️ Archive Now</strong>.</div>';
     return;
   }
   list.innerHTML = `
