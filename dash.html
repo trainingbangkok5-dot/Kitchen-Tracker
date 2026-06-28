@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629020000';
+  var v = '20260629030000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2040,7 +2040,7 @@ function initSummaryScoring() {
           verifiedBy: s.verifiedBy || null,
           verifiedAt: s.verifiedAt || null,
           verifiedByRole: s.verifiedByRole || null,
-          verificationLog: s.verificationLog || null,
+          verificationLog: (function(vl){ return Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); })(s.verificationLog),
           overwrittenBy: s.overwrittenBy || null,
           overwrittenAt: s.overwrittenAt || null,
           evalNotVisited: s.evalNotVisited || false
@@ -2073,7 +2073,7 @@ function initSummaryScoring() {
           verifiedBy: s.verifiedBy || null,
           verifiedAt: s.verifiedAt || null,
           verifiedByRole: s.verifiedByRole || null,
-          verificationLog: s.verificationLog || null,
+          verificationLog: (function(vl){ return Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); })(s.verificationLog),
           overwrittenBy: s.overwrittenBy || null,
           overwrittenAt: s.overwrittenAt || null,
           evalNotVisited: s.evalNotVisited || false
@@ -2628,7 +2628,8 @@ function renderSummaryScoring() {
 
     // Get verifiedBy from verificationLog or direct fields
     function getVerifier(rec) {
-      const vlog = Array.isArray(rec.verificationLog) ? rec.verificationLog : [];
+      const vl = rec.verificationLog;
+      const vlog = Array.isArray(vl) ? vl : (vl && typeof vl === 'object' ? Object.values(vl) : []);
       if (vlog.length) { const v=vlog[vlog.length-1]; return {by:v.by||'—',role:v.role||'',at:v.at||''}; }
       if (rec.verifiedBy) return {by:rec.verifiedBy,role:rec.verifiedByRole||'',at:rec.verifiedAt||''};
       return null;
