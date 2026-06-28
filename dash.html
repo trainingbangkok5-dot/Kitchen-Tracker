@@ -2423,6 +2423,7 @@ function renderSummaryScoring() {
 
   let rowsHtml = '';
   employees.forEach(function(e, i) {
+    try {
     const hasOW = (e.rawRows||[]).some(r=>r.overwrittenBy||r.overwrittenAt);
     const op = e.roles&&e.roles[0] ? e.roles[0].openingAvg : null;
     const cl = e.roles&&e.roles[0] ? e.roles[0].closingAvg : null;
@@ -2543,6 +2544,10 @@ function renderSummaryScoring() {
       +'<tr class="ss-audit-detail" id="ss-detail-'+i+'" style="display:none;">'
       +'<td colspan="10" style="padding:0;">'+detailHtml+'</td>'
       +'</tr>';
+    } catch(ssErr) {
+      console.error('Weekly report row error for', e.staffName, ssErr);
+      rowsHtml += '<tr><td colspan="10" style="padding:8px 10px;color:#A32D2D;font-size:11px;">Error rendering row for '+((e&&e.staffName)||'unknown')+'</td></tr>';
+    }
   });
 
   tbody.innerHTML = rowsHtml;
