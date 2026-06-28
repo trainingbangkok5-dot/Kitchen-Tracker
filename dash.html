@@ -2525,11 +2525,18 @@ function renderLiveReport() {
       +'<span style="font-weight:500;color:'+c+';font-size:12px;min-width:32px;text-align:left;">'+Math.round(p)+'%</span></div>';
   }
   function calcAvg(s) {
-    const scores=[];
-    if (s.openingPct!=null) scores.push(parseFloat(s.openingPct));
-    if (s.closingPct!=null)  scores.push(parseFloat(s.closingPct));
-    if (s.oicEvalPct!=null&&!s.evalNotVisited) scores.push(parseFloat(s.oicEvalPct));
-    return scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+    const op  = s.openingPct!=null  ? parseFloat(s.openingPct)  : null;
+    const cl  = s.closingPct!=null  ? parseFloat(s.closingPct)  : null;
+    const ev  = (s.oicEvalPct!=null && !s.evalNotVisited) ? parseFloat(s.oicEvalPct) : null;
+    // Match the exact formula used in openStaffDetail / FOH score calculation
+    if (op!==null && cl!==null && ev!==null) return Math.round((op+cl+ev)/3);
+    if (op!==null && ev!==null)              return Math.round((op+ev)/2);
+    if (cl!==null && ev!==null)              return Math.round((cl+ev)/2);
+    if (op!==null && cl!==null)              return Math.round((op+cl)/2);
+    if (op!==null)                           return Math.round(op);
+    if (cl!==null)                           return Math.round(cl);
+    if (ev!==null)                           return Math.round(ev);
+    return null;
   }
   function avgOf(arr) {
     const v=arr.map(s=>calcAvg(s)).filter(v=>v!==null);
@@ -9366,9 +9373,16 @@ function loadBOHData() {
           else if (!grouped[gKey]._fbKey) grouped[gKey]._fbKey = sub._fbKey;
         }
         // Note: closingPct already assigned in Priority 1 above — no duplicate needed
-        if (sub.oicEvalPct != null) grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
-        if (sub.evalNotVisited === true) grouped[gKey].evalNotVisited = true;
-        else if (sub.evalNotVisited === false) grouped[gKey].evalNotVisited = false;
+        // Preserve eval — never overwrite a completed eval with N/A from a later submission
+        if (sub.oicEvalPct != null) {
+          grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+          grouped[gKey].evalNotVisited = false; // eval exists — mark as visited
+        } else if (grouped[gKey].oicEvalPct == null) {
+          // No eval yet on this grouped record — update evalNotVisited status
+          if (sub.evalNotVisited === true) grouped[gKey].evalNotVisited = true;
+          else if (sub.evalNotVisited === false) grouped[gKey].evalNotVisited = false;
+        }
+        // If grouped record already has eval score — don't touch evalNotVisited
         // Recalculate overall from opening+closing+eval for KIC, opening+closing for others
         const _op = grouped[gKey].openingPct;
         const _cl = grouped[gKey].closingPct;
@@ -10272,16 +10286,14 @@ function loadFOHData() {
               }
             });
           });
-          if(oicT>0 && sub.role === 'service') { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
-          // Read evalNotVisited and oicEvalPct from Firebase for ALL FOH eval roles
-          if (sub.evalNotVisited === true) {
-            grouped[gKey].evalNotVisited = true;
-            grouped[gKey].oicEvalPct = null; // ensure score is null when not visited
-          } else if (sub.evalNotVisited === false) {
-            grouped[gKey].evalNotVisited = false;
-          }
-          if (['bartender','delco','oic'].includes(sub.role) && sub.oicEvalPct != null && !sub.evalNotVisited) {
+          if(oicT>0 && sub.role === 'service' && grouped[gKey].oicEvalPct == null) { grouped[gKey].oicPct = Math.round((oicY/oicT)*100); grouped[gKey].oicEvalPct = grouped[gKey].oicPct; }
+          // Never overwrite a completed eval with N/A from a later submission
+          if (sub.oicEvalPct != null && !sub.evalNotVisited) {
             grouped[gKey].oicEvalPct = parseFloat(sub.oicEvalPct);
+            grouped[gKey].evalNotVisited = false;
+          } else if (grouped[gKey].oicEvalPct == null) {
+            if (sub.evalNotVisited === true) grouped[gKey].evalNotVisited = true;
+            else if (sub.evalNotVisited === false) grouped[gKey].evalNotVisited = false;
           }
           // Has staff tasks?
           const staffTaskIds = ['o1','o2','o3','o4','o5','c1','c2','c3','c4','c5'];
