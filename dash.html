@@ -2506,6 +2506,14 @@ function renderLiveReport() {
       +'<div style="width:'+w+'px;height:5px;border-radius:3px;background:'+c+';"></div></div>'
       +'<span style="font-weight:500;color:'+c+';font-size:12px;min-width:33px;text-align:right;">'+Math.round(p)+'%</span></div>';
   }
+  function scoreBarCenter(p) {
+    if (p===null||p===undefined) return '<span style="background:#F1F5F9;color:#64748B;font-size:10px;padding:2px 6px;border-radius:20px;">N/A</span>';
+    const c = scoreColor(p), w = Math.round((p/100)*36);
+    return '<div style="display:flex;align-items:center;justify-content:center;gap:5px;">'
+      +'<div style="width:36px;height:5px;border-radius:3px;background:#EAEAEA;flex-shrink:0;">'
+      +'<div style="width:'+w+'px;height:5px;border-radius:3px;background:'+c+';"></div></div>'
+      +'<span style="font-weight:500;color:'+c+';font-size:12px;min-width:32px;text-align:left;">'+Math.round(p)+'%</span></div>';
+  }
   function calcAvg(s) {
     const scores=[];
     if (s.openingPct!=null) scores.push(parseFloat(s.openingPct));
@@ -2588,19 +2596,24 @@ function renderLiveReport() {
       outlets[o].push(s);
     });
 
-    const TH = 'padding:6px 10px;text-align:left;font-size:10px;font-weight:500;color:#fff;background:#1A3C5E;white-space:nowrap;';
-    const THR = TH+'text-align:right;';
-    let html = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
-      +'<table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">'
+    // Fixed column widths for consistent alignment on all screen sizes
+    const COLS = [
+      {label:'Staff',   w:'180px', align:'left'},
+      {label:'Role',    w:'90px',  align:'left'},
+      {label:'Outlet',  w:'100px', align:'left'},
+      {label:'Opening', w:'100px', align:'center'},
+      {label:'Closing', w:'100px', align:'center'},
+      {label:'Eval',    w:'90px',  align:'center'},
+      {label:'Average', w:'80px',  align:'center'},
+      {label:'Tier',    w:'90px',  align:'center'},
+    ];
+
+    const TH_BASE = 'padding:7px 10px;font-size:10px;font-weight:500;color:#fff;background:#1A3C5E;white-space:nowrap;border-right:0.5px solid rgba(255,255,255,0.1);';
+    let html = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:6px;border:0.5px solid #E0DDD4;">'
+      +'<table style="width:100%;table-layout:fixed;min-width:830px;border-collapse:collapse;font-size:12px;">'
+      +'<colgroup>'+COLS.map(c=>'<col style="width:'+c.w+'">').join('')+'</colgroup>'
       +'<thead><tr>'
-      +'<th style="'+TH+'width:22%">Staff</th>'
-      +'<th style="'+TH+'width:11%">Role</th>'
-      +'<th style="'+TH+'width:13%">Outlet</th>'
-      +'<th style="'+THR+'width:12%">Opening</th>'
-      +'<th style="'+THR+'width:12%">Closing</th>'
-      +'<th style="'+THR+'width:10%">Eval</th>'
-      +'<th style="'+THR+'width:10%">Average</th>'
-      +'<th style="'+THR+'width:10%">Tier</th>'
+      +COLS.map(c=>'<th style="'+TH_BASE+'text-align:'+c.align+';">'+c.label+'</th>').join('')
       +'</tr></thead><tbody>';
 
     Object.keys(outlets).sort().forEach(function(outletName) {
@@ -2608,41 +2621,38 @@ function renderLiveReport() {
       const outletAvg = avgOf(outletStaff);
       const oc = scoreColor(outletAvg);
 
-      // Outlet header row
-      html += '<tr style="background:#EEF2F7;">'
-        +'<td colspan="2" style="padding:7px 10px;font-weight:500;color:#1A3C5E;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">'+outletName+'</td>'
-        +'<td colspan="5" style="padding:7px 10px;font-size:10px;color:#64748B;"></td>'
-        +'<td style="padding:7px 10px;text-align:right;font-size:11px;font-weight:500;color:'+oc+';">'+(outletAvg!==null?outletAvg+'%':'—')+'</td>'
+      // Outlet header row — brighter background for visibility
+      html += '<tr style="background:#1A3C5E;">'
+        +'<td colspan="7" style="padding:7px 12px;font-weight:500;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">'+outletName+'</td>'
+        +'<td style="padding:7px 12px;text-align:center;font-size:12px;font-weight:700;color:'+(outletAvg!==null?'#fff':'rgba(255,255,255,0.5)')+';background:'+(outletAvg!==null?oc:'transparent')+';border-radius:4px;">'+(outletAvg!==null?outletAvg+'%':'—')+'</td>'
         +'</tr>';
 
       outletStaff.forEach(function(s) {
         const avg = calcAvg(s);
         const rc = roleColor[s.role]||['#F1F5F9','#374151'];
         const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
-        html += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
-          +'<td style="padding:8px 10px;">'
-          +'<div style="font-weight:500;color:#1A3C5E;font-size:12px;">'+(s.staffName||'—')+'</div>'
-          +'</td>'
-          +'<td style="padding:8px 10px;">'
-          +'<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 6px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[s.role]||s.role)+'</span>'
-          +'</td>'
-          +'<td style="padding:8px 10px;font-size:11px;color:#94A3B8;">'+(s.outlet||'—')+'</td>'
-          +'<td style="padding:8px 10px;">'+scoreBar(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
-          +'<td style="padding:8px 10px;">'+scoreBar(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
-          +'<td style="padding:8px 10px;">'+scoreBar(evalScore!=null?parseFloat(evalScore):null)+'</td>'
-          +'<td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:'+scoreColor(avg)+';">'+(avg!==null?avg+'%':'—')+'</td>'
-          +'<td style="padding:8px 10px;text-align:right;">'+pill(avg)+'</td>'
+        const TD = 'padding:8px 10px;border-bottom:0.5px solid #F1F5F9;vertical-align:middle;';
+        const TDC = TD+'text-align:center;';
+        html += '<tr style="border-bottom:0.5px solid #F1F5F9;" onmouseover="this.style.background=\"#F8FAFC\"" onmouseout="this.style.background=\"#fff\"">'
+          +'<td style="'+TD+'"><div style="font-weight:500;color:#1A3C5E;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.staffName||'—')+'</div></td>'
+          +'<td style="'+TD+'"><span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[s.role]||s.role)+'</span></td>'
+          +'<td style="'+TD+'font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.outlet||'—')+'</td>'
+          +'<td style="'+TDC+'">'+scoreBarCenter(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
+          +'<td style="'+TDC+'">'+scoreBarCenter(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
+          +'<td style="'+TDC+'">'+scoreBarCenter(evalScore!=null?parseFloat(evalScore):null)+'</td>'
+          +'<td style="'+TDC+'font-size:14px;font-weight:600;color:'+scoreColor(avg)+';">'+(avg!==null?avg+'%':'—')+'</td>'
+          +'<td style="'+TDC+'">'+pill(avg)+'</td>'
           +'</tr>';
       });
     });
 
     // Overall average row
     const overall = avgOf(data);
-    html += '<tr style="background:#F0F4F8;border-top:1.5px solid #1A3C5E;">'
-      +'<td colspan="5" style="padding:8px 10px;font-weight:500;color:#1A3C5E;font-size:11px;">Overall average — '+data.length+' staff</td>'
+    html += '<tr style="background:#1A3C5E;">'
+      +'<td colspan="5" style="padding:9px 12px;font-weight:500;color:#fff;font-size:11px;">Overall average — '+data.length+' staff</td>'
       +'<td></td>'
-      +'<td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:'+scoreColor(overall)+'">'+(overall!==null?overall+'%':'—')+'</td>'
-      +'<td style="padding:8px 10px;text-align:right;">'+pill(overall)+'</td>'
+      +'<td style="padding:9px 12px;text-align:center;font-size:14px;font-weight:700;color:#fff;">'+(overall!==null?overall+'%':'—')+'</td>'
+      +'<td style="padding:9px 12px;text-align:center;">'+pill(overall)+'</td>'
       +'</tr>';
 
     html += '</tbody></table></div>';
@@ -2657,30 +2667,41 @@ function renderLiveReport() {
     let rows = dups.map(function(s) {
       const avg = calcAvg(s);
       const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
-      return '<tr style="background:#FFF5F5;border-bottom:0.5px solid #F7C1C1;">'
-        +'<td style="padding:8px 10px;font-weight:500;color:#A32D2D;font-size:12px;">'+(s.staffName||'—')+'</td>'
-        +'<td style="padding:8px 10px;font-size:10px;color:#A32D2D;">'+(roleLbl[s.role]||s.role)+'</td>'
-        +'<td style="padding:8px 10px;font-size:11px;color:#94A3B8;">'+(s.outlet||'—')+'</td>'
-        +'<td style="padding:8px 10px;">'+scoreBar(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
-        +'<td style="padding:8px 10px;">'+scoreBar(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
-        +'<td style="padding:8px 10px;">'+scoreBar(evalScore!=null?parseFloat(evalScore):null)+'</td>'
-        +'<td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:500;color:'+(avg!==null?scoreColor(avg):'#94A3B8')+'">'+(avg!==null?avg+'%':'—')+'</td>'
-        +'<td style="padding:8px 10px;text-align:right;"><span style="background:#FCEBEB;color:#A32D2D;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;border:0.5px solid #F09595;">Duplicate</span></td>'
+      const DT='padding:8px 10px;border-bottom:0.5px solid #F7C1C1;vertical-align:middle;';
+      const DTC=DT+'text-align:center;';
+      return '<tr style="background:#FFF5F5;">'
+        +'<td style="'+DT+'font-weight:500;color:#A32D2D;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(s.staffName||'—')+'</td>'
+        +'<td style="'+DT+'font-size:10px;color:#A32D2D;">'+(roleLbl[s.role]||s.role)+'</td>'
+        +'<td style="'+DT+'font-size:11px;color:#94A3B8;">'+(s.outlet||'—')+'</td>'
+        +'<td style="'+DTC+'">'+scoreBarCenter(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
+        +'<td style="'+DTC+'">'+scoreBarCenter(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
+        +'<td style="'+DTC+'">'+scoreBarCenter(evalScore!=null?parseFloat(evalScore):null)+'</td>'
+        +'<td style="'+DTC+'font-size:13px;font-weight:600;color:'+(avg!==null?scoreColor(avg):'#94A3B8')+'">'+(avg!==null?avg+'%':'—')+'</td>'
+        +'<td style="'+DTC+'"><span style="background:#FCEBEB;color:#A32D2D;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;border:0.5px solid #F09595;">Duplicate</span></td>'
         +'</tr>';
     }).join('');
 
+    const DUP_COLS = [
+      {label:'Staff',   w:'180px',align:'left'},
+      {label:'Role',    w:'90px', align:'left'},
+      {label:'Outlet',  w:'100px',align:'left'},
+      {label:'Opening', w:'100px',align:'center'},
+      {label:'Closing', w:'100px',align:'center'},
+      {label:'Eval',    w:'90px', align:'center'},
+      {label:'Average', w:'80px', align:'center'},
+      {label:'Status',  w:'90px', align:'center'},
+    ];
     return '<div style="border:0.5px solid #F09595;border-radius:8px;overflow:hidden;margin-top:16px;">'
       +'<div style="background:#FCEBEB;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid #F09595;">'
       +'<span style="font-size:16px;">⚠️</span>'
       +'<div><div style="font-size:12px;font-weight:500;color:#791F1F;">Duplicate names — '+dups.length+' records found</div>'
       +'<div style="font-size:11px;color:#A32D2D;margin-top:1px;">Scores excluded from BOH/FOH averages. Fix name spelling in the dashboard.</div></div>'
       +'</div>'
-      +'<div style="overflow-x:auto;">'
-      +'<table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">'
+      +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
+      +'<table style="width:100%;table-layout:fixed;min-width:830px;border-collapse:collapse;font-size:12px;">'
+      +'<colgroup>'+DUP_COLS.map(c=>'<col style="width:'+c.w+'">').join('')+'</colgroup>'
       +'<thead><tr>'
-      +'<th style="'+TH+'">Staff</th><th style="'+TH+'">Role</th><th style="'+TH+'">Outlet</th>'
-      +'<th style="'+THR+'">Opening</th><th style="'+THR+'">Closing</th><th style="'+THR+'">Eval</th>'
-      +'<th style="'+THR+'">Average</th><th style="'+THR+'">Status</th>'
+      +DUP_COLS.map(c=>'<th style="'+TH+'text-align:'+c.align+';">'+c.label+'</th>').join('')
       +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
   }
 
