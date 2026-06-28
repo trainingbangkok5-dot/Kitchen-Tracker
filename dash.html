@@ -2457,299 +2457,580 @@ function openStaffWeeklyDetail(idx) {
 
 
 // ══════════════════════════════════════════════════════════════
-// LIVE REPORT TAB — v2 (date range, live indicator, mobile-responsive)
+// LIVE REPORT TAB — v3 (Touché style, outlet grouped, PDF/Excel export)
 // ══════════════════════════════════════════════════════════════
 var _lrAutoRefresh = null;
-var _lrCountdown = 60;
+var _lrCountdown   = 60;
+var _lrLastData    = { boh:[], foh:[], dups:[] };
 
 function renderLiveReport() {
   const container = document.getElementById('liveReportContainer');
   if (!container) return;
-
-  // Clear previous auto-refresh
   if (_lrAutoRefresh) clearInterval(_lrAutoRefresh);
 
-  // Dubai date helper
-  function dubaiDateStr(offsetDays) {
+  // ── Helpers ──────────────────────────────────────────────────
+  function dubaiDateStr(offset) {
     const d = new Date();
-    const dubai = new Date(d.toLocaleString('en-US', {timeZone:'Asia/Dubai'}));
-    dubai.setDate(dubai.getDate() + (offsetDays||0));
+    const dubai = new Date(d.toLocaleString('en-US',{timeZone:'Asia/Dubai'}));
+    dubai.setDate(dubai.getDate()+(offset||0));
     return dubai.toISOString().substring(0,10);
   }
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',timeZone:'Asia/Dubai'});
+  }
+  const roleLbl = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',bartender:'Bartender',delco:'Delco'};
+  const roleColor = {linecook:['#FFF0E8','#7C3A00'],steward:['#E6F1FB','#185FA5'],kic:['#E1F5EE','#0F6E56'],oic:['#FCE7F3','#7B2D42'],service:['#FAEEDA','#854F0B'],bartender:['#EDE9FE','#6B3FA0'],delco:['#D1FAE5','#2D6A4F']};
 
-  // Tier logic
-  function getTier(pct) {
-    if (pct === null || pct === undefined) return null;
-    const p = parseFloat(pct);
-    if (p >= 95) return {label:'Excellent',   bg:'#EAF3DE', color:'#3B6D11'};
-    if (p >= 90) return {label:'Good',         bg:'#FAEEDA', color:'#854F0B'};
-    if (p >= 85) return {label:'Satisfactory', bg:'#FAECE7', color:'#993C1D'};
-    return             {label:'Below',         bg:'#FCEBEB', color:'#A32D2D'};
-  }
-  function tierBadge(pct) {
-    if (pct === null || pct === undefined) return '<span style="background:#F1F5F9;color:#64748B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;">—</span>';
-    const t = getTier(pct);
-    return '<span style="background:'+t.bg+';color:'+t.color+';font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;">'+t.label+'</span>';
-  }
-  function scoreColor(pct) {
-    if (pct === null || pct === undefined) return '#94A3B8';
-    const p = parseFloat(pct);
+  function scoreColor(p) {
+    if (p===null||p===undefined) return '#94A3B8';
     return p>=95?'#3B6D11':p>=90?'#854F0B':p>=85?'#993C1D':'#A32D2D';
   }
-  function scoreSpan(pct) {
-    if (pct === null || pct === undefined) return '<span style="color:#94A3B8;font-size:11px;">N/A</span>';
-    const p = Math.round(parseFloat(pct));
-    const c = scoreColor(p);
-    const barW = Math.round((p/100)*36);
-    return '<div style="display:flex;align-items:center;gap:5px;">'
-      +'<div style="width:36px;height:5px;border-radius:3px;background:#F1F5F9;flex-shrink:0;">'
-      +'<div style="width:'+barW+'px;height:5px;border-radius:3px;background:'+c+';"></div></div>'
-      +'<span style="font-weight:600;color:'+c+';font-size:12px;">'+p+'%</span></div>';
+  function tierLabel(p) {
+    if (p===null||p===undefined) return {label:'—',bg:'#F1F5F9',color:'#64748B'};
+    if (p>=95) return {label:'Excellent',   bg:'#EAF3DE',color:'#3B6D11'};
+    if (p>=90) return {label:'Good',        bg:'#FAEEDA',color:'#854F0B'};
+    if (p>=85) return {label:'Satisfactory',bg:'#FAECE7',color:'#993C1D'};
+    return             {label:'Below',      bg:'#FCEBEB',color:'#A32D2D'};
+  }
+  function pill(p) {
+    const t = tierLabel(p);
+    return '<span style="background:'+t.bg+';color:'+t.color+';font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;">'+t.label+'</span>';
+  }
+  function scoreBar(p) {
+    if (p===null||p===undefined) return '<span style="background:#F1F5F9;color:#64748B;font-size:10px;padding:2px 6px;border-radius:20px;">N/A</span>';
+    const c = scoreColor(p), w = Math.round((p/100)*38);
+    return '<div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;">'
+      +'<div style="width:38px;height:5px;border-radius:3px;background:#EAEAEA;flex-shrink:0;">'
+      +'<div style="width:'+w+'px;height:5px;border-radius:3px;background:'+c+';"></div></div>'
+      +'<span style="font-weight:500;color:'+c+';font-size:12px;min-width:33px;text-align:right;">'+Math.round(p)+'%</span></div>';
   }
   function calcAvg(s) {
-    const scores = [];
-    if (s.openingPct != null) scores.push(parseFloat(s.openingPct));
-    if (s.closingPct != null) scores.push(parseFloat(s.closingPct));
-    if (s.oicEvalPct != null && !s.evalNotVisited) scores.push(parseFloat(s.oicEvalPct));
-    if (!scores.length) return null;
-    return Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+    const scores=[];
+    if (s.openingPct!=null) scores.push(parseFloat(s.openingPct));
+    if (s.closingPct!=null)  scores.push(parseFloat(s.closingPct));
+    if (s.oicEvalPct!=null&&!s.evalNotVisited) scores.push(parseFloat(s.oicEvalPct));
+    return scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
   }
   function avgOf(arr) {
-    const vals = arr.map(s=>calcAvg(s)).filter(v=>v!==null);
-    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+    const v=arr.map(s=>calcAvg(s)).filter(v=>v!==null);
+    return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : null;
   }
+  function normName(n) { return (n||'').trim().replace(/\s+/g,' ').toLowerCase(); }
 
-  // Filter data by date range
-  function filterByDate(arr, fromStr, toStr) {
-    if (!fromStr && !toStr) return arr;
-    return arr.filter(function(s) {
-      if (!s.submittedAt) return false;
-      const d = s.submittedAt.substring(0,10);
-      if (fromStr && d < fromStr) return false;
-      if (toStr && d > toStr) return false;
-      return true;
-    });
-  }
-
-  // Build outlet list
-  const allOutlets = new Set();
-  [...allBOHData, ...allFOHData].forEach(s => { if (s.outlet) allOutlets.add(s.outlet); });
-
-  // Role labels
-  const roleLbl = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',bartender:'Bartender',delco:'Delco'};
-  const roleColor = {linecook:'#3730A3',steward:'#1D6FA5',kic:'#0F6E56',oic:'#7B2D42',service:'#854F0B',bartender:'#6B3FA0',delco:'#2D6A4F'};
-  const roleBg = {linecook:'#EEF2FF',steward:'#E6F1FB',kic:'#E1F5EE',oic:'#FCE7F3',service:'#FAEEDA',bartender:'#EDE9FE',delco:'#D1FAE5'};
-
-  function roleChip(role) {
-    const lbl = roleLbl[role]||role;
-    const c = roleColor[role]||'#374151';
-    const bg = roleBg[role]||'#F3F4F6';
-    return '<span style="background:'+bg+';color:'+c+';font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;">'+lbl+'</span>';
-  }
-
-  function summaryCard(label, val, color, sub) {
-    return '<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;padding:12px 14px;min-width:0;">'
-      +'<div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">'+label+'</div>'
-      +'<div style="font-size:22px;font-weight:600;color:'+color+';">'+val+'</div>'
-      +'<div style="font-size:10px;color:#94A3B8;margin-top:2px;">'+sub+'</div>'
-      +'</div>';
-  }
-
-  function buildTable(data, sectionLabel) {
-    if (!data.length) {
-      return '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:12px;border:0.5px dashed #E0DDD4;border-radius:8px;">No data for selected filters</div>';
+  // ── Filter & deduplicate ─────────────────────────────────────
+  function processData(selFrom, selTo, selOutlet, selRole) {
+    function filterArr(arr) {
+      return arr.filter(function(s) {
+        if (selOutlet && s.outlet !== selOutlet) return false;
+        if (selRole   && s.role   !== selRole)   return false;
+        if (selFrom || selTo) {
+          const d = (s.submittedAt||s.week||'').substring(0,10);
+          if (selFrom && d < selFrom) return false;
+          if (selTo   && d > selTo)   return false;
+        }
+        return true;
+      });
     }
-    const sectionAvg = avgOf(data);
 
-    // Mobile: card layout. Desktop: table layout
-    // We use a responsive approach — table with overflow-x on mobile
-    const rows = data.map(function(s) {
+    const rawBOH = filterArr(allBOHData);
+    const rawFOH = filterArr(allFOHData);
+
+    // Detect duplicates — same normName + role but different original name
+    function detectDups(arr) {
+      const groups={}, dups=new Set();
+      arr.forEach(function(s) {
+        const key = normName(s.staffName)+'_'+s.role+'_'+(s.outlet||'');
+        if (!groups[key]) groups[key]=[];
+        groups[key].push(s);
+      });
+      Object.values(groups).forEach(function(g) {
+        if (g.length>1) g.forEach(function(s){ dups.add(s); });
+      });
+      return dups;
+    }
+
+    const bohDups = detectDups(rawBOH);
+    const fohDups = detectDups(rawFOH);
+
+    const cleanBOH = rawBOH.filter(s=>!bohDups.has(s));
+    const cleanFOH = rawFOH.filter(s=>!fohDups.has(s));
+    const dupList  = [...bohDups,...fohDups];
+
+    // Sort lowest average first
+    function sortLow(arr) {
+      return arr.sort(function(a,b) {
+        const av=calcAvg(a), bv=calcAvg(b);
+        if (av===null&&bv===null) return 0;
+        if (av===null) return 1;
+        if (bv===null) return -1;
+        return av-bv;
+      });
+    }
+
+    return {
+      boh: sortLow(cleanBOH),
+      foh: sortLow(cleanFOH),
+      dups: dupList
+    };
+  }
+
+  // ── Table builder (grouped by outlet) ───────────────────────
+  function buildTable(data) {
+    if (!data.length) return '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:12px;border:0.5px dashed #E0DDD4;border-radius:8px;">No data for selected filters.</div>';
+
+    // Group by outlet
+    const outlets={};
+    data.forEach(function(s) {
+      const o=s.outlet||'Unknown';
+      if (!outlets[o]) outlets[o]=[];
+      outlets[o].push(s);
+    });
+
+    const TH = 'padding:6px 10px;text-align:left;font-size:10px;font-weight:500;color:#fff;background:#1A3C5E;white-space:nowrap;';
+    const THR = TH+'text-align:right;';
+    let html = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
+      +'<table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">'
+      +'<thead><tr>'
+      +'<th style="'+TH+'width:22%">Staff</th>'
+      +'<th style="'+TH+'width:11%">Role</th>'
+      +'<th style="'+TH+'width:13%">Outlet</th>'
+      +'<th style="'+THR+'width:12%">Opening</th>'
+      +'<th style="'+THR+'width:12%">Closing</th>'
+      +'<th style="'+THR+'width:10%">Eval</th>'
+      +'<th style="'+THR+'width:10%">Average</th>'
+      +'<th style="'+THR+'width:10%">Tier</th>'
+      +'</tr></thead><tbody>';
+
+    Object.keys(outlets).sort().forEach(function(outletName) {
+      const outletStaff = outlets[outletName];
+      const outletAvg = avgOf(outletStaff);
+      const oc = scoreColor(outletAvg);
+
+      // Outlet header row
+      html += '<tr style="background:#EEF2F7;">'
+        +'<td colspan="2" style="padding:7px 10px;font-weight:500;color:#1A3C5E;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">'+outletName+'</td>'
+        +'<td colspan="5" style="padding:7px 10px;font-size:10px;color:#64748B;"></td>'
+        +'<td style="padding:7px 10px;text-align:right;font-size:11px;font-weight:500;color:'+oc+';">'+(outletAvg!==null?outletAvg+'%':'—')+'</td>'
+        +'</tr>';
+
+      outletStaff.forEach(function(s) {
+        const avg = calcAvg(s);
+        const rc = roleColor[s.role]||['#F1F5F9','#374151'];
+        const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
+        html += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
+          +'<td style="padding:8px 10px;">'
+          +'<div style="font-weight:500;color:#1A3C5E;font-size:12px;">'+(s.staffName||'—')+'</div>'
+          +'</td>'
+          +'<td style="padding:8px 10px;">'
+          +'<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 6px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[s.role]||s.role)+'</span>'
+          +'</td>'
+          +'<td style="padding:8px 10px;font-size:11px;color:#94A3B8;">'+(s.outlet||'—')+'</td>'
+          +'<td style="padding:8px 10px;">'+scoreBar(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
+          +'<td style="padding:8px 10px;">'+scoreBar(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
+          +'<td style="padding:8px 10px;">'+scoreBar(evalScore!=null?parseFloat(evalScore):null)+'</td>'
+          +'<td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:'+scoreColor(avg)+';">'+(avg!==null?avg+'%':'—')+'</td>'
+          +'<td style="padding:8px 10px;text-align:right;">'+pill(avg)+'</td>'
+          +'</tr>';
+      });
+    });
+
+    // Overall average row
+    const overall = avgOf(data);
+    html += '<tr style="background:#F0F4F8;border-top:1.5px solid #1A3C5E;">'
+      +'<td colspan="5" style="padding:8px 10px;font-weight:500;color:#1A3C5E;font-size:11px;">Overall average — '+data.length+' staff</td>'
+      +'<td></td>'
+      +'<td style="padding:8px 10px;text-align:right;font-size:14px;font-weight:500;color:'+scoreColor(overall)+'">'+(overall!==null?overall+'%':'—')+'</td>'
+      +'<td style="padding:8px 10px;text-align:right;">'+pill(overall)+'</td>'
+      +'</tr>';
+
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  // ── Duplicates section ───────────────────────────────────────
+  function buildDupsSection(dups) {
+    if (!dups.length) return '';
+    const TH = 'padding:6px 10px;font-size:10px;font-weight:500;color:#791F1F;background:#FCEBEB;text-align:left;white-space:nowrap;';
+    const THR = TH+'text-align:right;';
+    let rows = dups.map(function(s) {
       const avg = calcAvg(s);
       const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
-      const tAvg = avg !== null ? getTier(avg) : null;
-      return '<tr style="border-bottom:0.5px solid #F1F5F9;">'
-        +'<td style="padding:9px 8px;white-space:nowrap;">'
-        +'<div style="font-weight:600;color:#1A3C5E;font-size:12px;">'+( s.staffName||'—')+'</div>'
-        +'<div style="margin-top:2px;">'+roleChip(s.role)+'</div>'
-        +'</td>'
-        +'<td style="padding:9px 8px;font-size:11px;color:#94A3B8;white-space:nowrap;">'+(s.outlet||'—')+'</td>'
-        +'<td style="padding:9px 8px;">'+scoreSpan(s.openingPct)+'</td>'
-        +'<td style="padding:9px 8px;">'+scoreSpan(s.closingPct)+'</td>'
-        +'<td style="padding:9px 8px;">'+scoreSpan(evalScore)+'</td>'
-        +'<td style="padding:9px 8px;text-align:center;">'
-        +(avg!==null?'<span style="font-weight:700;color:'+scoreColor(avg)+';font-size:13px;">'+avg+'%</span>':'<span style="color:#94A3B8;">—</span>')
-        +'</td>'
-        +'<td style="padding:9px 8px;">'+tierBadge(avg)+'</td>'
+      return '<tr style="background:#FFF5F5;border-bottom:0.5px solid #F7C1C1;">'
+        +'<td style="padding:8px 10px;font-weight:500;color:#A32D2D;font-size:12px;">'+(s.staffName||'—')+'</td>'
+        +'<td style="padding:8px 10px;font-size:10px;color:#A32D2D;">'+(roleLbl[s.role]||s.role)+'</td>'
+        +'<td style="padding:8px 10px;font-size:11px;color:#94A3B8;">'+(s.outlet||'—')+'</td>'
+        +'<td style="padding:8px 10px;">'+scoreBar(s.openingPct!=null?parseFloat(s.openingPct):null)+'</td>'
+        +'<td style="padding:8px 10px;">'+scoreBar(s.closingPct!=null?parseFloat(s.closingPct):null)+'</td>'
+        +'<td style="padding:8px 10px;">'+scoreBar(evalScore!=null?parseFloat(evalScore):null)+'</td>'
+        +'<td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:500;color:'+(avg!==null?scoreColor(avg):'#94A3B8')+'">'+(avg!==null?avg+'%':'—')+'</td>'
+        +'<td style="padding:8px 10px;text-align:right;"><span style="background:#FCEBEB;color:#A32D2D;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;border:0.5px solid #F09595;">Duplicate</span></td>'
         +'</tr>';
     }).join('');
 
-    const avgRow = '<tr style="background:#F8FAFC;border-top:1px solid #E0DDD4;">'
-      +'<td colspan="2" style="padding:8px;font-size:11px;color:#94A3B8;">'+sectionLabel+' avg — '+data.length+' staff</td>'
-      +'<td></td><td></td><td></td>'
-      +'<td style="padding:8px;text-align:center;">'
-      +(sectionAvg!==null?'<span style="font-weight:700;color:'+scoreColor(sectionAvg)+';font-size:13px;">'+sectionAvg+'%</span>':'—')
-      +'</td>'
-      +'<td style="padding:8px;">'+tierBadge(sectionAvg)+'</td>'
-      +'</tr>';
-
-    return '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">'
-      +'<table style="width:100%;min-width:520px;border-collapse:collapse;font-size:12px;">'
-      +'<thead><tr style="background:#F8FAFC;">'
-      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Staff</th>'
-      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Outlet</th>'
-      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Opening</th>'
-      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Closing</th>'
-      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Eval</th>'
-      +'<th style="padding:7px 8px;text-align:center;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Average</th>'
-      +'<th style="padding:7px 8px;text-align:left;font-size:11px;font-weight:500;color:#94A3B8;border-bottom:0.5px solid #E0DDD4;white-space:nowrap;">Tier</th>'
-      +'</tr></thead>'
-      +'<tbody>'+rows+avgRow+'</tbody></table></div>';
-  }
-
-  function doRender(fromStr, toStr, selOutlet, selRole) {
-    let bohData = filterByDate(allBOHData, fromStr, toStr);
-    let fohData = filterByDate(allFOHData, fromStr, toStr);
-    if (selOutlet) { bohData = bohData.filter(s=>s.outlet===selOutlet); fohData = fohData.filter(s=>s.outlet===selOutlet); }
-    if (selRole) {
-      const bohRoles = ['linecook','steward','kic'];
-      const fohRoles = ['service','oic','bartender','delco'];
-      if (bohRoles.includes(selRole)) { bohData = bohData.filter(s=>s.role===selRole); fohData = []; }
-      else if (fohRoles.includes(selRole)) { fohData = fohData.filter(s=>s.role===selRole); bohData = []; }
-    }
-    const bohAvg = avgOf(bohData), fohAvg = avgOf(fohData);
-    const totalStaff = bohData.length + fohData.length;
-    const belowCount = [...bohData,...fohData].filter(s=>{ const a=calcAvg(s); return a!==null&&a<85; }).length;
-
-    // Summary cards
-    const cardsHtml = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">'
-      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">'
-      + summaryCard('BOH average', bohAvg!==null?bohAvg+'%':'—', bohAvg!==null?scoreColor(bohAvg):'#94A3B8', bohData.length+' staff')
-      + summaryCard('FOH average', fohAvg!==null?fohAvg+'%':'—', fohAvg!==null?scoreColor(fohAvg):'#94A3B8', fohData.length+' staff')
+    return '<div style="border:0.5px solid #F09595;border-radius:8px;overflow:hidden;margin-top:16px;">'
+      +'<div style="background:#FCEBEB;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid #F09595;">'
+      +'<span style="font-size:16px;">⚠️</span>'
+      +'<div><div style="font-size:12px;font-weight:500;color:#791F1F;">Duplicate names — '+dups.length+' records found</div>'
+      +'<div style="font-size:11px;color:#A32D2D;margin-top:1px;">Scores excluded from BOH/FOH averages. Fix name spelling in the dashboard.</div></div>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">'
-      + summaryCard('Total staff', totalStaff, '#1A3C5E', 'in selected range')
-      + summaryCard('Below target', belowCount, belowCount>0?'#A32D2D':'#3B6D11', belowCount>0?'need attention':'all on track')
-      +'</div></div>';
-
-    // Legend
-    const legendHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">'
-      +'<span style="font-size:10px;color:#94A3B8;">Tiers:</span>'
-      +'<span style="background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Excellent ≥95%</span>'
-      +'<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Good ≥90%</span>'
-      +'<span style="background:#FAECE7;color:#993C1D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Satisfactory ≥85%</span>'
-      +'<span style="background:#FCEBEB;color:#A32D2D;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;">Below &lt;85%</span>'
-      +'</div>';
-
-    const bohHtml = (!selRole || ['linecook','steward','kic'].includes(selRole))
-      ? '<div style="margin-bottom:20px;">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E0DDD4;">'
-        +'<div style="font-size:13px;font-weight:600;color:#1A3C5E;">🍳 BOH — Back of House</div>'
-        +'<span style="font-size:11px;color:#94A3B8;">'+bohData.length+' staff</span></div>'
-        + buildTable(bohData,'BOH')
-        +'</div>' : '';
-
-    const fohHtml = (!selRole || ['service','oic','bartender','delco'].includes(selRole))
-      ? '<div style="margin-bottom:20px;">'
-        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid #E0DDD4;">'
-        +'<div style="font-size:13px;font-weight:600;color:#1A3C5E;">🛎️ FOH — Front of House</div>'
-        +'<span style="font-size:11px;color:#94A3B8;">'+fohData.length+' staff</span></div>'
-        + buildTable(fohData,'FOH')
-        +'</div>' : '';
-
-    const body = document.getElementById('lr-body');
-    if (body) body.innerHTML = cardsHtml + legendHtml + bohHtml + fohHtml;
+      +'<div style="overflow-x:auto;">'
+      +'<table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">'
+      +'<thead><tr>'
+      +'<th style="'+TH+'">Staff</th><th style="'+TH+'">Role</th><th style="'+TH+'">Outlet</th>'
+      +'<th style="'+THR+'">Opening</th><th style="'+THR+'">Closing</th><th style="'+THR+'">Eval</th>'
+      +'<th style="'+THR+'">Average</th><th style="'+THR+'">Status</th>'
+      +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
   }
 
-  // Build outlet options
-  const outletOpts = '<option value="">All Outlets</option>'
-    +Array.from(allOutlets).sort().map(o=>'<option value="'+o+'">'+o+'</option>').join('');
-  const roleOpts = '<option value="">All Roles</option>'
-    +'<option value="linecook">Line Cook</option><option value="steward">Steward</option>'
-    +'<option value="kic">KIC</option><option value="oic">OIC</option>'
-    +'<option value="service">Service</option><option value="bartender">Bartender</option>'
-    +'<option value="delco">Delco</option>';
+  // ── Main render ──────────────────────────────────────────────
+  function doRender(fromStr, toStr, selOutlet, selRole) {
+    const data = processData(fromStr, toStr, selOutlet, selRole);
+    _lrLastData = data;
 
-  const toDay = dubaiDateStr(0);
+    const bohAvg = avgOf(data.boh);
+    const fohAvg = avgOf(data.foh);
+    const total  = data.boh.length + data.foh.length;
+    const below  = [...data.boh,...data.foh].filter(function(s){const a=calcAvg(s);return a!==null&&a<85;}).length;
+    const qualified = [...data.boh,...data.foh].filter(function(s){const a=calcAvg(s);return a!==null&&a>=95;}).length;
+
+    function metricCard(label, val, color, sub) {
+      return '<div style="border:0.5px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;background:#fff;">'
+        +'<div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">'+label+'</div>'
+        +'<div style="font-size:22px;font-weight:500;color:'+color+';">'+val+'</div>'
+        +'<div style="font-size:10px;color:#94A3B8;margin-top:2px;">'+sub+'</div>'
+        +'</div>';
+    }
+
+    const nowStr = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Dubai'});
+    const todayFull = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Dubai'});
+
+    // Build outlets list
+    const allOutlets = new Set();
+    [...allBOHData,...allFOHData].forEach(function(s){if(s.outlet)allOutlets.add(s.outlet);});
+    const outletOpts = '<option value="">All Outlets</option>'+Array.from(allOutlets).sort().map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+    const roleOpts = '<option value="">All Roles</option>'
+      +'<option value="linecook">Line Cook</option><option value="steward">Steward</option>'
+      +'<option value="kic">KIC</option><option value="oic">OIC</option>'
+      +'<option value="service">Service</option><option value="bartender">Bartender</option>'
+      +'<option value="delco">Delco</option>';
+
+    const html =
+      // ── Header ──
+      '<div style="text-align:center;margin-bottom:16px;border-bottom:2px solid #1A3C5E;padding-bottom:12px;">'
+      +'<div style="font-size:18px;font-weight:500;color:#1A3C5E;">Kitchen Tracker — Staff Performance Report</div>'
+      +'<div style="font-size:14px;font-weight:500;color:#374151;margin-top:5px;">'+todayFull+'</div>'
+      +'<div style="font-size:11px;color:#94A3B8;margin-top:3px;">Report reflects weekly averages · Figures update automatically</div>'
+      +'<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;flex-wrap:wrap;">'
+      +'<span id="lr-live-badge" style="display:flex;align-items:center;gap:4px;background:#EAF3DE;color:#3B6D11;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;">'
+      +'<span id="lr-dot" style="width:6px;height:6px;background:#3B6D11;border-radius:50%;display:inline-block;"></span> Live</span>'
+      +'<span id="lr-countdown" style="font-size:11px;color:#94A3B8;background:#F1F5F9;padding:3px 10px;border-radius:20px;">Refreshing in 60s</span>'
+      +'<span id="lr-ts" style="font-size:11px;color:#94A3B8;">Updated '+nowStr+'</span>'
+      +'</div></div>'
+
+      // ── Top grid: metrics + filters ──
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">'
+
+      // Metric cards
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+      +metricCard('BOH Average',    bohAvg!==null?bohAvg+'%':'—', scoreColor(bohAvg),    data.boh.length+' staff')
+      +metricCard('FOH Average',    fohAvg!==null?fohAvg+'%':'—', scoreColor(fohAvg),    data.foh.length+' staff')
+      +metricCard('Unique Staff',   total,                         '#1A3C5E',              'in range')
+      +metricCard('Below Target',   below,                         below>0?'#A32D2D':'#3B6D11', below>0?'need attention':'all on track')
+      +metricCard('Qualified',      qualified,                     '#3B6D11',              '≥95% score')
+      +metricCard('Duplicates',     data.dups.length,              data.dups.length>0?'#A32D2D':'#3B6D11', data.dups.length>0?'fix required':'none found')
+      +'</div>'
+
+      // Filters
+      +'<div style="display:flex;flex-direction:column;gap:8px;justify-content:center;">'
+      +'<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px;background:#F8FAFC;border-radius:8px;border:0.5px solid #E0DDD4;align-items:flex-end;">'
+      +'<div><div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">From</div>'
+      +'<input type="date" id="lr-from" value="'+fromStr+'" style="font-size:12px;padding:5px 7px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;width:130px;"></div>'
+      +'<div><div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">To</div>'
+      +'<input type="date" id="lr-to" value="'+toStr+'" style="font-size:12px;padding:5px 7px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;width:130px;"></div>'
+      +'<div><div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Outlet</div>'
+      +'<select id="lr-outlet" style="font-size:12px;padding:5px 7px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;">'+outletOpts+'</select></div>'
+      +'<div><div style="font-size:9px;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;">Role</div>'
+      +'<select id="lr-role" style="font-size:12px;padding:5px 7px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;">'+roleOpts+'</select></div>'
+      +'</div>'
+      // Export buttons
+      +'<div style="display:flex;gap:8px;">'
+      +'<button onclick="exportLiveReportPDF()" style="flex:1;padding:8px 12px;background:#1A3C5E;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;">📄 Export PDF</button>'
+      +'<button onclick="exportLiveReportExcel()" style="flex:1;padding:8px 12px;background:#1E6B4F;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;">📊 Export Excel</button>'
+      +'<button onclick="renderLiveReport()" style="padding:8px 12px;border:0.5px solid #E0DDD4;background:#F8FAFC;border-radius:6px;font-size:12px;cursor:pointer;color:#1A3C5E;">🔄</button>'
+      +'</div>'
+      +'</div>'
+      +'</div>'
+
+      // ── BOH Section ──
+      +(data.boh.length||!selRole||['linecook','steward','kic'].includes(selRole)?
+        '<div style="margin-bottom:16px;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1.5px solid #1A3C5E;margin-bottom:0;">'
+        +'<div style="font-size:13px;font-weight:500;color:#1A3C5E;">🍳 BOH — Back of House</div>'
+        +'<span style="font-size:10px;color:#94A3B8;">'+data.boh.length+' staff · sorted: lowest score first</span>'
+        +'</div>'
+        +buildTable(data.boh)
+        +'</div>' : '')
+
+      // ── FOH Section ──
+      +(data.foh.length||!selRole||['service','oic','bartender','delco'].includes(selRole)?
+        '<div style="margin-bottom:16px;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1.5px solid #1A3C5E;margin-bottom:0;">'
+        +'<div style="font-size:13px;font-weight:500;color:#1A3C5E;">🛎️ FOH — Front of House</div>'
+        +'<span style="font-size:10px;color:#94A3B8;">'+data.foh.length+' staff · sorted: lowest score first</span>'
+        +'</div>'
+        +buildTable(data.foh)
+        +'</div>' : '')
+
+      // ── Duplicates section ──
+      +buildDupsSection(data.dups);
+
+    container.innerHTML = html;
+
+    // Wire filters
+    ['lr-from','lr-to','lr-outlet','lr-role'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', function() {
+        doRender(
+          document.getElementById('lr-from').value,
+          document.getElementById('lr-to').value,
+          document.getElementById('lr-outlet').value,
+          document.getElementById('lr-role').value
+        );
+      });
+    });
+  }
+
+  // ── PDF Export ───────────────────────────────────────────────
+  window.exportLiveReportPDF = function() {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+      const data = _lrLastData;
+      const todayFull = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Dubai'});
+      const nowStr = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'});
+      const pgW = 297, pgH = 210, margin = 12;
+      let y = margin;
+
+      // Header
+      doc.setFillColor(26,60,94);
+      doc.rect(0,0,pgW,22,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(14); doc.setFont(undefined,'bold');
+      doc.text('Kitchen Tracker — Staff Performance Report', pgW/2, 9, {align:'center'});
+      doc.setFontSize(10); doc.setFont(undefined,'normal');
+      doc.text(todayFull + ' · Generated '+nowStr, pgW/2, 16, {align:'center'});
+      y = 28;
+
+      // Summary row
+      const data2 = [...data.boh,...data.foh];
+      const bohAvg = avgOf(data.boh), fohAvg = avgOf(data.foh);
+      const below = data2.filter(s=>{const a=calcAvg(s);return a!==null&&a<85;}).length;
+      const qualified = data2.filter(s=>{const a=calcAvg(s);return a!==null&&a>=95;}).length;
+      const metrics = [
+        ['BOH Average',  bohAvg!==null?bohAvg+'%':'—'],
+        ['FOH Average',  fohAvg!==null?fohAvg+'%':'—'],
+        ['Unique Staff', data.boh.length+data.foh.length],
+        ['Below Target', below],
+        ['Qualified',    qualified],
+        ['Duplicates',   data.dups.length]
+      ];
+      const cw = (pgW-2*margin)/metrics.length;
+      metrics.forEach(function(m,i) {
+        const x = margin + i*cw;
+        doc.setFillColor(245,247,250); doc.rect(x,y,cw-2,12,'F');
+        doc.setTextColor(100,116,139); doc.setFontSize(7); doc.setFont(undefined,'normal');
+        doc.text(m[0].toUpperCase(), x+cw/2-1, y+4, {align:'center'});
+        doc.setTextColor(26,60,94); doc.setFontSize(12); doc.setFont(undefined,'bold');
+        doc.text(String(m[1]), x+cw/2-1, y+10, {align:'center'});
+      });
+      y += 16;
+
+      function drawSection(label, arr) {
+        if (!arr.length) return;
+        if (y > pgH-30) { doc.addPage(); y = margin; }
+        doc.setFillColor(26,60,94);
+        doc.rect(margin,y,pgW-2*margin,7,'F');
+        doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont(undefined,'bold');
+        doc.text(label, margin+3, y+5);
+        doc.text(arr.length+' staff', pgW-margin-3, y+5, {align:'right'});
+        y += 8;
+
+        const cols = ['Staff','Role','Outlet','Opening','Closing','Eval','Average','Tier'];
+        const cws2 = [50,22,38,25,25,22,25,28];
+        doc.setFillColor(238,242,247);
+        doc.rect(margin,y,pgW-2*margin,6,'F');
+        doc.setTextColor(26,60,94); doc.setFontSize(7); doc.setFont(undefined,'bold');
+        let x2=margin;
+        cols.forEach(function(c,i){
+          doc.text(c,x2+1,y+4.5);
+          x2+=cws2[i];
+        });
+        y+=7;
+
+        let lastOutlet='';
+        arr.forEach(function(s) {
+          if (y>pgH-15){doc.addPage();y=margin;}
+          const outlet=s.outlet||'Unknown';
+          if (outlet!==lastOutlet){
+            doc.setFillColor(230,235,245);
+            doc.rect(margin,y,pgW-2*margin,5,'F');
+            doc.setTextColor(26,60,94);doc.setFontSize(7);doc.setFont(undefined,'bold');
+            doc.text(outlet.toUpperCase(),margin+2,y+3.5);
+            lastOutlet=outlet; y+=5;
+          }
+          const avg=calcAvg(s);
+          const evalScore=s.evalNotVisited?null:s.oicEvalPct;
+          doc.setFillColor(255,255,255);
+          doc.rect(margin,y,pgW-2*margin,5.5,'F');
+          doc.setTextColor(30,30,30);doc.setFontSize(7);doc.setFont(undefined,'normal');
+          let x3=margin;
+          const vals=[
+            (s.staffName||'—').substring(0,24),
+            (roleLbl[s.role]||s.role||'—'),
+            (s.outlet||'—').substring(0,16),
+            s.openingPct!=null?Math.round(parseFloat(s.openingPct))+'%':'N/A',
+            s.closingPct!=null?Math.round(parseFloat(s.closingPct))+'%':'N/A',
+            evalScore!=null?Math.round(parseFloat(evalScore))+'%':'N/A',
+            avg!==null?avg+'%':'—',
+            avg!==null?tierLabel(avg).label:'—'
+          ];
+          vals.forEach(function(v,i){doc.text(v,x3+1,y+4);x3+=cws2[i];});
+          doc.setDrawColor(240,240,240);doc.line(margin,y+5.5,pgW-margin,y+5.5);
+          y+=5.5;
+        });
+
+        // avg row
+        const overall=avgOf(arr);
+        doc.setFillColor(220,228,240);
+        doc.rect(margin,y,pgW-2*margin,6,'F');
+        doc.setTextColor(26,60,94);doc.setFontSize(7);doc.setFont(undefined,'bold');
+        doc.text('Overall Average — '+arr.length+' staff',margin+2,y+4.5);
+        doc.text(overall!==null?overall+'%':'—',pgW-margin-30,y+4.5);
+        doc.text(overall!==null?tierLabel(overall).label:'—',pgW-margin-3,y+4.5,{align:'right'});
+        y+=8;
+      }
+
+      drawSection('BOH — Back of House', data.boh);
+      drawSection('FOH — Front of House', data.foh);
+
+      if (data.dups.length) {
+        if (y>pgH-20){doc.addPage();y=margin;}
+        doc.setFillColor(163,45,45);
+        doc.rect(margin,y,pgW-2*margin,7,'F');
+        doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont(undefined,'bold');
+        doc.text('⚠ Duplicate Names — '+data.dups.length+' records (excluded from averages)',margin+3,y+5);
+        y+=8;
+        drawSection('', data.dups);
+      }
+
+      // Footer
+      doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont(undefined,'normal');
+      const pageCount=doc.internal.getNumberOfPages();
+      for(let i=1;i<=pageCount;i++){
+        doc.setPage(i);
+        doc.text('Culex Hospitality Operations · Confidential',margin,pgH-4);
+        doc.text('Page '+i+' of '+pageCount,pgW-margin,pgH-4,{align:'right'});
+      }
+
+      doc.save('staff-performance-report-'+new Date().toISOString().substring(0,10)+'.pdf');
+      showToast('PDF exported ✓','ok');
+    } catch(e) {
+      showToast('PDF export failed: '+e.message,'error');
+      console.error(e);
+    }
+  };
+
+  // ── Excel Export ─────────────────────────────────────────────
+  window.exportLiveReportExcel = function() {
+    try {
+      const data = _lrLastData;
+      const todayStr = new Date().toISOString().substring(0,10);
+      const rows = [['Section','Outlet','Staff Name','Role','Opening %','Closing %','Eval %','Average %','Tier','Week']];
+
+      function addRows(section, arr) {
+        arr.forEach(function(s) {
+          const avg = calcAvg(s);
+          const evalScore = s.evalNotVisited ? null : s.oicEvalPct;
+          rows.push([
+            section,
+            s.outlet||'',
+            s.staffName||'',
+            roleLbl[s.role]||s.role||'',
+            s.openingPct!=null?Math.round(parseFloat(s.openingPct)):'',
+            s.closingPct!=null?Math.round(parseFloat(s.closingPct)):'',
+            evalScore!=null?Math.round(parseFloat(evalScore)):'N/A',
+            avg!==null?avg:'',
+            avg!==null?tierLabel(avg).label:'',
+            s.week||''
+          ]);
+        });
+      }
+
+      addRows('BOH', data.boh);
+      if (data.boh.length) rows.push(['BOH Average','','','','','','',avgOf(data.boh)||'','','']);
+      rows.push([]);
+      addRows('FOH', data.foh);
+      if (data.foh.length) rows.push(['FOH Average','','','','','','',avgOf(data.foh)||'','','']);
+      if (data.dups.length) {
+        rows.push([]);
+        rows.push(['--- DUPLICATES (excluded from averages) ---']);
+        addRows('DUPLICATE', data.dups);
+      }
+
+      const csvContent = rows.map(function(r) {
+        return r.map(function(cell) {
+          const s = String(cell==null?'':cell);
+          return s.includes(',') || s.includes('"') ? '"'+s.replace(/"/g,'""')+'"' : s;
+        }).join(',');
+      }).join('\n');
+
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM+csvContent],{type:'text/csv;charset=utf-8;'});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url;
+      a.download = 'staff-performance-'+todayStr+'.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Excel export ready ✓ — open in Excel','ok');
+    } catch(e) {
+      showToast('Export failed: '+e.message,'error');
+    }
+  };
+
+  // ── Initial render ───────────────────────────────────────────
+  const toDay  = dubaiDateStr(0);
   const fromDay = dubaiDateStr(-6);
-  const nowStr = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Dubai'});
-
-  container.innerHTML =
-    // Top bar
-    '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">'
-    +'<div style="display:flex;align-items:center;gap:10px;">'
-    +'<span style="font-size:16px;font-weight:600;color:#1A3C5E;">📊 Live Report</span>'
-    +'<span id="lr-live-badge" style="display:flex;align-items:center;gap:5px;background:#EAF3DE;color:#3B6D11;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;">'
-    +'<span id="lr-dot" style="width:7px;height:7px;background:#3B6D11;border-radius:50%;display:inline-block;"></span> Live</span>'
-    +'</div>'
-    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-    +'<span id="lr-countdown" style="font-size:11px;color:#94A3B8;background:#F1F5F9;padding:4px 10px;border-radius:6px;">Refreshing in 60s</span>'
-    +'<span id="lr-ts" style="font-size:11px;color:#94A3B8;">Updated '+nowStr+'</span>'
-    +'<button onclick="renderLiveReport()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:0.5px solid #E0DDD4;background:#F8FAFC;cursor:pointer;color:#1A3C5E;">🔄 Refresh now</button>'
-    +'</div></div>'
-
-    // Filters — responsive wrap
-    +'<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:14px;padding:10px 12px;background:#F8FAFC;border-radius:10px;border:0.5px solid #E0DDD4;">'
-    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">From</div>'
-    +'<input type="date" id="lr-from" value="'+fromDay+'" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:140px;"></div>'
-    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">To</div>'
-    +'<input type="date" id="lr-to" value="'+toDay+'" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:140px;"></div>'
-    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">Outlet</div>'
-    +'<select id="lr-outlet" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:140px;">'+outletOpts+'</select></div>'
-    +'<div><div style="font-size:10px;color:#94A3B8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;">Role</div>'
-    +'<select id="lr-role" style="font-size:12px;padding:5px 8px;border-radius:6px;border:0.5px solid #D1D5DB;background:#fff;color:#1a1a1a;width:130px;">'+roleOpts+'</select></div>'
-    +'</div>'
-
-    // Body
-    +'<div id="lr-body"></div>';
-
-  // Wire filters
-  function onFilter() {
-    const f = document.getElementById('lr-from').value;
-    const t = document.getElementById('lr-to').value;
-    const o = document.getElementById('lr-outlet').value;
-    const r = document.getElementById('lr-role').value;
-    doRender(f, t, o, r);
-  }
-  ['lr-from','lr-to','lr-outlet','lr-role'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('change', onFilter);
-  });
-
-  // Initial render
   doRender(fromDay, toDay, '', '');
 
-  // Auto-refresh countdown
+  // ── Auto-refresh countdown ───────────────────────────────────
   _lrCountdown = 60;
   _lrAutoRefresh = setInterval(function() {
     _lrCountdown--;
     const cdEl = document.getElementById('lr-countdown');
     const dotEl = document.getElementById('lr-dot');
     if (cdEl) cdEl.textContent = 'Refreshing in '+_lrCountdown+'s';
-    if (dotEl) dotEl.style.opacity = _lrCountdown % 2 === 0 ? '1' : '0.4';
-    if (_lrCountdown <= 0) {
-      _lrCountdown = 60;
-      // Reload BOH+FOH data then re-render
-      const f = document.getElementById('lr-from') ? document.getElementById('lr-from').value : fromDay;
-      const t2 = document.getElementById('lr-to') ? document.getElementById('lr-to').value : toDay;
-      const o = document.getElementById('lr-outlet') ? document.getElementById('lr-outlet').value : '';
-      const r = document.getElementById('lr-role') ? document.getElementById('lr-role').value : '';
-      if (typeof loadBOHData === 'function') {
-        loadBOHData();
-        setTimeout(function() {
-          if (typeof loadFOHData === 'function') loadFOHData();
-          setTimeout(function() {
-            doRender(f, t2, o, r);
-            const tsEl = document.getElementById('lr-ts');
-            if (tsEl) tsEl.textContent = 'Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Dubai'});
-          }, 2000);
-        }, 2000);
-      } else {
-        doRender(f, t2, o, r);
-      }
+    if (dotEl) dotEl.style.opacity = _lrCountdown%2===0?'1':'0.4';
+    if (_lrCountdown<=0) {
+      _lrCountdown=60;
+      const f=document.getElementById('lr-from')?document.getElementById('lr-from').value:dubaiDateStr(-6);
+      const t=document.getElementById('lr-to')?document.getElementById('lr-to').value:dubaiDateStr(0);
+      const o=document.getElementById('lr-outlet')?document.getElementById('lr-outlet').value:'';
+      const r=document.getElementById('lr-role')?document.getElementById('lr-role').value:'';
+      if (typeof loadBOHData==='function') loadBOHData();
+      if (typeof loadFOHData==='function') setTimeout(function(){loadFOHData();},2000);
+      setTimeout(function(){
+        doRender(f,t,o,r);
+        const tsEl=document.getElementById('lr-ts');
+        if(tsEl) tsEl.textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Dubai'});
+      },4000);
     }
-  }, 1000);
+  },1000);
 }
 // ── End Live Report ──────────────────────────────────────────────────────────
+
 
 function showTab(el,id) {
   // Clear live report auto-refresh when leaving that tab
