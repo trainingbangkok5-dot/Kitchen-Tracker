@@ -48,7 +48,7 @@
   }
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon.png">
@@ -1235,7 +1235,7 @@ function renderDay() {
           ${task.photo ? ('<button class="photo-btn '+(photos.length?'taken':'')+'" onclick="openPhotoModal(\''+task.id+'\')">'+(photos.length?'\u{1f4f7} \u2713':'\u{1f4f7}')+'</button>') : ''}
         </div>
         <div class="comment-row" style="padding:4px 0 2px 0;"><div style="font-size:10px;color:#94A3B8;text-transform:uppercase;font-weight:600;margin-bottom:3px;">Comment</div><textarea rows="2" placeholder="Add comment..." onchange="setVal(${currentDay},'${task.id}','comment',this.value)" style="width:100%;padding:6px;border:1px solid #E0DDD4;border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;">${comment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
-        ${photos.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;">${photos.map(u=>`<img src="${u}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;">`).join('')}</div>`:''}
+        ${photos.length?`<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;">${photos.map((u,pi)=>`<div style='display:inline-block;text-align:center;vertical-align:top;margin:2px;'><img src='${u}' style='display:block;width:60px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;' onclick='openLightbox(this.src)' title='Tap to zoom'><button onclick='removePhoto("'+task.id+'",${pi})' style='display:block;width:100%;margin-top:3px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;'>Delete</button></div>`).join('')}</div>`:''}
       `;
       container.appendChild(card);
     });
@@ -1503,11 +1503,16 @@ function handlePhotoFile(file) {
 // ── Persist info fields ───────────────────────────────────────
 function removePhoto(taskId, idx) {
   if (!confirm('Remove this photo?')) return;
-  const slot = idx === 0 ? 'photo' : 'photo_' + idx;
-  setVal(currentDay, taskId, slot, '');
-  setVal(currentDay, taskId, slot + '_url', '');
+  for (let pi = idx; pi < 9; pi++) {
+    const curKey    = pi === 0 ? 'photo'    : 'photo_'    + pi;
+    const curUrlKey = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
+    setVal(currentDay, taskId, curKey,    getVal(currentDay, taskId, 'photo_'+(pi+1))    || '');
+    setVal(currentDay, taskId, curUrlKey, getVal(currentDay, taskId, 'photoUrl_'+(pi+1)) || '');
+  }
+  setVal(currentDay, taskId, 'photo_9',    '');
+  setVal(currentDay, taskId, 'photoUrl_9', '');
   renderDay();
-  showToast('Photo removed ✓', 'ok');
+  showToast('Photo removed ' + String.fromCharCode(10003), 'ok');
 }
 
 window.addEventListener('DOMContentLoaded', () => {

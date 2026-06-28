@@ -56,7 +56,7 @@
 <meta http-equiv="Expires" content="0">
 <meta name="app-version" content="20260619360000">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#2E6DA4">
 <meta name="format-detection" content="telephone=no">
 <title>Line Cook Checklist</title>
@@ -1117,7 +1117,7 @@ function renderDay() {
         }
         const thumbsHtml = photos.map((p,i) => `
           <div style="display:inline-block;margin:4px;text-align:center;vertical-align:top;">
-            <img class="photo-thumb" src="${p}" alt="proof" style="display:block;border-radius:6px;border:2px solid #22C55E;max-width:80px;max-height:70px;object-fit:cover;">
+            <img class="photo-thumb" src="${p}" alt="proof" style="display:block;border-radius:6px;border:2px solid #22C55E;max-width:80px;max-height:70px;object-fit:cover;cursor:zoom-in;" onclick="openLightbox(this.src)" title="Tap to zoom">
             <button onclick="removePhoto('${task.id}',${i})" style="display:block;width:100%;margin-top:2px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;">🗑 Delete</button>
           </div>`).join('');
         photoHtml = `<div class="photo-row" style="flex-wrap:wrap;">

@@ -2545,11 +2545,13 @@ function renderLiveReport() {
     const rawBOH = filterArr(allBOHData);
     const rawFOH = filterArr(allFOHData);
 
-    // Detect duplicates — same normName + role but different original name
+    // Detect genuine duplicates:
+    // Same normalised name + same role + same outlet + same week = duplicate
+    // Different week = same person submitting weekly (NOT a duplicate)
     function detectDups(arr) {
       const groups={}, dups=new Set();
       arr.forEach(function(s) {
-        const key = normName(s.staffName)+'_'+s.role+'_'+(s.outlet||'');
+        const key = normName(s.staffName)+'_'+s.role+'_'+(s.outlet||'')+'_'+(s.week||'');
         if (!groups[key]) groups[key]=[];
         groups[key].push(s);
       });
@@ -7821,6 +7823,7 @@ function toggleEditMode(s) {
     // Count real http photos only — don't render them again (already shown in task row)
     const httpPhotos = existingPhotos.filter(u => u && u.startsWith('http'));
     const photoCountLabel = httpPhotos.length > 0 ? `✓ ${httpPhotos.length} staff photo(s)` : (existingPhotos.length > 0 ? '📷 Photo taken' : '');
+    const staffPhotoHtml = httpPhotos.map(u=>`<img src="${u}" style="max-width:70px;max-height:55px;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;margin-right:4px;" onclick="openLightbox('${u}')" title="Tap to zoom">`).join('');
     const extraDiv = document.createElement('div');
     extraDiv.className = 'edit-extra-fields';
     extraDiv.style.cssText = 'flex-basis:100%;padding:10px;background:#F8FAFC;border-radius:0 0 8px 8px;border-top:1px solid #E0DDD4;';
@@ -7836,7 +7839,7 @@ function toggleEditMode(s) {
         <label style="font-size:10px;color:#94A3B8;font-weight:600;display:block;margin-bottom:4px;text-transform:uppercase;">
           ${['linecook','steward','lc','st'].includes(s.role||'') ? 'KIC Photo' : 'OIC Photo'} ${photoCountLabel ? '<span style="color:#15803D;font-weight:400;">(Staff: ' + photoCountLabel + ')</span>' : ''}
         </label>
-        <div class="edit-photo-preview" data-taskkey="${taskKey}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;min-height:4px;"></div>
+        <div class="edit-photo-preview" data-taskkey="${taskKey}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;min-height:4px;">${staffPhotoHtml}</div>
         <div style="display:flex;gap:6px;">
           <button type="button" onclick="_editTakePhoto('${taskKey}', true)" style="flex:1;padding:7px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">
             📸 Take Photo
@@ -7856,7 +7859,7 @@ function toggleEditMode(s) {
       const reader = new FileReader();
       reader.onload = e => {
         const preview = row.querySelector('.edit-photo-preview[data-taskkey="'+taskKey+'"]');
-        preview.innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;">`;
+        preview.innerHTML = `<img src="${e.target.result}" style="max-width:80px;max-height:60px;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;" onclick="openLightbox(this.src)" title="Click to zoom">`;
         _editPhotoChanges[taskKey] = e.target.result; // store base64
       };
       reader.readAsDataURL(file);
