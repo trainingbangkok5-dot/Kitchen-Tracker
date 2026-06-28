@@ -2563,7 +2563,8 @@ function renderLiveReport() {
     const rawFOH = filterArr(allFOHData);
 
     // Consolidate staff across outlets — merge records by name+role, keep best scores
-    const selConsolidate = document.getElementById('lr-consolidate') && document.getElementById('lr-consolidate').checked;
+    const _cbEl = document.getElementById('lr-consolidate');
+    const selConsolidate = _cbEl ? _cbEl.checked : false;
     function consolidateArr(arr) {
       if (!selConsolidate) return arr;
       const merged = {};
@@ -3168,9 +3169,29 @@ function showTab(el,id) {
   if (id === 'verified') { renderVerifiedTab(); }
   if (id === 'summaryscoring') { initSummaryScoring(); }
   if (id === 'livereport') {
-    // Always render with whatever data is currently loaded
-    // Data is already loaded from BOH/FOH tabs — no need to reload
-    renderLiveReport();
+    const _lrContainer = document.getElementById('liveReportContainer');
+    if (_lrContainer) _lrContainer.innerHTML = '<div style="text-align:center;padding:60px 20px;"><div style="font-size:28px;margin-bottom:12px;">⏳</div><div style="font-size:13px;color:#94A3B8;">Loading report...</div></div>';
+    // Load fresh data then render
+    let _bohDone = allBOHData.length > 0;
+    let _fohDone = allFOHData.length > 0;
+    function _tryRender() {
+      if (_bohDone && _fohDone) { try { renderLiveReport(); } catch(e) { console.error('Live Report error:', e); if(_lrContainer) _lrContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#A32D2D;">Error loading report. Please refresh.</div>'; } }
+    }
+    if (!_bohDone) {
+      const _origBOH = allBOHData;
+      if (typeof loadBOHData === 'function') {
+        const _bohSnap = db ? db.ref('submissions') : null;
+        loadBOHData();
+        setTimeout(function(){ _bohDone = true; _tryRender(); }, 3000);
+      } else { _bohDone = true; }
+    }
+    if (!_fohDone) {
+      if (typeof loadFOHData === 'function') {
+        loadFOHData();
+        setTimeout(function(){ _fohDone = true; _tryRender(); }, 3000);
+      } else { _fohDone = true; }
+    }
+    _tryRender();
   }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
