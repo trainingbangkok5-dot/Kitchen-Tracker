@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629130000';
+  var v = '20260629140000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2290,7 +2290,7 @@ function ssConsolidateByEmployee(rows) {
         dailyBreakdown,
         daysSubmitted,
         eligible: combinedAvg != null && combinedAvg >= 95 && !invalidWeek,
-        combinedScore: Math.round(combinedScore * 10) / 10,
+        combinedScore: Math.round((combinedAvg||0) * 10) / 10,
         combinedChecklists: e.combinedChecklists,
         combinedAvg,
         invalidWeek,
