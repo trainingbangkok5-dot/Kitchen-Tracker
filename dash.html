@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629010000';
+  var v = '20260629020000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2018,7 +2018,7 @@ function initSummaryScoring() {
   function done() { pending--; if (pending === 0) populateSSFilters(); }
 
   if (db) {
-    db.ref('submissions').orderByChild('week').limitToLast(3000).once('value', snap => {
+    db.ref('submissions').orderByChild('submittedAt').limitToLast(3000).once('value', snap => {
       const raw = snap.val() ? Object.values(snap.val()) : [];
       raw.forEach(s => {
         if (!s.staffName || !['linecook','steward','kic'].includes(s.role)) return;
@@ -2029,7 +2029,7 @@ function initSummaryScoring() {
         }
         if (isOutletRole && currentRole === 'oic') return;
         _ssData.push({
-          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week||''),
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '')),
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'kic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null,
@@ -2051,7 +2051,7 @@ function initSummaryScoring() {
   } else { done(); }
 
   if (fohDb) {
-    fohDb.ref('submissions').orderByChild('week').limitToLast(3000).once('value', snap => {
+    fohDb.ref('submissions').orderByChild('submittedAt').limitToLast(3000).once('value', snap => {
       const raw = snap.val() ? Object.values(snap.val()) : [];
       raw.forEach(s => {
         if (!s.staffName || !['oic','service','delco','bartender'].includes(s.role)) return;
@@ -2062,7 +2062,7 @@ function initSummaryScoring() {
         }
         if (isOutletRole && currentRole === 'kic') return;
         _ssData.push({
-          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week||''),
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '')),
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: (['service','oic','bartender','delco','linecook','steward'].includes(s.role)) ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
