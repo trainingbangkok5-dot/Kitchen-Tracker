@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629140000';
+  var v = '20260629150000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2628,10 +2628,9 @@ function renderSummaryScoring() {
     const _evVer  = _evVlog.slice().reverse().find(function(v){return v.shift==='evaluation';})||(_evVlog.length?_evVlog[_evVlog.length-1]:null)||(_evalRec.verifiedBy?{by:_evalRec.verifiedBy,role:_evalRec.verifiedByRole||'',at:_evalRec.verifiedAt||''}:null);
 
     let scoreCards = '<div style="display:flex;gap:10px;margin-bottom:12px;">';
-    if (op!=null) scoreCards += _scoreCard('🌅 Opening shift', op, _opOW, _openRec.overwrittenBy, _openRec.overwrittenAt, _opVer, _fmtYN(_opVer));
-    if (cl!=null) scoreCards += _scoreCard('🌙 Closing shift', cl, _clOW, _closeRec.overwrittenBy, _closeRec.overwrittenAt, _clVer, _fmtYN(_clVer));
-    if (ev!=null) scoreCards += _scoreCard('📋 Evaluation', ev, _evOW, _evalRec.overwrittenBy, _evalRec.overwrittenAt, _evVer, _fmtYN(_evVer));
-    if (op==null&&cl==null&&ev==null) scoreCards += '<div style="font-size:11px;color:#94A3B8;">No scores available</div>';
+    scoreCards += _scoreCard('🌅 Opening shift', op, _opOW, _openRec.overwrittenBy, _openRec.overwrittenAt, _opVer, _fmtYN(_opVer));
+    scoreCards += _scoreCard('🌙 Closing shift', cl, _clOW, _closeRec.overwrittenBy, _closeRec.overwrittenAt, _clVer, _fmtYN(_clVer));
+    scoreCards += _scoreCard('📋 Evaluation', ev, _evOW, _evalRec.overwrittenBy, _evalRec.overwrittenAt, _evVer, _fmtYN(_evVer));
     scoreCards += '</div>';
 
     // Collect submitted dates per shift
@@ -2689,7 +2688,7 @@ function renderSummaryScoring() {
     }
 
     // Legend
-    const _legend = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">'      +(op!=null?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#3B6D11;"></div>Opening</div>':'')      +(cl!=null?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#185FA5;"></div>Closing</div>':'')      +(hasOW?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#F59E0B;"></div>Overwritten</div>':'')      +(ev!=null?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#854F0B;"></div>Evaluated</div>':'')      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div>Not submitted</div>'      +'</div>';
+    const _legend = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#3B6D11;"></div>Opening</div>'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#185FA5;"></div>Closing</div>'      +(hasOW?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#F59E0B;"></div>Overwritten</div>':'')      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#854F0B;"></div>Evaluated</div>'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div>Not submitted</div>'      +'</div>';
 
     // Cell renderer — dot + score
     function _cell(has, score, isOW, color, owColor) {
@@ -2699,13 +2698,13 @@ function renderSummaryScoring() {
       return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:'+dc+';"></div><span style="font-size:11px;font-weight:700;color:'+dc+';">'+sc+'</span></div>';
     }
 
-    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:38px;">Day</th>'      +(op!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>':'')      +(cl!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>':'')      +(ev!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>':'')      +'</tr></thead><tbody>';
+    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:38px;">Day</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>'      +'</tr></thead><tbody>';
     _days.forEach(function(d,idx){
       const hasOpen  = _openDates.has(d.iso);
       const hasClose = _closeDates.has(d.iso);
       const hasEval  = _evalDates.has(d.iso);
       const bg = idx%2===0?'#fff':'#FAFBFC';
-      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +(op!=null?'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,op,_opOW&&hasOpen,'#3B6D11','#F59E0B')+'</td>':'')        +(cl!=null?'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,cl,_clOW&&hasClose,'#185FA5','#F59E0B')+'</td>':'')        +(ev!=null?'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,ev,false,'#854F0B','#854F0B')+'</td>':'')        +'</tr>';
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,op,_opOW&&hasOpen,'#3B6D11','#F59E0B')+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,cl,_clOW&&hasClose,'#185FA5','#F59E0B')+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,ev,false,'#854F0B','#854F0B')+'</td>'        +'</tr>';
     });
     tableHtml += '</tbody></table>';
 
