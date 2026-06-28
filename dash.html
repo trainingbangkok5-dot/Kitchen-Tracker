@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629160000';
+  var v = '20260629170000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -10002,6 +10002,86 @@ function _snapYN(taskData, shift, role) {
   return { yes: yes, no: no };
 }
 
+
+// ── Re-verification confirmation dialog ─────────────────────────────────────
+function _showReverifyDialog(staffName, shiftLabel, existingEntry, onConfirm) {
+  const TEN_MIN = 10 * 60 * 1000;
+  const lastAt = existingEntry ? new Date(existingEntry.at||0).getTime() : 0;
+  const elapsed = Date.now() - lastAt;
+  const remaining = TEN_MIN - elapsed;
+
+  // Format the "can re-verify after" time
+  function _fmtWaitTime(ms) {
+    const afterTime = new Date(lastAt + TEN_MIN);
+    return afterTime.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', timeZone:'Asia/Dubai'});
+  }
+  function _fmtMins(ms) {
+    return Math.ceil(ms / 60000);
+  }
+
+  // Remove any existing dialog
+  const old = document.getElementById('_reverifyDialog');
+  if (old) old.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '_reverifyDialog';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const byName = existingEntry ? (existingEntry.by || '—') : '—';
+  const byRole = existingEntry && existingEntry.role ? ' ('+existingEntry.role+')' : '';
+  const atStr  = existingEntry && existingEntry.at ? new Date(existingEntry.at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : '—';
+  const ynY = existingEntry && existingEntry.yn_yes != null ? existingEntry.yn_yes : null;
+  const ynN = existingEntry && existingEntry.yn_no  != null ? existingEntry.yn_no  : null;
+  const ynHtml = (ynY!=null||ynN!=null) ? '<div style="font-size:9px;margin-top:2px;">'+(ynY!=null?'<span style="color:#3B6D11;font-weight:600;">Yes:'+ynY+'</span> ':'')+( ynN!=null?'<span style="color:#A32D2D;font-weight:600;">No:'+ynN+'</span>':'')+'</div>' : '';
+
+  const stillWaiting = remaining > 0;
+  const waitMsg = stillWaiting
+    ? '<div style="background:#FEF3C7;border:0.5px solid #FCD34D;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#92400E;">⏱ Please wait <strong>'+_fmtMins(remaining)+' more minute'+(Math.ceil(remaining/60000)>1?'s':'')+'</strong> before re-verifying.<br>You can re-verify after <strong>'+_fmtWaitTime(remaining)+'</strong>.</div>'
+    : '';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;border:0.5px solid #E0DDD4;width:100%;max-width:360px;overflow:hidden;">
+      <div style="background:#1A3C5E;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="color:#fff;font-size:13px;font-weight:600;">Already verified</div>
+        <div style="background:rgba(255,255,255,0.15);border-radius:6px;padding:2px 8px;font-size:10px;color:#fff;">${shiftLabel}</div>
+      </div>
+      <div style="padding:16px;">
+        <div style="background:#FEF9C3;border:0.5px solid #FCD34D;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+          <div style="font-size:9px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Staff · ${staffName}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div style="font-size:12px;font-weight:600;color:#1A3C5E;">Verified by ${byName}${byRole}</div>
+            <div style="text-align:right;">
+              <div style="font-size:9px;color:#64748B;">${atStr}</div>
+              ${ynHtml}
+            </div>
+          </div>
+        </div>
+        ${waitMsg}
+        <div style="font-size:11px;color:#64748B;margin-bottom:14px;line-height:1.6;">
+          ${stillWaiting ? 'This shift was already verified. A minimum 10-minute wait is required before re-verifying.' : 'This shift was already verified. Are you sure you want to verify again? This will add a new re-verify entry to the log.'}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="document.getElementById('_reverifyDialog').remove()" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid #E0DDD4;background:#F8FAFC;font-size:12px;font-weight:500;color:#64748B;cursor:pointer;">Cancel</button>
+          ${!stillWaiting ? '<button id="_reverifyConfirmBtn" style="flex:1;padding:9px;border-radius:8px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Yes, verify again</button>' : '<button disabled style="flex:1;padding:9px;border-radius:8px;border:none;background:#E0DDD4;color:#94A3B8;font-size:12px;font-weight:600;cursor:not-allowed;">Wait '+_fmtMins(remaining)+' min</button>'}
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+
+  // Close on overlay click
+  overlay.addEventListener('click', function(ev) { if (ev.target === overlay) overlay.remove(); });
+
+  // Bind confirm button
+  if (!stillWaiting) {
+    const confirmBtn = document.getElementById('_reverifyConfirmBtn');
+    if (confirmBtn) confirmBtn.addEventListener('click', function() {
+      overlay.remove();
+      onConfirm();
+    });
+  }
+}
+
 function saveBOHVerification() {
   const name = (document.getElementById('verifiedByInput')?.value || '').trim();
   if (!name) { showToast('Please enter your name', 'warn'); return; }
@@ -10022,13 +10102,46 @@ function saveBOHVerification() {
   if (s.verifiedBy && !existingLog.length) {
     existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '', shift: 'opening' });
   }
-  // Auto-detect re-verify: if same shift already has an entry → tag as reverify
+  // Auto-detect re-verify: if same shift already has an entry → show confirmation dialog
   const _sameShiftExists = existingLog.some(function(e){ return e.shift === shift; });
   const _bohYN = _snapYN(s.taskData, shift, s.role);
   const newEntry = { by: name, role: currentRole, at: now, shift: shift, type: _sameShiftExists ? 'reverify' : 'verify', yn_yes: _bohYN.yes, yn_no: _bohYN.no, yn_na: _bohYN.na || 0 };
-  // Prevent duplicate: block if same person verified same shift within last 60 seconds
-  const _recentDup = existingLog.some(e => e.by === name && e.shift === shift && (Date.now() - new Date(e.at||0).getTime()) < 60000);
-  if (_recentDup) { showToast('You already verified this ' + shift + ' checklist. Please wait before re-verifying.', 'warn'); return; }
+  // If already verified for this shift — show confirmation dialog with 10-min wait
+  if (_sameShiftExists) {
+    const _lastEntry = existingLog.slice().reverse().find(function(e){ return e.shift === shift; });
+    const _shiftLabel = shift==='opening'?'Opening shift':shift==='closing'?'Closing shift':'Evaluation';
+    _showReverifyDialog(s.staffName, _shiftLabel, _lastEntry, function() {
+      existingLog.push(newEntry);
+      // Proceed with verification — same logic as first-time verify below
+      const sDate2 = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
+      firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap2 => {
+        if (!snap2.exists()) { showToast('Record not found', 'warn'); return; }
+        const updateMap2 = {};
+        snap2.forEach(child => {
+          const v = child.val();
+          const vDate = v.submittedAt ? v.submittedAt.substring(0, 10) : '';
+          const weekMatch = v.week === s.week || normalizeWeek(v.week||'') === normalizeWeek(s.week||'');
+          const dateMatch = sDate2 && vDate && vDate === sDate2;
+          if (v.role === s.role && (weekMatch || dateMatch)) {
+            updateMap2['submissions/' + child.key + '/verificationLog'] = existingLog;
+            updateMap2['submissions/' + child.key + '/verifiedBy'] = name;
+            updateMap2['submissions/' + child.key + '/verifiedByRole'] = currentRole;
+            updateMap2['submissions/' + child.key + '/verifiedAt'] = now;
+            updateMap2['submissions/' + child.key + '/lastUpdated'] = now;
+          }
+        });
+        if (Object.keys(updateMap2).length) {
+          firebaseRef.ref().update(updateMap2).then(() => {
+            s.verificationLog = existingLog;
+            s.verifiedBy = name; s.verifiedByRole = currentRole; s.verifiedAt = now;
+            showToast('Re-verified: ' + s.staffName, 'ok');
+            renderBOHStaff();
+          }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+        } else { showToast('No matching record found to update', 'warn'); }
+      });
+    });
+    return;
+  }
   existingLog.push(newEntry);
   const sDate = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
   firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap => {
@@ -11585,9 +11698,39 @@ function saveFOHMultiVerify() {
   const _fohYN = _snapYN(staff.taskData, fohShift, staff.role);
   const newEntry = { by: name, role: currentRole, at: now, shift: fohShift, type: _fohSameShift ? 'reverify' : 'verify', yn_yes: _fohYN.yes, yn_no: _fohYN.no, yn_na: _fohYN.na || 0 };
   if (staff.verifiedBy && !log.length) log.push({ by: staff.verifiedBy, role: staff.verifiedByRole||''});
-  // Prevent duplicate: block if same person verified same shift within last 60 seconds
-  const _fohRecentDup = log.some(e => e.by === name && e.shift === fohShift && (Date.now() - new Date(e.at||0).getTime()) < 60000);
-  if (_fohRecentDup) { showToast('You already verified this ' + fohShift + ' checklist. Please wait before re-verifying.', 'warn'); return; }
+  // If already verified for this shift — show confirmation dialog with 10-min wait
+  if (_fohSameShift) {
+    const _fohLastEntry = log.slice().reverse().find(function(e){ return e.shift === fohShift; });
+    const _fohShiftLabel = fohShift==='opening'?'Opening shift':fohShift==='closing'?'Closing shift':'Evaluation';
+    _showReverifyDialog(staff.staffName, _fohShiftLabel, _fohLastEntry, function() {
+      log.push(newEntry);
+      const sDate2 = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
+      fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap2 => {
+        if (!snap2.exists()) { showToast('Record not found', 'warn'); return; }
+        const updates2 = {};
+        snap2.forEach(child => {
+          const sub = child.val();
+          const vDate = sub.submittedAt ? sub.submittedAt.substring(0,10) : '';
+          if (sub.role === staff.role && (sub.week === staff.week || (sDate2 && vDate === sDate2))) {
+            updates2['submissions/' + child.key + '/verificationLog'] = log;
+            updates2['submissions/' + child.key + '/verifiedBy'] = name;
+            updates2['submissions/' + child.key + '/verifiedByRole'] = currentRole;
+            updates2['submissions/' + child.key + '/verifiedAt'] = now;
+            updates2['submissions/' + child.key + '/lastUpdated'] = now;
+          }
+        });
+        if (Object.keys(updates2).length) {
+          fohDb.ref().update(updates2).then(() => {
+            staff.verificationLog = log;
+            staff.verifiedBy = name; staff.verifiedByRole = currentRole; staff.verifiedAt = now;
+            showToast('Re-verified: ' + staff.staffName, 'ok');
+            renderFOHStaff();
+          }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+        } else { showToast('No matching record found', 'warn'); }
+      });
+    });
+    return;
+  }
   log.push(newEntry);
   const sDate = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
   fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap => {
