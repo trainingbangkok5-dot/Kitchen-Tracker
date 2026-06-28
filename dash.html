@@ -2629,14 +2629,26 @@ function renderLiveReport() {
   function buildTable(data) {
     if (!data.length) return '<div style="padding:20px;text-align:center;color:#94A3B8;font-size:12px;border:0.5px dashed #E0DDD4;border-radius:8px;">No data for selected filters.</div>';
 
-    // Group all records by staff name+role (across all outlets)
+    // Group all records by staff name+role
+    // Each record may have _outlets array if staff worked multiple outlets that week
     const staffMap = {};
     data.forEach(function(s) {
       const key = normName(s.staffName)+'_'+s.role;
       if (!staffMap[key]) staffMap[key] = { name:s.staffName, role:s.role, outlets:{} };
+      // Primary outlet for this record
       const outletKey = s.outlet||'Unknown';
       if (!staffMap[key].outlets[outletKey]) staffMap[key].outlets[outletKey] = [];
       staffMap[key].outlets[outletKey].push(s);
+      // Also register any additional outlets tracked in _outlets
+      if (s._outlets && s._outlets.length) {
+        s._outlets.forEach(function(o) {
+          if (o && o !== outletKey) {
+            if (!staffMap[key].outlets[o]) staffMap[key].outlets[o] = [];
+            // Don't push duplicate — just register the outlet exists
+            if (!staffMap[key].outlets[o].length) staffMap[key].outlets[o].push(s);
+          }
+        });
+      }
     });
 
     // Compute avg for a set of records at one outlet
@@ -2667,20 +2679,30 @@ function renderLiveReport() {
       return (av===null?999:av)-(bv===null?999:bv);
     });
 
-    // Group sorted staff by their PRIMARY outlet (first/most common outlet) for outlet headers
-    // But multi-outlet staff appear ONCE in their own grouped block, not under each outlet
-    // Build outlet sections: each outlet lists single-outlet staff first, then multi-outlet staff at end
+    // Detect multi-outlet from ALL data (not just filtered period)
+    // So staff who work different outlets across weeks are always recognised as multi-outlet
+    const allDataForMulti = (typeof allBOHData !== 'undefined' ? allBOHData : [])
+      .concat(typeof allFOHData !== 'undefined' ? allFOHData : []);
+    const knownMultiOutlet = {};
+    allDataForMulti.forEach(function(s) {
+      const key = normName(s.staffName)+'_'+s.role;
+      if (!knownMultiOutlet[key]) knownMultiOutlet[key] = new Set();
+      if (s.outlet) knownMultiOutlet[key].add(s.outlet);
+    });
+
     const outletSections = {};
     const multiOutletStaff = [];
 
     sortedStaff.forEach(function(g) {
-      const outletKeys = Object.keys(g.outlets);
-      if (outletKeys.length === 1) {
-        const o = outletKeys[0];
+      const key = normName(g.name)+'_'+g.role;
+      const allKnownOutlets = knownMultiOutlet[key] ? knownMultiOutlet[key].size : 1;
+      // Multi-outlet if they have >1 outlet across ALL time, not just this period
+      if (allKnownOutlets > 1) {
+        multiOutletStaff.push(g);
+      } else {
+        const o = Object.keys(g.outlets)[0] || 'Unknown';
         if (!outletSections[o]) outletSections[o] = [];
         outletSections[o].push(g);
-      } else {
-        multiOutletStaff.push(g);
       }
     });
 
@@ -2723,8 +2745,27 @@ function renderLiveReport() {
     }
 
     function renderMultiRow(g) {
-      const outletKeys = Object.keys(g.outlets).sort();
-      const totalAvg = staffTotalAvg(g);
+      // Pull ALL outlet records from full dataset (not just filtered period)
+      const fullStaffData = allDataForMulti.filter(function(s){
+        return normName(s.staffName)===normName(g.name) && s.role===g.role;
+      });
+      const allOutlets = {};
+      fullStaffData.forEach(function(s){
+        const o = s.outlet||'Unknown';
+        if (!allOutlets[o]) allOutlets[o] = [];
+        allOutlets[o].push(s);
+      });
+      // Merge with filtered data (filtered data has priority for scores)
+      Object.keys(g.outlets).forEach(function(o){
+        allOutlets[o] = g.outlets[o]; // use filtered scores for outlets in range
+      });
+      const outletKeys = Object.keys(allOutlets).sort();
+      const totalAvg = (function(){
+        const oAvgs = outletKeys.map(function(o){
+          return outletAvgScore(allOutlets[o]).avg;
+        }).filter(function(v){return v!==null;});
+        return oAvgs.length ? Math.round(oAvgs.reduce(function(a,b){return a+b;},0)/oAvgs.length) : null;
+      })();
       const rc = roleColor[g.role]||['#F1F5F9','#374151'];
       const roleChip = '<span style="background:'+rc[0]+';color:'+rc[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;">'+(roleLbl[g.role]||g.role)+'</span>';
       let rows = '';
@@ -2740,7 +2781,7 @@ function renderLiveReport() {
         +'</tr>';
       // One row per outlet
       outletKeys.forEach(function(o) {
-        const recs = g.outlets[o];
+        const recs = allOutlets[o];
         const sc = outletAvgScore(recs);
         rows += '<tr style="border-bottom:0.5px solid #F1F5F9;">'
           +'<td style="'+TD+'padding-left:18px;color:#1A3C5E;font-weight:500;">'
@@ -9282,8 +9323,9 @@ function loadBOHData() {
         const _normName = (sub.staffName||'').trim().replace(/\s+/g,' ');
         const gKey = _normName + '_' + sub.role + '_' + sub.week;
         if (!grouped[gKey]) {
-          grouped[gKey] = { staffName:_normName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false };
+          grouped[gKey] = { staffName:_normName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false, _outlets:[] };
         }
+        if (sub.outlet && !grouped[gKey]._outlets.includes(sub.outlet)) grouped[gKey]._outlets.push(sub.outlet);
         // Day deduplication — use latest submission per day
         if (sub.day && sub.day >= 1 && sub.day <= 6) {
           grouped[gKey].days[sub.day] = sub.overallPct || 0;
