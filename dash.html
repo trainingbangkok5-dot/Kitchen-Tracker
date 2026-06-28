@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629030000';
+  var v = '20260629050000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2561,7 +2561,8 @@ function renderSummaryScoring() {
     // Build detail panel
     // Get all raw submissions for this employee
     const raws = e.rawRows||[];
-    // Build shift card using pre-stored shift fields from grouped record
+    // Build shift card — works with merged Firebase records where per-shift submittedAt doesn't exist.
+    // Shows: score, submitted by (staff name) + date if available, overwrite info, verified by from vlog.
     function buildShiftCard(label, emoji, pct, submittedAt, verifiedBy, verifiedRole, verifiedAt, vlog, overwrittenBy, overwrittenAt) {
       const isOW = !!(overwrittenBy||overwrittenAt);
       let html = '<div style="background:#fff;border-radius:8px;border:0.5px solid '+(isOW?'#FCD34D':'#E0DDD4')+';padding:10px 12px;">';
@@ -2570,30 +2571,36 @@ function renderSummaryScoring() {
       if (pct==null) {
         html += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not submitted</div>';
       } else {
+        // Score row — always shown
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
+          +'<span style="font-size:10px;color:#64748B;">Score</span>'
+          +'<span style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</span></div>';
+        // Submitted by — show staff name + date if we have it
+        const hasDT = !!(submittedAt);
+        html += '<div style="display:flex;justify-content:space-between;align-items:'+(hasDT?'flex-start':'center')+';padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
+          +'<span style="font-size:10px;color:#64748B;">Submitted by</span>'
+          +'<div style="text-align:right;"><div style="font-size:11px;font-weight:600;color:#1A3C5E;">'+(e.staffName||'—')+'</div>'
+          +(hasDT?'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(submittedAt)+'</div>':'')
+          +'</div></div>';
+        // Overwrite row — only if overwritten
         if (isOW) {
-          // Show submitted (original) with strikethrough — we don't know original score so show submitted time
-          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
-            +'<span style="font-size:10px;color:#64748B;">Submitted</span>'
-            +'<div><div style="font-size:11px;font-weight:600;color:#94A3B8;">'+(e.staffName||'—')+'</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(submittedAt)+'</div></div></div>';
-          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
+          html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
             +'<span style="font-size:10px;color:#92400E;font-weight:500;">Overwritten to</span>'
-            +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+(overwrittenBy||'—')+' · '+fmtDT(overwrittenAt)+'</div></div></div>';
-        } else {
-          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
-            +'<span style="font-size:10px;color:#64748B;">Submitted</span>'
-            +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+(e.staffName||'—')+' · '+fmtDT(submittedAt)+'</div></div></div>';
+            +'<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+(overwrittenBy||'—')+(overwrittenAt?' · '+fmtDT(overwrittenAt):'')+'</div>'
+            +'</div></div>';
         }
-        // Verified by — from vlog or direct fields
-        const vlogArr = Array.isArray(vlog)?vlog:[];
-        const vby = vlogArr.length ? vlogArr[vlogArr.length-1] : (verifiedBy?{by:verifiedBy,at:verifiedAt,role:verifiedRole||''}:null);
+        // Verified by — from verificationLog (normalized array) or direct fields
+        const vlogArr = Array.isArray(vlog) ? vlog : (vlog && typeof vlog==='object' ? Object.values(vlog) : []);
+        const vby = vlogArr.length ? vlogArr[vlogArr.length-1] : (verifiedBy ? {by:verifiedBy, at:verifiedAt, role:verifiedRole||''} : null);
         if (vby && vby.by) {
-          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;">'
+          html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:4px 0;">'
             +'<span style="font-size:10px;color:#64748B;">Verified by</span>'
-            +'<div><div style="font-size:11px;font-weight:600;color:#1A3C5E;">'+(vby.by||'—')+(vby.role?' ('+vby.role+')':'')+'</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(vby.at)+'</div></div></div>';
+            +'<div style="text-align:right;"><div style="font-size:11px;font-weight:600;color:#1A3C5E;">'+(vby.by||'—')+(vby.role?' ('+vby.role+')':'')+'</div>'
+            +(vby.at?'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(vby.at)+'</div>':'')
+            +'</div></div>';
+        } else {
+          html += '<div style="font-size:10px;color:#94A3B8;padding:4px 0;">Not yet verified</div>';
         }
       }
       html += '</div>';
@@ -2649,16 +2656,33 @@ function renderSummaryScoring() {
     }
     evalCardHtml += '</div>';
 
-    const openVby = getVerifier(openRec);
-    const closeVby = getVerifier(closeRec);
+    // For verifier: search vlog for shift-specific entry, fall back to any entry
+    function getVerifierForShift(rec, shiftType) {
+      const vl = rec.verificationLog;
+      const vlog = Array.isArray(vl) ? vl : (vl && typeof vl==='object' ? Object.values(vl) : []);
+      const shiftEntry = vlog.slice().reverse().find(function(v){ return v.shift===shiftType; });
+      if (shiftEntry && shiftEntry.by) return {by:shiftEntry.by, role:shiftEntry.role||'', at:shiftEntry.at||''};
+      if (vlog.length) { const v=vlog[vlog.length-1]; return {by:v.by||'', role:v.role||'', at:v.at||''}; }
+      if (rec.verifiedBy) return {by:rec.verifiedBy, role:rec.verifiedByRole||'', at:rec.verifiedAt||''};
+      return null;
+    }
+
+    const openVby = getVerifierForShift(openRec, 'opening');
+    const closeVby = getVerifierForShift(closeRec, 'closing');
+
+    // submittedAt: Firebase only stores ONE timestamp per merged record (the latest save).
+    // Opening shift has no stored submittedAt — pass null so it shows cleanly without a dash.
+    // Closing shift gets the record's submittedAt since closing is always the last save.
+    const openSubmittedAt = null;
+    const closeSubmittedAt = closeRec.submittedAt || closeRec.lastUpdated || openRec.submittedAt || null;
 
     const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'
       +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">'
       +buildShiftCard('Opening Shift','🌅',op,
-          openRec.submittedAt||openRec.lastUpdated||null, openVby?openVby.by:null, openVby?openVby.role:null, openVby?openVby.at:null, openRec.verificationLog,
+          openSubmittedAt, openVby?openVby.by:null, openVby?openVby.role:null, openVby?openVby.at:null, openRec.verificationLog,
           openRec.overwrittenBy, openRec.overwrittenAt)
       +buildShiftCard('Closing Shift','🌙',cl,
-          closeRec.submittedAt||closeRec.lastUpdated||null, closeVby?closeVby.by:null, closeVby?closeVby.role:null, closeVby?closeVby.at:null, closeRec.verificationLog,
+          closeSubmittedAt, closeVby?closeVby.by:null, closeVby?closeVby.role:null, closeVby?closeVby.at:null, closeRec.verificationLog,
           closeRec.overwrittenBy, closeRec.overwrittenAt)
       +evalCardHtml
       +'</div>'
