@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629120000';
+  var v = '20260629130000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2114,7 +2114,8 @@ function ssPctColor(v) {
 function ssBuildDailyBreakdown(rowsForEmployee) {
   // Determine role from rows (all rows for one employee share the same role)
   const role = rowsForEmployee.length > 0 ? (rowsForEmployee[0].role || '') : '';
-  const hasEval = ['service','oic','kic'].includes(role);
+  // All roles include eval if it exists — matches BOH tab formula
+  const hasEval = true;
   const dateMap = {};
   let hasAnyDaysNode = false;
   rowsForEmployee.forEach(s => {
@@ -2260,23 +2261,28 @@ function ssConsolidateByEmployee(rows) {
     const dailyBreakdown = ssBuildDailyBreakdown(e.rawRows);
 
     if (dailyBreakdown !== null) {
-      // NEW PATH: daily data exists — this becomes the source of truth for
-      // daysSubmitted / combinedScore / combinedAvg (the incentive figures),
-      // so the report, the visible daily list, and the weekly total always agree.
+      // NEW PATH: daily data exists — use role-based weekly averages for the final score
+      // (opening avg + closing avg + eval avg) / number of components present
+      // This matches the BOH tab formula exactly.
       const daysSubmitted = dailyBreakdown.length;
-      // Total Weekly Score = sum of all individual shift scores submitted
-      // e.g. Opening 100% + Closing 100% = 200 (2 submissions)
-      let shiftCount = 0;
-      const combinedScore = dailyBreakdown.reduce((a,d) => {
-        let daySum = 0;
-        if (d.openingPct != null) { daySum += d.openingPct; shiftCount++; }
-        if (d.closingPct != null) { daySum += d.closingPct; shiftCount++; }
-        if (d.oicEvalPct != null) { daySum += d.oicEvalPct; shiftCount++; }
-        return a + daySum;
-      }, 0);
-      // Combined Average = total score / number of individual shift scores
-      // e.g. (100 + 100) / 2 = 100% average
-      const combinedAvg = shiftCount > 0 ? Math.round(combinedScore / shiftCount) : null;
+      // Use role summaries (openingAvg, closingAvg, oicAvg) for the weekly combined avg
+      // Fall back to daily sum if role summaries not available
+      const _rAvg = e.roles && e.roles.length ? e.roles[0] : null;
+      let combinedAvg;
+      if (_rAvg) {
+        const _comps = [_rAvg.openingAvg, _rAvg.oicAvg, _rAvg.closingAvg].filter(v => v != null);
+        combinedAvg = _comps.length > 0 ? Math.round(_comps.reduce((a,b)=>a+b,0) / _comps.length) : null;
+      } else {
+        let shiftCount = 0;
+        const combinedScore = dailyBreakdown.reduce((a,d) => {
+          let daySum = 0;
+          if (d.openingPct != null) { daySum += d.openingPct; shiftCount++; }
+          if (d.closingPct != null) { daySum += d.closingPct; shiftCount++; }
+          if (d.oicEvalPct != null) { daySum += d.oicEvalPct; shiftCount++; }
+          return a + daySum;
+        }, 0);
+        combinedAvg = shiftCount > 0 ? Math.round(combinedScore / shiftCount) : null;
+      }
       return {
         staffName: e.staffName, outlet: e.outlet, week: e.week,
         roles: e.roles,
