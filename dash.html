@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629050000';
+  var v = '20260629080000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2196,9 +2196,9 @@ function ssConsolidateByEmployee(rows) {
     // KIC scoring: same formula — Area Chef fills the evaluation via dashboard
     // Roles with evaluation: service, oic, kic
     // Roles without evaluation: bartender, delco, linecook, steward
-    const includeEval = ['service','oic','kic'].includes(g.role);
-    // Formula: opening + eval + closing (÷3) for eval roles, opening + closing (÷2) for others
-    const avgComponents = [openingAvg, includeEval ? oicAvg : null, closingAvg].filter(v => v != null);
+    // All roles include eval if it exists — matches BOH tab formula exactly:
+    // overallPct = average of [openingPct, closingPct, oicEvalPct].filter(not null)
+    const avgComponents = [openingAvg, oicAvg, closingAvg].filter(v => v != null);
     const roleTotal = avgComponents.reduce((a,b) => a+b, 0);
     const roleSubmittedCount = avgComponents.length;
     return {
@@ -2558,138 +2558,70 @@ function renderSummaryScoring() {
     const rcolor = rc[role0]||['#F1F5F9','#374151'];
     const roleChip = '<span style="background:'+rcolor[0]+';color:'+rcolor[1]+';font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;">'+(e.roleNames[0]||'—')+'</span>';
 
-    // Build detail panel
-    // Get all raw submissions for this employee
+    // Build detail panel — days submitted table + final average
     const raws = e.rawRows||[];
-    // Build shift card — works with merged Firebase records where per-shift submittedAt doesn't exist.
-    // Shows: score, submitted by (staff name) + date if available, overwrite info, verified by from vlog.
-    function buildShiftCard(label, emoji, pct, submittedAt, verifiedBy, verifiedRole, verifiedAt, vlog, overwrittenBy, overwrittenAt) {
-      const isOW = !!(overwrittenBy||overwrittenAt);
-      let html = '<div style="background:#fff;border-radius:8px;border:0.5px solid '+(isOW?'#FCD34D':'#E0DDD4')+';padding:10px 12px;">';
-      html += '<div style="font-size:10px;font-weight:600;color:'+(isOW?'#92400E':'#1A3C5E')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">'
-        +emoji+' '+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;">Overwritten</span>':'')+'</div>';
-      if (pct==null) {
-        html += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not submitted</div>';
-      } else {
-        // Score row — always shown
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
-          +'<span style="font-size:10px;color:#64748B;">Score</span>'
-          +'<span style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</span></div>';
-        // Submitted by — show staff name + date if we have it
-        const hasDT = !!(submittedAt);
-        html += '<div style="display:flex;justify-content:space-between;align-items:'+(hasDT?'flex-start':'center')+';padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
-          +'<span style="font-size:10px;color:#64748B;">Submitted by</span>'
-          +'<div style="text-align:right;"><div style="font-size:11px;font-weight:600;color:#1A3C5E;">'+(e.staffName||'—')+'</div>'
-          +(hasDT?'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(submittedAt)+'</div>':'')
-          +'</div></div>';
-        // Overwrite row — only if overwritten
-        if (isOW) {
-          html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
-            +'<span style="font-size:10px;color:#92400E;font-weight:500;">Overwritten to</span>'
-            +'<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+(overwrittenBy||'—')+(overwrittenAt?' · '+fmtDT(overwrittenAt):'')+'</div>'
-            +'</div></div>';
-        }
-        // Verified by — from verificationLog (normalized array) or direct fields
-        const vlogArr = Array.isArray(vlog) ? vlog : (vlog && typeof vlog==='object' ? Object.values(vlog) : []);
-        const vby = vlogArr.length ? vlogArr[vlogArr.length-1] : (verifiedBy ? {by:verifiedBy, at:verifiedAt, role:verifiedRole||''} : null);
-        if (vby && vby.by) {
-          html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:4px 0;">'
-            +'<span style="font-size:10px;color:#64748B;">Verified by</span>'
-            +'<div style="text-align:right;"><div style="font-size:11px;font-weight:600;color:#1A3C5E;">'+(vby.by||'—')+(vby.role?' ('+vby.role+')':'')+'</div>'
-            +(vby.at?'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(vby.at)+'</div>':'')
-            +'</div></div>';
-        } else {
-          html += '<div style="font-size:10px;color:#94A3B8;padding:4px 0;">Not yet verified</div>';
-        }
-      }
-      html += '</div>';
-      return html;
-    }
 
-    // Extract shift-specific data from rawRows
-    // Firebase records are merged — one row can have both openingPct AND closingPct.
-    // Strategy: find best opening record and best closing record independently.
-    // A record qualifies as an opening record if it has openingPct != null (regardless of shift field).
-    // A record qualifies as a closing record if it has closingPct != null.
-    // Prefer records where shift field matches explicitly, then fall back to any with the right pct.
-    const sortedRaws = raws.slice().sort(function(a,b){
-      const aHasShift = !!(a.shift||a.status) ? 1 : 0;
-      const bHasShift = !!(b.shift||b.status) ? 1 : 0;
-      return bHasShift - aHasShift;
-    });
-    // Opening: prefer explicit opening shift, then any record with openingPct
-    const openRec = sortedRaws.find(function(r){
-      return (r.shift==='opening'||r.status==='opening_submitted') && r.openingPct!=null;
-    }) || sortedRaws.find(function(r){
-      return r.shift==='opening'||r.status==='opening_submitted';
-    }) || sortedRaws.find(function(r){ return r.openingPct!=null; }) || raws[0] || {};
-    // Closing: prefer explicit closing shift, then any record with closingPct
-    // If the openRec itself also has closingPct (merged record), use it for closing too
-    const closeRec = sortedRaws.find(function(r){
-      return (r.shift==='closing'||r.status==='closing_submitted') && r.closingPct!=null;
-    }) || sortedRaws.find(function(r){
-      return r.shift==='closing'||r.status==='closing_submitted';
-    }) || sortedRaws.find(function(r){ return r.closingPct!=null; }) || (openRec.closingPct!=null ? openRec : {});
-    const evalRec = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
-
-    // Get verifiedBy from verificationLog or direct fields
-    function getVerifier(rec) {
-      const vl = rec.verificationLog;
-      const vlog = Array.isArray(vl) ? vl : (vl && typeof vl === 'object' ? Object.values(vl) : []);
-      if (vlog.length) { const v=vlog[vlog.length-1]; return {by:v.by||'—',role:v.role||'',at:v.at||''}; }
-      if (rec.verifiedBy) return {by:rec.verifiedBy,role:rec.verifiedByRole||'',at:rec.verifiedAt||''};
-      return null;
-    }
-
-    let evalCardHtml = '<div style="background:#fff;border-radius:8px;border:0.5px solid #E0DDD4;padding:10px 12px;">';
-    evalCardHtml += '<div style="font-size:10px;font-weight:600;color:#1A3C5E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📋 Evaluation</div>';
-    if (ev!=null) {
-      const evalBy = evalRec.overwrittenBy||evalRec.verifiedBy||'—';
-      const evalAt = evalRec.overwrittenAt||evalRec.verifiedAt||'';
-      evalCardHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;">'
-        +'<span style="font-size:10px;color:#64748B;">Score</span>'
-        +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(ev)+';">'+ev+'%</div>'
-        +'<div style="font-size:9px;color:#94A3B8;">'+evalBy+' · '+fmtDT(evalAt)+'</div></div></div>';
-    } else {
-      evalCardHtml += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not yet evaluated</div>';
-    }
-    evalCardHtml += '</div>';
-
-    // For verifier: search vlog for shift-specific entry, fall back to any entry
-    function getVerifierForShift(rec, shiftType) {
-      const vl = rec.verificationLog;
+    // Collect all submitted dates across all rawRows, per shift type
+    const _openDates = new Set();
+    const _closeDates = new Set();
+    const _evalDates  = new Set();
+    raws.forEach(function(r) {
+      const vl = r.verificationLog;
       const vlog = Array.isArray(vl) ? vl : (vl && typeof vl==='object' ? Object.values(vl) : []);
-      const shiftEntry = vlog.slice().reverse().find(function(v){ return v.shift===shiftType; });
-      if (shiftEntry && shiftEntry.by) return {by:shiftEntry.by, role:shiftEntry.role||'', at:shiftEntry.at||''};
-      if (vlog.length) { const v=vlog[vlog.length-1]; return {by:v.by||'', role:v.role||'', at:v.at||''}; }
-      if (rec.verifiedBy) return {by:rec.verifiedBy, role:rec.verifiedByRole||'', at:rec.verifiedAt||''};
-      return null;
+      // Eval dates from vlog evaluation entries
+      vlog.forEach(function(v) { if (v.shift==='evaluation' && v.at) _evalDates.add(v.at.substring(0,10)); });
+      // submittedDates — opening or closing based on shift field
+      const isClose = r.shift==='closing'||r.status==='closing_submitted';
+      const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
+      const dates   = Array.isArray(r.submittedDates) ? r.submittedDates : [];
+      if (r.oicEvalPct!=null && !r.evalNotVisited && !_evalDates.size) {
+        if (r.verifiedAt) _evalDates.add(r.verifiedAt.substring(0,10));
+      }
+      if (isClose) {
+        dates.forEach(function(d){ _closeDates.add(d); });
+        if (r.closingPct!=null && dates.length===0 && r.submittedAt) _closeDates.add(r.submittedAt.substring(0,10));
+      } else if (isOpen) {
+        dates.forEach(function(d){ _openDates.add(d); });
+        if (r.openingPct!=null && dates.length===0 && r.submittedAt) _openDates.add(r.submittedAt.substring(0,10));
+      } else {
+        // merged record — opening dates and closing dates overlap; assign all to opening as fallback
+        dates.forEach(function(d){ _openDates.add(d); if (r.closingPct!=null) _closeDates.add(d); });
+      }
+    });
+
+    // Build 7-day range Mon–Sun from the week start
+    const _weekStart = (e.week||'').split(' ')[0]; // handles "2026-06-22" or "2026-06-22 to 2026-06-28"
+    const _days = [];
+    if (_weekStart && _weekStart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const _ws = new Date(_weekStart + 'T00:00:00');
+      for (let d=0; d<7; d++) {
+        const _dd = new Date(_ws); _dd.setDate(_ws.getDate()+d);
+        const _iso = _dd.getFullYear()+'-'+String(_dd.getMonth()+1).padStart(2,'0')+'-'+String(_dd.getDate()).padStart(2,'0');
+        const _label = _dd.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+        const _day   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][_dd.getDay()];
+        _days.push({iso:_iso, label:_label, day:_day});
+      }
     }
 
-    const openVby = getVerifierForShift(openRec, 'opening');
-    const closeVby = getVerifierForShift(closeRec, 'closing');
+    function _dot(has, text, color) {
+      return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;">'        +'<div style="width:7px;height:7px;border-radius:50%;background:'+(has?color:'#E0DDD4')+';flex-shrink:0;"></div>'        +'<span style="font-size:10px;color:'+(has?color:'#94A3B8')+';">'+(has?text:'—')+'</span></div>';
+    }
 
-    // submittedAt: Firebase only stores ONE timestamp per merged record (the latest save).
-    // Opening shift has no stored submittedAt — pass null so it shows cleanly without a dash.
-    // Closing shift gets the record's submittedAt since closing is always the last save.
-    const openSubmittedAt = null;
-    const closeSubmittedAt = closeRec.submittedAt || closeRec.lastUpdated || openRec.submittedAt || null;
+    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:40px;">Day</th>'      +(op!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>':'')      +(cl!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>':'')      +(ev!=null?'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>':'')      +'</tr></thead><tbody>';
 
-    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'
-      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">'
-      +buildShiftCard('Opening Shift','🌅',op,
-          openSubmittedAt, openVby?openVby.by:null, openVby?openVby.role:null, openVby?openVby.at:null, openRec.verificationLog,
-          openRec.overwrittenBy, openRec.overwrittenAt)
-      +buildShiftCard('Closing Shift','🌙',cl,
-          closeSubmittedAt, closeVby?closeVby.by:null, closeVby?closeVby.role:null, closeVby?closeVby.at:null, closeRec.verificationLog,
-          closeRec.overwrittenBy, closeRec.overwrittenAt)
-      +evalCardHtml
-      +'</div>'
-      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">'
-      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'
-      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'
-      +'</div></div>';
+    _days.forEach(function(d,idx) {
+      const hasOpen = _openDates.has(d.iso);
+      const hasClose= _closeDates.has(d.iso);
+      const hasEval = _evalDates.has(d.iso);
+      const bg = idx%2===0?'#fff':'#FAFBFC';
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +(op!=null?'<td style="padding:6px 10px;text-align:center;">'+_dot(hasOpen,'Submitted','#3B6D11')+'</td>':'')        +(cl!=null?'<td style="padding:6px 10px;text-align:center;">'+_dot(hasClose,'Submitted','#185FA5')+'</td>':'')        +(ev!=null?'<td style="padding:6px 10px;text-align:center;">'+_dot(hasEval,'Evaluated','#854F0B')+'</td>':'')        +'</tr>';
+    });
+    tableHtml += '</tbody></table>';
+
+    // Scores summary row above table
+    let scoresSummary = '<div style="display:flex;gap:10px;margin-bottom:8px;">'      +(op!=null?'<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:6px;padding:6px 12px;text-align:center;"><div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">🌅 Opening</div><div style="font-size:14px;font-weight:700;color:'+scoreColor(op)+';margin-top:2px;">'+op+'%</div></div>':'')      +(cl!=null?'<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:6px;padding:6px 12px;text-align:center;"><div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">🌙 Closing</div><div style="font-size:14px;font-weight:700;color:'+scoreColor(cl)+';margin-top:2px;">'+cl+'%</div></div>':'')      +(ev!=null?'<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:6px;padding:6px 12px;text-align:center;"><div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">📋 Eval</div><div style="font-size:14px;font-weight:700;color:'+scoreColor(ev)+';margin-top:2px;">'+ev+'%</div></div>':'')      +'</div>';
+
+    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'      +scoresSummary      +tableHtml      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'      +'</div></div>';
 
     const mainBg = hasOW?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC');
     rowsHtml += '<tr class="ss-audit-main" data-idx="'+i+'" style="border-bottom:0.5px solid #F1F5F9;background:'+mainBg+';cursor:pointer;" onclick="ssToggleDetail(this,'+(i)+')">'
