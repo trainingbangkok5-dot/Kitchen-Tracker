@@ -2422,37 +2422,38 @@ function renderSummaryScoring() {
     // Build detail panel
     // Get all raw submissions for this employee
     const raws = e.rawRows||[];
-    function buildShiftCard(label, emoji, pct, recs) {
-      const rec = recs[0]||{};
-      const isOW = rec.overwrittenBy||rec.overwrittenAt;
-      const origPct = rec._origOverallPct!=null ? rec._origOverallPct : null;
+    // Build shift card using pre-stored shift fields from grouped record
+    function buildShiftCard(label, emoji, pct, submittedAt, verifiedBy, verifiedRole, verifiedAt, vlog, overwrittenBy, overwrittenAt) {
+      const isOW = !!(overwrittenBy||overwrittenAt);
       let html = '<div style="background:#fff;border-radius:8px;border:0.5px solid '+(isOW?'#FCD34D':'#E0DDD4')+';padding:10px 12px;">';
-      html += '<div style="font-size:10px;font-weight:600;color:'+(isOW?'#92400E':'#1A3C5E')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">'+emoji+' '+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:9px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
+      html += '<div style="font-size:10px;font-weight:600;color:'+(isOW?'#92400E':'#1A3C5E')+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">'
+        +emoji+' '+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:4px;">Overwritten</span>':'')+'</div>';
       if (pct==null) {
         html += '<div style="font-size:11px;color:#94A3B8;padding:4px 0;">Not submitted</div>';
       } else {
-        if (isOW && origPct!=null) {
+        if (isOW) {
+          // Show submitted (original) with strikethrough — we don't know original score so show submitted time
           html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
-            +'<span style="font-size:10px;color:#64748B;">Original</span>'
-            +'<div><div style="font-size:11px;font-weight:600;text-decoration:line-through;color:#94A3B8;">'+origPct+'%</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(rec.submittedAt)+'</div></div></div>';
+            +'<span style="font-size:10px;color:#64748B;">Submitted</span>'
+            +'<div><div style="font-size:11px;font-weight:600;color:#94A3B8;">'+(e.staffName||'—')+'</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(submittedAt)+'</div></div></div>';
           html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
             +'<span style="font-size:10px;color:#92400E;font-weight:500;">Overwritten to</span>'
-            +'<div><div style="font-size:13px;font-weight:700;color:#A32D2D;">'+pct+'%</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+(rec.overwrittenBy||'—')+' · '+fmtDT(rec.overwrittenAt)+'</div></div></div>';
+            +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
+            +'<div style="font-size:9px;color:#94A3B8;">'+(overwrittenBy||'—')+' · '+fmtDT(overwrittenAt)+'</div></div></div>';
         } else {
           html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid #F1F5F9;">'
             +'<span style="font-size:10px;color:#64748B;">Submitted</span>'
             +'<div><div style="font-size:13px;font-weight:700;color:'+scoreColor(pct)+';">'+pct+'%</div>'
-            +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(rec.submittedAt)+'</div></div></div>';
+            +'<div style="font-size:9px;color:#94A3B8;">'+(e.staffName||'—')+' · '+fmtDT(submittedAt)+'</div></div></div>';
         }
-        // Verified by
-        const vlog = rec.verificationLog;
-        const vby = (Array.isArray(vlog)&&vlog.length) ? vlog[vlog.length-1] : (rec.verifiedBy?{by:rec.verifiedBy,at:rec.verifiedAt,role:rec.verifiedByRole||''}:null);
-        if (vby) {
+        // Verified by — from vlog or direct fields
+        const vlogArr = Array.isArray(vlog)?vlog:[];
+        const vby = vlogArr.length ? vlogArr[vlogArr.length-1] : (verifiedBy?{by:verifiedBy,at:verifiedAt,role:verifiedRole||''}:null);
+        if (vby && vby.by) {
           html += '<div style="display:flex;justify-content:space-between;padding:4px 0;">'
             +'<span style="font-size:10px;color:#64748B;">Verified by</span>'
-            +'<div><div style="font-size:11px;font-weight:500;color:#1A3C5E;">'+(vby.by||'—')+(vby.role?' ('+vby.role+')':'')+'</div>'
+            +'<div><div style="font-size:11px;font-weight:600;color:#1A3C5E;">'+(vby.by||'—')+(vby.role?' ('+vby.role+')':'')+'</div>'
             +'<div style="font-size:9px;color:#94A3B8;">'+fmtDT(vby.at)+'</div></div></div>';
         }
       }
@@ -2460,9 +2461,7 @@ function renderSummaryScoring() {
       return html;
     }
 
-    const openRecs  = raws.filter(r=>r.shift==='opening'||r.status==='opening_submitted'||r.openingPct!=null);
-    const closeRecs = raws.filter(r=>r.shift==='closing'||r.status==='closing_submitted'||r.closingPct!=null);
-    const evalRec   = raws.find(r=>r.oicEvalPct!=null&&!r.evalNotVisited);
+    const evalRec = raws.find(function(r){return r.oicEvalPct!=null&&!r.evalNotVisited;});
 
     let evalCardHtml = '<div style="background:#fff;border-radius:8px;border:0.5px solid #E0DDD4;padding:10px 12px;">';
     evalCardHtml += '<div style="font-size:10px;font-weight:600;color:#1A3C5E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📋 Evaluation</div>';
@@ -2478,8 +2477,12 @@ function renderSummaryScoring() {
 
     const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'
       +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">'
-      +buildShiftCard('Opening Shift','🌅',op,openRecs)
-      +buildShiftCard('Closing Shift','🌙',cl,closeRecs)
+      +buildShiftCard('Opening Shift','🌅',op,
+          e._openSubmittedAt,e._openVerifiedBy,e._openVerifiedRole,e._openVerifiedAt,e._openVlog,
+          e._openOverwrittenBy,e._openOverwrittenAt)
+      +buildShiftCard('Closing Shift','🌙',cl,
+          e._closeSubmittedAt,e._closeVerifiedBy,e._closeVerifiedRole,e._closeVerifiedAt,e._closeVlog,
+          e._closeOverwrittenBy,e._closeOverwrittenAt)
       +evalCardHtml
       +'</div>'
       +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;">'
@@ -9599,6 +9602,28 @@ function loadBOHData() {
         }
         if (sub.lastUpdated) {
           if (!grouped[gKey].lastUpdated || sub.lastUpdated > grouped[gKey].lastUpdated) grouped[gKey].lastUpdated = sub.lastUpdated;
+        }
+        // Store overwrite info — key for audit trail in Weekly Report
+        if (sub.overwrittenBy) grouped[gKey].overwrittenBy = sub.overwrittenBy;
+        if (sub.overwrittenAt) grouped[gKey].overwrittenAt = sub.overwrittenAt;
+        // Store opening/closing submitted times separately for shift cards
+        if (sub.shift === 'opening' || sub.status === 'opening_submitted') {
+          grouped[gKey]._openSubmittedAt  = sub.submittedAt;
+          grouped[gKey]._openVerifiedBy   = sub.verifiedBy;
+          grouped[gKey]._openVerifiedRole = sub.verifiedByRole||'';
+          grouped[gKey]._openVerifiedAt   = sub.verifiedAt;
+          grouped[gKey]._openOverwrittenBy = sub.overwrittenBy;
+          grouped[gKey]._openOverwrittenAt = sub.overwrittenAt;
+          grouped[gKey]._openVlog         = sub.verificationLog;
+        }
+        if (sub.shift === 'closing' || sub.status === 'closing_submitted') {
+          grouped[gKey]._closeSubmittedAt  = sub.submittedAt;
+          grouped[gKey]._closeVerifiedBy   = sub.verifiedBy;
+          grouped[gKey]._closeVerifiedRole = sub.verifiedByRole||'';
+          grouped[gKey]._closeVerifiedAt   = sub.verifiedAt;
+          grouped[gKey]._closeOverwrittenBy = sub.overwrittenBy;
+          grouped[gKey]._closeOverwrittenAt = sub.overwrittenAt;
+          grouped[gKey]._closeVlog         = sub.verificationLog;
         }
         // Store taskData, startedAt, _fbKey so openStaffDetail can render task details
         if (sub.startedAt && !grouped[gKey].startedAt) grouped[gKey].startedAt = sub.startedAt;
