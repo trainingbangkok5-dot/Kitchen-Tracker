@@ -9309,7 +9309,7 @@ function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
   // Show all submissions — no week filter
-  const bohQ = db.ref('submissions').orderByChild('week').limitToLast(500);
+  const bohQ = db.ref('submissions').orderByChild('week').limitToLast(3000);
   bohQ.once('value', snap => {
     allBOHData = [];
     if (snap.exists()) {
@@ -10163,7 +10163,7 @@ function loadFOHData() {
   }
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
   // Show all submissions — no week filter
-  const fohQ = fohDb.ref('submissions').orderByChild('week').limitToLast(2000);
+  const fohQ = fohDb.ref('submissions').orderByChild('week').limitToLast(3000);
   fohQ.once('value', snap => {
     if (snap.exists()) {
       // Group by staffName + role + week
