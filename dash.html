@@ -8656,7 +8656,8 @@ async function saveOverwrite(s) {
     if (snap.exists()) {
       snap.forEach(child => {
         const v = child.val();
-        if (!fbKey && v.staffName === s.staffName && v.week === s.week && v.role === s.role) {
+        if (!fbKey && v.staffName === s.staffName && v.week === s.week && v.role === s.role
+            && (!s.outlet || !v.outlet || v.outlet === s.outlet)) {
           fbKey = child.key;
         }
       });
