@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629150000';
+  var v = '20260629160000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -3676,11 +3676,11 @@ function showTab(el,id) {
   }
   if (id === 'audits') {
     if (!db) { renderAudits(); return; }
-    db.ref('audits').once('value', snap => {
+    db.ref('audits').on('value', snap => {
       const rawA = snap.val() ? Object.values(snap.val()) : [];
       allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole))
         ? rawA : rawA.filter(a => a.outlet === currentOutlet);
-      // Show ALL audits by default — don't auto-filter to current month (was hiding older audits)
+      // Show ALL audits — real-time listener so new submissions appear instantly
       renderAudits();
     });
   }
