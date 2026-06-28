@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629080000';
+  var v = '20260629090000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2579,13 +2579,34 @@ function renderSummaryScoring() {
       }
       if (isClose) {
         dates.forEach(function(d){ _closeDates.add(d); });
-        if (r.closingPct!=null && dates.length===0 && r.submittedAt) _closeDates.add(r.submittedAt.substring(0,10));
+        // fallback: use submittedAt date if no submittedDates stored
+        if (dates.length===0 && r.submittedAt) _closeDates.add(r.submittedAt.substring(0,10));
       } else if (isOpen) {
         dates.forEach(function(d){ _openDates.add(d); });
-        if (r.openingPct!=null && dates.length===0 && r.submittedAt) _openDates.add(r.submittedAt.substring(0,10));
+        if (dates.length===0 && r.submittedAt) _openDates.add(r.submittedAt.substring(0,10));
       } else {
-        // merged record — opening dates and closing dates overlap; assign all to opening as fallback
+        // merged record (has both openingPct + closingPct, or shift not set)
+        // assign submittedDates to opening; if closingPct exists assign same dates to closing too
         dates.forEach(function(d){ _openDates.add(d); if (r.closingPct!=null) _closeDates.add(d); });
+        // fallback: use submittedAt if no submittedDates stored
+        if (dates.length===0 && r.submittedAt) {
+          var _fb = r.submittedAt.substring(0,10);
+          if (r.openingPct!=null) _openDates.add(_fb);
+          if (r.closingPct!=null) _closeDates.add(_fb);
+        }
+        // also check submittedDates from the opening-specific record in raws
+        // (some records store dates only on the opening record)
+        raws.forEach(function(r2) {
+          if (r2 === r) return;
+          var d2 = Array.isArray(r2.submittedDates) ? r2.submittedDates : [];
+          var isO2 = r2.shift==='opening'||r2.status==='opening_submitted';
+          var isC2 = r2.shift==='closing'||r2.status==='closing_submitted';
+          d2.forEach(function(d){ if(isC2) _closeDates.add(d); else _openDates.add(d); });
+          if (d2.length===0 && r2.submittedAt) {
+            if (isC2) _closeDates.add(r2.submittedAt.substring(0,10));
+            else _openDates.add(r2.submittedAt.substring(0,10));
+          }
+        });
       }
     });
 
