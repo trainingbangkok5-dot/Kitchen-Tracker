@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629230000';
+  var v = '20260629240000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2781,15 +2781,24 @@ function renderSummaryScoring() {
       const hasClose = _closeDates.has(d.iso);
       const hasEval  = _evalDates.has(d.iso);
       const bg = ((_closeRec.overwrittenBy||_openRec.overwrittenBy)&&(hasOpen||hasClose))?'#FFFBEB':(idx%2===0?'#fff':'#FAFBFC');
-      // Use per-day scores from days/ node if available, otherwise use weekly score
+      // days/ node has ORIGINAL score (before overwrite)
+      // Main record (op/cl/ev) has CURRENT score (after overwrite if changed)
       const _dsm = _dayScoreMap[d.iso] || {};
-      const _dayOpScore = _dsm.openingPct != null ? _dsm.openingPct : (hasOpen ? op : null);
-      const _dayClScore = _dsm.closingPct != null ? _dsm.closingPct : (hasClose ? cl : null);
-      const _dayEvScore = _dsm.oicEvalPct != null ? _dsm.oicEvalPct : (hasEval ? ev : null);
-      // Daily avg from actual per-day scores
+      // Original scores from days/ node
+      const _dsmOp = _dsm.openingPct != null ? _dsm.openingPct : null;
+      const _dsmCl = _dsm.closingPct != null ? _dsm.closingPct : null;
+      const _dsmEv = _dsm.oicEvalPct != null ? _dsm.oicEvalPct : null;
+      // Current scores: use overwritten score if overwritten, else days/ score, else weekly score
+      const _dayOpScore = hasOpen ? (_opOW ? op : (_dsmOp != null ? _dsmOp : op)) : null;
+      const _dayClScore = hasClose ? (_clOW ? cl : (_dsmCl != null ? _dsmCl : cl)) : null;
+      const _dayEvScore = hasEval ? (_evOW ? ev : (_dsmEv != null ? _dsmEv : ev)) : null;
+      // Original scores (shown below overwritten score)
+      const _origOpDay = (_opOW && hasOpen && _dsmOp != null && _dsmOp !== op) ? _dsmOp : null;
+      const _origClDay = (_clOW && hasClose && _dsmCl != null && _dsmCl !== cl) ? _dsmCl : null;
+      // Daily avg from current scores
       const _dayScores = [_dayOpScore, _dayClScore, _dayEvScore].filter(function(v){return v!=null;});
       const _dayAvg = _dayScores.length > 0 ? Math.round(_dayScores.reduce(function(a,b){return a+b;},0)/_dayScores.length) : null;
-      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOp)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origCl)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,_dayEvScore,false,'#854F0B','#854F0B',null)+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOpDay)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origClDay)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,_dayEvScore,false,'#854F0B','#854F0B',null)+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
     });
     tableHtml += '</tbody></table>';
 
