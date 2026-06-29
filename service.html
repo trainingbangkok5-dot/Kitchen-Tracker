@@ -440,6 +440,18 @@ setTimeout(() => loadRegistryData(), 1500);
 
 
 // ── Full Name Validation ─────────────────────────────────────
+
+async function validateStaffNameStrict(name) {
+  await loadRegistryData();
+  if (!_registryData) return { ok: true };
+  const norm = (name||'').trim().replace(/\s+/g,' ');
+  const exactMatch = _registryData.find(r => r.name === norm);
+  if (exactMatch) return { ok: true, entry: exactMatch };
+  const caseMatch = _registryData.find(r => r.name.toLowerCase() === norm.toLowerCase());
+  if (caseMatch) return { ok: false, msg: 'Name format incorrect. Please select your exact registered name: "' + caseMatch.name + '"' };
+  return { ok: false, msg: 'Name "' + norm + '" not found in registry. Please select your exact registered name from the dropdown.' };
+}
+
 function validateFullName(name) {
   if (!name || !name.trim()) {
     return { valid: false, msg: 'Please enter your full name before submitting.' };
@@ -484,7 +496,6 @@ function pushToFirebase(record) {
       });
       cleanRecord.taskData = cleanTasks;
     }
-        // Merge submittedDates with existing Firebase before saving — preserves all device submissions
     _db.ref('submissions/' + key + '/submittedDates').once('value', function(_dSnap) {
       var _fbD = _dSnap.val();
       _fbD = Array.isArray(_fbD) ? _fbD : (_fbD && typeof _fbD==='object' ? Object.values(_fbD) : []);
@@ -1695,6 +1706,15 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
 
 // ── Submit day ────────────────────────────────────────────────
 async function submitOpening() {
+  const _submitName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
+  const _nameResult = await validateStaffNameStrict(_submitName);
+  if (!_nameResult.ok) {
+    showToast('\u26A0 ' + _nameResult.msg, 'error');
+    const nameField = document.getElementById('fName');
+    if (nameField) { nameField.style.border = '2px solid #E53E3E'; nameField.focus(); }
+    return;
+  }
+
   const name = getStaffName();
   if (!name) { showToast('Please enter your name first', 'warn'); document.getElementById('fName').focus(); return; }
   if (!getOutlet()) { showToast('Please select an outlet', 'warn'); return; }
@@ -1791,6 +1811,15 @@ async function submitOpening() {
 }
 
 async function submitDay() {
+  const _submitName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
+  const _nameResult = await validateStaffNameStrict(_submitName);
+  if (!_nameResult.ok) {
+    showToast('\u26A0 ' + _nameResult.msg, 'error');
+    const nameField = document.getElementById('fName');
+    if (nameField) { nameField.style.border = '2px solid #E53E3E'; nameField.focus(); }
+    return;
+  }
+
   const name = getStaffName();
   const closerName = name;
   const _vnC = validateFullName(name);

@@ -40,7 +40,7 @@
 
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619230002';
+  var v = '20260619230004';
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
@@ -235,7 +235,6 @@ function pushToFirebase(record) {
               + '_' + safeStr(record.outlet)
               + '_' + safeStr(record.week)
               + '_' + (record.shift || 'opening');
-    // Merge submittedDates with existing Firebase before saving
     _db.ref('submissions/' + key + '/submittedDates').once('value', function(_dSnap) {
       var _fbD = _dSnap.val();
       _fbD = Array.isArray(_fbD) ? _fbD : (_fbD && typeof _fbD==='object' ? Object.values(_fbD) : []);
@@ -413,6 +412,136 @@ function saveSharedDB(db) {
 
 
 // ── Full Name Validation ─────────────────────────────────────
+
+let _registryData  = null;
+let _registryNames = null;
+
+async function loadRegistryData() {
+  if (_registryData !== null) return _registryData;
+  let waited = 0;
+  while (!_db && waited < 5000) {
+    await new Promise(r => setTimeout(r, 200));
+    waited += 200;
+  }
+  if (!_db) return null;
+  try {
+    const snap = await _db.ref('registry').once('value');
+    const data = snap.val() || {};
+    _registryData = Object.values(data)
+      .filter(r => r.name && r.name.trim() && r.status !== 'inactive')
+      .map(r => ({
+        name:   (r.name||'').trim(),
+        empNo:  (r.empNo||r.employeeNo||r.employee_no||'').trim(),
+        role:   (r.role||'').trim(),
+        outlet: (r.outlet||'').trim(),
+      }));
+    _registryNames = _registryData.map(r => r.name.toLowerCase().replace(/\s+/g,' '));
+    return _registryData;
+  } catch(e) { return null; }
+}
+
+async function loadRegistryNames() {
+  await loadRegistryData();
+  return _registryNames;
+}
+
+async function validateStaffName(name) {
+  const names = await loadRegistryNames();
+  if (!names) return true;
+  const norm = (name||'').toLowerCase().trim().replace(/\s+/g,' ');
+  return names.includes(norm);
+}
+
+// ── Name autocomplete ─────────────────────────────────────────
+
+
+
+
+document.addEventListener('click', e => {
+  const dd = document.getElementById('nameDropdown');
+  const fn = document.getElementById('fName');
+  if (dd && fn && !fn.contains(e.target) && !dd.contains(e.target)) {
+    dd.style.display = 'none';
+  }
+});
+
+
+async function validateStaffNameStrict(name) {
+  // Must match EXACTLY — same case, same spacing as registry
+  await loadRegistryData();
+  if (!_registryData) return { ok: true }; // pass if registry unavailable
+  const norm = (name||'').trim().replace(/\s+/g,' ');
+  // Check exact match first
+  const exactMatch = _registryData.find(r => r.name === norm);
+  if (exactMatch) return { ok: true, entry: exactMatch };
+  // Check case-insensitive match to give a helpful error
+  const caseMatch = _registryData.find(r =>
+    r.name.toLowerCase() === norm.toLowerCase()
+  );
+  if (caseMatch) {
+    return { ok: false, msg: 'Name format incorrect. Please select your name from the dropdown exactly as registered: "' + caseMatch.name + '"' };
+  }
+  // No match at all
+  return { ok: false, msg: 'Name "' + norm + '" not found in registry. Please select your exact registered name from the dropdown.' };
+}
+
+
+let _nameSelectedFromRegistry = false;
+
+function onNameInput(val) {
+  _nameSelectedFromRegistry = false; // reset if typing manually
+  const dropdown = document.getElementById('nameDropdown');
+  const empNoField = document.getElementById('fEmpNo');
+  if (!dropdown) return;
+  if (!val || val.length < 2) {
+    dropdown.style.display = 'none';
+    if (empNoField) empNoField.value = '';
+    return;
+  }
+  const norm = val.toLowerCase().trim();
+  const matches = (_registryData||[]).filter(r =>
+    r.name.toLowerCase().includes(norm) &&
+    (r.role === ROLE || r.role === '' || !r.role)
+  );
+  if (!matches.length) {
+    dropdown.innerHTML = '<div style="padding:10px 14px;font-size:12px;color:#E53E3E;font-weight:500;">⚠ No match found — please use your exact registered name</div>';
+    dropdown.style.display = 'block';
+    if (empNoField) empNoField.value = '';
+    return;
+  }
+  dropdown.innerHTML = matches.map(r => `
+    <div onclick="selectStaffName('${r.name.replace(/'/g,"\'")}','${r.empNo}','${r.outlet}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:0.5px solid #F1F5F9;font-size:13px;"
+      onmouseover="this.style.background='#F0F9FF'" onmouseout="this.style.background='#fff'">
+      <div style="font-weight:600;color:#1A3C5E;">${r.name}</div>
+      <div style="font-size:11px;color:#64748B;">${r.empNo ? 'EMP# ' + r.empNo + ' · ' : ''}${r.outlet||''}</div>
+    </div>`).join('');
+  dropdown.style.display = 'block';
+}
+
+function selectStaffName(name, empNo, outlet) {
+  const nameField = document.getElementById('fName');
+  const empNoField = document.getElementById('fEmpNo');
+  const outletField = document.getElementById('fOutlet');
+  const dropdown = document.getElementById('nameDropdown');
+  if (nameField) nameField.value = name;
+  if (empNoField) empNoField.value = empNo || '';
+  if (outletField && outlet) outletField.value = outlet;
+  if (dropdown) dropdown.style.display = 'none';
+  _nameSelectedFromRegistry = true;
+  localStorage.setItem('kic_info_' + ROLE + '_fName', name);
+  localStorage.setItem('kic_info_' + ROLE + '_fEmpNo', empNo || '');
+  showToast('\u2713 ' + name + (empNo ? ' (EMP# ' + empNo + ')' : ''), 'ok');
+}
+
+document.addEventListener('click', e => {
+  const dd = document.getElementById('nameDropdown');
+  const fn = document.getElementById('fName');
+  if (dd && fn && !fn.contains(e.target) && !dd.contains(e.target)) {
+    dd.style.display = 'none';
+  }
+});
+
 function validateFullName(name) {
   if (!name || !name.trim()) {
     return { valid: false, msg: 'Please enter your full name before submitting.' };
@@ -1265,6 +1394,19 @@ function renderDay() {
 }
 
 async function submitDay() {
+
+  // ── Registry name validation (strict exact match) ──────────────────────
+  const _submitName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
+  const _nameResult = await validateStaffNameStrict(_submitName);
+  if (!_nameResult.ok) {
+    showToast('\u26A0 ' + _nameResult.msg, 'error');
+    const nameField = document.getElementById('fName');
+    if (nameField) { nameField.style.border = '2px solid #E53E3E'; nameField.focus(); }
+    return;
+  }
+  // ── Duplicate submission check ──────────────────────────────────────────
+
+
   const name = getStaffName();
   const _vn = validateFullName(name);
   if (!_vn.valid) { showToast(_vn.msg, 'warn'); document.getElementById('fName').focus(); return; }
