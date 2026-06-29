@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629390000';
+  var v = '20260629400000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2893,10 +2893,8 @@ function renderSummaryScoring() {
     const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'      +scoreCards      +_legend      +tableHtml      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'      +'</div></div>';
 
     const mainBg = hasOW?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC');
-    rowsHtml += '<tr class="ss-audit-main" data-idx="'+i+'" style="border-bottom:0.5px solid #F1F5F9;background:'+mainBg+';cursor:pointer;" onclick="ssToggleDetail(this,'+(i)+')">'
-      +'<td style="padding:8px 10px;text-align:center;">'
-      +'<div style="width:22px;height:22px;border-radius:50%;border:0.5px solid #E0DDD4;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748B;" id="ss-btn-'+i+'">▼</div>'
-      +'</td>'
+    const _ssDelKey = ((e.staffName||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(e.roles&&e.roles[0]?e.roles[0].role:'')+'_'+(e.week||'').replace(/[^a-zA-Z0-9]/g,'_')).toLowerCase();
+    rowsHtml += '<tr class="ss-audit-main" data-idx="'+i+'" style="border-bottom:0.5px solid #F1F5F9;background:'+mainBg+';cursor:pointer;" onclick="ssToggleDetail(this,'+(i)+')">'      +'<td class="ss-chk-cell" style="display:none;padding:8px 10px;text-align:center;" onclick="event.stopPropagation()">'      +'<input type="checkbox" class="ss-row-chk" data-key="'+_ssDelKey+'" data-name="'+(e.staffName||'')+'" data-outlet="'+(e.outlet||'')+'" data-week="'+(e.week||'')+'" onchange="updateSSSelectCount()" style="width:15px;height:15px;cursor:pointer;accent-color:#B91C1C;">'      +'</td>'      +'<td style="padding:8px 10px;text-align:center;">'      +'<div style="width:22px;height:22px;border-radius:50%;border:0.5px solid #E0DDD4;background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748B;" id="ss-btn-'+i+'">▼</div>'      +'</td>'
       +'<td style="padding:8px 10px;">'
       +'<div style="font-weight:600;color:#1A3C5E;font-size:12px;">'+(hasOW?'<span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block;margin-right:5px;vertical-align:middle;"></span>':'')+(e.staffName||'—')+'</div>'
       +'<div style="font-size:10px;color:#94A3B8;margin-top:1px;">'+(e.week||'—')+'</div>'
