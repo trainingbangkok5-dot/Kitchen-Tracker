@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629330000';
+  var v = '20260629340000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2711,12 +2711,36 @@ function renderSummaryScoring() {
         return [];
       }
       var _vlogNorm = _normVlogForDates(r.verificationLog);
+      var _foundEvalDate = false;
       _vlogNorm.forEach(function(v){ if (v && v.shift==='evaluation' && v.at) {
         var _evd = v.at.substring(0,10);
         _evalDates.add(_evd);
         if (!_dayScoreMap[_evd]) _dayScoreMap[_evd] = {};
         if (r.oicEvalPct != null) _dayScoreMap[_evd].oicEvalPct = parseFloat(r.oicEvalPct);
+        _foundEvalDate = true;
       }});
+      // Fallback: if oicEvalPct exists but no evaluation vlog entry found,
+      // use submittedAt or lastUpdated date as the eval date
+      if (!_foundEvalDate && r.oicEvalPct != null && !r.evalNotVisited) {
+        var _evFallback = r.submittedAt ? r.submittedAt.substring(0,10)
+          : r.lastUpdated ? r.lastUpdated.substring(0,10) : null;
+        // Also check verifiedAt directly
+        if (!_evFallback && r.verifiedAt) _evFallback = r.verifiedAt.substring(0,10);
+        // Check vlog for any entry date (even non-evaluation shift types)
+        if (!_evFallback && _vlogNorm.length && _vlogNorm[0].at) _evFallback = _vlogNorm[0].at.substring(0,10);
+        if (_evFallback) {
+          // Apply business date remap if needed
+          if (_wsDate && _evFallback < _wsDate) {
+            var _ep2=_evFallback.split('-');var _wp4=_wsDate.split('-');
+            var _ed2=new Date(parseInt(_ep2[0]),parseInt(_ep2[1])-1,parseInt(_ep2[2]));
+            var _wd4=new Date(parseInt(_wp4[0]),parseInt(_wp4[1])-1,parseInt(_wp4[2]));
+            if (Math.round((_wd4-_ed2)/86400000)<=1) _evFallback=_wsDate;
+          }
+          _evalDates.add(_evFallback);
+          if (!_dayScoreMap[_evFallback]) _dayScoreMap[_evFallback] = {};
+          _dayScoreMap[_evFallback].oicEvalPct = parseFloat(r.oicEvalPct);
+        }
+      }
       const isClose = r.shift==='closing'||r.status==='closing_submitted';
       const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
       const dates   = Array.isArray(r.submittedDates)?r.submittedDates:[];
