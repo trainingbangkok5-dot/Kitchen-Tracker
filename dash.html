@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629170000';
+  var v = '20260629190000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2162,33 +2162,43 @@ function ssConsolidateByEmployee(rows) {
     if (!byRole[roleKey]) {
       byRole[roleKey] = {
         staffName: s.staffName, role: s.role, outlet: s.outlet, week: s.week,
-        openingSum: 0, openingCount: 0,
-        closingSum: 0, closingCount: 0,
-        oicSum: 0, oicCount: 0,
+        // Use latest score per shift — matches BOH tab dedup logic
+        // Multiple records exist when staff re-submits; always use the latest
+        openingPct: null, openingAt: null,
+        closingPct: null, closingAt: null,
+        oicEvalPct: null, oicEvalAt: null,
+        overwrittenBy: null, overwrittenAt: null,
         submittedDatesSet: new Set(),
         rawRows: [],
       };
     }
     const g = byRole[roleKey];
-    if (s.openingPct != null) { g.openingSum += parseFloat(s.openingPct); g.openingCount++; }
-    if (s.closingPct != null) { g.closingSum += parseFloat(s.closingPct); g.closingCount++; }
-    if (s.oicEvalPct != null) { g.oicSum += parseFloat(s.oicEvalPct); g.oicCount++; }
+    const _sAt = s.submittedAt || '';
+    if (s.openingPct != null) {
+      if (g.openingAt === null || _sAt > g.openingAt) { g.openingPct = parseFloat(s.openingPct); g.openingAt = _sAt; }
+    }
+    if (s.closingPct != null) {
+      if (g.closingAt === null || _sAt > g.closingAt) { g.closingPct = parseFloat(s.closingPct); g.closingAt = _sAt; }
+    }
+    if (s.oicEvalPct != null) {
+      if (g.oicEvalAt === null || _sAt > g.oicEvalAt) { g.oicEvalPct = parseFloat(s.oicEvalPct); g.oicEvalAt = _sAt; }
+    }
+    if (s.overwrittenBy && !g.overwrittenBy) { g.overwrittenBy = s.overwrittenBy; g.overwrittenAt = s.overwrittenAt; }
     if (s.submittedDates && s.submittedDates.length) {
       s.submittedDates.forEach(d => g.submittedDatesSet.add(d));
     } else if (s.submittedAt) {
-      // Fallback for older records submitted before day-tracking was added —
-      // count the submission's own date so it isn't unfairly counted as 0 days
       g.submittedDatesSet.add(s.submittedAt.substring(0, 10));
     }
-    g.rawRows.push(s); // keep raw rows so we can look for a `days` node per role
+    g.rawRows.push(s);
   });
 
   // Per-role summary (used in the detail breakdown)
   const roleSummaries = Object.values(byRole).map(g => {
     const isService = g.role === 'service'; // only service uses OIC eval label in reports
-    const openingAvg = g.openingCount > 0 ? Math.round(g.openingSum / g.openingCount) : null;
-    const closingAvg = g.closingCount > 0 ? Math.round(g.closingSum / g.closingCount) : null;
-    const oicAvg     = g.oicCount > 0 ? Math.round(g.oicSum / g.oicCount) : null;
+    // Use latest score per shift — not averaged across multiple submissions
+    const openingAvg = g.openingPct != null ? Math.round(g.openingPct) : null;
+    const closingAvg = g.closingPct != null ? Math.round(g.closingPct) : null;
+    const oicAvg     = g.oicEvalPct != null ? Math.round(g.oicEvalPct) : null;
     // roleTotal is built from the SAME averages shown in the breakdown below —
     // not from raw accumulated sums — so the displayed scores and the combined
     // total always agree, even when a staff member has multiple submissions
@@ -2601,22 +2611,20 @@ function renderSummaryScoring() {
       return parts.join(' ');
     }
 
-    // Build score cards
-    function _scoreCard(label, pct, isOW, owBy, owAt, verEntry, ynHtml) {
+    // Build score cards — show score + overwrite info only (no verified by / Yes/No)
+    function _scoreCard(label, pct, isOW, owBy, owAt) {
       const border = isOW?'#FCD34D':'#E0DDD4';
       const bg     = isOW?'#FFFBEB':'#fff';
       const lcolor = isOW?'#92400E':'#1A3C5E';
-      let h = '<div style="background:'+bg+';border:0.5px solid '+border+';border-radius:8px;padding:10px 14px;flex:1;min-width:0;">';
-      h += '<div style="font-size:9px;font-weight:600;color:'+lcolor+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">'+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:8px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
+      let h = '<div style="background:'+bg+';border:0.5px solid '+border+';border-radius:8px;padding:10px 14px;flex:1;min-width:0;text-align:center;">';
+      h += '<div style="font-size:9px;font-weight:500;color:'+lcolor+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">'+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:8px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
       if (pct==null) {
-        h += '<div style="font-size:12px;color:#94A3B8;">Not submitted</div>';
+        h += '<div style="font-size:13px;color:#94A3B8;">N/A</div>';
+        h += '<div style="font-size:9px;color:#94A3B8;margin-top:2px;">Weekly avg</div>';
       } else {
-        h += '<div style="font-size:18px;font-weight:700;color:'+scoreColor(pct)+';margin-bottom:4px;">'+pct+'%</div>';
-        if (isOW&&owBy) h += '<div style="font-size:9px;color:#92400E;margin-bottom:2px;">Changed by '+(owBy)+(owAt?' · '+fmtDT(owAt):'')+'</div>';
-        if (verEntry&&verEntry.by) {
-          h += '<div style="font-size:9px;color:#64748B;">Verified by '+verEntry.by+(verEntry.role?' ('+verEntry.role+')':'')+(verEntry.at?' · '+fmtDT(verEntry.at):'')+'</div>';
-          if (ynHtml) h += '<div style="font-size:9px;margin-top:2px;">'+ynHtml+'</div>';
-        }
+        h += '<div style="font-size:20px;font-weight:500;color:'+scoreColor(pct)+';margin-bottom:2px;">'+pct+'%</div>';
+        if (isOW&&owBy) h += '<div style="font-size:9px;color:#92400E;">Changed by '+(owBy)+'</div>';
+        else h += '<div style="font-size:9px;color:#94A3B8;">Weekly avg</div>';
       }
       h += '</div>';
       return h;
@@ -2627,10 +2635,13 @@ function renderSummaryScoring() {
     const _evVlog = (function(vl){return Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]); })(_evalRec.verificationLog);
     const _evVer  = _evVlog.slice().reverse().find(function(v){return v.shift==='evaluation';})||(_evVlog.length?_evVlog[_evVlog.length-1]:null)||(_evalRec.verifiedBy?{by:_evalRec.verifiedBy,role:_evalRec.verifiedByRole||'',at:_evalRec.verifiedAt||''}:null);
 
-    let scoreCards = '<div style="display:flex;gap:10px;margin-bottom:12px;">';
-    scoreCards += _scoreCard('🌅 Opening shift', op, _opOW, _openRec.overwrittenBy, _openRec.overwrittenAt, _opVer, _fmtYN(_opVer));
-    scoreCards += _scoreCard('🌙 Closing shift', cl, _clOW, _closeRec.overwrittenBy, _closeRec.overwrittenAt, _clVer, _fmtYN(_clVer));
-    scoreCards += _scoreCard('📋 Evaluation', ev, _evOW, _evalRec.overwrittenBy, _evalRec.overwrittenAt, _evVer, _fmtYN(_evVer));
+    // Weekly avg score box
+    const _avgBox = '<div style="background:#fff;border:0.5px solid #E0DDD4;border-radius:8px;padding:10px 14px;flex:1;min-width:0;text-align:center;">'      +'<div style="font-size:9px;font-weight:500;color:#1A3C5E;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Weekly avg</div>'      +'<div style="font-size:20px;font-weight:500;color:'+scoreColor(avg)+';margin-bottom:2px;">'+(avg!=null?avg+'%':'—')+'</div>'      +'<div style="font-size:9px;color:'+(e.eligible?'#3B6D11':'#A32D2D')+'">'+(e.eligible?'✅ Qualified':'❌ Not qualified')+'</div>'      +'</div>';
+    let scoreCards = '<div style="display:flex;gap:8px;margin-bottom:12px;">';
+    scoreCards += _scoreCard('🌅 Opening', op, _opOW, _openRec.overwrittenBy, _openRec.overwrittenAt);
+    scoreCards += _scoreCard('🌙 Closing', cl, _clOW, _closeRec.overwrittenBy, _closeRec.overwrittenAt);
+    scoreCards += _scoreCard('📋 Evaluation', ev, _evOW, _evalRec.overwrittenBy, _evalRec.overwrittenAt);
+    scoreCards += _avgBox;
     scoreCards += '</div>';
 
     // Collect submitted dates per shift
@@ -2690,21 +2701,35 @@ function renderSummaryScoring() {
     // Legend
     const _legend = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#3B6D11;"></div>Opening</div>'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#185FA5;"></div>Closing</div>'      +(hasOW?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#F59E0B;"></div>Overwritten</div>':'')      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#854F0B;"></div>Evaluated</div>'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div>Not submitted</div>'      +'</div>';
 
-    // Cell renderer — dot + score
-    function _cell(has, score, isOW, color, owColor) {
+    // Cell renderer — dot + score, with original score if overwritten
+    function _cell(has, score, isOW, color, owColor, origScore) {
       if (!has) return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div><span style="font-size:10px;color:#94A3B8;">—</span></div>';
       const dc = isOW ? owColor : color;
       const sc = score!=null ? score+'%' : '✓';
-      return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:'+dc+';"></div><span style="font-size:11px;font-weight:700;color:'+dc+';">'+sc+'</span></div>';
+      let html = '<div style="text-align:center;">';
+      html += '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:'+dc+';flex-shrink:0;"></div><span style="font-size:11px;font-weight:700;color:'+dc+';">'+sc+'</span>'+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:8px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
+      if (isOW && origScore!=null) html += '<div style="font-size:9px;color:#94A3B8;margin-top:2px;">Original: '+origScore+'%</div>';
+      html += '</div>';
+      return html;
     }
 
-    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:38px;">Day</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>'      +'</tr></thead><tbody>';
+    // Original scores before overwrite (for display in daily table)
+    const _origOp = _openRec.originalScore != null ? _openRec.originalScore : (_openRec.overwrittenScore != null ? _openRec.overwrittenScore : null);
+    const _origCl = _closeRec.originalScore != null ? _closeRec.originalScore : (_closeRec.overwrittenScore != null ? _closeRec.overwrittenScore : null);
+
+    let tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:11px;">'      +'<thead><tr style="background:#1A3C5E;">'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;">Date</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:left;width:38px;">Day</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌅 Opening</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">🌙 Closing</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">📋 Eval</th>'      +'<th style="padding:6px 10px;color:#fff;font-size:9px;font-weight:500;text-align:center;">Daily avg</th>'      +'</tr></thead><tbody>';
     _days.forEach(function(d,idx){
       const hasOpen  = _openDates.has(d.iso);
       const hasClose = _closeDates.has(d.iso);
       const hasEval  = _evalDates.has(d.iso);
-      const bg = idx%2===0?'#fff':'#FAFBFC';
-      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,op,_opOW&&hasOpen,'#3B6D11','#F59E0B')+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,cl,_clOW&&hasClose,'#185FA5','#F59E0B')+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,ev,false,'#854F0B','#854F0B')+'</td>'        +'</tr>';
+      const bg = ((_closeRec.overwrittenBy||_openRec.overwrittenBy)&&(hasOpen||hasClose))?'#FFFBEB':(idx%2===0?'#fff':'#FAFBFC');
+      // Daily avg — average of submitted shifts for this day
+      const _dayScores = [];
+      if (hasOpen && op!=null) _dayScores.push(_opOW&&hasOpen? op : op);
+      if (hasClose && cl!=null) _dayScores.push(cl);
+      if (hasEval && ev!=null) _dayScores.push(ev);
+      const _dayAvg = _dayScores.length > 0 ? Math.round(_dayScores.reduce(function(a,b){return a+b;},0)/_dayScores.length) : null;
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,op,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOp)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,cl,_clOW&&hasClose,'#185FA5','#F59E0B',_origCl)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,ev,false,'#854F0B','#854F0B',null)+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
     });
     tableHtml += '</tbody></table>';
 
