@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629200000';
+  var v = '20260629210000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2644,10 +2644,38 @@ function renderSummaryScoring() {
     scoreCards += _avgBox;
     scoreCards += '</div>';
 
-    // Collect submitted dates per shift
+    // ── Permanent date solution ──────────────────────────────────────────────
+    // Priority 1: Use days/ node (written per-day, device-independent, never overwritten)
+    // Priority 2: Use submittedDates (may be incomplete for old records)
+    // Priority 3: Use submittedAt / lastUpdated / verifiedAt as last resort
+    // ─────────────────────────────────────────────────────────────────────────
     const _openDates = new Set();
     const _closeDates = new Set();
     const _evalDates  = new Set();
+    // Per-day score map from days/ node (most accurate source)
+    const _dayScoreMap = {}; // { "2026-06-29": { openingPct, closingPct, oicEvalPct } }
+
+    // Step 1: Read days/ node from all rawRows (most reliable)
+    raws.forEach(function(r) {
+      if (r.days && typeof r.days === 'object') {
+        Object.keys(r.days).forEach(function(date) {
+          const dv = r.days[date] || {};
+          if (!_dayScoreMap[date]) _dayScoreMap[date] = {};
+          if (dv.openingPct != null) { _openDates.add(date); _dayScoreMap[date].openingPct = parseFloat(dv.openingPct); }
+          if (dv.closingPct != null) { _closeDates.add(date); _dayScoreMap[date].closingPct = parseFloat(dv.closingPct); }
+          if (dv.oicEvalPct != null) { _evalDates.add(date); _dayScoreMap[date].oicEvalPct = parseFloat(dv.oicEvalPct); }
+        });
+      }
+    });
+
+    // Step 2: Fill gaps using submittedDates + verificationLog (for old records without days/ node)
+    function _bestDate(rec) {
+      if (rec.submittedAt) return rec.submittedAt.substring(0,10);
+      if (rec.lastUpdated) return rec.lastUpdated.substring(0,10);
+      var _vl = Array.isArray(rec.verificationLog)?rec.verificationLog:(rec.verificationLog&&typeof rec.verificationLog==='object'?Object.values(rec.verificationLog):[]);
+      if (_vl.length && _vl[_vl.length-1].at) return _vl[_vl.length-1].at.substring(0,10);
+      return null;
+    }
     raws.forEach(function(r) {
       const vl = r.verificationLog;
       const vlog = Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]);
@@ -2656,14 +2684,6 @@ function renderSummaryScoring() {
       const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
       const dates   = Array.isArray(r.submittedDates)?r.submittedDates:[];
       if (r.oicEvalPct!=null&&!r.evalNotVisited&&!_evalDates.size&&r.verifiedAt) _evalDates.add(r.verifiedAt.substring(0,10));
-      // Best date fallback: submittedAt → lastUpdated → verifiedAt from vlog
-      function _bestDate(rec) {
-        if (rec.submittedAt) return rec.submittedAt.substring(0,10);
-        if (rec.lastUpdated) return rec.lastUpdated.substring(0,10);
-        var _vl = Array.isArray(rec.verificationLog)?rec.verificationLog:(rec.verificationLog&&typeof rec.verificationLog==='object'?Object.values(rec.verificationLog):[]);
-        if (_vl.length && _vl[_vl.length-1].at) return _vl[_vl.length-1].at.substring(0,10);
-        return null;
-      }
       if (isClose) {
         dates.forEach(function(d){_closeDates.add(d);});
         if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _closeDates.add(_bd); }
@@ -2671,12 +2691,15 @@ function renderSummaryScoring() {
         dates.forEach(function(d){_openDates.add(d);});
         if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _openDates.add(_bd); }
       } else {
-        dates.forEach(function(d){_openDates.add(d); if(r.closingPct!=null)_closeDates.add(d);});
+        dates.forEach(function(d){
+          if (r.openingPct!=null) _openDates.add(d);
+          if (r.closingPct!=null) _closeDates.add(d);
+        });
         if (dates.length===0) {
           var _fb=_bestDate(r);
           if(_fb) {
-            if(r.openingPct!=null)_openDates.add(_fb);
-            if(r.closingPct!=null)_closeDates.add(_fb);
+            if(r.openingPct!=null) _openDates.add(_fb);
+            if(r.closingPct!=null) _closeDates.add(_fb);
           }
         }
         raws.forEach(function(r2){
@@ -2733,13 +2756,15 @@ function renderSummaryScoring() {
       const hasClose = _closeDates.has(d.iso);
       const hasEval  = _evalDates.has(d.iso);
       const bg = ((_closeRec.overwrittenBy||_openRec.overwrittenBy)&&(hasOpen||hasClose))?'#FFFBEB':(idx%2===0?'#fff':'#FAFBFC');
-      // Daily avg — average of submitted shifts for this day
-      const _dayScores = [];
-      if (hasOpen && op!=null) _dayScores.push(_opOW&&hasOpen? op : op);
-      if (hasClose && cl!=null) _dayScores.push(cl);
-      if (hasEval && ev!=null) _dayScores.push(ev);
+      // Use per-day scores from days/ node if available, otherwise use weekly score
+      const _dsm = _dayScoreMap[d.iso] || {};
+      const _dayOpScore = _dsm.openingPct != null ? _dsm.openingPct : (hasOpen ? op : null);
+      const _dayClScore = _dsm.closingPct != null ? _dsm.closingPct : (hasClose ? cl : null);
+      const _dayEvScore = _dsm.oicEvalPct != null ? _dsm.oicEvalPct : (hasEval ? ev : null);
+      // Daily avg from actual per-day scores
+      const _dayScores = [_dayOpScore, _dayClScore, _dayEvScore].filter(function(v){return v!=null;});
       const _dayAvg = _dayScores.length > 0 ? Math.round(_dayScores.reduce(function(a,b){return a+b;},0)/_dayScores.length) : null;
-      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,op,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOp)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,cl,_clOW&&hasClose,'#185FA5','#F59E0B',_origCl)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,ev,false,'#854F0B','#854F0B',null)+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOp)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origCl)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,_dayEvScore,false,'#854F0B','#854F0B',null)+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
     });
     tableHtml += '</tbody></table>';
 
