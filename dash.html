@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629190000';
+  var v = '20260629200000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2587,10 +2587,10 @@ function renderSummaryScoring() {
       || _sortedR.find(function(r){ return r.closingPct!=null; }) || (_openRec.closingPct!=null?_openRec:{});
     const _evalRec = raws.find(function(r){ return r.oicEvalPct!=null&&!r.evalNotVisited; }) || {};
 
-    // Overwrite info
-    const _opOW  = !!((_openRec.overwrittenBy)||(_openRec.overwrittenAt));
-    const _clOW  = !!((_closeRec.overwrittenBy)||(_closeRec.overwrittenAt));
-    const _evOW  = !!((_evalRec.overwrittenBy)||(_evalRec.overwrittenAt));
+    // Overwrite info — only flag as overwritten if the shift actually has a score
+    const _opOW  = op!=null && !!((_openRec.overwrittenBy)||(_openRec.overwrittenAt));
+    const _clOW  = cl!=null && !!((_closeRec.overwrittenBy)||(_closeRec.overwrittenAt));
+    const _evOW  = ev!=null && !!((_evalRec.overwrittenBy)||(_evalRec.overwrittenAt));
 
     // Get verifier from vlog or direct fields
     function _getVer(rec, shiftType) {
@@ -2656,25 +2656,35 @@ function renderSummaryScoring() {
       const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
       const dates   = Array.isArray(r.submittedDates)?r.submittedDates:[];
       if (r.oicEvalPct!=null&&!r.evalNotVisited&&!_evalDates.size&&r.verifiedAt) _evalDates.add(r.verifiedAt.substring(0,10));
+      // Best date fallback: submittedAt → lastUpdated → verifiedAt from vlog
+      function _bestDate(rec) {
+        if (rec.submittedAt) return rec.submittedAt.substring(0,10);
+        if (rec.lastUpdated) return rec.lastUpdated.substring(0,10);
+        var _vl = Array.isArray(rec.verificationLog)?rec.verificationLog:(rec.verificationLog&&typeof rec.verificationLog==='object'?Object.values(rec.verificationLog):[]);
+        if (_vl.length && _vl[_vl.length-1].at) return _vl[_vl.length-1].at.substring(0,10);
+        return null;
+      }
       if (isClose) {
         dates.forEach(function(d){_closeDates.add(d);});
-        if (dates.length===0&&r.submittedAt) _closeDates.add(r.submittedAt.substring(0,10));
+        if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _closeDates.add(_bd); }
       } else if (isOpen) {
         dates.forEach(function(d){_openDates.add(d);});
-        if (dates.length===0&&r.submittedAt) _openDates.add(r.submittedAt.substring(0,10));
+        if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _openDates.add(_bd); }
       } else {
         dates.forEach(function(d){_openDates.add(d); if(r.closingPct!=null)_closeDates.add(d);});
-        if (dates.length===0&&r.submittedAt) {
-          var _fb=r.submittedAt.substring(0,10);
-          if(r.openingPct!=null)_openDates.add(_fb);
-          if(r.closingPct!=null)_closeDates.add(_fb);
+        if (dates.length===0) {
+          var _fb=_bestDate(r);
+          if(_fb) {
+            if(r.openingPct!=null)_openDates.add(_fb);
+            if(r.closingPct!=null)_closeDates.add(_fb);
+          }
         }
         raws.forEach(function(r2){
           if(r2===r)return;
           var d2=Array.isArray(r2.submittedDates)?r2.submittedDates:[];
           var isC2=r2.shift==='closing'||r2.status==='closing_submitted';
           d2.forEach(function(d){if(isC2)_closeDates.add(d);else _openDates.add(d);});
-          if(d2.length===0&&r2.submittedAt){if(isC2)_closeDates.add(r2.submittedAt.substring(0,10));else _openDates.add(r2.submittedAt.substring(0,10));}
+          if(d2.length===0){var _bd2=_bestDate(r2);if(_bd2){if(isC2)_closeDates.add(_bd2);else _openDates.add(_bd2);}}
         });
       }
     });
