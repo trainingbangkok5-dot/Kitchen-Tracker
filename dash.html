@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629210000';
+  var v = '20260629220000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2656,14 +2656,26 @@ function renderSummaryScoring() {
     const _dayScoreMap = {}; // { "2026-06-29": { openingPct, closingPct, oicEvalPct } }
 
     // Step 1: Read days/ node from all rawRows (most reliable)
+    // Business date logic: closing shifts submitted after midnight may have a date
+    // 1 day before the week start — remap those to the week start date
+    const _wsDate = _weekStart; // week start ISO string e.g. "2026-06-29"
     raws.forEach(function(r) {
       if (r.days && typeof r.days === 'object') {
         Object.keys(r.days).forEach(function(date) {
+          // Remap dates that fall 1 day before week start (closing-after-midnight business logic)
+          var _useDate = date;
+          if (_wsDate && date < _wsDate) {
+            var _dp = date.split('-'); var _wp = _wsDate.split('-');
+            var _dd = new Date(parseInt(_dp[0]),parseInt(_dp[1])-1,parseInt(_dp[2]));
+            var _wd = new Date(parseInt(_wp[0]),parseInt(_wp[1])-1,parseInt(_wp[2]));
+            var _diff = Math.round((_wd - _dd) / 86400000);
+            if (_diff <= 1) _useDate = _wsDate; // remap to week start
+          }
           const dv = r.days[date] || {};
-          if (!_dayScoreMap[date]) _dayScoreMap[date] = {};
-          if (dv.openingPct != null) { _openDates.add(date); _dayScoreMap[date].openingPct = parseFloat(dv.openingPct); }
-          if (dv.closingPct != null) { _closeDates.add(date); _dayScoreMap[date].closingPct = parseFloat(dv.closingPct); }
-          if (dv.oicEvalPct != null) { _evalDates.add(date); _dayScoreMap[date].oicEvalPct = parseFloat(dv.oicEvalPct); }
+          if (!_dayScoreMap[_useDate]) _dayScoreMap[_useDate] = {};
+          if (dv.openingPct != null) { _openDates.add(_useDate); _dayScoreMap[_useDate].openingPct = parseFloat(dv.openingPct); }
+          if (dv.closingPct != null) { _closeDates.add(_useDate); _dayScoreMap[_useDate].closingPct = parseFloat(dv.closingPct); }
+          if (dv.oicEvalPct != null) { _evalDates.add(_useDate); _dayScoreMap[_useDate].oicEvalPct = parseFloat(dv.oicEvalPct); }
         });
       }
     });
@@ -2684,12 +2696,20 @@ function renderSummaryScoring() {
       const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
       const dates   = Array.isArray(r.submittedDates)?r.submittedDates:[];
       if (r.oicEvalPct!=null&&!r.evalNotVisited&&!_evalDates.size&&r.verifiedAt) _evalDates.add(r.verifiedAt.substring(0,10));
+      // Remap function for business date logic
+      function _remapDate(d) {
+        if (!_wsDate || d >= _wsDate) return d;
+        var _dp2=d.split('-'); var _wp2=_wsDate.split('-');
+        var _dd2=new Date(parseInt(_dp2[0]),parseInt(_dp2[1])-1,parseInt(_dp2[2]));
+        var _wd2=new Date(parseInt(_wp2[0]),parseInt(_wp2[1])-1,parseInt(_wp2[2]));
+        return Math.round((_wd2-_dd2)/86400000)<=1 ? _wsDate : d;
+      }
       if (isClose) {
-        dates.forEach(function(d){_closeDates.add(d);});
-        if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _closeDates.add(_bd); }
+        dates.forEach(function(d){_closeDates.add(_remapDate(d));});
+        if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _closeDates.add(_remapDate(_bd)); }
       } else if (isOpen) {
-        dates.forEach(function(d){_openDates.add(d);});
-        if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _openDates.add(_bd); }
+        dates.forEach(function(d){_openDates.add(_remapDate(d));});
+        if (dates.length===0) { var _bd=_bestDate(r); if(_bd) _openDates.add(_remapDate(_bd)); }
       } else {
         dates.forEach(function(d){
           if (r.openingPct!=null) _openDates.add(d);
