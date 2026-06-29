@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629260000';
+  var v = '20260629290000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2619,8 +2619,8 @@ function renderSummaryScoring() {
       let h = '<div style="background:'+bg+';border:0.5px solid '+border+';border-radius:8px;padding:10px 14px;flex:1;min-width:0;text-align:center;">';
       h += '<div style="font-size:9px;font-weight:500;color:'+lcolor+';text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">'+label+(isOW?' <span style="background:#FEF3C7;color:#92400E;font-size:8px;padding:1px 5px;border-radius:8px;">Overwritten</span>':'')+'</div>';
       if (pct==null) {
-        h += '<div style="font-size:13px;color:#94A3B8;">N/A</div>';
-        h += '<div style="font-size:9px;color:#94A3B8;margin-top:2px;">Weekly avg</div>';
+        h += '<div style="display:inline-block;background:#F1F5F9;color:#64748B;font-size:11px;font-weight:500;padding:2px 10px;border-radius:20px;margin:4px 0;">N/A</div>';
+        h += '<div style="font-size:9px;color:#94A3B8;margin-top:2px;">Not evaluated</div>';
       } else {
         h += '<div style="font-size:20px;font-weight:500;color:'+scoreColor(pct)+';margin-bottom:2px;">'+pct+'%</div>';
         if (isOW&&owBy) h += '<div style="font-size:9px;color:#92400E;">Changed by '+(owBy)+'</div>';
@@ -2696,10 +2696,23 @@ function renderSummaryScoring() {
     raws.forEach(function(r) {
       const vl = r.verificationLog;
       const vlog = Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]);
-      vlog.forEach(function(v){ if (v.shift==='evaluation'&&v.at) {
+      // Normalize verificationLog — handles 3 formats:
+      // 1. Array [{at:..., shift:...}]
+      // 2. Numbered object {0:{at:..., shift:...}, 1:{...}}
+      // 3. Plain single entry {at:..., shift:...} — most common Firebase format
+      function _normVlogForDates(vl) {
+        if (!vl) return [];
+        if (Array.isArray(vl)) return vl;
+        var vals = Object.values(vl);
+        // If first value is an object with 'at' or 'by' — numbered object
+        if (vals.length && typeof vals[0] === 'object' && vals[0] !== null && (vals[0].at || vals[0].by)) return vals;
+        // Otherwise it's a plain single entry — wrap it
+        if (vl.at || vl.by) return [vl];
+        return [];
+      }
+      var _vlogNorm = _normVlogForDates(r.verificationLog);
+      _vlogNorm.forEach(function(v){ if (v && v.shift==='evaluation' && v.at) {
         var _evd = v.at.substring(0,10);
-        // Evaluation stays on its actual date — no remap
-        // Each week's evaluation belongs to that specific day
         _evalDates.add(_evd);
         if (!_dayScoreMap[_evd]) _dayScoreMap[_evd] = {};
         if (r.oicEvalPct != null) _dayScoreMap[_evd].oicEvalPct = parseFloat(r.oicEvalPct);
@@ -2767,8 +2780,12 @@ function renderSummaryScoring() {
     const _legend = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;">'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#3B6D11;"></div>Opening</div>'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#185FA5;"></div>Closing</div>'      +(hasOW?'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#F59E0B;"></div>Overwritten</div>':'')      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#854F0B;"></div>Evaluated</div>'      +'<div style="display:flex;align-items:center;gap:4px;font-size:9px;color:#64748B;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div>Not submitted</div>'      +'</div>';
 
     // Cell renderer — dot + score, with original score if overwritten
-    function _cell(has, score, isOW, color, owColor, origScore) {
-      if (!has) return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div><span style="font-size:10px;color:#94A3B8;">—</span></div>';
+    // notApplicable=true means role doesn't have this shift type at all
+    function _cell(has, score, isOW, color, owColor, origScore, notApplicable) {
+      if (!has) {
+        if (notApplicable) return '<span style="font-size:10px;color:#94A3B8;">—</span>';
+        return '<div style="display:flex;align-items:center;justify-content:center;gap:4px;"><div style="width:7px;height:7px;border-radius:50%;background:#E0DDD4;"></div><span style="font-size:10px;color:#94A3B8;">—</span></div>';
+      }
       const dc = isOW ? owColor : color;
       const sc = score!=null ? score+'%' : '✓';
       let html = '<div style="text-align:center;">';
@@ -2805,7 +2822,11 @@ function renderSummaryScoring() {
       // Daily avg from current scores
       const _dayScores = [_dayOpScore, _dayClScore, _dayEvScore].filter(function(v){return v!=null;});
       const _dayAvg = _dayScores.length > 0 ? Math.round(_dayScores.reduce(function(a,b){return a+b;},0)/_dayScores.length) : null;
-      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOpDay)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origClDay)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasEval,_dayEvScore,false,'#854F0B','#854F0B',null)+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
+      // Eval cell: show N/A pill when no eval for whole week, show score when done, show — when not done yet for that day
+      const _evalCell = ev==null
+        ? '<span style="display:inline-block;background:#F1F5F9;color:#64748B;font-size:10px;font-weight:500;padding:1px 8px;border-radius:20px;">N/A</span>'
+        : _cell(hasEval,_dayEvScore,false,'#854F0B','#854F0B',null);
+      tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOpDay)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origClDay)+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_evalCell+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
     });
     tableHtml += '</tbody></table>';
 
