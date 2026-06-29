@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629240000';
+  var v = '20260629260000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2696,7 +2696,14 @@ function renderSummaryScoring() {
     raws.forEach(function(r) {
       const vl = r.verificationLog;
       const vlog = Array.isArray(vl)?vl:(vl&&typeof vl==='object'?Object.values(vl):[]);
-      vlog.forEach(function(v){ if (v.shift==='evaluation'&&v.at) _evalDates.add(v.at.substring(0,10)); });
+      vlog.forEach(function(v){ if (v.shift==='evaluation'&&v.at) {
+        var _evd = v.at.substring(0,10);
+        // Evaluation stays on its actual date — no remap
+        // Each week's evaluation belongs to that specific day
+        _evalDates.add(_evd);
+        if (!_dayScoreMap[_evd]) _dayScoreMap[_evd] = {};
+        if (r.oicEvalPct != null) _dayScoreMap[_evd].oicEvalPct = parseFloat(r.oicEvalPct);
+      }});
       const isClose = r.shift==='closing'||r.status==='closing_submitted';
       const isOpen  = r.shift==='opening'||r.status==='opening_submitted';
       const dates   = Array.isArray(r.submittedDates)?r.submittedDates:[];
