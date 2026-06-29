@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629350000';
+  var v = '20260629390000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -488,10 +488,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
       <label style="font-size:11px;font-weight:600;color:#64748B;">📅 From</label>
-      <input type="date" id="bohDateFrom" onchange="renderBOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <input type="date" id="bohDateFrom" onchange="renderBOHStaff();renderStaff();" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
       <label style="font-size:11px;font-weight:600;color:#64748B;">To</label>
-      <input type="date" id="bohDateTo" onchange="renderBOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
-      <button onclick="document.getElementById('bohDateFrom').value='';document.getElementById('bohDateTo').value='';renderBOHStaff();" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:11px;background:#fff;cursor:pointer;color:#64748B;">Clear</button>
+      <input type="date" id="bohDateTo" onchange="renderBOHStaff();renderStaff();" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <button onclick="document.getElementById('bohDateFrom').value='';document.getElementById('bohDateTo').value='';renderBOHStaff();renderStaff();" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:11px;background:#fff;cursor:pointer;color:#64748B;">Clear</button>
 <div style="position:relative;margin-left:auto;">
         
         <button id="bohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'" style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
@@ -588,10 +588,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
       <label style="font-size:11px;font-weight:600;color:#64748B;">📅 From</label>
-      <input type="date" id="fohDateFrom" onchange="renderFOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <input type="date" id="fohDateFrom" onchange="renderFOHStaff();renderStaff();" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
       <label style="font-size:11px;font-weight:600;color:#64748B;">To</label>
-      <input type="date" id="fohDateTo" onchange="renderFOHStaff()" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
-      <button onclick="document.getElementById('fohDateFrom').value='';document.getElementById('fohDateTo').value='';renderFOHStaff();" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:11px;background:#fff;cursor:pointer;color:#64748B;">Clear</button>
+      <input type="date" id="fohDateTo" onchange="renderFOHStaff();renderStaff();" style="padding:5px 8px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;outline:none;">
+      <button onclick="document.getElementById('fohDateFrom').value='';document.getElementById('fohDateTo').value='';renderFOHStaff();renderStaff();" style="padding:5px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:11px;background:#fff;cursor:pointer;color:#64748B;">Clear</button>
       <div style="position:relative;margin-left:auto;">
         
         <button id="fohOutletBtn" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'"  style="padding:6px 12px;border:1.5px solid #E0DDD4;border-radius:20px;font-size:12px;background:#fff;cursor:pointer;white-space:nowrap;outline:none;">📍 All Outlets ▾</button>
@@ -1800,7 +1800,7 @@ function loadData() {
   // Auto-archive submissions older than 14 days on every load
   // autoArchiveOldSubmissions(); // Disabled — run manually via Archive tab only
   // Load all submissions — no week filter (week formats differ between files)
-  const bohQuery = db.ref('submissions').orderByChild('week').limitToLast(3000);
+  const bohQuery = db.ref('submissions').orderByChild('submittedAt').limitToLast(3000);
   bohQuery.once('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     // Deduplicate BOH — keep latest per staffName+role+week
@@ -4529,10 +4529,25 @@ function renderStaff() {
   // ── Normalize name helper ──
   const normName = n => (n||'').toLowerCase().trim().replace(/\s+/g,' ');
   const normW    = w => normalizeWeek(w || '');
+  // Date range filter from BOH or FOH date inputs (whichever tab is active)
+  const _bohFrom = document.getElementById('bohDateFrom')?.value || '';
+  const _bohTo   = document.getElementById('bohDateTo')?.value || '';
+  const _fohFrom = document.getElementById('fohDateFrom')?.value || '';
+  const _fohTo   = document.getElementById('fohDateTo')?.value || '';
+  const _dateFrom = _bohFrom || _fohFrom;
+  const _dateTo   = _bohTo   || _fohTo;
   // ── Build submission lookup: name+role+week -> merge opening+closing ──
   const subMap = {};
   allStaff.forEach(s => {
     if (!s.staffName) return;
+    // Apply date range filter if set (BOH or FOH date inputs)
+    if (_dateFrom || _dateTo) {
+      const _wk = s.week || '';
+      const _sd = s.submittedAt ? s.submittedAt.substring(0,10) : '';
+      const _inR = (_wk && _wk >= (_dateFrom||'') && _wk <= (_dateTo||'9999')) ||
+                   (_sd && _sd >= (_dateFrom||'') && _sd <= (_dateTo||'9999'));
+      if (!_inR) return;
+    }
     const k = normName(s.staffName) + '|' + (s.role||'') + '|' + normW(s.week);
     if (!subMap[k]) {
       subMap[k] = {...s};
@@ -9885,7 +9900,7 @@ function loadBOHData() {
   if (!db) { document.getElementById('bohStatus').textContent = '❌ Not connected'; return; }
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
   // Show all submissions — no week filter
-  const bohQ = db.ref('submissions').orderByChild('week').limitToLast(3000);
+  const bohQ = db.ref('submissions').orderByChild('submittedAt').limitToLast(3000);
   bohQ.once('value', snap => {
     allBOHData = [];
     if (snap.exists()) {
@@ -10805,9 +10820,13 @@ function renderBOHStaff() {
     if (currentBOHSub !== 'all' && s.role !== currentBOHSub) return false;
     if (bohChecked.length && !bohChecked.includes(s.outlet)) return false;
     if (bohFrom || bohTo) {
-      const d = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
-      if (bohFrom && d < bohFrom) return false;
-      if (bohTo   && d > bohTo)   return false;
+      // Check if week falls within range — week start must be within or overlapping the range
+      const wk = s.week || '';
+      const sd = s.submittedAt ? s.submittedAt.substring(0,10) : '';
+      // Week start date must be within range, OR submittedAt must be within range
+      const inRange = (wk && wk >= (bohFrom||'') && wk <= (bohTo||'9999')) ||
+                      (sd && sd >= (bohFrom||'') && sd <= (bohTo||'9999'));
+      if (!inRange) return false;
     }
     return true;
   });
@@ -11063,9 +11082,11 @@ function renderFOHStaff() {
     if (currentFOHSub !== 'all' && s.role !== currentFOHSub) return false;
     if (fohChecked.length && !fohChecked.includes(s.outlet)) return false;
     if (fohFrom || fohTo) {
-      const d = s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '');
-      if (fohFrom && d < fohFrom) return false;
-      if (fohTo   && d > fohTo)   return false;
+      const wk = s.week || '';
+      const sd = s.submittedAt ? s.submittedAt.substring(0,10) : '';
+      const inRange = (wk && wk >= (fohFrom||'') && wk <= (fohTo||'9999')) ||
+                      (sd && sd >= (fohFrom||'') && sd <= (fohTo||'9999'));
+      if (!inRange) return false;
     }
     return true;
   });
