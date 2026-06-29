@@ -40,7 +40,7 @@
 })();
 
 (function() {
-  var v = '20260619360000';
+  var v = '20260619360001';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -484,16 +484,23 @@ function pushToFirebase(record) {
       });
       cleanRecord.taskData = cleanTasks;
     }
-    _db.ref('submissions/' + key).set({
-      ...cleanRecord,
-      lastUpdated: new Date().toISOString()
-    }).then(() => {
-      showToast('✓ Synced to dashboard', 'ok');
-      hideSyncError();
-    }).catch(e => {
-      console.warn('Firebase write failed:', e);
-      showSyncError('Sync failed — retrying. (' + e.message + ')');
-      queueRetry(record);
+        // Merge submittedDates with existing Firebase before saving — preserves all device submissions
+    _db.ref('submissions/' + key + '/submittedDates').once('value', function(_dSnap) {
+      var _fbD = _dSnap.val();
+      _fbD = Array.isArray(_fbD) ? _fbD : (_fbD && typeof _fbD==='object' ? Object.values(_fbD) : []);
+      var _locD = Array.isArray(cleanRecord.submittedDates) ? cleanRecord.submittedDates : [];
+      cleanRecord = Object.assign({}, cleanRecord, { submittedDates: Array.from(new Set(_fbD.concat(_locD))).filter(Boolean).sort() });
+      _db.ref('submissions/' + key).set({
+        ...cleanRecord,
+        lastUpdated: new Date().toISOString()
+      }).then(() => {
+        showToast('\u2713 Synced to dashboard', 'ok');
+        hideSyncError();
+      }).catch(e => {
+        console.warn('Firebase write failed:', e);
+        showSyncError('Sync failed — retrying. (' + e.message + ')');
+        queueRetry(record);
+      });
     });
     // Also write per-day score to days/{date} node for daily breakdown report
     try {
@@ -1949,9 +1956,9 @@ function openPhotoModal(tid, label) {
   if (data[getTodayKey()]?._done && !ALLOW_OVERWRITE) {
     showToast('Day submitted — cannot change photos', 'error'); return;
   }
-  // Max 5 photos per task — count occupied slots only
+  // Max 10 photos per task — count occupied slots only
   let _photoCount = 0;
-  for (let _pi = 0; _pi < 5; _pi++) {
+  for (let _pi = 0; _pi < 10; _pi++) {
     const _lk = _pi === 0 ? 'photo' : 'photo_' + _pi;
     const _uk = _pi === 0 ? 'photoUrl' : 'photoUrl_' + _pi;
     const _lv = getVal(currentDay, tid, _lk);
@@ -1959,7 +1966,7 @@ function openPhotoModal(tid, label) {
     // Count slot as occupied only if it has a real non-empty value
     if ((_lv && _lv !== 'null' && _lv !== '') || (_uv && _uv !== 'null' && _uv !== '')) _photoCount++;
   }
-  if (_photoCount >= 5) { showToast('Maximum 5 photos reached for this task', 'warn'); return; }
+  if (_photoCount >= 10) { showToast('Maximum 10 photos reached for this task', 'warn'); return; }
   activePhotoTask = tid;
   document.getElementById('modalLabel').textContent = label;
   document.getElementById('photoModal').classList.add('open');
