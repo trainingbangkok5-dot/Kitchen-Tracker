@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629300000';
+  var v = '20260629310000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2822,13 +2822,32 @@ function renderSummaryScoring() {
       // Daily avg from current scores
       const _dayScores = [_dayOpScore, _dayClScore, _dayEvScore].filter(function(v){return v!=null;});
       const _dayAvg = _dayScores.length > 0 ? Math.round(_dayScores.reduce(function(a,b){return a+b;},0)/_dayScores.length) : null;
-      // N/A pill — shown when the entire shift is N/A for the week (score box = N/A)
+      // N/A pill — per day per shift based on what was actually submitted
       const _naPill = '<span style="display:inline-block;background:#F1F5F9;color:#64748B;font-size:10px;font-weight:500;padding:1px 8px;border-radius:20px;">N/A</span>';
-      // Each cell: if score box is N/A → show N/A pill for ALL days
-      //            if score box has score → show actual score per day or — if not submitted that day
-      const _opCell  = op==null  ? _naPill : _cell(hasOpen, _dayOpScore, _opOW&&hasOpen, '#3B6D11','#F59E0B',_origOpDay);
-      const _clCell  = cl==null  ? _naPill : _cell(hasClose,_dayClScore, _clOW&&hasClose,'#185FA5','#F59E0B',_origClDay);
-      const _evCell  = ev==null  ? _naPill : _cell(hasEval, _dayEvScore, false,          '#854F0B','#854F0B',null);
+      // Determine if staff worked that day at all (has any submission in days/ node)
+      const _workedThatDay = !!(_dsm && (Object.keys(_dsm).length > 0));
+      // Per-day N/A logic:
+      // - If staff worked that day but didn't submit a specific shift → N/A for that shift
+      // - If staff didn't work that day at all → — for all shifts
+      // - If weekly score box is N/A → N/A for all days (never submitted that shift all week)
+      const _dayHasOp = _dsm.openingPct != null;
+      const _dayHasCl = _dsm.closingPct != null;
+      const _dayHasEv = _dsm.oicEvalPct != null || hasEval;
+      // Opening cell
+      const _opCell = op==null ? _naPill
+        : hasOpen ? _cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOpDay)
+        : (_workedThatDay && _dayHasCl && !_dayHasOp) ? _naPill
+        : _cell(false,null,false,'#3B6D11','#F59E0B',null);
+      // Closing cell
+      const _clCell = cl==null ? _naPill
+        : hasClose ? _cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origClDay)
+        : (_workedThatDay && _dayHasOp && !_dayHasCl) ? _naPill
+        : _cell(false,null,false,'#185FA5','#F59E0B',null);
+      // Eval cell
+      const _evCell = ev==null ? _naPill
+        : hasEval ? _cell(hasEval,_dayEvScore,false,'#854F0B','#854F0B',null)
+        : _workedThatDay ? _naPill
+        : _cell(false,null,false,'#854F0B','#854F0B',null);
       tableHtml += '<tr style="background:'+bg+';border-bottom:0.5px solid #F1F5F9;">'        +'<td style="padding:6px 10px;color:#1A3C5E;font-weight:500;">'+d.label+'</td>'        +'<td style="padding:6px 10px;color:#94A3B8;">'+d.day+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_opCell+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_clCell+'</td>'        +'<td style="padding:6px 10px;text-align:center;">'+_evCell+'</td>'        +'<td style="padding:6px 10px;text-align:center;font-weight:600;color:'+(_dayAvg!=null?scoreColor(_dayAvg):'#94A3B8')+';font-size:12px;">'+(_dayAvg!=null?_dayAvg+'%':'—')+'</td>'        +'</tr>';
     });
     tableHtml += '</tbody></table>';
