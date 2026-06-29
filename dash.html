@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629220000';
+  var v = '20260629230000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2658,7 +2658,12 @@ function renderSummaryScoring() {
     // Step 1: Read days/ node from all rawRows (most reliable)
     // Business date logic: closing shifts submitted after midnight may have a date
     // 1 day before the week start — remap those to the week start date
-    const _wsDate = _weekStart; // week start ISO string e.g. "2026-06-29"
+    // Get week start directly from date range or e.week (can't use _weekStart — declared later)
+    const _fromEl = document.getElementById('ssDateFrom');
+    const _toEl   = document.getElementById('ssDateTo');
+    const _fromV  = _fromEl ? _fromEl.value : '';
+    const _toV    = _toEl   ? _toEl.value   : '';
+    const _wsDate = (_fromV && _toV) ? _fromV : (e.week||'').split(' ')[0];
     raws.forEach(function(r) {
       if (r.days && typeof r.days === 'object') {
         Object.keys(r.days).forEach(function(date) {
