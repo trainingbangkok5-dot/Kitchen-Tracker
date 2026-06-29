@@ -9,7 +9,7 @@
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629340000';
+  var v = '20260629350000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -2501,6 +2501,7 @@ function renderSummaryScoring() {
   // Final display order: by week desc, then rank, then latest submittedAt
   employees.sort((a,b) =>
     (b.week||'').localeCompare(a.week||'') ||
+    (a.outlet||'').localeCompare(b.outlet||'') ||
     (a.rank!=null && b.rank!=null ? a.rank-b.rank :
      a.rank!=null ? -1 : b.rank!=null ? 1 :
      new Date(b.submittedAt||0) - new Date(a.submittedAt||0)) ||
@@ -2564,9 +2565,19 @@ function renderSummaryScoring() {
   if (ssOW)    ssOW.textContent    = overwriteCount;
 
   let rowsHtml = '';
+  let _lastOutlet = null;
   employees.forEach(function(e, i) {
     try {
     const hasOW = (e.rawRows||[]).some(r=>r.overwrittenBy||r.overwrittenAt);
+    // Outlet title bar — insert when outlet changes
+    const _curOutlet = e.outlet || '—';
+    if (_curOutlet !== _lastOutlet) {
+      rowsHtml += '<tr><td colspan="10" style="padding:0;">'
+        +'<div style="background:#1A3C5E;padding:8px 14px;">'
+        +'<span style="font-size:11px;font-weight:600;color:#fff;letter-spacing:.08em;text-transform:uppercase;">'+_curOutlet+'</span>'
+        +'</div></td></tr>';
+      _lastOutlet = _curOutlet;
+    }
     const op = e.roles&&e.roles[0] ? e.roles[0].openingAvg : null;
     const cl = e.roles&&e.roles[0] ? e.roles[0].closingAvg : null;
     const ev = e.roles&&e.roles[0] ? e.roles[0].oicAvg     : null;
