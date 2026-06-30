@@ -54,7 +54,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260630090000">
+<meta name="app-version" content="20260630110000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#2E6DA4">
@@ -1718,7 +1718,7 @@ async function submitDay() {
     status:       'closing_submitted',
     businessDate: (function() {
       const _h = parseInt(new Date().toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
-      const _bd = new Date(_h < 3 ? Date.now()-86400000 : Date.now());
+      const _bd = new Date(_h < 2 ? Date.now()-86400000 : Date.now());
       return _bd.toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
     })(),
     day:        currentDay,

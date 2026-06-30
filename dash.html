@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260630080000">
+<meta name="app-version" content="20260630100000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -9482,7 +9482,8 @@ async function saveOverwrite(s) {
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
   updates['submissions/' + fbKey + '/overwrittenBy'] = currentRole;
   updates['submissions/' + fbKey + '/overwrittenAt'] = new Date().toISOString();
-  updates['submissions/' + fbKey + '/submittedAt']   = new Date().toISOString();
+  // NOTE: submittedAt intentionally NOT touched here — it must always reflect the
+  // staff member's original submission time. overwrittenAt already tracks edit time.
   if (opPct !== null) updates['submissions/' + fbKey + '/openingPct'] = opPct;
   if (clPct !== null) {
     updates['submissions/' + fbKey + '/closingPct'] = clPct;
@@ -9540,7 +9541,8 @@ async function saveOverwrite(s) {
     s.overallPct = newScore;
     s.qualified  = newQualified;
     s.overwrittenBy = currentRole;
-    s.submittedAt = new Date().toISOString();
+    s.overwrittenAt = new Date().toISOString();
+    // NOTE: s.submittedAt intentionally NOT touched — preserves original submission date.
     // Merge updatedTaskData back so eval answers are preserved
     s.taskData = updatedTaskData;
     if (verifiedBy) s.verifiedBy = verifiedBy;
@@ -12704,7 +12706,7 @@ async function saveFOHOverwrite(staff) {
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
-      updates['submissions/' + child.key + '/submittedAt']   = new Date().toISOString();
+      // NOTE: submittedAt intentionally NOT touched — preserves original submission date.
       if (fohOpPct2 !== null) updates['submissions/' + child.key + '/openingPct'] = fohOpPct2;
       if (fohClPct2 !== null) {
         updates['submissions/' + child.key + '/closingPct'] = fohClPct2;
