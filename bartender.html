@@ -44,7 +44,7 @@
 })();
 
 (function() {
-  var v = '20260619170004';
+  var v = '20260619170005';
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -976,22 +976,39 @@ document.addEventListener('click', e => {
 
 
 async function validateStaffNameStrict(name) {
-  // Must match EXACTLY — same case, same spacing as registry
-  await loadRegistryData();
-  if (!_registryData) return { ok: true }; // pass if registry unavailable
-  const norm = (name||'').trim().replace(/\s+/g,' ');
-  // Check exact match first
-  const exactMatch = _registryData.find(r => r.name === norm);
-  if (exactMatch) return { ok: true, entry: exactMatch };
-  // Check case-insensitive match to give a helpful error
-  const caseMatch = _registryData.find(r =>
-    r.name.toLowerCase() === norm.toLowerCase()
-  );
-  if (caseMatch) {
-    return { ok: false, msg: 'Name format incorrect. Please select your name from the dropdown exactly as registered: "' + caseMatch.name + '"' };
+  const raw = (name||'').trim().replace(/\s+/g,' ');
+  if (!raw) return { ok: false, msg: 'Please enter your name.' };
+
+  // ── Step 1: Title Case format check (PRIMARY — always enforced) ──────────
+  // Each word must start with uppercase, rest lowercase. Allows apostrophes/hyphens (O'Brien, Smith-Jones).
+  const words = raw.split(' ');
+  if (words.length < 2) {
+    return { ok: false, msg: 'Invalid name. Please enter your full name (first and last name).' };
   }
-  // No match at all
-  return { ok: false, msg: 'Name "' + norm + '" not found in registry. Please select your exact registered name from the dropdown.' };
+  const titleCaseRe = /^[A-Z][a-zà-ÿ']*([\'-][A-Z][a-zà-ÿ']*)?$/;
+  const isTitleCase = words.every(w => titleCaseRe.test(w));
+  if (!isTitleCase) {
+    // Build the corrected suggestion to show the user
+    const suggested = words.map(w => w.length ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w).join(' ');
+    return { ok: false, msg: 'Invalid name format. Please enter your name with the first letter of each name capitalized (e.g., "' + suggested + '").' };
+  }
+
+  // ── Step 2: Registry check (SOFT — warns but does not block) ─────────────
+  // This allows submission even if registry data has gaps, while still flagging
+  // genuinely unregistered names for admin review during verification.
+  await loadRegistryData();
+  if (_registryData) {
+    const exactMatch = _registryData.find(r => r.name === raw);
+    if (!exactMatch) {
+      console.warn('Name not found in registry (allowed to proceed):', raw);
+      // Soft flag stored with submission so KIC/OIC can see it during verification
+      window._nameNotInRegistry = true;
+    } else {
+      window._nameNotInRegistry = false;
+    }
+  }
+
+  return { ok: true };
 }
 
 
