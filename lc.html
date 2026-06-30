@@ -54,7 +54,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-version" content="20260619360000">
+<meta name="app-version" content="20260630090000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#2E6DA4">
@@ -579,19 +579,23 @@ async function validateStaffNameStrict(name) {
     return { ok: false, msg: 'Invalid name format. Please enter your name with the first letter of each name capitalized (e.g., "' + suggested + '").' };
   }
 
-  // ── Step 2: Registry check (SOFT — warns but does not block) ─────────────
-  // This allows submission even if registry data has gaps, while still flagging
-  // genuinely unregistered names for admin review during verification.
+  // ── Step 2: Registry check (HARD — must match an active registry name) ───
+  // Staff must select their name from the dropdown (registry-backed). This
+  // prevents typos/casing/duplicate-name variants from fragmenting the data.
+  // If registry data failed to load entirely, we don't block (fail-open on
+  // infra issues only — not on genuine mismatches).
   await loadRegistryData();
-  if (_registryData) {
-    const exactMatch = _registryData.find(r => r.name === raw);
+  if (_registryData && _registryData.length) {
+    const normRaw = raw.toLowerCase();
+    const exactMatch = _registryData.find(r => (r.name||'').toLowerCase() === normRaw);
     if (!exactMatch) {
-      console.warn('Name not found in registry (allowed to proceed):', raw);
-      // Soft flag stored with submission so KIC/OIC can see it during verification
       window._nameNotInRegistry = true;
-    } else {
-      window._nameNotInRegistry = false;
+      return {
+        ok: false,
+        msg: 'Name not found in staff registry. Please tap your name from the suggestion list as you type. If you are new or your name is missing, contact your manager to be added before submitting.'
+      };
     }
+    window._nameNotInRegistry = false;
   }
 
   return { ok: true };
