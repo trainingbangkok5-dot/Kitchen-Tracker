@@ -40,7 +40,7 @@
 })();
 
 (function() {
-  var v = '20260619360002';
+  var v = '20260619360003';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -242,38 +242,40 @@ const FIREBASE_CONFIG = {
 
 // Update photo ref in existing Firebase submission after async upload completes
 async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
-  if (!_db || !staffName) return;
+  if (!_db || !staffName || !dbRef) return;
   try {
-    // Save to the correct slot key — same as local storage
     const photoKey = (slotIdx === undefined || slotIdx === 0) ? 'photoUrl' : 'photoUrl_' + slotIdx;
     const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
     if (!snap.exists()) return;
     const updates = {};
+    const matchedKeys = []; // { fbKey, taskKey }
     snap.forEach(child => {
       const sub = child.val();
       if (sub.role === ROLE && sub.taskData && sub.submittedAt && (new Date() - new Date(sub.submittedAt)) < 8 * 24 * 3600 * 1000) {
         Object.keys(sub.taskData).forEach(k => {
-          if (k === 'd1_' + taskId || k.endsWith('_' + taskId)) {
-            updates['submissions/' + child.key + '/taskData/' + k + '/' + photoKey] = dbRef;
-            // Also rebuild photoUrls array from all current URL slots
-            const existing = sub.taskData[k] || {};
-            const allUrls = [];
-            ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach((pk, idx) => {
-              // For the current slot, use the new dbRef; for others use existing value
-              const slotKey2 = idx === 0 ? 'photoUrl' : 'photoUrl_' + idx;
-              const url = slotKey2 === photoKey ? dbRef : (existing[pk] || '');
-              if (url && url.startsWith('http')) allUrls.push(url);
-            });
-            if (allUrls.length > 0) {
-              updates['submissions/' + child.key + '/taskData/' + k + '/photoUrls'] = allUrls;
-            }
+          if (k === taskId || k === 'd1_' + taskId || k.endsWith('_' + taskId)) {
+            matchedKeys.push({ fbKey: child.key, taskKey: k });
           }
         });
       }
     });
-    if (Object.keys(updates).length > 0) {
-      await _db.ref().update(updates);
+    if (!matchedKeys.length) return;
+    // Re-read each exact taskData node fresh right before writing, to avoid
+    // overwriting a sibling photo slot that was written moments ago by a
+    // near-simultaneous upload to the same task (race condition fix).
+    for (const { fbKey, taskKey } of matchedKeys) {
+      const freshSnap = await _db.ref('submissions/' + fbKey + '/taskData/' + taskKey).once('value');
+      const existing = freshSnap.val() || {};
+      existing[photoKey] = dbRef;
+      const allUrls = [];
+      ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach(pk => {
+        const u = existing[pk];
+        if (u && typeof u === 'string' && u.startsWith('http') && !allUrls.includes(u)) allUrls.push(u);
+      });
+      updates['submissions/' + fbKey + '/taskData/' + taskKey + '/' + photoKey] = dbRef;
+      if (allUrls.length > 0) updates['submissions/' + fbKey + '/taskData/' + taskKey + '/photoUrls'] = allUrls;
     }
+    if (Object.keys(updates).length > 0) await _db.ref().update(updates);
   } catch(e) { console.warn('updatePhotoInSubmission failed:', e); }
 }
 

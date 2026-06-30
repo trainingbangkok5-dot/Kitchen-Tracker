@@ -44,7 +44,7 @@
 })();
 
 (function() {
-  var v = '20260619340005';
+  var v = '20260619340006';
   var stored = localStorage.getItem('app_version_delco');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 
@@ -539,26 +539,35 @@ async function _updateSubmittedPhoto(taskId, photoKey, photoUrl) {
     const snap = await _db.ref('submissions').orderByChild('staffName').equalTo(staffName).limitToLast(5).once('value');
     if (!snap.exists()) return;
     const updates = {};
+    const matchedKeys = [];
     snap.forEach(child => {
       const sub = child.val();
       if (sub.role === ROLE && sub.taskData) {
         Object.keys(sub.taskData).forEach(k => {
-          if (k === taskId || k.endsWith('_' + taskId) || k === 'd1_' + taskId) {
-            updates['submissions/' + child.key + '/taskData/' + k + '/' + photoKey] = photoUrl;
-            // Rebuild photoUrls array
-            const existing = sub.taskData[k] || {};
-            const allUrls = [];
-            ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach((pk) => {
-              const u = pk === photoKey ? photoUrl : (existing[pk] || '');
-              if (u && u.startsWith('http') && !allUrls.includes(u)) allUrls.push(u);
-            });
-            if (allUrls.length > 0) updates['submissions/' + child.key + '/taskData/' + k + '/photoUrls'] = allUrls;
+          if (k === taskId || k === 'd1_' + taskId || k.endsWith('_' + taskId)) {
+            matchedKeys.push({ fbKey: child.key, taskKey: k });
           }
         });
       }
     });
+    if (!matchedKeys.length) return;
+    // Re-read each exact taskData node fresh right before writing, to avoid
+    // overwriting a sibling photo slot that was written moments ago by a
+    // near-simultaneous upload to the same task (race condition fix).
+    for (const { fbKey, taskKey } of matchedKeys) {
+      const freshSnap = await _db.ref('submissions/' + fbKey + '/taskData/' + taskKey).once('value');
+      const existing = freshSnap.val() || {};
+      existing[photoKey] = photoUrl;
+      const allUrls = [];
+      ['photoUrl','photoUrl_1','photoUrl_2','photoUrl_3','photoUrl_4','photoUrl_5','photoUrl_6','photoUrl_7','photoUrl_8','photoUrl_9'].forEach(pk => {
+        const u = existing[pk];
+        if (u && typeof u === 'string' && u.startsWith('http') && !allUrls.includes(u)) allUrls.push(u);
+      });
+      updates['submissions/' + fbKey + '/taskData/' + taskKey + '/' + photoKey] = photoUrl;
+      if (allUrls.length > 0) updates['submissions/' + fbKey + '/taskData/' + taskKey + '/photoUrls'] = allUrls;
+    }
     if (Object.keys(updates).length > 0) await _db.ref().update(updates);
-  } catch(e) { console.warn('Photo Firebase update failed:', e); }
+  } catch(e) { console.warn('_updateSubmittedPhoto failed:', e); }
 }
 
 async function handlePhotoFile(file) {
