@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260630100000">
+<meta name="app-version" content="20260630120000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2306,6 +2306,24 @@ function ssConsolidateByEmployee(rows) {
       // (opening avg + closing avg + eval avg) / number of components present
       // This matches the BOH tab formula exactly.
       const daysSubmitted = dailyBreakdown.length;
+
+      // ── Accuracy fix (2026-06-30): recompute openingAvg/closingAvg/oicAvg ──
+      // FROM the date-scoped dailyBreakdown, instead of trusting the raw
+      // "latest submittedAt wins" role summary (e.roles[0]). The raw summary
+      // can carry a score from a record whose actual calendar date falls
+      // outside this displayed week (e.g. due to a week-label vs real-date
+      // mismatch), which made the top summary cards disagree with the daily
+      // table below them. Deriving both from the same dailyBreakdown source
+      // guarantees they can never contradict each other again.
+      if (dailyBreakdown.length && e.roles && e.roles.length) {
+        const _openVals = dailyBreakdown.map(d => d.openingPct).filter(v => v != null);
+        const _closeVals = dailyBreakdown.map(d => d.closingPct).filter(v => v != null);
+        const _evalVals = dailyBreakdown.map(d => d.oicEvalPct).filter(v => v != null);
+        e.roles[0].openingAvg = _openVals.length ? Math.round(_openVals.reduce((a,b)=>a+b,0) / _openVals.length) : null;
+        e.roles[0].closingAvg = _closeVals.length ? Math.round(_closeVals.reduce((a,b)=>a+b,0) / _closeVals.length) : null;
+        e.roles[0].oicAvg = _evalVals.length ? Math.round(_evalVals.reduce((a,b)=>a+b,0) / _evalVals.length) : null;
+      }
+
       // Use role summaries (openingAvg, closingAvg, oicAvg) for the weekly combined avg
       // Fall back to daily sum if role summaries not available
       const _rAvg = e.roles && e.roles.length ? e.roles[0] : null;
