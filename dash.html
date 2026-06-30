@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260619450000">
+<meta name="app-version" content="20260630080000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260629420000';
+  var v = '20260630080000';
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -1802,7 +1802,10 @@ function loadData() {
   // autoArchiveOldSubmissions(); // Disabled — run manually via Archive tab only
   // Load all submissions — no week filter (week formats differ between files)
   const bohQuery = db.ref('submissions').orderByChild('submittedAt').limitToLast(3000);
-  bohQuery.once('value', snap => {
+  if (typeof window._mainBohQListenerAttached === 'undefined') window._mainBohQListenerAttached = false;
+  if (window._mainBohQListenerAttached) { bohQuery.off('value'); }
+  window._mainBohQListenerAttached = true;
+  bohQuery.on('value', snap => {
     const raw = snap.val() ? Object.entries(snap.val()).map(([k,v]) => ({...v, _fbKey: k})) : [];
     // Deduplicate BOH — keep latest per staffName+role+week
     const rawFiltered = filterByRole(raw);
@@ -1884,7 +1887,11 @@ function loadData() {
                   allAuditTypes.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
-        fohDb.ref('submissions').orderByChild('submittedAt').limitToLast(3000).once('value', fohSnap => {
+        const _nestedFohRef = fohDb.ref('submissions').orderByChild('submittedAt').limitToLast(3000);
+        if (typeof window._nestedFohQAttached === 'undefined') window._nestedFohQAttached = false;
+        if (window._nestedFohQAttached) { _nestedFohRef.off('value'); }
+        window._nestedFohQAttached = true;
+        _nestedFohRef.on('value', fohSnap => {
           const fohRaw = fohSnap.val() ? Object.entries(fohSnap.val()).map(([k,v]) => ({...v, _fbKey:k, _isFOH:true})) : [];
           // Deduplicate — keep latest submission per staffName+role+week
     const combined = [...filterByRole(raw), ...fohRaw.filter(s => s.staffName && s.role && ['service','oic','bartender','delco'].includes(s.role))];
@@ -2005,9 +2012,32 @@ function setSyncStatus(st,msg) {
 // ── Summary Scoring Tab ─────────────────────────────────────
 let _ssData = []; // raw rows: {staffName, role, outlet, week, openingPct, closingPct, oicEvalPct}
 
+let _ssLiveListenerAttached = false;
 function initSummaryScoring() {
   const tbody = document.getElementById('ssTableBody');
   tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94A3B8;">Loading…</td></tr>';
+  // Attach a lightweight live listener (once) so new submissions auto-refresh
+  // the Weekly Report while the user is sitting on this tab — fixes submissions
+  // not appearing without a manual tab switch or page reload.
+  if (!_ssLiveListenerAttached && db) {
+    _ssLiveListenerAttached = true;
+    let _ssDebounce = null;
+    const _ssLiveRefresh = function() {
+      clearTimeout(_ssDebounce);
+      _ssDebounce = setTimeout(function() {
+        const _ssPage = document.getElementById('page-summaryscoring');
+        if (_ssPage && _ssPage.classList.contains('active')) {
+          initSummaryScoring();
+        }
+      }, 800);
+    };
+    db.ref('submissions').limitToLast(1).on('child_added', _ssLiveRefresh);
+    db.ref('submissions').limitToLast(1).on('child_changed', _ssLiveRefresh);
+    if (typeof fohDb !== 'undefined' && fohDb) {
+      fohDb.ref('submissions').limitToLast(1).on('child_added', _ssLiveRefresh);
+      fohDb.ref('submissions').limitToLast(1).on('child_changed', _ssLiveRefresh);
+    }
+  }
   _ssData = [];
 
   const isAreaChef = currentRole === 'areachef';
@@ -9906,7 +9936,12 @@ function loadBOHData() {
   document.getElementById('bohStatus').textContent = '⏳ Loading...';
   // Show all submissions — no week filter
   const bohQ = db.ref('submissions').orderByChild('submittedAt').limitToLast(3000);
-  bohQ.once('value', snap => {
+  // Detach any previously attached live listener before re-attaching, to avoid
+  // stacking duplicate listeners every time this tab/function is called
+  if (typeof window._bohQListenerAttached === 'undefined') window._bohQListenerAttached = false;
+  if (window._bohQListenerAttached) { bohQ.off('value'); }
+  window._bohQListenerAttached = true;
+  bohQ.on('value', snap => {
     allBOHData = [];
     if (snap.exists()) {
       const grouped = {};
@@ -10906,7 +10941,10 @@ function loadFOHData() {
   document.getElementById('fohStatus').textContent = '⏳ Loading...';
   // Show all submissions — no week filter
   const fohQ = fohDb.ref('submissions').orderByChild('week').limitToLast(3000);
-  fohQ.once('value', snap => {
+  if (typeof window._fohQListenerAttached === 'undefined') window._fohQListenerAttached = false;
+  if (window._fohQListenerAttached) { fohQ.off('value'); }
+  window._fohQListenerAttached = true;
+  fohQ.on('value', snap => {
     if (snap.exists()) {
       // Group by staffName + role + week
       const grouped = {};
