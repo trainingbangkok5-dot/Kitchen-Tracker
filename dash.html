@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701150000">
+<meta name="app-version" content="20260701170000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1661,7 +1661,7 @@ function doLogin() {
   // ── BOH/FOH tabs access control (2026-07-01) ────────────────────────
   // Only these roles can see BOH/FOH. Add/remove role names in this one
   // list to change access later — everything else adjusts automatically.
-  const TABS_BOH_FOH_ALLOWED_ROLES = ['training','admin'];
+  const TABS_BOH_FOH_ALLOWED_ROLES = ['training','admin','director'];
   const _bohFohAllowed = TABS_BOH_FOH_ALLOWED_ROLES.includes(currentRole);
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
