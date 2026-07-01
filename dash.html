@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701140000">
+<meta name="app-version" content="20260701150000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1649,7 +1649,7 @@ function doLogin() {
   }
   document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
   const tabChecklistLock = document.getElementById('tabChecklistLock');
-  if (tabChecklistLock) tabChecklistLock.style.display = currentRole === 'training' ? 'flex' : 'none';
+  if (tabChecklistLock) tabChecklistLock.style.display = ['training','admin'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabVerified').style.display = 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
@@ -1661,7 +1661,7 @@ function doLogin() {
   // ── BOH/FOH tabs access control (2026-07-01) ────────────────────────
   // Only these roles can see BOH/FOH. Add/remove role names in this one
   // list to change access later — everything else adjusts automatically.
-  const TABS_BOH_FOH_ALLOWED_ROLES = ['training'];
+  const TABS_BOH_FOH_ALLOWED_ROLES = ['training','admin'];
   const _bohFohAllowed = TABS_BOH_FOH_ALLOWED_ROLES.includes(currentRole);
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
