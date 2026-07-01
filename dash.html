@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701170000">
+<meta name="app-version" content="20260701190000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -299,8 +299,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- All Staff tab removed — BOH tab shows all staff -->
     <div class="tab" id="tabAudits" onclick="showTab(this,'audits')" style="display:none;">📋 Audits</div>
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
-    <div class="tab" id="tabBOH" onclick="showTab(this,'boh')" style="display:none;">🍳 BOH</div>
-    <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
+    <div class="tab" id="tabBOH" onclick="openFullBOHTab(this)" style="display:none;">🍳 BOH</div>
+    <div class="tab" id="tabFOH" onclick="openFullFOHTab(this)" style="display:none;">🛎️ FOH</div>
+    <div class="tab" id="tabKICOnly" onclick="openKICOnlyTab(this)" style="display:none;">👨‍🍳 KIC</div>
+    <div class="tab" id="tabOICOnly" onclick="openOICOnlyTab(this)" style="display:none;">🧑‍💼 OIC</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabChecklistLock" onclick="showTab(this,'checklistlock')" style="display:none;">🔒 Checklist Control</div>
     <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
@@ -485,7 +487,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">🍳 Line Cook</button>
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
-      <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
       <label style="font-size:11px;font-weight:600;color:#64748B;">📅 From</label>
@@ -583,7 +584,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">🛎️ Service</button>
-      <button id="fohSubOic" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
       <button id="fohSubDelco" onclick="setFOHSub('delco')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🚚 Del.Co</button>
       <button id="fohSubBartender" onclick="setFOHSub('bartender')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍹 Bartender</button>
     </div>
@@ -1667,8 +1667,7 @@ function doLogin() {
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabBOH').style.display = (_bohFohAllowed && bohRoles.includes(currentRole)) ? 'flex' : 'none';
   // Hide KIC sub-tab from KIC role — they only see their own submissions
-  const bohSubKicBtn = document.getElementById('bohSubKic');
-  if (bohSubKicBtn) bohSubKicBtn.style.display = currentRole === 'kic' ? 'none' : '';
+  // (bohSubKic removed — KIC now has its own dedicated tab)
   // FOH tab — visible to OIC, Area Manager and full access roles
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = (_bohFohAllowed && fohRoles.includes(currentRole)) ? 'flex' : 'none';
@@ -1676,22 +1675,32 @@ function doLogin() {
   const auditRoles = ['training','operations','director','ceo','areamanager','areachef'];
   const tabAudits = document.getElementById('tabAudits');
   if (tabAudits) tabAudits.style.display = auditRoles.includes(currentRole) ? 'flex' : 'none';
-  const fohSubOicBtn = document.getElementById('fohSubOic');
-  if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
+  // (fohSubOic removed — OIC now has its own dedicated tab)
+  // ── Standalone KIC / OIC tabs (2026-07-01) ──────────────────────────
+  // Independent of the BOH/FOH combined-view restriction above — KIC role
+  // sees their own dedicated KIC tab, OIC role sees their own dedicated
+  // OIC tab. Management roles can view both for oversight.
+  const KIC_ONLY_ALLOWED = ['kic','training','admin','director','areachef','operations','ceo'];
+  const OIC_ONLY_ALLOWED = ['oic','training','admin','director','areamanager','operations','ceo'];
+  const tabKICOnly = document.getElementById('tabKICOnly');
+  const tabOICOnly = document.getElementById('tabOICOnly');
+  if (tabKICOnly) tabKICOnly.style.display = KIC_ONLY_ALLOWED.includes(currentRole) ? 'flex' : 'none';
+  if (tabOICOnly) tabOICOnly.style.display = OIC_ONLY_ALLOWED.includes(currentRole) ? 'flex' : 'none';
   // Set default tab — Overview removed, route each role to their primary tab
-  // Roles without BOH/FOH access are safely routed to Weekly Staff Report instead.
-  if (!_bohFohAllowed && ['kic','oic','areachef','areamanager','training','operations','director','ceo'].includes(currentRole)) {
-    setTimeout(() => showTab(document.getElementById('tabSummaryScoring'), 'summaryscoring'), 100);
-  } else if (currentRole === 'kic') {
-    setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
+  // KIC and OIC route to their own dedicated tabs (always available to them).
+  // Other roles without BOH/FOH access are safely routed to Weekly Staff Report.
+  if (currentRole === 'kic') {
+    setTimeout(() => openKICOnlyTab(document.getElementById('tabKICOnly')), 100);
   } else if (currentRole === 'oic') {
-    setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
+    setTimeout(() => openOICOnlyTab(document.getElementById('tabOICOnly')), 100);
+  } else if (!_bohFohAllowed && ['areachef','areamanager','training','operations','director','ceo'].includes(currentRole)) {
+    setTimeout(() => showTab(document.getElementById('tabSummaryScoring'), 'summaryscoring'), 100);
   } else if (currentRole === 'areachef') {
-    setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
+    setTimeout(() => openFullBOHTab(document.getElementById('tabBOH')), 100);
   } else if (currentRole === 'areamanager') {
-    setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
+    setTimeout(() => openFullFOHTab(document.getElementById('tabFOH')), 100);
   } else if (['training','operations','director','ceo'].includes(currentRole)) {
-    setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
+    setTimeout(() => openFullBOHTab(document.getElementById('tabBOH')), 100);
   } else if (currentRole === 'maintsupervisor') {
     setTimeout(() => showTab(document.getElementById('tabMaintenance') || document.querySelector('[onclick*="maintenance"]'), 'maintenance'), 100);
   }
@@ -10187,6 +10196,42 @@ function loadBOHData() {
     document.getElementById('bohStatus').textContent = '✅ ' + allBOHData.length + ' records';
     renderBOHStaff();
   }, e => { document.getElementById('bohStatus').textContent = '❌ Error'; });
+}
+
+function openFullBOHTab(el) {
+  ['bohSubLinecook','bohSubSteward'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = '';
+  });
+  showTab(el, 'boh');
+}
+
+function openFullFOHTab(el) {
+  ['fohSubService','fohSubDelco','fohSubBartender'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = '';
+  });
+  showTab(el, 'foh');
+}
+
+function openKICOnlyTab(el) {
+  showTab(el, 'boh');
+  setBOHSub('kic');
+  // Hide Line Cook / Steward sub-tabs — this is a dedicated KIC-only view
+  const lcBtn = document.getElementById('bohSubLinecook');
+  const stBtn = document.getElementById('bohSubSteward');
+  if (lcBtn) lcBtn.style.display = 'none';
+  if (stBtn) stBtn.style.display = 'none';
+}
+
+function openOICOnlyTab(el) {
+  showTab(el, 'foh');
+  setFOHSub('oic');
+  // Hide Service / Delco / Bartender sub-tabs — this is a dedicated OIC-only view
+  ['fohSubService','fohSubDelco','fohSubBartender'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = 'none';
+  });
 }
 
 function setBOHSub(sub) {
