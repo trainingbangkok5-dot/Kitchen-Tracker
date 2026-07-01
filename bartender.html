@@ -3,7 +3,7 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
-<meta name="app-version" content="20260630110000">
+<meta name="app-version" content="20260701100000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -44,7 +44,7 @@
 })();
 
 (function() {
-  var v = '20260619170006';
+  var v = document.querySelector('meta[name="app-version"]').content;
   var stored = localStorage.getItem('app_version_bartender');
   if (stored !== v) {
     try { Object.keys(localStorage).forEach(function(k){ if(k.startsWith('kic_delco')) localStorage.removeItem(k); 

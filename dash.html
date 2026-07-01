@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260630130000">
+<meta name="app-version" content="20260701100000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <script>
 // Force fresh load — clear old cached version + PWA cache
 (function() {
-  var v = '20260630080000';
+  var v = document.querySelector('meta[name="app-version"]').content;
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     localStorage.setItem('app_version', v);
@@ -10126,7 +10126,7 @@ function loadBOHData() {
     }
     document.getElementById('bohStatus').textContent = '✅ ' + allBOHData.length + ' records';
     renderBOHStaff();
-  }).catch(e => { document.getElementById('bohStatus').textContent = '❌ Error'; });
+  }, e => { document.getElementById('bohStatus').textContent = '❌ Error'; });
 }
 
 function setBOHSub(sub) {
@@ -11117,7 +11117,7 @@ function loadFOHData() {
     }
     document.getElementById('fohStatus').textContent = '✅ ' + allFOHData.length + ' records';
     renderFOHStaff();
-  }).catch(e => {
+  }, e => {
     document.getElementById('fohStatus').textContent = '❌ Error';
     console.error('FOH load error:', e);
   });

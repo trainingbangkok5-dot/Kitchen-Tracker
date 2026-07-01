@@ -3,6 +3,7 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
+<meta name="app-version" content="20260701100000">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Steward Checklist">
@@ -40,7 +41,7 @@
 })();
 
 (function() {
-  var v = '20260619360005';
+  var v = document.querySelector('meta[name="app-version"]').content;
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
@@ -60,7 +61,6 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260619360000">
-<meta name="app-version" content="20260630110000">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#16A34A">

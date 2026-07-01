@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="app-version" content="20260701100000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260615290000">
-<meta name="app-version" content="20260630110000">
 <script>
 // ── Auto-clear base64 on startup — prevents storage full error ────────────
 (function() {
@@ -40,7 +40,7 @@
 
 // Force fresh load — clear old cached version
 (function() {
-  var v = '20260619320006';
+  var v = document.querySelector('meta[name="app-version"]').content;
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
     // Clear ALL cached data on version update
