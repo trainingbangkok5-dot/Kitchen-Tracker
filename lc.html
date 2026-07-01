@@ -3,7 +3,7 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701140000">
+<meta name="app-version" content="20260701210000">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Line Cook Checklist">
@@ -277,6 +277,7 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
 // Init Firebase — wait for SDK to be ready
 let _db = null;
 function showChecklistLockedScreen() {
+  if (document.getElementById('checklistLockedOverlay')) return; // already showing
   const overlay = document.createElement('div');
   overlay.id = 'checklistLockedOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#1A3C5E;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;';
@@ -290,6 +291,12 @@ function showChecklistLockedScreen() {
   document.body.style.overflow = 'hidden';
 }
 
+function hideChecklistLockedScreen() {
+  const overlay = document.getElementById('checklistLockedOverlay');
+  if (overlay) overlay.remove();
+  document.body.style.overflow = '';
+}
+
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') {
@@ -300,15 +307,19 @@ function initFirebase() {
     }
     _db = firebase.database();
     console.log('Firebase ready ✓');
-    // ── Remote checklist lock-check (2026-07-01) ──────────────────────
+    // ── Remote checklist lock-check (2026-07-01, now LIVE) ────────────
     // Training can disable this checklist remotely from the dashboard.
-    // Fails open (checklist stays usable) if the flag is missing or the
-    // read fails, so a connectivity hiccup never blocks staff from working.
-    _db.ref('system/checklistEnabled/' + ROLE).once('value', snap => {
+    // Uses a live listener so a change takes effect instantly, even if
+    // staff already have the page open — no refresh needed on their end.
+    // Fails open (checklist stays usable) if the flag is missing, so a
+    // connectivity hiccup never blocks staff from working.
+    _db.ref('system/checklistEnabled/' + ROLE).on('value', snap => {
       if (snap.exists() && snap.val() === false) {
         showChecklistLockedScreen();
+      } else {
+        hideChecklistLockedScreen();
       }
-    }).catch(() => {});
+    });
   } catch(e) {
     console.error('Firebase init error:', e);
   }
@@ -1562,6 +1573,16 @@ async function waitForPhotoUploads(tasks, maxWaitMs) {
 
 async function submitOpening() {
 
+  // ── Final lock-check, right at the moment of submission ─────────────
+  try {
+    const _lockSnap = await _db.ref('system/checklistEnabled/' + ROLE).once('value');
+    if (_lockSnap.exists() && _lockSnap.val() === false) {
+      showToast('This checklist has been temporarily disabled. Please check with your Training Manager.', 'error');
+      showChecklistLockedScreen();
+      return;
+    }
+  } catch(e) { /* fail open on connectivity issues */ }
+
   // ── Registry name validation (strict exact match) ──────────────────────
   const _submitName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
   const _nameResult = await validateStaffNameStrict(_submitName);
@@ -1664,6 +1685,16 @@ async function submitOpening() {
 }
 
 async function submitDay() {
+
+  // ── Final lock-check, right at the moment of submission ─────────────
+  try {
+    const _lockSnap = await _db.ref('system/checklistEnabled/' + ROLE).once('value');
+    if (_lockSnap.exists() && _lockSnap.val() === false) {
+      showToast('This checklist has been temporarily disabled. Please check with your Training Manager.', 'error');
+      showChecklistLockedScreen();
+      return;
+    }
+  } catch(e) { /* fail open on connectivity issues */ }
 
   // ── Registry name validation (strict exact match) ──────────────────────
   const _submitName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
