@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701100000">
+<meta name="app-version" content="20260701140000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -302,6 +302,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabBOH" onclick="showTab(this,'boh')" style="display:none;">🍳 BOH</div>
     <div class="tab" id="tabFOH" onclick="showTab(this,'foh')" style="display:none;">🛎️ FOH</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
+    <div class="tab" id="tabChecklistLock" onclick="showTab(this,'checklistlock')" style="display:none;">🔒 Checklist Control</div>
     <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
     <div class="tab" id="tabKPI" onclick="showTab(this,'kpi')" style="display:none;">📊 Area's Reports</div>
     <div class="tab" id="tabOICIncentive" onclick="showTab(this,'oicincentive')" style="display:none;">💰 OIC Incentive</div>
@@ -900,6 +901,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <tbody id="verifiedTableBody"></tbody>
       </table>
       <div id="verifiedEmpty" style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;display:none;">No records found</div>
+    </div>
+  </div>
+
+  <div class="page" id="page-checklistlock">
+    <div class="sec-title" style="margin-bottom:14px;">🔒 Checklist Control</div>
+    <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Toggle any checklist off to instantly block staff from submitting it — a full-screen "temporarily unavailable" message shows the next time they open it. Toggle back on to restore access immediately.</div>
+    <div id="checklistLockList" style="display:flex;flex-direction:column;gap:10px;max-width:480px;">
+      <div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>
     </div>
   </div>
 
@@ -1639,6 +1648,8 @@ function doLogin() {
     setTimeout(dashCheckNotifStatus, 2000);
   }
   document.getElementById('tabRegistry').style.display = ['training','director'].includes(currentRole) ? 'flex' : 'none';
+  const tabChecklistLock = document.getElementById('tabChecklistLock');
+  if (tabChecklistLock) tabChecklistLock.style.display = currentRole === 'training' ? 'flex' : 'none';
   document.getElementById('tabVerified').style.display = 'none';
   document.getElementById('tabArchive').style.display = ['training','director','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
   document.getElementById('tabKPI').style.display = ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole) ? 'flex' : 'none';
@@ -1647,15 +1658,20 @@ function doLogin() {
   document.getElementById('tabLiveReport').style.display = ['areachef','areamanager','director','training','operations','ceo','kic','oic'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
+  // ── BOH/FOH tabs access control (2026-07-01) ────────────────────────
+  // Only these roles can see BOH/FOH. Add/remove role names in this one
+  // list to change access later — everything else adjusts automatically.
+  const TABS_BOH_FOH_ALLOWED_ROLES = ['training'];
+  const _bohFohAllowed = TABS_BOH_FOH_ALLOWED_ROLES.includes(currentRole);
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
-  document.getElementById('tabBOH').style.display = bohRoles.includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabBOH').style.display = (_bohFohAllowed && bohRoles.includes(currentRole)) ? 'flex' : 'none';
   // Hide KIC sub-tab from KIC role — they only see their own submissions
   const bohSubKicBtn = document.getElementById('bohSubKic');
   if (bohSubKicBtn) bohSubKicBtn.style.display = currentRole === 'kic' ? 'none' : '';
   // FOH tab — visible to OIC, Area Manager and full access roles
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
-  document.getElementById('tabFOH').style.display = fohRoles.includes(currentRole) ? 'flex' : 'none';
+  document.getElementById('tabFOH').style.display = (_bohFohAllowed && fohRoles.includes(currentRole)) ? 'flex' : 'none';
   // Audits tab — visible to management roles
   const auditRoles = ['training','operations','director','ceo','areamanager','areachef'];
   const tabAudits = document.getElementById('tabAudits');
@@ -1663,7 +1679,10 @@ function doLogin() {
   const fohSubOicBtn = document.getElementById('fohSubOic');
   if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
   // Set default tab — Overview removed, route each role to their primary tab
-  if (currentRole === 'kic') {
+  // Roles without BOH/FOH access are safely routed to Weekly Staff Report instead.
+  if (!_bohFohAllowed && ['kic','oic','areachef','areamanager','training','operations','director','ceo'].includes(currentRole)) {
+    setTimeout(() => showTab(document.getElementById('tabSummaryScoring'), 'summaryscoring'), 100);
+  } else if (currentRole === 'kic') {
     setTimeout(() => showTab(document.getElementById('tabBOH'), 'boh'), 100);
   } else if (currentRole === 'oic') {
     setTimeout(() => showTab(document.getElementById('tabFOH'), 'foh'), 100);
@@ -3877,6 +3896,7 @@ function showTab(el,id) {
   if (id === 'weekly') { initWeeklyDates(); loadData(); }
   if (id === 'monthly') { renderMonthly(); }
   if (id === 'registry') { renderRegistry(); }
+  if (id === 'checklistlock') { renderChecklistLocks(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
   if (id === 'boh') { loadBOHData(); }
@@ -7887,6 +7907,46 @@ window.debugStaff = function(name) {
   console.groupEnd();
 };
 
+// ── Checklist Control panel (2026-07-01) ──────────────────────────────
+const CHECKLIST_LOCK_ROLES = [
+  { key: 'linecook',  label: '🍳 Line Cook' },
+  { key: 'steward',   label: '🧹 Steward' },
+  { key: 'service',   label: '🍽️ Service' },
+  { key: 'delco',     label: '🛵 Delco' },
+  { key: 'bartender', label: '🍹 Bartender' }
+];
+
+function renderChecklistLocks() {
+  const container = document.getElementById('checklistLockList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>';
+  db.ref('system/checklistEnabled').once('value', snap => {
+    const states = snap.val() || {};
+    container.innerHTML = CHECKLIST_LOCK_ROLES.map(r => {
+      const enabled = states[r.key] !== false; // default enabled if not set
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:14px 16px;">' +
+        '<div style="font-size:14px;font-weight:600;color:#1A3C5E;">' + r.label + '</div>' +
+        '<label style="position:relative;display:inline-block;width:46px;height:26px;">' +
+          '<input type="checkbox" ' + (enabled ? 'checked' : '') + ' onchange="toggleChecklistLock(\'' + r.key + '\', this.checked)" style="opacity:0;width:0;height:0;">' +
+          '<span style="position:absolute;cursor:pointer;inset:0;background:' + (enabled ? '#16A34A' : '#CBD5E1') + ';border-radius:26px;transition:.2s;"></span>' +
+          '<span style="position:absolute;height:20px;width:20px;left:' + (enabled ? '23px' : '3px') + ';top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></span>' +
+        '</label>' +
+      '</div>';
+    }).join('');
+  }).catch(() => {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#A32D2D;">Failed to load — check your connection and try again.</div>';
+  });
+}
+
+function toggleChecklistLock(roleKey, isEnabled) {
+  db.ref('system/checklistEnabled/' + roleKey).set(isEnabled).then(() => {
+    showToast((isEnabled ? 'Enabled: ' : 'Disabled: ') + roleKey, isEnabled ? 'ok' : 'warn');
+  }).catch(e => {
+    showToast('Failed to update: ' + e.message, 'error');
+    renderChecklistLocks(); // revert the visual toggle on failure
+  });
+}
+
 function renderRegistry() {
   const search = (document.getElementById('regSearch')||{}).value||'';
   const roleF  = (document.getElementById('regRole')||{}).value||'';
@@ -10366,6 +10426,17 @@ function saveBOHVerification() {
   // If already verified for this shift — show confirmation dialog with 10-min wait
   if (_sameShiftExists) {
     const _lastEntry = existingLog.slice().reverse().find(function(e){ return e.shift === shift; });
+    // ── Duplicate-verification guard (2026-07-01) ──────────────────────
+    // If the new tally is identical to the most recent entry for this shift,
+    // there's nothing new to record — block it to avoid cluttering the
+    // verification history with redundant re-verifications of an unchanged result.
+    if (_lastEntry &&
+        (_lastEntry.yn_yes||0) === (newEntry.yn_yes||0) &&
+        (_lastEntry.yn_no||0)  === (newEntry.yn_no||0)  &&
+        (_lastEntry.yn_na||0)  === (newEntry.yn_na||0)) {
+      showToast('Already verified with this exact result — no changes to record. (Last by ' + _lastEntry.by + ')', 'warn');
+      return;
+    }
     const _shiftLabel = shift==='opening'?'Opening shift':shift==='closing'?'Closing shift':'Evaluation';
     _showReverifyDialog(s.staffName, _shiftLabel, _lastEntry, function() {
       existingLog.push(newEntry);
@@ -11967,6 +12038,15 @@ function saveFOHMultiVerify() {
   // If already verified for this shift — show confirmation dialog with 10-min wait
   if (_fohSameShift) {
     const _fohLastEntry = log.slice().reverse().find(function(e){ return e.shift === fohShift; });
+    // ── Duplicate-verification guard (2026-07-01) ──────────────────────
+    if (_fohLastEntry &&
+        (_fohLastEntry.yn_yes||0) === (newEntry.yn_yes||0) &&
+        (_fohLastEntry.yn_no||0)  === (newEntry.yn_no||0)  &&
+        (_fohLastEntry.yn_na||0)  === (newEntry.yn_na||0)) {
+      _fohVerifySaving = false;
+      showToast('Already verified with this exact result — no changes to record. (Last by ' + _fohLastEntry.by + ')', 'warn');
+      return;
+    }
     const _fohShiftLabel = fohShift==='opening'?'Opening shift':fohShift==='closing'?'Closing shift':'Evaluation';
     _showReverifyDialog(staff.staffName, _fohShiftLabel, _fohLastEntry, function() {
       log.push(newEntry);

@@ -3,7 +3,7 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701100000">
+<meta name="app-version" content="20260701140000">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Line Cook Checklist">
@@ -276,6 +276,20 @@ async function updatePhotoInSubmission(staffName, taskId, dbRef, slotIdx) {
 
 // Init Firebase — wait for SDK to be ready
 let _db = null;
+function showChecklistLockedScreen() {
+  const overlay = document.createElement('div');
+  overlay.id = 'checklistLockedOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#1A3C5E;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;';
+  overlay.innerHTML =
+    '<div style="max-width:380px;">' +
+      '<div style="font-size:48px;margin-bottom:16px;">🔒</div>' +
+      '<div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:10px;">Checklist Temporarily Unavailable</div>' +
+      '<div style="color:rgba(255,255,255,0.75);font-size:14px;line-height:1.5;">This checklist has been temporarily disabled. Please check with your Training Manager or supervisor before continuing.</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+}
+
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') {
@@ -286,6 +300,15 @@ function initFirebase() {
     }
     _db = firebase.database();
     console.log('Firebase ready ✓');
+    // ── Remote checklist lock-check (2026-07-01) ──────────────────────
+    // Training can disable this checklist remotely from the dashboard.
+    // Fails open (checklist stays usable) if the flag is missing or the
+    // read fails, so a connectivity hiccup never blocks staff from working.
+    _db.ref('system/checklistEnabled/' + ROLE).once('value', snap => {
+      if (snap.exists() && snap.val() === false) {
+        showChecklistLockedScreen();
+      }
+    }).catch(() => {});
   } catch(e) {
     console.error('Firebase init error:', e);
   }
