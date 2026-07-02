@@ -3,7 +3,7 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701210000">
+<meta name="app-version" content="20260702090000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1003,20 +1003,20 @@ document.addEventListener('click', e => {
 
 async function validateStaffNameStrict(name) {
   const raw = (name||'').trim().replace(/\s+/g,' ');
-  if (!raw) return { ok: false, msg: 'Please enter your name.' };
+  if (!raw) return { ok: false, msg: 'Please enter your name.', reason: 'empty' };
 
   // ── Step 1: Title Case format check (PRIMARY — always enforced) ──────────
   // Each word must start with uppercase, rest lowercase. Allows apostrophes/hyphens (O'Brien, Smith-Jones).
   const words = raw.split(' ');
   if (words.length < 2) {
-    return { ok: false, msg: 'Invalid name. Please enter your full name (first and last name).' };
+    return { ok: false, msg: 'Invalid name. Please enter your full name (first and last name).', reason: 'format' };
   }
   const titleCaseRe = /^[A-Z][a-zà-ÿ']*([\'-][A-Z][a-zà-ÿ']*)?$/;
   const isTitleCase = words.every(w => titleCaseRe.test(w));
   if (!isTitleCase) {
     // Build the corrected suggestion to show the user
     const suggested = words.map(w => w.length ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w).join(' ');
-    return { ok: false, msg: 'Invalid name format. Please enter your name with the first letter of each name capitalized (e.g., "' + suggested + '").' };
+    return { ok: false, msg: 'Invalid name format. Please enter your name with the first letter of each name capitalized (e.g., "' + suggested + '").', reason: 'format' };
   }
 
   // ── Step 2: Registry check (HARD — must match an active registry name) ───
@@ -1032,7 +1032,8 @@ async function validateStaffNameStrict(name) {
       window._nameNotInRegistry = true;
       return {
         ok: false,
-        msg: 'Name not found in staff registry. Please tap your name from the suggestion list as you type. If you are new or your name is missing, contact your manager to be added before submitting.'
+        reason: 'not_in_registry',
+        msg: 'Name not found in staff registry. Please tap your name from the suggestion list as you type. If you are new or your name is missing, you can request to be added below.'
       };
     }
     window._nameNotInRegistry = false;
@@ -1117,6 +1118,48 @@ function validateFullName(name) {
   return { valid: true, msg: '' };
 }
 
+function showRegistryRequestPrompt(typedName) {
+  if (document.getElementById('registryRequestOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'registryRequestOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:380px;width:100%;padding:24px;text-align:center;">' +
+      '<div style="font-size:36px;margin-bottom:10px;">📨</div>' +
+      '<div style="font-size:16px;font-weight:700;color:#1A3C5E;margin-bottom:8px;">Request to be Added</div>' +
+      '<div style="font-size:13px;color:#64748B;line-height:1.5;margin-bottom:18px;">"' + typedName + '" isn\'t in the staff registry yet. Send a request to your Training Manager so they can add you — you\'ll be able to submit as soon as it\'s approved.</div>' +
+      '<button onclick="sendRegistryRequest(\'' + typedName.replace(/'/g,"\\'") + '\')" id="sendRegRequestBtn" style="width:100%;padding:12px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;">Send Request</button>' +
+      '<button onclick="document.getElementById(\'registryRequestOverlay\').remove()" style="width:100%;padding:10px;background:transparent;color:#64748B;border:none;font-size:13px;cursor:pointer;">Cancel</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function sendRegistryRequest(typedName) {
+  const btn = document.getElementById('sendRegRequestBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+  const outlet = (typeof getOutlet === 'function' ? getOutlet() : '') || '';
+  _db.ref('system/registryRequests').push({
+    name: typedName,
+    role: ROLE,
+    roleLabel: (typeof ROLE_LABEL !== 'undefined' ? ROLE_LABEL : ROLE),
+    outlet: outlet,
+    requestedAt: new Date().toISOString(),
+    status: 'pending'
+  }).then(() => {
+    const overlay = document.getElementById('registryRequestOverlay');
+    if (overlay) {
+      overlay.querySelector('div').innerHTML =
+        '<div style="font-size:36px;margin-bottom:10px;">✅</div>' +
+        '<div style="font-size:16px;font-weight:700;color:#1A3C5E;margin-bottom:8px;">Request Sent</div>' +
+        '<div style="font-size:13px;color:#64748B;line-height:1.5;margin-bottom:18px;">Your Training Manager has been notified. Please check back shortly, or ask your manager directly.</div>' +
+        '<button onclick="document.getElementById(\'registryRequestOverlay\').remove()" style="width:100%;padding:12px;background:#1A3C5E;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Close</button>';
+    }
+  }).catch(e => {
+    showToast('Failed to send request: ' + e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Request'; }
+  });
+}
+
 async function submitDay() {
 
   // ── Final lock-check, right at the moment of submission ─────────────
@@ -1138,6 +1181,9 @@ async function submitDay() {
     showToast('\u26A0 ' + _nameResult.msg, 'error');
     const nameField = document.getElementById('fName');
     if (nameField) { nameField.style.border = '2px solid #E53E3E'; nameField.focus(); }
+    if (_nameResult.reason === 'not_in_registry') {
+      showRegistryRequestPrompt(_submitName);
+    }
     return;
   }
   // ── Duplicate submission check ──────────────────────────────────────────

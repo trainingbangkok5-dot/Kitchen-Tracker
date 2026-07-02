@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260701200000">
+<meta name="app-version" content="20260702090000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -915,6 +915,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Toggle any checklist off to instantly block staff from submitting it — a full-screen "temporarily unavailable" message shows the next time they open it. Toggle back on to restore access immediately.</div>
     <div id="checklistLockList" style="display:flex;flex-direction:column;gap:10px;max-width:480px;">
       <div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>
+    </div>
+
+    <div style="margin-top:32px;">
+      <div class="sec-title" style="margin-bottom:14px;">📨 Pending Registry Requests</div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Staff who tried to submit with a name not in the registry can request to be added — approve here to add them instantly, or dismiss if it was a mistake (they should just retype their correct name).</div>
+      <div id="registryRequestsList" style="display:flex;flex-direction:column;gap:10px;max-width:560px;">
+        <div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>
+      </div>
     </div>
   </div>
 
@@ -3911,7 +3919,7 @@ function showTab(el,id) {
   if (id === 'weekly') { initWeeklyDates(); loadData(); }
   if (id === 'monthly') { renderMonthly(); }
   if (id === 'registry') { renderRegistry(); }
-  if (id === 'checklistlock') { renderChecklistLocks(); }
+  if (id === 'checklistlock') { renderChecklistLocks(); renderRegistryRequests(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
   if (id === 'boh') { loadBOHData(); }
@@ -3964,13 +3972,11 @@ function renderAll() { renderKPI(); renderRecent(); renderStaff(); renderMonthly
 var _oicIncEditKey = null;
 
 var OIC_INC_ROWS = [
-  { id:'sales',      kpi:'Sales',                                source:'P&L actuals vs Target',          weight:0.10, max:100, inverse:false, autoFill:false },
-  { id:'foodcost',   kpi:'Food Cost',                            source:'P&L actuals vs Target',          weight:0.10, max:100, inverse:false, autoFill:false },
-  { id:'manpower',   kpi:'Manpower Cost',                        source:'P&L actuals vs Target',          weight:0.10, max:100, inverse:false, autoFill:false },
-  { id:'audit',      kpi:'Dining Area Audit Score',              source:'Internal Auditor',               weight:0.20, max:100, inverse:false, autoFill:true  },
-  { id:'complaints', kpi:'Service Complaint Count',              source:'Actual Log (Inverse Scale)',     weight:0.10, max:4,   inverse:true,  autoFill:false },
-  { id:'teamscores', kpi:'Monthly Team Member Avg. Scores',      source:'Staff Sheet Roll-up',            weight:0.20, max:100, inverse:false, autoFill:true  },
-  { id:'behavior',   kpi:'OIC Consistency, Attitude & Behavior', source:'One on One Tracker of the Area', weight:0.20, max:100, inverse:false, autoFill:false },
+  { id:'staffeval',  kpi:'1-on-1 Staff Evaluation',          weight:0.30, max:100, inverse:false, autoFill:false },
+  { id:'opsaudit',   kpi:'Internal / Operations Audit',      weight:0.20, max:100, inverse:false, autoFill:false },
+  { id:'compliance', kpi:'OIC Checklist Compliance',         weight:0.20, max:100, inverse:false, autoFill:false },
+  { id:'salestarget',kpi:'Sales Target Achievement',         weight:0.15, max:100, inverse:false, autoFill:false },
+  { id:'manpower',   kpi:'Manpower Cost Control',            weight:0.15, max:100, inverse:false, autoFill:false },
 ];
 
 var OIC_INC_STATUSES = {
@@ -4002,6 +4008,18 @@ function _oicIncWeighted(actual, max, weight, inverse, isSales) {
     ws = v * weight;
   }
   return Math.round(ws * 100) / 100;
+}
+
+// ── Tiered performance status (2026-07-01) ─────────────────────
+// Replaces the old binary 95%-only pass/fail with 3 tiers: 95% Above,
+// 90% Above, 80% Above, and Below 80%. Display/status only — the
+// underlying `qualified` field means "meets the 80% minimum bar".
+function _oicTierInfo(total) {
+  if (total === null || total === undefined) return { label:'—', short:'—', color:'#94A3B8', bg:'transparent' };
+  if (total >= 95) return { label:'✅ 95% Above', short:'95% Above', color:'#15803D', bg:'rgba(34,197,94,.25)', textColor:'#86EFAC' };
+  if (total >= 90) return { label:'✅ 90% Above', short:'90% Above', color:'#0D9488', bg:'rgba(20,184,166,.25)', textColor:'#5EEAD4' };
+  if (total >= 80) return { label:'✅ 80% Above', short:'80% Above', color:'#D97706', bg:'rgba(217,119,6,.25)',  textColor:'#FCD34D' };
+  return { label:'❌ Below 80%', short:'Below 80%', color:'#B91C1C', bg:'rgba(239,68,68,.25)', textColor:'#FCA5A5' };
 }
 
 function _oicIncTotal(actuals, targets) {
@@ -4191,7 +4209,7 @@ function _buildOICIncForm(wrap, rec) {
   var isOIC = _oicIsOIC();
   var locked = isApproved && !isAM;
   var total = _oicIncTotal(actuals, rec.targets || {});
-  var totalColor = total===null?'#FDE68A':total>=95?'#86EFAC':total>=70?'#FDE68A':'#FCA5A5';
+  var totalColor = _oicTierInfo(total).textColor || _oicTierInfo(total).color;
   var month = document.getElementById('oicIncMonthFilter').value;
   var monthOptions = '';
   var sel = document.getElementById('oicIncMonthFilter');
@@ -4221,9 +4239,8 @@ function _buildOICIncForm(wrap, rec) {
           (locked ? ' disabled' : ' oninput="updateOICIncRow(\'' + row.id + '\',' + row.max + ',' + row.weight + ',' + row.inverse + ')"') +
         '>' +
       '</div>';
-    rows += '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;border-bottom:.5px solid #E0DDD4;background:' + (i%2===0?'#fff':'#F8FAFC') + ';">' +
+    rows += '<div style="display:grid;grid-template-columns:2.6fr .6fr .7fr .9fr .9fr;border-bottom:.5px solid #E0DDD4;background:' + (i%2===0?'#fff':'#F8FAFC') + ';">' +
       '<div style="padding:10px 12px;font-size:12px;font-weight:500;border-right:1px solid #E0DDD4;display:flex;flex-direction:column;justify-content:center;">' + row.kpi + subNote + '</div>' +
-      '<div style="padding:10px 12px;font-size:11px;color:#64748B;border-right:1px solid #E0DDD4;display:flex;align-items:center;">' + row.source + '</div>' +
       '<div style="padding:10px 12px;font-size:12px;font-weight:600;text-align:center;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;color:#1F4E79;">' + Math.round(row.weight*100) + '%</div>' +
       targetCell +
       '<div style="padding:6px 10px;border-right:1px solid #E0DDD4;display:flex;align-items:center;justify-content:center;">' +
@@ -4264,8 +4281,7 @@ function _buildOICIncForm(wrap, rec) {
       '</div>' +
     '</div>';
   }
-  var autoFillBar = (!locked && (isAM || !rec.actuals)) ?
-    '<div style="padding:8px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;font-size:12px;color:#1E40AF;">⚡ <strong>Auto-fill:</strong> <button onclick="autoFillOICIncentive()" style="background:#1E40AF;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;margin-left:6px;">Auto-fill Audit &amp; Team Scores from system</button></div>' : '';
+  var autoFillBar = '';
   wrap.innerHTML =
     '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:10px;overflow:hidden;">' +
       '<div style="background:#1F4E79;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">' +
@@ -4286,36 +4302,31 @@ function _buildOICIncForm(wrap, rec) {
           '<select id="oic_inc_month"' + (locked?' disabled':'') + ' style="width:100%;padding:7px 10px;border:1px solid #E0DDD4;border-radius:8px;font-size:13px;background:' + (locked?'#F8FAFC':'#fff') + ';">' + monthOptions + '</select></div>' +
       '</div>' +
       autoFillBar +
-      '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;background:#1F4E79;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">' +
+      '<div style="display:grid;grid-template-columns:2.6fr .6fr .7fr .9fr .9fr;background:#1F4E79;color:#fff;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;">' +
         '<div style="padding:9px 12px;border-right:1px solid rgba(255,255,255,.15);">Incentive Metric / KPI</div>' +
-        '<div style="padding:9px 12px;border-right:1px solid rgba(255,255,255,.15);">Source / Evaluator</div>' +
         '<div style="padding:9px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.15);">Weight</div>' +
         '<div style="padding:9px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.15);">Target</div>' +
         '<div style="padding:9px 12px;text-align:center;border-right:1px solid rgba(255,255,255,.15);">Actual Achieved</div>' +
         '<div style="padding:9px 12px;text-align:center;">Weighted Score</div>' +
       '</div>' +
       rows +
-      '<div style="display:grid;grid-template-columns:2.4fr 1.5fr .6fr .7fr .9fr .9fr;background:#1F4E79;color:#fff;">' +
-        '<div style="padding:12px 14px;font-size:13px;font-weight:700;grid-column:1/3;">Total / Final Performance</div>' +
+      '<div style="display:grid;grid-template-columns:2.6fr .6fr .7fr .9fr .9fr;background:#1F4E79;color:#fff;">' +
+        '<div style="padding:12px 14px;font-size:13px;font-weight:700;">Total / Final Performance</div>' +
         '<div style="padding:12px 14px;text-align:center;font-size:13px;font-weight:700;border-left:1px solid rgba(255,255,255,.2);">100%</div>' +
         '<div style="padding:12px 14px;border-left:1px solid rgba(255,255,255,.2);"></div>' +
-        '<div style="padding:12px 14px;text-align:center;border-left:1px solid rgba(255,255,255,.2);grid-column:5/7;">' +
+        '<div style="padding:12px 14px;text-align:center;border-left:1px solid rgba(255,255,255,.2);grid-column:4/6;">' +
           '<span id="oic_inc_total" style="font-size:16px;font-weight:700;color:' + totalColor + ';">' + (total!==null?total.toFixed(1)+'%':'—') + '</span>' +
-          (total!==null?'<span style="font-size:11px;font-weight:700;margin-left:8px;padding:2px 8px;border-radius:10px;background:' + (total>=95?'rgba(34,197,94,.25)':'rgba(239,68,68,.25)') + ';color:' + (total>=95?'#86EFAC':'#FCA5A5') + ';">' + (total>=95?'Qualified':'Not qualified') + '</span>':'') +
+          (total!==null?'<span style="font-size:11px;font-weight:700;margin-left:8px;padding:2px 8px;border-radius:10px;background:' + _oicTierInfo(total).bg + ';color:' + _oicTierInfo(total).textColor + ';">' + _oicTierInfo(total).short + '</span>':'') +
         '</div>' +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:14px 16px;background:#F8FAFC;border-top:1px solid #E0DDD4;">' +
-        '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Total Score</div><div id="oic_inc_total_card" style="font-size:22px;font-weight:700;color:' + (total===null?'#94A3B8':total>=95?'#15803D':total>=70?'#D97706':'#B91C1C') + ';">' + (total!==null?total.toFixed(1)+'%':'—') + '</div><div style="font-size:11px;color:#94A3B8;margin-top:3px;">Target: 95%</div></div>' +
-        '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Status</div><div id="oic_inc_status_card" style="font-size:14px;font-weight:700;color:' + (total===null?'#94A3B8':total>=95?'#15803D':'#B91C1C') + ';">' + (total===null?'—':total>=95?'✅ Qualified':'❌ Not Qualified') + '</div><div style="font-size:11px;color:#94A3B8;margin-top:3px;">' + (total===null?'Enter values above':total>=95?'Above threshold':'Below threshold') + '</div></div>' +
-        '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Missing to Qualify</div><div id="oic_inc_gap_card" style="font-size:22px;font-weight:700;color:' + (total===null?'#94A3B8':total>=95?'#15803D':'#D97706') + ';">' + (total===null?'—':total>=95?'0 pts':(Math.round((95-total)*10)/10)+' pts') + '</div><div style="font-size:11px;color:#94A3B8;margin-top:3px;">Need ≥95% to qualify</div></div>' +
+        '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Total Score</div><div id="oic_inc_total_card" style="font-size:22px;font-weight:700;color:' + (total===null?'#94A3B8':_oicTierInfo(total).color) + ';">' + (total!==null?total.toFixed(1)+'%':'—') + '</div><div style="font-size:11px;color:#94A3B8;margin-top:3px;">Tiers: 80% / 90% / 95%</div></div>' +
+        '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Status</div><div id="oic_inc_status_card" style="font-size:14px;font-weight:700;color:' + (total===null?'#94A3B8':_oicTierInfo(total).color) + ';">' + (total===null?'—':_oicTierInfo(total).label) + '</div><div style="font-size:11px;color:#94A3B8;margin-top:3px;">' + (total===null?'Enter values above':total>=95?'Top tier reached':total>=90?'Within 95% tier range':total>=80?'Within 90% tier range':'Below minimum tier') + '</div></div>' +
+        '<div style="background:#fff;border:1px solid #E0DDD4;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Gap to Next Tier</div><div id="oic_inc_gap_card" style="font-size:22px;font-weight:700;color:' + (total===null?'#94A3B8':total>=95?'#15803D':'#D97706') + ';">' + (total===null?'—':total>=95?'Top tier':(Math.round(((total>=90?95:total>=80?90:80)-total)*10)/10)+' pts') + '</div><div style="font-size:11px;color:#94A3B8;margin-top:3px;">' + (total===null?'Enter values above':total>=95?'Already at 95% Above':'Need ' + (total>=90?'95%':total>=80?'90%':'80%') + ' for next tier') + '</div></div>' +
       '</div>' +
       bottomBtns +
     '</div>';
-  if (!rec.actuals && !locked) {
-    var outletVal = rec.outlet || currentOutlet || '';
-    var monthVal = rec.month || month;
-    if (outletVal && monthVal) setTimeout(function(){ autoFillOICIncentive(); }, 600);
-  }
+  // (Auto-fill on open removed — no longer applicable to the current category set)
 }
 
 // ── Auto-fill ─────────────────────────────────────────────────
@@ -4357,23 +4368,25 @@ function updateOICIncRow(id, max, weight, inverse) {
     var tel = document.getElementById('oic_inc_target_' + row.id); targets[row.id] = (tel && tel.value !== '') ? parseFloat(tel.value) : row.max;
   });
   var total = _oicIncTotal(actuals, targets);
+  var tier = _oicTierInfo(total);
   var totalEl = document.getElementById('oic_inc_total');
   if (totalEl) {
     totalEl.textContent = total!==null?total.toFixed(1)+'%':'—';
-    totalEl.style.color = total===null?'#FDE68A':total>=95?'#86EFAC':total>=70?'#FDE68A':'#FCA5A5';
+    totalEl.style.color = total===null?'#FDE68A':(tier.textColor||tier.color);
     var badge2 = totalEl.nextSibling;
     if (badge2 && badge2.tagName==='SPAN') {
-      badge2.textContent = total!==null?(total>=95?'Qualified':'Not qualified'):'';
-      badge2.style.background = total!==null?(total>=95?'rgba(34,197,94,.25)':'rgba(239,68,68,.25)'):'transparent';
-      badge2.style.color = total!==null?(total>=95?'#86EFAC':'#FCA5A5'):'transparent';
+      badge2.textContent = total!==null?tier.short:'';
+      badge2.style.background = total!==null?tier.bg:'transparent';
+      badge2.style.color = total!==null?tier.textColor:'transparent';
     }
   }
   var cardEl = document.getElementById('oic_inc_total_card');
   var statEl = document.getElementById('oic_inc_status_card');
   var gapEl  = document.getElementById('oic_inc_gap_card');
-  if (cardEl) { cardEl.textContent=total!==null?total.toFixed(1)+'%':'—'; cardEl.style.color=total===null?'#94A3B8':total>=95?'#15803D':total>=70?'#D97706':'#B91C1C'; }
-  if (statEl) { statEl.textContent=total===null?'—':total>=95?'✅ Qualified':'❌ Not Qualified'; statEl.style.color=total===null?'#94A3B8':total>=95?'#15803D':'#B91C1C'; }
-  if (gapEl)  { gapEl.textContent=total===null?'—':total>=95?'0 pts':(Math.round((95-total)*10)/10)+' pts'; gapEl.style.color=total===null?'#94A3B8':total>=95?'#15803D':'#D97706'; }
+  var nextTierTarget = total>=90?95:total>=80?90:80;
+  if (cardEl) { cardEl.textContent=total!==null?total.toFixed(1)+'%':'—'; cardEl.style.color=total===null?'#94A3B8':tier.color; }
+  if (statEl) { statEl.textContent=total===null?'—':tier.label; statEl.style.color=total===null?'#94A3B8':tier.color; }
+  if (gapEl)  { gapEl.textContent=total===null?'—':total>=95?'Top tier':(Math.round((nextTierTarget-total)*10)/10)+' pts'; gapEl.style.color=total===null?'#94A3B8':total>=95?'#15803D':'#D97706'; }
 }
 
 // ── Save ──────────────────────────────────────────────────────
@@ -4394,7 +4407,8 @@ function saveOICIncentive(newStatus) {
   var record = {
     oicName:name, outlet:outlet, month:month,
     actuals:actuals, targets:targets, totalScore:total,
-    qualified:total!==null&&total>=95,
+    qualified:total!==null&&total>=80,
+    tier:total!==null?_oicTierInfo(total).short:null,
     status:newStatus||'draft',
     savedAt:new Date().toISOString(), savedBy:currentRole
   };
@@ -4438,7 +4452,7 @@ function returnOICIncentiveForm() {
     oicName:((document.getElementById('oic_inc_name')||{}).value||'').trim(),
     outlet:(document.getElementById('oic_inc_outlet')||{}).value||'',
     month:(document.getElementById('oic_inc_month')||{}).value||'',
-    actuals:actuals, targets:returnTargets, totalScore:total, qualified:total!==null&&total>=95,
+    actuals:actuals, targets:returnTargets, totalScore:total, qualified:total!==null&&total>=80, tier:total!==null?_oicTierInfo(total).short:null,
     status:'returned', returnNote:note,
     returnedAt:new Date().toISOString(), returnedBy:currentRole
   };
@@ -4499,34 +4513,36 @@ function exportOICIncentivePDF() {
     var effectiveMax = pdfTargets[row.id] !== undefined ? pdfTargets[row.id] : row.max;
     var ws = _oicIncWeighted(actuals[row.id], effectiveMax, row.weight, row.inverse, isSales);
     var targetDisplay = String(pdfTargets[row.id] !== undefined ? pdfTargets[row.id] : row.max) + (row.inverse && pdfTargets[row.id]===row.max ? ' max' : '');
-    return [row.kpi, row.source, Math.round(row.weight*100)+'%', targetDisplay, actuals[row.id]!==null&&actuals[row.id]!==undefined?String(actuals[row.id]):'—', ws!==null?ws.toFixed(1):'—'];
+    return [row.kpi, Math.round(row.weight*100)+'%', targetDisplay, actuals[row.id]!==null&&actuals[row.id]!==undefined?String(actuals[row.id]):'—', ws!==null?ws.toFixed(1):'—'];
   });
   var total = _oicIncTotal(actuals, pdfTargets);
-  tableBody.push(['Total / Final Performance','','100%','','',total!==null?total.toFixed(1)+'%':'—']);
+  tableBody.push(['Total / Final Performance','100%','','',total!==null?total.toFixed(1)+'%':'—']);
   doc.autoTable({
     startY:y,
-    head:[['Incentive Metric / KPI','Source / Evaluator','Weight','Target','Actual Achieved','Weighted Score']],
+    head:[['Incentive Metric / KPI','Weight','Target','Actual Achieved','Weighted Score']],
     body:tableBody, styles:{fontSize:9,cellPadding:3},
     headStyles:{fillColor:[31,78,121],textColor:[255,255,255],fontStyle:'bold'},
-    columnStyles:{2:{halign:'center'},3:{halign:'center'},4:{halign:'center'},5:{halign:'center',fontStyle:'bold'}},
+    columnStyles:{1:{halign:'center'},2:{halign:'center'},3:{halign:'center'},4:{halign:'center',fontStyle:'bold'}},
     didParseCell:function(data){
       if(data.row.index===tableBody.length-1&&data.section==='body'){data.cell.styles.fillColor=[31,78,121];data.cell.styles.textColor=[255,255,255];data.cell.styles.fontStyle='bold';}
-      if(data.column.index===5&&data.section==='body'&&data.row.index<tableBody.length-1){var v=parseFloat(data.cell.raw);if(!isNaN(v))data.cell.styles.textColor=v>0?[21,128,61]:[185,28,28];}
+      if(data.column.index===4&&data.section==='body'&&data.row.index<tableBody.length-1){var v=parseFloat(data.cell.raw);if(!isNaN(v))data.cell.styles.textColor=v>0?[21,128,61]:[185,28,28];}
     },
     margin:{left:14,right:14}
   });
   y = doc.lastAutoTable.finalY + 8;
-  var tColor = total===null?[148,163,184]:total>=95?[21,128,61]:total>=70?[217,119,6]:[185,28,28];
+  var tColor = total===null?[148,163,184]:total>=95?[21,128,61]:total>=90?[13,148,136]:total>=80?[217,119,6]:[185,28,28];
+  var tLabel = total===null?'—':total>=95?'95% ABOVE':total>=90?'90% ABOVE':total>=80?'80% ABOVE':'BELOW 80%';
+  var nextTierPdf = total>=90?95:total>=80?90:80;
   doc.setFillColor(248,250,252); doc.rect(14,y,W-28,22,'F'); doc.setDrawColor(224,221,212); doc.rect(14,y,W-28,22,'S');
   doc.setFontSize(9); doc.setFont('helvetica','bold');
   doc.setTextColor(100,116,139); doc.text('TOTAL SCORE',30,y+7);
   doc.setTextColor(tColor[0],tColor[1],tColor[2]); doc.setFontSize(16); doc.text(total!==null?total.toFixed(1)+'%':'—',30,y+17);
   doc.setFontSize(9); doc.setTextColor(100,116,139); doc.text('STATUS',100,y+7);
-  doc.setTextColor(tColor[0],tColor[1],tColor[2]); doc.setFontSize(11); doc.text(total===null?'—':total>=95?'QUALIFIED':'NOT QUALIFIED',100,y+17);
-  doc.setFontSize(9); doc.setTextColor(100,116,139); doc.text('MISSING TO QUALIFY',160,y+7);
-  var gColor = total&&total>=95?[21,128,61]:[217,119,6];
+  doc.setTextColor(tColor[0],tColor[1],tColor[2]); doc.setFontSize(11); doc.text(tLabel,100,y+17);
+  doc.setFontSize(9); doc.setTextColor(100,116,139); doc.text('GAP TO NEXT TIER',160,y+7);
+  var gColor = total!==null&&total>=95?[21,128,61]:[217,119,6];
   doc.setTextColor(gColor[0],gColor[1],gColor[2]); doc.setFontSize(11);
-  doc.text(total===null?'—':total>=95?'0 pts':(Math.round((95-total)*10)/10)+' pts',160,y+17);
+  doc.text(total===null?'—':total>=95?'Top tier':(Math.round((nextTierPdf-total)*10)/10)+' pts',160,y+17);
   y += 30;
   doc.setFontSize(8); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
   doc.text('Culex Hospitality Operations | Training & Development | Designed & Developed by Sunshine Jade Rogel', W/2, y, {align:'center'});
@@ -7961,6 +7977,73 @@ function toggleChecklistLock(roleKey, isEnabled) {
     showToast('Failed to update: ' + e.message, 'error');
     renderChecklistLocks(); // revert the visual toggle on failure
   });
+}
+
+// ── Pending Registry Requests panel (2026-07-01) ──────────────────────
+function renderRegistryRequests() {
+  const container = document.getElementById('registryRequestsList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>';
+  db.ref('system/registryRequests').orderByChild('status').equalTo('pending').once('value', snap => {
+    if (!snap.exists()) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;">No pending requests right now.</div>';
+      return;
+    }
+    let items = [];
+    snap.forEach(child => { items.push({ key: child.key, ...child.val() }); });
+    items.sort((a,b) => new Date(b.requestedAt||0) - new Date(a.requestedAt||0));
+    container.innerHTML = items.map(r => {
+      const when = r.requestedAt ? new Date(r.requestedAt).toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 16px;flex-wrap:wrap;gap:10px;">' +
+        '<div>' +
+          '<div style="font-size:14px;font-weight:700;color:#1A3C5E;">' + r.name + '</div>' +
+          '<div style="font-size:12px;color:#92400E;">' + (r.roleLabel||r.role||'') + (r.outlet ? ' · ' + r.outlet : '') + ' · Requested ' + when + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button onclick="approveRegistryRequest(\'' + r.key + '\',\'' + r.name.replace(/'/g,"\\'") + '\',\'' + (r.role||'') + '\',\'' + (r.outlet||'').replace(/'/g,"\\'") + '\')" style="background:#16A34A;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;">✅ Approve &amp; Add</button>' +
+          '<button onclick="dismissRegistryRequest(\'' + r.key + '\')" style="background:#fff;color:#64748B;border:1px solid #E0DDD4;padding:7px 14px;border-radius:7px;font-size:12px;cursor:pointer;">Dismiss</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }).catch(() => {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#A32D2D;">Failed to load — check your connection and try again.</div>';
+  });
+}
+
+function approveRegistryRequest(reqKey, name, role, outlet) {
+  if (!db) { showToast('Firebase not connected', 'error'); return; }
+  const noOutletRoles = ['areachef','areamanager','operations','director','ceo','training'];
+  const outletRequired = !noOutletRoles.includes(role);
+  if (outletRequired && !outlet) {
+    // Fall back to opening the full Add Staff modal pre-filled, since we need an outlet
+    openAddStaffModal();
+    document.getElementById('staffNameInput').value = name;
+    document.getElementById('staffRoleInput').value = role || 'linecook';
+    toggleOutletField();
+    showToast('Please select an outlet to complete adding ' + name, 'warn');
+    // Mark the request resolved once the modal is used; simplest: dismiss it now since staff record will be added manually
+    db.ref('system/registryRequests/' + reqKey).update({ status: 'approved', resolvedAt: new Date().toISOString() });
+    return;
+  }
+  const staffData = {
+    id: getNextStaffId(), name: name, role: role || 'linecook', outlet: outlet || '',
+    status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+  };
+  const saveKey = db.ref('registry').push().key;
+  db.ref('registry/' + saveKey).set(staffData).then(() => {
+    return db.ref('system/registryRequests/' + reqKey).update({ status: 'approved', resolvedAt: new Date().toISOString() });
+  }).then(() => {
+    showToast(name + ' added to registry ✓', 'ok');
+    renderRegistryRequests();
+  }).catch(e => showToast('Failed: ' + e.message, 'error'));
+}
+
+function dismissRegistryRequest(reqKey) {
+  if (!db) { showToast('Firebase not connected', 'error'); return; }
+  db.ref('system/registryRequests/' + reqKey).update({ status: 'dismissed', resolvedAt: new Date().toISOString() }).then(() => {
+    showToast('Request dismissed', 'ok');
+    renderRegistryRequests();
+  }).catch(e => showToast('Failed: ' + e.message, 'error'));
 }
 
 function renderRegistry() {
