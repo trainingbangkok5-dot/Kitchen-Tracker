@@ -3,7 +3,7 @@
 <head>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="UTF-8">
-<meta name="app-version" content="20260702090000">
+<meta name="app-version" content="20260702200000">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-title" content="Service Checklist">
@@ -1212,6 +1212,19 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
+// ── Single source of truth for "which day" (2026-07-02) ────────────────
+// Called ONCE, at the moment of submission (Opening or Closing). Every
+// report in the dashboard trusts this stamped value rather than
+// recalculating it independently, so they can never disagree again.
+// Closing shifts submitted 12am-2am Dubai time belong to the PREVIOUS
+// operational day; everything else is simply today.
+function getBusinessDate(shiftType) {
+  const _h = getDubaiHour();
+  const _isLateClosing = shiftType === 'closing' && _h < 2;
+  const _bd = new Date(_isLateClosing ? Date.now() - 86400000 : Date.now());
+  return _bd.toLocaleDateString('en-CA', {timeZone: 'Asia/Dubai'});
+}
+
 function getWeekStartFromDate(dubaiDateStr) {
   try {
     const parts = dubaiDateStr.split('-');
@@ -1915,6 +1928,7 @@ async function submitOpening() {
     qualified:   opO2>=95,
     day:         currentDay,
     status:      'opening_submitted',
+    businessDate: getBusinessDate('opening'),
     startedAt:   d[getTodayKey()]?._start || new Date().toISOString(),
     submittedAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString(),
@@ -2010,11 +2024,7 @@ async function submitDay() {
     shift:       'closing',
     qualified:    opC>=95,
     status:       'closing_submitted',
-    businessDate: (function() {
-      const _h = parseInt(new Date().toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
-      const _bd = new Date(_h < 2 ? Date.now()-86400000 : Date.now());
-      return _bd.toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
-    })(),
+    businessDate: getBusinessDate('closing'),
     day:        currentDay,
     startedAt:  d[getTodayKey()]?._start || new Date().toISOString(),
     submittedDates: trackSubmittedDate(getWeekStart()),

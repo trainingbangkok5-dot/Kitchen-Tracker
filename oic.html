@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260702090000">
+<meta name="app-version" content="20260702200000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260615280000">
@@ -217,11 +217,40 @@ const FIREBASE_CONFIG = {
 
 // Init Firebase
 let _db = null;
+function showChecklistLockedScreen() {
+  if (document.getElementById('checklistLockedOverlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'checklistLockedOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#1A3C5E;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;';
+  overlay.innerHTML =
+    '<div style="max-width:380px;">' +
+      '<div style="font-size:48px;margin-bottom:16px;">🔒</div>' +
+      '<div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:10px;">Checklist Temporarily Unavailable</div>' +
+      '<div style="color:rgba(255,255,255,0.75);font-size:14px;line-height:1.5;">This checklist has been temporarily disabled. Please check with your Training Manager or supervisor before continuing.</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+}
+
+function hideChecklistLockedScreen() {
+  const overlay = document.getElementById('checklistLockedOverlay');
+  if (overlay) overlay.remove();
+  document.body.style.overflow = '';
+}
+
 function initFirebase() {
   try {
     if (typeof firebase === 'undefined') { setTimeout(initFirebase, 100); return; }
     if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
     _db = firebase.database();
+    // ── Remote checklist lock-check (2026-07-02, LIVE) ────────────────
+    _db.ref('system/checklistEnabled/' + ROLE).on('value', snap => {
+      if (snap.exists() && snap.val() === false) {
+        showChecklistLockedScreen();
+      } else {
+        hideChecklistLockedScreen();
+      }
+    });
   } catch(e) { console.error('Firebase init error:', e); }
 }
 initFirebase();
@@ -1082,6 +1111,19 @@ function getDubaiDateStr() {
 function getDubaiHour() {
   return getDubaiDate().getHours();
 }
+// ── Single source of truth for "which day" (2026-07-02) ────────────────
+// Called ONCE, at the moment of submission (Opening or Closing). Every
+// report in the dashboard trusts this stamped value rather than
+// recalculating it independently, so they can never disagree again.
+// Closing shifts submitted 12am-2am Dubai time belong to the PREVIOUS
+// operational day; everything else is simply today.
+function getBusinessDate(shiftType) {
+  const _h = getDubaiHour();
+  const _isLateClosing = shiftType === 'closing' && _h < 2;
+  const _bd = new Date(_isLateClosing ? Date.now() - 86400000 : Date.now());
+  return _bd.toLocaleDateString('en-CA', {timeZone: 'Asia/Dubai'});
+}
+
 function getWeekStartFromDate(dubaiDateStr) {
   try {
     const parts = dubaiDateStr.split('-');
@@ -1459,6 +1501,16 @@ function sendRegistryRequest(typedName) {
 
 async function submitDay() {
 
+  // ── Final lock-check, right at the moment of submission ─────────────
+  try {
+    const _lockSnap = await _db.ref('system/checklistEnabled/' + ROLE).once('value');
+    if (_lockSnap.exists() && _lockSnap.val() === false) {
+      showToast('This checklist has been temporarily disabled. Please check with your Training Manager.', 'error');
+      showChecklistLockedScreen();
+      return;
+    }
+  } catch(e) { /* fail open on connectivity issues */ }
+
   // ── Registry name validation (strict exact match) ──────────────────────
   const _submitName = getStaffName ? getStaffName() : (document.getElementById('fName')?.value?.trim()||'');
   const _nameResult = await validateStaffNameStrict(_submitName);
@@ -1530,12 +1582,7 @@ async function submitDay() {
     startedAt:  d[dayKey]._start,
     submittedAt: new Date().toISOString(),
     lastUpdated: new Date().toISOString(),
-    businessDate: (function() {
-      if (currentShift !== 'closing') return null;
-      const _h = parseInt(new Date().toLocaleString('en-CA',{hour:'numeric',hour12:false,timeZone:'Asia/Dubai'}),10);
-      const _bd = new Date(_h < 2 ? Date.now()-86400000 : Date.now());
-      return _bd.toLocaleDateString('en-CA',{timeZone:'Asia/Dubai'});
-    })(),
+    businessDate: currentShift !== 'closing' ? null : getBusinessDate('closing'),
     submittedDates: trackSubmittedDate(weekStart),
     taskData: (function() {
       const tasks = {};

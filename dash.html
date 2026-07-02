@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260702090000">
+<meta name="app-version" content="20260702200000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -307,8 +307,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="tab" id="tabMaintenance" onclick="showTab(this,'maintenance')">🔧 Maintenance</div>
     <div class="tab" id="tabBOH" onclick="openFullBOHTab(this)" style="display:none;">🍳 BOH</div>
     <div class="tab" id="tabFOH" onclick="openFullFOHTab(this)" style="display:none;">🛎️ FOH</div>
-    <div class="tab" id="tabKICOnly" onclick="openKICOnlyTab(this)" style="display:none;">👨‍🍳 KIC</div>
-    <div class="tab" id="tabOICOnly" onclick="openOICOnlyTab(this)" style="display:none;">🧑‍💼 OIC</div>
     <div class="tab" id="tabRegistry" onclick="showTab(this,'registry')" style="display:none;">👤 Registry</div>
     <div class="tab" id="tabChecklistLock" onclick="showTab(this,'checklistlock')" style="display:none;">🔒 Checklist Control</div>
     <div class="tab" id="tabVerified" onclick="showTab(this,'verified')" style="display:none;">✅ Verified</div>
@@ -493,6 +491,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="bohSubLinecook" onclick="setBOHSub('linecook')" style="padding:6px 14px;border-radius:20px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">🍳 Line Cook</button>
       <button id="bohSubSteward" onclick="setBOHSub('steward')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧹 Steward</button>
+      <button id="bohSubKic" onclick="setBOHSub('kic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">👨‍🍳 KIC</button>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
       <label style="font-size:11px;font-weight:600;color:#64748B;">📅 From</label>
@@ -590,6 +589,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
       <button id="fohSubService" onclick="setFOHSub('service')" style="padding:6px 14px;border-radius:20px;border:none;background:#7B2D42;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">🛎️ Service</button>
+      <button id="fohSubOic" onclick="setFOHSub('oic')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🧑‍💼 OIC</button>
       <button id="fohSubDelco" onclick="setFOHSub('delco')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🚚 Del.Co</button>
       <button id="fohSubBartender" onclick="setFOHSub('bartender')" style="padding:6px 14px;border-radius:20px;border:1.5px solid #E0DDD4;background:#fff;color:#475569;font-size:12px;cursor:pointer;">🍹 Bartender</button>
     </div>
@@ -685,7 +685,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <p style="font-size:12px;color:#94A3B8;margin-top:2px;">One report per employee — combines all roles worked during the week. Click a name for the full breakdown.</p>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <button onclick="exportSSPDF()" style="padding:5px 12px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📄 PDF</button>
+        <button onclick="exportSSPDF()" style="padding:5px 12px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📄 Export All (PDF)</button>
         <button onclick="exportSSExcel()" style="padding:5px 12px;background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📊 Excel</button>
         <button onclick="toggleSSSelectMode(true)" id="ssSelectBtn" style="padding:5px 12px;background:#FFF1F0;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">☑ Select to Delete</button>
       </div>
@@ -921,6 +921,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="sec-title" style="margin-bottom:14px;">📨 Pending Registry Requests</div>
       <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Staff who tried to submit with a name not in the registry can request to be added — approve here to add them instantly, or dismiss if it was a mistake (they should just retype their correct name).</div>
       <div id="registryRequestsList" style="display:flex;flex-direction:column;gap:10px;max-width:560px;">
+        <div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px;">
+      <div class="sec-title" style="margin-bottom:14px;">🔧 Correction Log</div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Every time a verified score is corrected, it's recorded here — who changed it, when, why, and the before/after tally. Nothing is silently overwritten.</div>
+      <div id="correctionLogList" style="display:flex;flex-direction:column;gap:10px;max-width:640px;">
         <div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>
       </div>
     </div>
@@ -1672,16 +1680,19 @@ function doLogin() {
   document.getElementById('tabLiveReport').style.display = ['areachef','areamanager','director','training','operations','ceo','kic','oic'].includes(currentRole) ? 'flex' : 'none';
 
   populateWeekFilter();
-  // ── BOH/FOH tabs access control (2026-07-01) ────────────────────────
-  // Only these roles can see BOH/FOH. Add/remove role names in this one
-  // list to change access later — everything else adjusts automatically.
-  const TABS_BOH_FOH_ALLOWED_ROLES = ['training','admin','director'];
-  const _bohFohAllowed = TABS_BOH_FOH_ALLOWED_ROLES.includes(currentRole);
+  // ── BOH/FOH tabs access control (2026-07-02) ────────────────────────
+  // KIC and OIC always see their own tab (it's their own submissions) —
+  // this is independent of the broader combined-view restriction below.
+  // Add/remove role names in TABS_BOH_FOH_ALLOWED_ROLES to change access
+  // for everyone else viewing the FULL combined BOH/FOH tabs.
+  const TABS_BOH_FOH_ALLOWED_ROLES = ['training','admin','director','areachef','areamanager'];
+  const _bohFohAllowed = TABS_BOH_FOH_ALLOWED_ROLES.includes(currentRole) || ['kic','oic'].includes(currentRole);
   // BOH tab — visible to KIC and full access roles
   const bohRoles = ['kic','areachef','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabBOH').style.display = (_bohFohAllowed && bohRoles.includes(currentRole)) ? 'flex' : 'none';
   // Hide KIC sub-tab from KIC role — they only see their own submissions
-  // (bohSubKic removed — KIC now has its own dedicated tab)
+  const bohSubKicBtn = document.getElementById('bohSubKic');
+  if (bohSubKicBtn) bohSubKicBtn.style.display = currentRole === 'kic' ? 'none' : '';
   // FOH tab — visible to OIC, Area Manager and full access roles
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = (_bohFohAllowed && fohRoles.includes(currentRole)) ? 'flex' : 'none';
@@ -1689,24 +1700,14 @@ function doLogin() {
   const auditRoles = ['training','operations','director','ceo','areamanager','areachef'];
   const tabAudits = document.getElementById('tabAudits');
   if (tabAudits) tabAudits.style.display = auditRoles.includes(currentRole) ? 'flex' : 'none';
-  // (fohSubOic removed — OIC now has its own dedicated tab)
-  // ── Standalone KIC / OIC tabs (2026-07-01) ──────────────────────────
-  // Independent of the BOH/FOH combined-view restriction above — KIC role
-  // sees their own dedicated KIC tab, OIC role sees their own dedicated
-  // OIC tab. Management roles can view both for oversight.
-  const KIC_ONLY_ALLOWED = ['kic','training','admin','director','areachef','operations','ceo'];
-  const OIC_ONLY_ALLOWED = ['oic','training','admin','director','areamanager','operations','ceo'];
-  const tabKICOnly = document.getElementById('tabKICOnly');
-  const tabOICOnly = document.getElementById('tabOICOnly');
-  if (tabKICOnly) tabKICOnly.style.display = KIC_ONLY_ALLOWED.includes(currentRole) ? 'flex' : 'none';
-  if (tabOICOnly) tabOICOnly.style.display = OIC_ONLY_ALLOWED.includes(currentRole) ? 'flex' : 'none';
+  const fohSubOicBtn = document.getElementById('fohSubOic');
+  if (fohSubOicBtn) fohSubOicBtn.style.display = ['kic','oic'].includes(currentRole) ? 'none' : '';
   // Set default tab — Overview removed, route each role to their primary tab
-  // KIC and OIC route to their own dedicated tabs (always available to them).
-  // Other roles without BOH/FOH access are safely routed to Weekly Staff Report.
+  // Roles without BOH/FOH access are safely routed to Weekly Staff Report instead.
   if (currentRole === 'kic') {
-    setTimeout(() => openKICOnlyTab(document.getElementById('tabKICOnly')), 100);
+    setTimeout(() => { showTab(document.getElementById('tabBOH'), 'boh'); setBOHSub('kic'); }, 100);
   } else if (currentRole === 'oic') {
-    setTimeout(() => openOICOnlyTab(document.getElementById('tabOICOnly')), 100);
+    setTimeout(() => { showTab(document.getElementById('tabFOH'), 'foh'); setFOHSub('oic'); }, 100);
   } else if (!_bohFohAllowed && ['areachef','areamanager','training','operations','director','ceo'].includes(currentRole)) {
     setTimeout(() => showTab(document.getElementById('tabSummaryScoring'), 'summaryscoring'), 100);
   } else if (currentRole === 'areachef') {
@@ -1858,11 +1859,12 @@ function loadData() {
       s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      // For closing shifts submitted after midnight (00:00-02:59 Dubai), link to previous day's week
       const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
       let effectiveDate = subDate;
-      if (_isClosing && s.businessDate) {
-        // Prefer businessDate written by checklist (correct operational day)
+      if (s.businessDate) {
+        // Single source of truth (2026-07-02): the checklist stamps this once,
+        // at submission, for both Opening and Closing. Trust it directly —
+        // no more independently recalculating "which day" here.
         effectiveDate = s.businessDate;
       } else if (_isClosing && s.submittedAt) {
         try {
@@ -1944,11 +1946,12 @@ function loadData() {
       s.staffName = (s.staffName||'').replace(/\s+/g,' ').trim();
       if (!s.staffName) return;
       const subDate = normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : ''));
-      // For closing shifts submitted after midnight (00:00-02:59 Dubai), link to previous day's week
       const _isClosing = s.shift === 'closing' || s.status === 'closing_submitted';
       let effectiveDate = subDate;
-      if (_isClosing && s.businessDate) {
-        // Prefer businessDate written by checklist (correct operational day)
+      if (s.businessDate) {
+        // Single source of truth (2026-07-02): the checklist stamps this once,
+        // at submission, for both Opening and Closing. Trust it directly —
+        // no more independently recalculating "which day" here.
         effectiveDate = s.businessDate;
       } else if (_isClosing && s.submittedAt) {
         try {
@@ -2102,7 +2105,7 @@ function initSummaryScoring() {
         }
         if (isOutletRole && currentRole === 'oic') return;
         _ssData.push({
-          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '')),
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.businessDate || s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '')),
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'kic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null,
@@ -2135,7 +2138,7 @@ function initSummaryScoring() {
         }
         if (isOutletRole && currentRole === 'kic') return;
         _ssData.push({
-          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '')),
+          staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: normalizeWeek(s.businessDate || s.week || (s.submittedAt ? s.submittedAt.substring(0,10) : '')),
           openingPct: s.openingPct != null ? s.openingPct : (s.role === 'oic' && s.overallPct != null ? s.overallPct : null),
           closingPct: s.closingPct,
           oicEvalPct: (['service','oic','bartender','delco','linecook','steward'].includes(s.role)) ? (s.oicEvalPct != null ? parseFloat(s.oicEvalPct) : null) : null,
@@ -2297,21 +2300,24 @@ function ssConsolidateByEmployee(rows) {
     };
   });
 
-  // Group role summaries by employee + outlet + week
+  // Group role summaries by employee + week (NOT outlet — combines multi-outlet
+  // staff into a single row per person per week, per 2026-07-02 request)
   const byEmployee = {};
   roleSummaries.forEach(rs => {
-    const empKey = (rs.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + (rs.outlet||'').toLowerCase().trim() + '_' + rs.week;
+    const empKey = (rs.staffName||'').toLowerCase().trim().replace(/\s+/g,' ') + '_' + rs.week;
     if (!byEmployee[empKey]) {
       byEmployee[empKey] = {
-        staffName: rs.staffName, outlet: rs.outlet, week: rs.week,
+        staffName: rs.staffName, outlet: rs.outlet, outletsSet: new Set(), week: rs.week,
         roles: [], combinedScore: 0, combinedChecklists: 0, allDatesSet: new Set(),
         rawRows: [],
       };
     }
     const e = byEmployee[empKey];
-    // Deduplicate roles — only add a role if no existing role of the same type exists
-    // If same role already exists (different week-merge), merge scores instead of adding
-    const existingRole = e.roles.find(r => r.role === rs.role);
+    if (rs.outlet) e.outletsSet.add(rs.outlet);
+    // Deduplicate roles — only merge if SAME role AND SAME outlet already exists.
+    // Same role at a DIFFERENT outlet stays as its own separate entry, so each
+    // outlet's contribution remains visible rather than being averaged away.
+    const existingRole = e.roles.find(r => r.role === rs.role && (r.outlet||'') === (rs.outlet||''));
     if (!existingRole) {
       e.roles.push(rs);
       e.combinedScore += rs.roleTotal;
@@ -2339,6 +2345,10 @@ function ssConsolidateByEmployee(rows) {
 
   return Object.values(byEmployee).map(e => {
     const invalidWeek = !ssIsValidWeek(e.week);
+    // Outlets worked — shown as a joined list for multi-outlet staff, e.g. "LB DSO, LB Tower"
+    const outletsList = [...e.outletsSet].filter(Boolean);
+    e.outlet = outletsList.length ? outletsList.join(', ') : (e.outlet || '');
+    e.multiOutlet = outletsList.length > 1;
 
     // Try building a true daily breakdown from days/ nodes first.
     const dailyBreakdown = ssBuildDailyBreakdown(e.rawRows);
@@ -2460,12 +2470,16 @@ function exportSSPDF() {
     const cl  = mainRole.closingAvg != null ? mainRole.closingAvg + '%' : '—';
     const ev  = mainRole.oicAvg     != null ? mainRole.oicAvg     + '%' : '—';
     const avg = e.combinedAvg       != null ? e.combinedAvg       + '%' : '—';
+    const hasCorrection = (e.rawRows||[]).some(function(r){
+      return r.originalOverallPct != null || r.originalOpeningPct != null || r.originalClosingPct != null || r.originalOicEvalPct != null;
+    });
+    const statusLabel = (e.eligible ? 'Eligible' : 'Not Eligible') + (hasCorrection ? ' (Corrected)' : '');
     return [
       e.staffName || '—',
       (e.roles||[]).map(function(r){return roleMap[r.role]||r.role;}).join(', '),
       e.outlet || '—',
       op, cl, ev, avg,
-      e.eligible ? 'Eligible' : 'Not Eligible'
+      statusLabel
     ];
   });
 
@@ -2521,9 +2535,12 @@ function exportSSExcel() {
   const to   = document.getElementById('ssDateTo').value;
   const weekF = document.getElementById('ssWeekFilter').value;
   const roleMap = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',delco:'Delco',bartender:'Bartender'};
-  const wsData = [['Staff Name','Role','Outlet','Week/Period','Opening %','Closing %','Eval %','Weekly Avg %','Eligible','Days Submitted']];
+  const wsData = [['Staff Name','Role','Outlet','Week/Period','Opening %','Closing %','Eval %','Weekly Avg %','Eligible','Corrected','Days Submitted']];
   _ssConsolidatedRows.forEach(function(e) {
     const mainRole = e.roles && e.roles.length ? e.roles[0] : {};
+    const hasCorrection = (e.rawRows||[]).some(function(r){
+      return r.originalOverallPct != null || r.originalOpeningPct != null || r.originalClosingPct != null || r.originalOicEvalPct != null;
+    });
     wsData.push([
       e.staffName||'—',
       (e.roles||[]).map(function(r){return roleMap[r.role]||r.role;}).join(', '),
@@ -2534,12 +2551,13 @@ function exportSSExcel() {
       mainRole.oicAvg     != null ? mainRole.oicAvg     : '',
       e.combinedAvg       != null ? e.combinedAvg       : '',
       e.eligible ? 'Yes' : 'No',
+      hasCorrection ? 'Yes' : 'No',
       (e.allDates||[]).length || ''
     ]);
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{wch:30},{wch:20},{wch:20},{wch:25},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:14}];
+  ws['!cols'] = [{wch:30},{wch:20},{wch:20},{wch:25},{wch:12},{wch:12},{wch:12},{wch:14},{wch:12},{wch:12},{wch:14}];
   XLSX.utils.book_append_sheet(wb, ws, 'Weekly Staff Report');
   XLSX.writeFile(wb, 'Weekly_Staff_Report_' + (from||weekF||'export') + '.xlsx');
 }
@@ -3096,7 +3114,7 @@ function openStaffWeeklyDetail(idx) {
     rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">'+
       '<span style="font-size:12px;font-weight:700;color:#1A3C5E;">Weekly average</span>'+avgRight+'</div>';
     return '<div style="margin-bottom:12px;background:#fff;border:0.5px solid #E0DDD4;border-radius:10px;overflow:hidden;">'+
-      '<div style="padding:10px 14px;border-bottom:0.5px solid #F1F5F9;font-size:12px;font-weight:700;color:#1A3C5E;">📋 Score Breakdown — '+ssRoleLabel(r.role)+'</div>'+
+      '<div style="padding:10px 14px;border-bottom:0.5px solid #F1F5F9;font-size:12px;font-weight:700;color:#1A3C5E;">📋 Score Breakdown — '+ssRoleLabel(r.role)+(r.outlet?' <span style="font-weight:600;color:#64748B;">('+r.outlet+')</span>':'')+'</div>'+
       '<div style="padding:0 14px;">'+rows+'<div style="height:4px;"></div></div></div>';
   }
 
@@ -3919,7 +3937,7 @@ function showTab(el,id) {
   if (id === 'weekly') { initWeeklyDates(); loadData(); }
   if (id === 'monthly') { renderMonthly(); }
   if (id === 'registry') { renderRegistry(); }
-  if (id === 'checklistlock') { renderChecklistLocks(); renderRegistryRequests(); }
+  if (id === 'checklistlock') { renderChecklistLocks(); renderRegistryRequests(); renderCorrectionLog(); }
   if (id === 'maintenance') { loadMaintenanceLogs(); }
   if (id === 'foh') { loadFOHData(); }
   if (id === 'boh') { loadBOHData(); }
@@ -5589,12 +5607,14 @@ function openStaffDetail(s) {
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌅 OPENING</div>' +
           '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + oColor + '">' + (opO!=null?opO+'%':'—') + '</div>' +
           '<div class="sb-lbl" style="font-size:9px;color:' + oColor + ';margin-top:2px;">' + (opO===null?'N/A':opO>=95?'✓ Pass':'✗ Below') + '</div>' +
+          (s.originalOpeningPct != null && s.originalOpeningPct !== opO ? '<div style="font-size:9px;color:#B45309;background:#FEF3C7;border-radius:8px;padding:2px 6px;margin-top:4px;">✏️ Originally ' + s.originalOpeningPct + '%</div>' : '') +
           _buildVerifierTag(_sbVlog,_sbTd,'opening',_sbRole) +
         '</div>' +
         '<div data-scorebox="closing" style="background:#F0FDF4;border-radius:10px;padding:10px;">' +
           '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🌙 CLOSING</div>' +
           '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + cColor + '">' + (opC!=null?opC+'%':'—') + '</div>' +
           '<div class="sb-lbl" style="font-size:9px;color:' + cColor + ';margin-top:2px;">' + (opC===null?'N/A':opC>=95?'✓ Pass':'✗ Below') + '</div>' +
+          (s.originalClosingPct != null && s.originalClosingPct !== opC ? '<div style="font-size:9px;color:#B45309;background:#FEF3C7;border-radius:8px;padding:2px 6px;margin-top:4px;">✏️ Originally ' + s.originalClosingPct + '%</div>' : '') +
           _buildVerifierTag(_sbVlog,_sbTd,'closing',_sbRole) +
         '</div>' +
       '</div>'
@@ -5606,12 +5626,14 @@ function openStaffDetail(s) {
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">' + (isKICRole ? '👨‍🍳 AC EVAL' : (['linecook','steward'].includes(s.role) ? '👨‍🍳 KIC EVAL' : '👥 OIC EVAL')) + '</div>' +
             '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + eColor + '">' + (_evalNotVisited?'N/A':oicEvalPct!=null?oicEvalPct+'%':'—') + '</div>' +
             '<div class="sb-lbl" style="font-size:9px;color:' + eColor + ';margin-top:2px;">' + (_evalNotVisited?'🚫 Not visited':oicEvalPct===null?(isKICRole?'Pending AC Eval':'Pending OIC'):oicEvalPct>=95?'✓ Pass':'✗ Below') + '</div>' +
+            (s.originalOicEvalPct != null && s.originalOicEvalPct !== oicEvalPct ? '<div style="font-size:9px;color:#B45309;background:#FEF3C7;border-radius:8px;padding:2px 6px;margin-top:4px;">✏️ Originally ' + s.originalOicEvalPct + '%</div>' : '') +
             _buildVerifierTag(_sbVlog,_sbTd,'evaluation',_sbRole) +
           '</div>' +
           '<div data-scorebox="total" style="background:' + (pass?'#F0FDF4':'#FEF2F2') + ';border-radius:10px;padding:10px;border:2px solid ' + (pass?'#22C55E':'#EF4444') + ';">' +
             '<div style="font-size:9px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:3px;">🏆 TOTAL</div>' +
             '<div class="sb-pct" style="font-size:20px;font-weight:700;color:' + (pass?'#15803D':'#B91C1C') + '">' + (totalScore>0?totalScore+'%':'—') + '</div>' +
             '<div class="sb-lbl" style="font-size:9px;color:' + (pass?'#15803D':'#B91C1C') + ';margin-top:2px;">' + (totalScore>0?(pass?'✓ Qualified':'✗ Not qualified'):'—') + '</div>' +
+            (s.originalOverallPct != null && s.originalOverallPct !== totalScore ? '<div style="font-size:9px;color:#B45309;background:#FEF3C7;border-radius:8px;padding:2px 6px;margin-top:4px;">✏️ Originally ' + s.originalOverallPct + '%</div>' : '') +
           '</div>' +
         '</div>'
       );
@@ -7942,9 +7964,11 @@ window.debugStaff = function(name) {
 const CHECKLIST_LOCK_ROLES = [
   { key: 'linecook',  label: '🍳 Line Cook' },
   { key: 'steward',   label: '🧹 Steward' },
+  { key: 'kic',       label: '👨‍🍳 KIC' },
   { key: 'service',   label: '🍽️ Service' },
   { key: 'delco',     label: '🛵 Delco' },
-  { key: 'bartender', label: '🍹 Bartender' }
+  { key: 'bartender', label: '🍹 Bartender' },
+  { key: 'oic',       label: '🧑‍💼 OIC' }
 ];
 
 function renderChecklistLocks() {
@@ -8044,6 +8068,45 @@ function dismissRegistryRequest(reqKey) {
     showToast('Request dismissed', 'ok');
     renderRegistryRequests();
   }).catch(e => showToast('Failed: ' + e.message, 'error'));
+}
+
+// ── Correction Log panel (2026-07-02) ─────────────────────────────────
+function renderCorrectionLog() {
+  const container = document.getElementById('correctionLogList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:#94A3B8;">Loading...</div>';
+  const shiftLabels = {opening:'Opening', closing:'Closing', evaluation:'Evaluation'};
+  Promise.all([
+    db ? db.ref('system/correctionLog').limitToLast(100).once('value').then(s => s.val()||{}) : Promise.resolve({}),
+    fohDb ? fohDb.ref('system/correctionLog').limitToLast(100).once('value').then(s => s.val()||{}) : Promise.resolve({})
+  ]).then(([bohLog, fohLog]) => {
+    let items = [];
+    Object.values(bohLog).forEach(e => items.push(e));
+    Object.values(fohLog).forEach(e => items.push(e));
+    if (!items.length) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:#94A3B8;font-size:13px;">No corrections logged yet.</div>';
+      return;
+    }
+    items.sort((a,b) => new Date(b.at||0) - new Date(a.at||0));
+    container.innerHTML = items.slice(0, 50).map(e => {
+      const when = e.at ? new Date(e.at).toLocaleString('en-GB', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Dubai'}) : '—';
+      const prevStr = e.previousTally ? ('Yes: '+e.previousTally.yes+' No: '+e.previousTally.no+' N/A: '+(e.previousTally.na||0)) : '—';
+      const newStr = e.newTally ? ('Yes: '+e.newTally.yes+' No: '+e.newTally.no+' N/A: '+(e.newTally.na||0)) : '—';
+      return '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:12px 16px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:6px;">' +
+          '<div style="font-size:14px;font-weight:700;color:#1A3C5E;">' + (e.staffName||'—') + ' <span style="font-weight:500;color:#64748B;">· ' + (shiftLabels[e.shift]||e.shift||'') + '</span></div>' +
+          '<div style="font-size:11px;color:#92400E;">' + when + '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#64748B;margin-bottom:6px;">' + (e.role||'') + (e.outlet?' · '+e.outlet:'') + ' · Corrected by ' + (e.by||'—') + '</div>' +
+        '<div style="font-size:12px;color:#1A3C5E;background:#fff;border-radius:6px;padding:6px 10px;margin-bottom:6px;">' +
+          '<span style="color:#A32D2D;">Was: ' + prevStr + '</span> → <span style="color:#15803D;font-weight:600;">Now: ' + newStr + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#1A3C5E;font-style:italic;">"' + (e.reason||'No reason given') + '"</div>' +
+      '</div>';
+    }).join('');
+  }).catch(() => {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#A32D2D;">Failed to load — check your connection and try again.</div>';
+  });
 }
 
 function renderRegistry() {
@@ -8891,45 +8954,14 @@ function toggleEditMode(s) {
   }
   body.appendChild(cancelBtn);
 
-
-  // ── OIC Evaluation Observation injection (Area Manager overwriting OIC record) ──
-  if (s.role === 'oic' && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
-    const oicEvalDefs = [
-      {id:'s1',  section:'⭐ Service & Quality Standards',        text:'Does the OIC actively manage the floor to ensure the sequence of service, guest interaction, hygiene, and brand compliance are consistently upheld?'},
-      {id:'m1',  section:'🤝 Shift Control & Team Leadership',    text:'Does the OIC lead by example, delegating tasks effectively, maintaining high staff morale, and ensuring all FOH checklists are submitted on time?'},
-      {id:'p1',  section:'👁️ Floor Presence & Accountability',    text:'Is the OIC highly visible on the floor, holding FOH staff accountable for their performance, and executing opening/closing duties correctly?'},
-      {id:'u1',  section:'💰 Revenue Drive & Coaching',           text:'Is the OIC aware of daily sales targets, and do they actively coach/monitor the team on upselling techniques to drive results?'},
-      {id:'w1',  section:'⚡ Incident Resolution & Escalation',   text:'Does the OIC handle staff/guest conflicts calmly on the spot and ensure any major incidents or complaints are reported to you promptly?'},
-      {id:'mp1', section:'📅 Attendance & Punctuality',           text:'Did the OIC arrive on time, complete their full shift, and adhere strictly to the schedule without deviation?'},
-    ];
-    let oicEvalContainer = body.querySelector('#oicEvalEditSection');
-    if (!oicEvalContainer) {
-      oicEvalContainer = document.createElement('div');
-      oicEvalContainer.id = 'oicEvalEditSection';
-      oicEvalContainer.style.cssText = 'margin-top:12px;border-radius:10px;overflow:hidden;border:1px solid #E0DDD4;';
-      body.insertBefore(oicEvalContainer, body.querySelector('#cancelEditBtn'));
-    }
-    let oicEvalHtml = '<div style="background:#1F4E79;padding:9px 14px;font-size:12px;font-weight:700;color:#fff;">👥 Area Manager Observation — OIC Evaluation</div>';
-    oicEvalDefs.forEach(t => {
-      const existingYN = (s.taskData && s.taskData[t.id]) ? s.taskData[t.id].yn : '';
-      const existingComment = (s.taskData && s.taskData[t.id]) ? (s.taskData[t.id].comment || '') : '';
-      const yStyle = existingYN==='yes' ? 'background:#15803D;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const nStyle = existingYN==='no'  ? 'background:#B91C1C;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      const aStyle = existingYN==='na'  ? 'background:#475569;color:#fff;' : 'background:#E5E7EB;color:#374151;';
-      oicEvalHtml += `<div style="padding:10px 12px;border-bottom:.5px solid #E0DDD4;background:#fff;" data-taskkey="${t.id}">
-        <div style="font-size:12px;font-weight:500;margin-bottom:6px;">${t.text}</div>
-        <div class="task-yn-edit" style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;gap:4px;">
-            <button onclick="setTaskYN(this,'yes')" style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${yStyle}">✓ YES</button>
-            <button onclick="setTaskYN(this,'no')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${nStyle}">✗ NO</button>
-            <button onclick="setTaskYN(this,'na')"  style="flex:1;padding:5px 8px;font-size:11px;font-weight:700;border-radius:8px;border:none;cursor:pointer;${aStyle}">N/A</button>
-          </div>
-          <textarea class="edit-comment" data-taskkey="${t.id}" style="width:100%;padding:5px 8px;border:1px solid #E0DDD4;border-radius:6px;font-size:11px;resize:none;font-family:inherit;box-sizing:border-box;" rows="2" placeholder="Area Manager comment...">${existingComment}</textarea>
-        </div>
-      </div>`;
-    });
-    oicEvalContainer.innerHTML = oicEvalHtml;
-  }
+  // NOTE (2026-07-02): the OIC Evaluation Observation section that used to be
+  // injected here was removed. OIC is an FOH-role record saved exclusively
+  // through saveFOHOverwrite(), which only reads _fohEditChanges — but this
+  // block wired its buttons to the BOH-side setTaskYN()/_editChanges tracker
+  // instead. That mismatch caused taps to visually highlight but silently
+  // fail to save. The correct, working version lives in the FOH-side detail
+  // view (see the "Area Manager Observation — OIC Evaluation" section wired
+  // to setFOHTaskYN()/_fohEditChanges further down in this file).
 
   // ── KIC Evaluation Observation injection (Area Chef overwriting KIC record) ──
   if (s.role === 'kic' && ['areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) {
@@ -9655,6 +9687,24 @@ async function saveOverwrite(s) {
   else if (ePct!==null)                             newScore = ePct;
   const newQualified = newScore >= 95;
 
+  // ── Preserve original self-reported scores (2026-07-02) ─────────────
+  // The FIRST time a field is ever corrected, capture its pre-correction
+  // value permanently. Never overwritten again after that — this is what
+  // lets every report show "originally X, corrected to Y" instead of
+  // silently losing the staff member's actual self-report.
+  if (s.originalOverallPct === undefined && s.overallPct != null) {
+    updates['submissions/' + fbKey + '/originalOverallPct'] = s.overallPct;
+  }
+  if (opPct !== null && s.originalOpeningPct === undefined && s.openingPct != null && s.openingPct !== opPct) {
+    updates['submissions/' + fbKey + '/originalOpeningPct'] = s.openingPct;
+  }
+  if (clPct !== null && s.originalClosingPct === undefined && s.closingPct != null && s.closingPct !== clPct) {
+    updates['submissions/' + fbKey + '/originalClosingPct'] = s.closingPct;
+  }
+  if (ePct !== null && s.originalOicEvalPct === undefined && s.oicEvalPct != null && s.oicEvalPct !== ePct) {
+    updates['submissions/' + fbKey + '/originalOicEvalPct'] = s.oicEvalPct;
+  }
+
   updates['submissions/' + fbKey + '/overallPct']    = newScore;
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
   updates['submissions/' + fbKey + '/overwrittenBy'] = currentRole;
@@ -10131,9 +10181,30 @@ function loadBOHData() {
         const bohRoles = ['linecook','steward','kic'];
         if (!bohRoles.includes(sub.role)) return;
         const _normName = (sub.staffName||'').trim().replace(/\s+/g,' ');
-        const gKey = _normName + '_' + sub.role + '_' + sub.week;
+        // ── Effective-date correction (2026-07-02) ──────────────────────
+        // Matches the same logic used in loadData() and the Weekly Staff
+        // Report — closing submissions made 12am-3am Dubai time belong to
+        // the PREVIOUS operational day, so Opening/Closing/Eval for one
+        // shift always group into the same row instead of splitting apart.
+        // Single source of truth (2026-07-02): the checklist stamps businessDate
+        // once, at submission, for both Opening and Closing. Trust it directly.
+        const _isClosingBoh = sub.shift === 'closing' || sub.status === 'closing_submitted';
+        let _effDate = sub.week;
+        if (sub.businessDate) {
+          _effDate = sub.businessDate;
+        } else if (_isClosingBoh && sub.submittedAt) {
+          try {
+            const _sh = parseInt(new Date(sub.submittedAt).toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour:'numeric', hour12:false}), 10);
+            if (_sh >= 0 && _sh < 3) {
+              const _d = new Date(sub.week + 'T00:00:00');
+              _d.setDate(_d.getDate() - 1);
+              _effDate = _d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
+            }
+          } catch(e) {}
+        }
+        const gKey = _normName + '_' + sub.role + '_' + _effDate;
         if (!grouped[gKey]) {
-          grouped[gKey] = { staffName:_normName, role:sub.role, outlet:sub.outlet||'', week:sub.week, days:{}, overallPct:0, qualified:false, _outlets:[] };
+          grouped[gKey] = { staffName:_normName, role:sub.role, outlet:sub.outlet||'', week:_effDate, days:{}, overallPct:0, qualified:false, _outlets:[] };
         }
         if (sub.outlet && !grouped[gKey]._outlets.includes(sub.outlet)) grouped[gKey]._outlets.push(sub.outlet);
         // Day deduplication — use latest submission per day
@@ -10289,39 +10360,11 @@ function loadBOHData() {
 }
 
 function openFullBOHTab(el) {
-  ['bohSubLinecook','bohSubSteward'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.style.display = '';
-  });
   showTab(el, 'boh');
 }
 
 function openFullFOHTab(el) {
-  ['fohSubService','fohSubDelco','fohSubBartender'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.style.display = '';
-  });
   showTab(el, 'foh');
-}
-
-function openKICOnlyTab(el) {
-  showTab(el, 'boh');
-  setBOHSub('kic');
-  // Hide Line Cook / Steward sub-tabs — this is a dedicated KIC-only view
-  const lcBtn = document.getElementById('bohSubLinecook');
-  const stBtn = document.getElementById('bohSubSteward');
-  if (lcBtn) lcBtn.style.display = 'none';
-  if (stBtn) stBtn.style.display = 'none';
-}
-
-function openOICOnlyTab(el) {
-  showTab(el, 'foh');
-  setFOHSub('oic');
-  // Hide Service / Delco / Bartender sub-tabs — this is a dedicated OIC-only view
-  ['fohSubService','fohSubDelco','fohSubBartender'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.style.display = 'none';
-  });
 }
 
 function setBOHSub(sub) {
@@ -10509,12 +10552,13 @@ function _showReverifyDialog(staffName, shiftLabel, existingEntry, onConfirm) {
           </div>
         </div>
         ${waitMsg}
-        <div style="font-size:11px;color:#64748B;margin-bottom:14px;line-height:1.6;">
-          ${stillWaiting ? 'This shift was already verified. A minimum 10-minute wait is required before re-verifying.' : 'This shift was already verified. Are you sure you want to verify again? This will add a new re-verify entry to the log.'}
+        <div style="font-size:11px;color:#64748B;margin-bottom:10px;line-height:1.6;">
+          ${stillWaiting ? 'This shift was already verified. A minimum 10-minute wait is required before re-verifying.' : 'This shift was already verified. Correcting it requires a brief reason, which is permanently logged alongside the original result — nothing is silently overwritten.'}
         </div>
+        ${!stillWaiting ? '<div style="margin-bottom:12px;"><label style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">Reason for correction (required)</label><textarea id="_correctionReasonInput" placeholder="e.g. Miscounted the tally on first check" style="width:100%;margin-top:5px;padding:8px 10px;border-radius:8px;border:0.5px solid #E0DDD4;font-size:12px;font-family:inherit;resize:none;box-sizing:border-box;" rows="2"></textarea></div>' : ''}
         <div style="display:flex;gap:8px;">
           <button onclick="document.getElementById('_reverifyDialog').remove()" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid #E0DDD4;background:#F8FAFC;font-size:12px;font-weight:500;color:#64748B;cursor:pointer;">Cancel</button>
-          ${!stillWaiting ? '<button id="_reverifyConfirmBtn" style="flex:1;padding:9px;border-radius:8px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Yes, verify again</button>' : '<button disabled style="flex:1;padding:9px;border-radius:8px;border:none;background:#E0DDD4;color:#94A3B8;font-size:12px;font-weight:600;cursor:not-allowed;">Wait '+_fmtMins(remaining)+' min</button>'}
+          ${!stillWaiting ? '<button id="_reverifyConfirmBtn" style="flex:1;padding:9px;border-radius:8px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Save correction</button>' : '<button disabled style="flex:1;padding:9px;border-radius:8px;border:none;background:#E0DDD4;color:#94A3B8;font-size:12px;font-weight:600;cursor:not-allowed;">Wait '+_fmtMins(remaining)+' min</button>'}
         </div>
       </div>
     </div>`;
@@ -10528,8 +10572,16 @@ function _showReverifyDialog(staffName, shiftLabel, existingEntry, onConfirm) {
   if (!stillWaiting) {
     const confirmBtn = document.getElementById('_reverifyConfirmBtn');
     if (confirmBtn) confirmBtn.addEventListener('click', function() {
+      const reasonEl = document.getElementById('_correctionReasonInput');
+      const reason = (reasonEl?.value || '').trim();
+      if (!reason) {
+        reasonEl.style.border = '1.5px solid #E53E3E';
+        reasonEl.focus();
+        showToast('Please enter a reason for this correction', 'warn');
+        return;
+      }
       overlay.remove();
-      onConfirm();
+      onConfirm(reason);
     });
   }
 }
@@ -10573,8 +10625,18 @@ function saveBOHVerification() {
       return;
     }
     const _shiftLabel = shift==='opening'?'Opening shift':shift==='closing'?'Closing shift':'Evaluation';
-    _showReverifyDialog(s.staffName, _shiftLabel, _lastEntry, function() {
+    _showReverifyDialog(s.staffName, _shiftLabel, _lastEntry, function(_correctionReason) {
       existingLog.push(newEntry);
+      // ── Correction audit log (2026-07-02) ─────────────────────────────
+      // Every correction is permanently logged with who, when, why, and the
+      // before/after tally — visible under Checklist Control for oversight.
+      db.ref('system/correctionLog').push({
+        staffName: s.staffName, role: s.role, outlet: s.outlet||'', week: s.week||'',
+        shift: shift, reason: _correctionReason,
+        by: name, byRole: currentRole, at: now,
+        previousTally: _lastEntry ? { yes: _lastEntry.yn_yes, no: _lastEntry.yn_no, na: _lastEntry.yn_na||0 } : null,
+        newTally: { yes: newEntry.yn_yes, no: newEntry.yn_no, na: newEntry.yn_na||0 }
+      }).catch(()=>{});
       // Proceed with verification — same logic as first-time verify below
       const sDate2 = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
       firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap2 => {
@@ -11180,13 +11242,33 @@ function loadFOHData() {
         if (!sub.staffName || !sub.role) return;
         if (!sub.week) sub.week = sub.submittedAt ? sub.submittedAt.substring(0,10) : 'unknown';
         const _normNameFOH = (sub.staffName||'').trim().replace(/\s+/g,' ');
-        const gKey = _normNameFOH + '_' + sub.role + '_' + sub.week;
+        // ── Effective-date correction (2026-07-02) ──────────────────────
+        // Matches the same logic used in loadData(), loadBOHData(), and the
+        // Weekly Staff Report — closing submissions made 12am-3am Dubai time
+        // belong to the PREVIOUS operational day.
+        // Single source of truth (2026-07-02): trust the checklist's stamped
+        // businessDate directly, for any shift.
+        const _isClosingFoh = sub.shift === 'closing' || sub.status === 'closing_submitted';
+        let _effDateFoh = sub.week;
+        if (sub.businessDate) {
+          _effDateFoh = sub.businessDate;
+        } else if (_isClosingFoh && sub.submittedAt) {
+          try {
+            const _shf = parseInt(new Date(sub.submittedAt).toLocaleString('en-CA', {timeZone:'Asia/Dubai', hour:'numeric', hour12:false}), 10);
+            if (_shf >= 0 && _shf < 3) {
+              const _df = new Date(sub.week + 'T00:00:00');
+              _df.setDate(_df.getDate() - 1);
+              _effDateFoh = _df.getFullYear()+'-'+String(_df.getMonth()+1).padStart(2,'0')+'-'+String(_df.getDate()).padStart(2,'0');
+            }
+          } catch(e) {}
+        }
+        const gKey = _normNameFOH + '_' + sub.role + '_' + _effDateFoh;
         if (!grouped[gKey]) {
           grouped[gKey] = {
             staffName: _normNameFOH,
             role: sub.role,
             outlet: sub.outlet || '—',
-            week: sub.week,
+            week: _effDateFoh,
             days: {},
             overallPct: 0,
             qualified: false,
@@ -12183,8 +12265,16 @@ function saveFOHMultiVerify() {
       return;
     }
     const _fohShiftLabel = fohShift==='opening'?'Opening shift':fohShift==='closing'?'Closing shift':'Evaluation';
-    _showReverifyDialog(staff.staffName, _fohShiftLabel, _fohLastEntry, function() {
+    _showReverifyDialog(staff.staffName, _fohShiftLabel, _fohLastEntry, function(_correctionReason) {
       log.push(newEntry);
+      // ── Correction audit log (2026-07-02) ─────────────────────────────
+      fohDb.ref('system/correctionLog').push({
+        staffName: staff.staffName, role: staff.role, outlet: staff.outlet||'', week: staff.week||'',
+        shift: fohShift, reason: _correctionReason,
+        by: name, byRole: currentRole, at: now,
+        previousTally: _fohLastEntry ? { yes: _fohLastEntry.yn_yes, no: _fohLastEntry.yn_no, na: _fohLastEntry.yn_na||0 } : null,
+        newTally: { yes: newEntry.yn_yes, no: newEntry.yn_no, na: newEntry.yn_na||0 }
+      }).catch(()=>{});
       const sDate2 = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
       fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap2 => {
         if (!snap2.exists()) { showToast('Record not found', 'warn'); return; }
@@ -12937,6 +13027,19 @@ async function saveFOHOverwrite(staff) {
       else if(fohEPct2!==null)                                  newPct=fohEPct2;
       updates['submissions/' + child.key + '/overallPct'] = newPct;
       updates['submissions/' + child.key + '/qualified'] = newPct >= 95;
+      // ── Preserve original self-reported scores (2026-07-02) ─────────────
+      if (sub.originalOverallPct === undefined && sub.overallPct != null && sub.overallPct !== newPct) {
+        updates['submissions/' + child.key + '/originalOverallPct'] = sub.overallPct;
+      }
+      if (fohOpPct2 !== null && sub.originalOpeningPct === undefined && sub.openingPct != null && sub.openingPct !== fohOpPct2) {
+        updates['submissions/' + child.key + '/originalOpeningPct'] = sub.openingPct;
+      }
+      if (fohClPct2 !== null && sub.originalClosingPct === undefined && sub.closingPct != null && sub.closingPct !== fohClPct2) {
+        updates['submissions/' + child.key + '/originalClosingPct'] = sub.closingPct;
+      }
+      if (fohEPct2 !== null && sub.originalOicEvalPct === undefined && sub.oicEvalPct != null && sub.oicEvalPct !== fohEPct2) {
+        updates['submissions/' + child.key + '/originalOicEvalPct'] = sub.oicEvalPct;
+      }
       updates['submissions/' + child.key + '/overwrittenBy'] = currentRole;
       updates['submissions/' + child.key + '/overwrittenAt'] = new Date().toISOString();
       // NOTE: submittedAt intentionally NOT touched — preserves original submission date.
