@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704160000">
+<meta name="app-version" content="20260704180000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2474,6 +2474,142 @@ function ssClearDateRange() {
   // and delete far more Firebase records than intended.
   renderSummaryScoring();
 }
+// ── Shared PDF helpers (2026-07-04) — used by both the consolidated
+// Weekly Staff Report PDF and the new per-staff individual PDF export,
+// so both stay in sync with the same Original -> Verified / tally logic.
+const _ssRoleMapGlobal = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',delco:'Delco',bartender:'Bartender'};
+function _ssFindOriginalG(rawRows, field) {
+  const r = (rawRows||[]).find(function(rr){ return rr[field] != null; });
+  return r ? Math.round(parseFloat(r[field])) : null;
+}
+function _ssCellWithOriginalG(pct, origPct) {
+  if (pct == null) return '—';
+  if (origPct != null && origPct !== pct) return origPct + '% -> ' + pct + '%';
+  return pct + '%';
+}
+function _ssVerifiedByListG(rawRows) {
+  const names = new Set();
+  (rawRows||[]).forEach(function(r) {
+    _vlogArr(r.verificationLog).forEach(function(v){ if (v && v.by) names.add(v.by); });
+    if (r.verifiedBy) names.add(r.verifiedBy);
+  });
+  return names.size ? [...names].join(', ') : '—';
+}
+function _ssFindYNForDateG(rawRows, date, shiftType) {
+  let found = null;
+  (rawRows||[]).forEach(function(r) {
+    _vlogArr(r.verificationLog).forEach(function(v) {
+      if (v && v.shift === shiftType && v.at && v.at.substring(0,10) === date) found = v;
+    });
+  });
+  return found;
+}
+function _ssYNLineG(rawRows, date, shiftType) {
+  const v = _ssFindYNForDateG(rawRows, date, shiftType);
+  if (!v) return '';
+  const parts = ['Y:' + (v.yn_yes||0), 'N:' + (v.yn_no||0)];
+  if (v.yn_na) parts.push('NA:' + v.yn_na);
+  return '\n' + parts.join(' ');
+}
+
+// Export a PDF for ONE staff member only — same format as the per-staff
+// pages in the consolidated Weekly Staff Report PDF (summary line +
+// Original -> Verified scores + full daily breakdown with Y/N/NA tallies),
+// but as its own standalone document. Triggered from the "Export This
+// Staff's PDF" button inside a staff row's expanded detail panel.
+function exportSSIndividualPDF(idx) {
+  const e = _ssConsolidatedRows && _ssConsolidatedRows[idx];
+  if (!e) { showToast('Could not find this staff record — try refreshing.', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  const from = document.getElementById('ssDateFrom').value;
+  const to   = document.getElementById('ssDateTo').value;
+  const weekF = document.getElementById('ssWeekFilter').value;
+  const periodLabel = (from && to) ? (from + ' to ' + to) : (weekF !== 'all' ? 'Week: ' + weekF : 'All Weeks');
+
+  const mainRole = e.roles && e.roles.length ? e.roles[0] : {};
+  const rawRows = e.rawRows || [];
+  const origOp = _ssFindOriginalG(rawRows, 'originalOpeningPct');
+  const origCl = _ssFindOriginalG(rawRows, 'originalClosingPct');
+  const origEv = _ssFindOriginalG(rawRows, 'originalOicEvalPct');
+  const roleLbl = (e.roles||[]).map(function(r){return _ssRoleMapGlobal[r.role]||r.role;}).join(', ');
+
+  doc.setFontSize(14); doc.setTextColor(26,60,94);
+  doc.text('Staff Performance Report — ' + (e.staffName||'—'), 14, 14);
+  doc.setFontSize(8); doc.setTextColor(100,116,139);
+  doc.text('Role: ' + roleLbl + '  |  Outlet: ' + (e.outlet||'—') + '  |  Period: ' + periodLabel + '  |  Generated: ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), 14, 20);
+  doc.text('Verified By: ' + _ssVerifiedByListG(rawRows), 14, 25);
+
+  // Summary block — Opening/Closing/Eval/Weekly Avg with Original -> Verified
+  doc.autoTable({
+    startY: 30,
+    head: [['Opening','Closing','Eval','Weekly Avg','Status']],
+    body: [[
+      _ssCellWithOriginalG(mainRole.openingAvg, origOp),
+      _ssCellWithOriginalG(mainRole.closingAvg, origCl),
+      _ssCellWithOriginalG(mainRole.oicAvg, origEv),
+      e.combinedAvg != null ? e.combinedAvg + '%' : '—',
+      e.eligible ? 'Eligible' : 'Not Eligible'
+    ]],
+    styles: { fontSize: 10, cellPadding: 4, halign: 'center', fontStyle: 'bold' },
+    headStyles: { fillColor: [26,60,94], textColor: 255, fontSize: 9 },
+    margin: { left: 14, right: 14 }
+  });
+
+  // Daily breakdown
+  const daily = ssBuildDailyBreakdown(rawRows);
+  let startY2 = doc.lastAutoTable.finalY + 8;
+  if (daily && daily.length) {
+    doc.setFontSize(11); doc.setTextColor(26,60,94);
+    doc.text('Daily Breakdown', 14, startY2);
+    const dailyRows = daily.map(function(d) {
+      return [
+        d.date,
+        _ssCellWithOriginalG(d.openingPct, d.originalOpeningPct) + _ssYNLineG(rawRows, d.date, 'opening'),
+        _ssCellWithOriginalG(d.closingPct, d.originalClosingPct) + _ssYNLineG(rawRows, d.date, 'closing'),
+        _ssCellWithOriginalG(d.oicEvalPct, d.originalOicEvalPct) + _ssYNLineG(rawRows, d.date, 'evaluation'),
+        d.dayPct != null ? d.dayPct + '%' : '—'
+      ];
+    });
+    doc.autoTable({
+      startY: startY2 + 4,
+      head: [['Date','Opening','Closing','Eval','Daily Avg']],
+      body: dailyRows,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [26,60,94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      alternateRowStyles: { fillColor: [248,250,252] },
+      columnStyles: {
+        0: { cellWidth: 35 }, 1: { cellWidth: 45, halign: 'center' },
+        2: { cellWidth: 45, halign: 'center' }, 3: { cellWidth: 45, halign: 'center' },
+        4: { cellWidth: 30, halign: 'center', fontStyle: 'bold' }
+      },
+      didParseCell: function(data) {
+        if (data.section === 'body' && [1,2,3,4].includes(data.column.index)) {
+          const raw = String(data.cell.raw||'');
+          const finalPart = raw.indexOf(' -> ') >= 0 ? raw.split(' -> ')[1] : raw;
+          const v = parseFloat(finalPart);
+          if (!isNaN(v)) data.cell.styles.textColor = v>=95?[59,109,17]:v>=90?[133,79,11]:v>=85?[153,60,29]:[163,45,45];
+          if (raw.indexOf(' -> ') >= 0) data.cell.styles.fontStyle = 'bold';
+        }
+      },
+      margin: { left: 14, right: 14 }
+    });
+    startY2 = doc.lastAutoTable.finalY + 6;
+  } else {
+    doc.setFontSize(9); doc.setTextColor(148,163,184);
+    doc.text('No day-level data available for this period.', 14, startY2);
+    startY2 += 8;
+  }
+
+  doc.setFontSize(10); doc.setTextColor(26,60,94);
+  doc.text('Final Weekly Average: ' + (e.combinedAvg != null ? e.combinedAvg + '%' : '—') + '  (' + (e.eligible?'Qualified':'Not Qualified') + ')', 14, startY2);
+  doc.setFontSize(7); doc.setTextColor(148,163,184);
+  doc.text('Format "X% -> Y%" means the original self-reported score (X%) was corrected during verification to the final score (Y%).', 14, startY2 + 6);
+
+  doc.save('Staff_Report_' + (e.staffName||'staff').replace(/\s+/g,'_') + '_' + (from || weekF) + '.pdf');
+}
+
 function exportSSPDF() {
   if (!_ssConsolidatedRows || !_ssConsolidatedRows.length) { alert('No data to export. Apply filters first.'); return; }
   const { jsPDF } = window.jspdf;
@@ -3093,21 +3229,34 @@ function renderSummaryScoring() {
       const hasOpen  = _openDates.has(d.iso);
       const hasClose = _closeDates.has(d.iso);
       const hasEval  = _evalDates.has(d.iso);
-      const bg = ((_closeRec.overwrittenBy||_openRec.overwrittenBy)&&(hasOpen||hasClose))?'#FFFBEB':(idx%2===0?'#fff':'#FAFBFC');
-      // days/ node has ORIGINAL score (before overwrite)
-      // Main record (op/cl/ev) has CURRENT score (after overwrite if changed)
       const _dsm = _dayScoreMap[d.iso] || {};
-      // Original scores from days/ node
+      // ── Fix (2026-07-04): days/ node now holds the CURRENT (corrected)
+      // score for each date — the earlier saveOverwrite/saveBOHVerification
+      // fix updates it in place and preserves the pre-correction value
+      // separately as originalOpeningPct/originalClosingPct. So each day's
+      // own value from _dsm is already accurate; it must never be replaced
+      // by the record-level weekly average just because SOME day in the
+      // week was corrected — that was overwriting every day's cell with the
+      // same aggregate number, making unrelated days look identical.
       const _dsmOp = _dsm.openingPct != null ? _dsm.openingPct : null;
       const _dsmCl = _dsm.closingPct != null ? _dsm.closingPct : null;
       const _dsmEv = _dsm.oicEvalPct != null ? _dsm.oicEvalPct : null;
-      // Current scores: use overwritten score if overwritten, else days/ score, else weekly score
-      const _dayOpScore = hasOpen ? (_opOW ? op : (_dsmOp != null ? _dsmOp : op)) : null;
-      const _dayClScore = hasClose ? (_clOW ? cl : (_dsmCl != null ? _dsmCl : cl)) : null;
-      const _dayEvScore = hasEval ? (_evOW ? ev : (_dsmEv != null ? _dsmEv : ev)) : null;
-      // Original scores (shown below overwritten score)
-      const _origOpDay = (_opOW && hasOpen && _dsmOp != null && _dsmOp !== op) ? _dsmOp : null;
-      const _origClDay = (_clOW && hasClose && _dsmCl != null && _dsmCl !== cl) ? _dsmCl : null;
+      const _dsmOrigOp = _dsm.originalOpeningPct != null ? _dsm.originalOpeningPct : null;
+      const _dsmOrigCl = _dsm.originalClosingPct != null ? _dsm.originalClosingPct : null;
+      // Current scores: always prefer this day's own recorded value; fall
+      // back to the weekly aggregate only for legacy records with no
+      // per-day data at all.
+      const _dayOpScore = hasOpen ? (_dsmOp != null ? _dsmOp : op) : null;
+      const _dayClScore = hasClose ? (_dsmCl != null ? _dsmCl : cl) : null;
+      const _dayEvScore = hasEval ? (_dsmEv != null ? _dsmEv : ev) : null;
+      // Per-day "Overwritten" flag + original score — from THIS day's own
+      // data, not the record-level flag (which was true if ANY day that
+      // week was corrected, incorrectly tagging every day as overwritten).
+      const _dayOpOW = _dsmOrigOp != null;
+      const _dayClOW = _dsmOrigCl != null;
+      const _origOpDay = _dayOpOW ? _dsmOrigOp : null;
+      const _origClDay = _dayClOW ? _dsmOrigCl : null;
+      const bg = (_dayOpOW||_dayClOW) ? '#FFFBEB' : (idx%2===0?'#fff':'#FAFBFC');
       // Daily avg from current scores
       const _dayScores = [_dayOpScore, _dayClScore, _dayEvScore].filter(function(v){return v!=null;});
       const _dayAvg = _dayScores.length > 0 ? Math.round(_dayScores.reduce(function(a,b){return a+b;},0)/_dayScores.length) : null;
@@ -3127,12 +3276,12 @@ function renderSummaryScoring() {
       // Staff didn't work that day = — for all shifts
       // Opening cell
       const _opCell = hasOpen
-        ? _cell(hasOpen,_dayOpScore,_opOW&&hasOpen,'#3B6D11','#F59E0B',_origOpDay)
+        ? _cell(hasOpen,_dayOpScore,_dayOpOW&&hasOpen,'#3B6D11','#F59E0B',_origOpDay)
         : (_workedThatDay && _dayHasCl && !_dayHasOp) ? _naPill
         : _cell(false,null,false,'#3B6D11','#F59E0B',null);
       // Closing cell
       const _clCell = hasClose
-        ? _cell(hasClose,_dayClScore,_clOW&&hasClose,'#185FA5','#F59E0B',_origClDay)
+        ? _cell(hasClose,_dayClScore,_dayClOW&&hasClose,'#185FA5','#F59E0B',_origClDay)
         : (_workedThatDay && _dayHasOp && !_dayHasCl) ? _naPill
         : _cell(false,null,false,'#185FA5','#F59E0B',null);
       // Eval cell: N/A if worked that day but no eval recorded yet
@@ -3144,7 +3293,7 @@ function renderSummaryScoring() {
     });
     tableHtml += '</tbody></table>';
 
-    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'      +scoreCards      +_legend      +tableHtml      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'      +'</div></div>';
+    const detailHtml = '<div style="padding:12px 14px;background:#F0F6FF;border-bottom:1px solid #D0D8E4;">'      +scoreCards      +_legend      +tableHtml      +'<div style="background:#1A3C5E;border-radius:6px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;">'      +'<span style="font-size:11px;color:#fff;font-weight:500;">Final Weekly Average — '+tierLabel(avg)+'</span>'      +'<span style="font-size:16px;font-weight:700;color:'+(avg!=null?'#fff':'rgba(255,255,255,0.5)')+'">'+(avg!=null?avg+'%':'—')+'</span>'      +'</div>'      +'<div style="text-align:right;margin-top:8px;"><button onclick="exportSSIndividualPDF('+i+')" style="padding:6px 14px;background:#7B2D42;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;">📄 Export This Staff\'s PDF</button></div>'      +'</div>';
 
     const mainBg = hasOW?'#FFFBEB':(i%2===0?'#fff':'#FAFBFC');
     const _ssDelKey = ((e.staffName||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(e.roles&&e.roles[0]?e.roles[0].role:'')+'_'+(e.week||'').replace(/[^a-zA-Z0-9]/g,'_')).toLowerCase();
