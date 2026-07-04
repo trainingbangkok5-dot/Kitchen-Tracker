@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704180000">
+<meta name="app-version" content="20260704190000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -9807,12 +9807,20 @@ async function saveOverwrite(s) {
   // Find Firebase key
   let fbKey = s._fbKey || '';
   if (!fbKey) {
+    // ── Fix (2026-07-04): multi-outlet staff have a combined outlet string
+    // on the merged display object (e.g. "LB DSO, LB Hamra, LB MTC"), which
+    // never exactly equals any single record's own outlet field (e.g. just
+    // "LB DSO"). The old exact-match check silently failed for every
+    // multi-outlet staff member, causing "Cannot save - record not found"
+    // even though the record genuinely exists. Now checks membership in
+    // the comma-separated list instead of requiring exact equality.
+    const _sOutlets = (s.outlet || '').split(',').map(function(o){ return o.trim(); }).filter(Boolean);
     const snap = await _saveDb.ref('submissions').once('value');
     if (snap.exists()) {
       snap.forEach(child => {
         const v = child.val();
-        if (!fbKey && v.staffName === s.staffName && v.week === s.week && v.role === s.role
-            && (!s.outlet || !v.outlet || v.outlet === s.outlet)) {
+        const _outletOk = !s.outlet || !v.outlet || v.outlet === s.outlet || _sOutlets.includes(v.outlet);
+        if (!fbKey && v.staffName === s.staffName && v.week === s.week && v.role === s.role && _outletOk) {
           fbKey = child.key;
         }
       });
