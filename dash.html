@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704120000">
+<meta name="app-version" content="20260704130000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -10605,6 +10605,39 @@ function _mergeTaskDataWithEdits(taskData, editChanges) {
   return merged;
 }
 
+// ── Fix (2026-07-04): read tallies from the visible screen, not memory ──
+// Root cause of "shows 50% live, saves as 100%": the verify panel can get
+// silently rebuilt by a background Firebase listener between the moment
+// the verifier taps Yes/No/N/A and the moment they click Verify — this
+// wipes the in-memory _editChanges object even though the screen still
+// shows the tapped answers (setTaskYN updates the visible badge directly,
+// independent of _editChanges). _snapYN() then fell back to the ORIGINAL
+// taskData, silently reverting the tally. Reading directly from each row's
+// visible YES/NO/N/A badge is always accurate to what the verifier saw and
+// clicked confirm on, regardless of any background re-render race.
+function _readVisibleYN(shift, role) {
+  const openIds  = ['o1','o2','o3','o4','o5'];
+  const closeIds = role === 'kic' ? ['cy1','cy2','cy3','cy4']
+    : ['c1','c2','c3','c4','c5'];
+  const evalIds  = ['fc1','fc2','fc3','fc4','fo1','fo2','fo3','cost1','sp2','cc1',
+    'lc1','lc2','lc3','lc4','lc5','st1','st2','st3','st4','st5',
+    's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
+    'f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
+  const ids = shift === 'opening' ? openIds : shift === 'closing' ? closeIds : evalIds;
+  let yes = 0, no = 0, na = 0, found = 0;
+  document.querySelectorAll('[data-taskkey]').forEach(function(row) {
+    const tk = (row.getAttribute('data-taskkey') || '').replace(/^d[0-9]+_/, '');
+    if (!ids.includes(tk)) return;
+    const span = row.querySelector('.task-yn-display span');
+    if (!span) return;
+    const txt = span.textContent || '';
+    if (/YES/.test(txt)) { yes++; found++; }
+    else if (/NO/.test(txt)) { no++; found++; }
+    else if (/N\/A/.test(txt)) { na++; found++; }
+  });
+  return { yes: yes, no: no, na: na, found: found };
+}
+
 function _snapYN(taskData, shift, role) {
   if (!taskData) return { yes: 0, no: 0, na: 0 };
   // Use all answered tasks for the shift — count everything staff answered
@@ -10618,6 +10651,9 @@ function _snapYN(taskData, shift, role) {
     's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
     'f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
   const ids = shift === 'opening' ? openIds : shift === 'closing' ? closeIds : evalIds;
+  // Prefer the live DOM state — see _readVisibleYN comment above.
+  const _visible = _readVisibleYN(shift, role);
+  if (_visible.found > 0) return { yes: _visible.yes, no: _visible.no, na: _visible.na };
   let yes = 0, no = 0, na = 0;
   Object.entries(taskData).forEach(function(e) {
     const tid = e[0].replace(/^d[0-9]+_/, '');
