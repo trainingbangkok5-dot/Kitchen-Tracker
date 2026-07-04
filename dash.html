@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704130000">
+<meta name="app-version" content="20260704160000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2251,6 +2251,9 @@ function ssBuildDailyBreakdown(rowsForEmployee) {
       openingPct: v.openingPct != null ? v.openingPct : null,
       closingPct: v.closingPct != null ? v.closingPct : null,
       oicEvalPct: v.oicEvalPct != null ? v.oicEvalPct : null,
+      originalOpeningPct: v.originalOpeningPct != null ? v.originalOpeningPct : null,
+      originalClosingPct: v.originalClosingPct != null ? v.originalClosingPct : null,
+      originalOicEvalPct: v.originalOicEvalPct != null ? v.originalOicEvalPct : null,
       dayPct
     };
   }).filter(d => d.dayPct != null);
@@ -2490,54 +2493,81 @@ function exportSSPDF() {
   doc.setFontSize(8); doc.setTextColor(100,116,139);
   doc.text('Period: ' + periodLabel + '  |  Outlet: ' + outletLabel + '  |  Role: ' + roleLabel + '  |  Generated: ' + new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), 14, 18);
 
+  // ── Helpers for Original → Verified transparency (2026-07-04) ───────────
+  function _ssFindOriginal(rawRows, field) {
+    const r = (rawRows||[]).find(function(rr){ return rr[field] != null; });
+    return r ? Math.round(parseFloat(r[field])) : null;
+  }
+  function _ssCellWithOriginal(pct, origPct) {
+    if (pct == null) return '—';
+    if (origPct != null && origPct !== pct) return origPct + '% -> ' + pct + '%';
+    return pct + '%';
+  }
+  function _ssVerifiedByList(rawRows) {
+    const names = new Set();
+    (rawRows||[]).forEach(function(r) {
+      _vlogArr(r.verificationLog).forEach(function(v){ if (v && v.by) names.add(v.by); });
+      if (r.verifiedBy) names.add(r.verifiedBy);
+    });
+    return names.size ? [...names].join(', ') : '—';
+  }
+
   const roleMap = {linecook:'Line Cook',steward:'Steward',kic:'KIC',oic:'OIC',service:'Service',delco:'Delco',bartender:'Bartender'};
   const rows = _ssConsolidatedRows.map(function(e) {
     const mainRole = e.roles && e.roles.length ? e.roles[0] : {};
-    const op  = mainRole.openingAvg != null ? mainRole.openingAvg + '%' : '—';
-    const cl  = mainRole.closingAvg != null ? mainRole.closingAvg + '%' : '—';
-    const ev  = mainRole.oicAvg     != null ? mainRole.oicAvg     + '%' : '—';
-    const avg = e.combinedAvg       != null ? e.combinedAvg       + '%' : '—';
-    const hasCorrection = (e.rawRows||[]).some(function(r){
-      return r.originalOverallPct != null || r.originalOpeningPct != null || r.originalClosingPct != null || r.originalOicEvalPct != null;
-    });
+    const rawRows = e.rawRows || [];
+    const origOp = _ssFindOriginal(rawRows, 'originalOpeningPct');
+    const origCl = _ssFindOriginal(rawRows, 'originalClosingPct');
+    const origEv = _ssFindOriginal(rawRows, 'originalOicEvalPct');
+    const op  = _ssCellWithOriginal(mainRole.openingAvg, origOp);
+    const cl  = _ssCellWithOriginal(mainRole.closingAvg, origCl);
+    const ev  = _ssCellWithOriginal(mainRole.oicAvg, origEv);
+    const avg = e.combinedAvg != null ? e.combinedAvg + '%' : '—';
+    const hasCorrection = origOp != null || origCl != null || origEv != null || rawRows.some(function(r){ return r.originalOverallPct != null; });
     const statusLabel = (e.eligible ? 'Eligible' : 'Not Eligible') + (hasCorrection ? ' (Corrected)' : '');
     return [
       e.staffName || '—',
       (e.roles||[]).map(function(r){return roleMap[r.role]||r.role;}).join(', '),
       e.outlet || '—',
       op, cl, ev, avg,
-      statusLabel
+      statusLabel,
+      _ssVerifiedByList(rawRows)
     ];
   });
 
   doc.autoTable({
     startY: 23,
-    head: [['Staff Name','Role','Outlet','Opening','Closing','Eval','Weekly Avg','Status']],
+    head: [['Staff Name','Role','Outlet','Opening','Closing','Eval','Weekly Avg','Status','Verified By']],
     body: rows,
-    styles: { fontSize: 8, cellPadding: 2.5 },
+    styles: { fontSize: 7.5, cellPadding: 2.5 },
     headStyles: { fillColor: [26,60,94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
     alternateRowStyles: { fillColor: [248,250,252] },
     columnStyles: {
-      0: { cellWidth: 45 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 20, halign: 'center' },
-      5: { cellWidth: 20, halign: 'center' },
-      6: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
-      7: { cellWidth: 25, halign: 'center' }
+      0: { cellWidth: 38 },
+      1: { cellWidth: 26 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 22, halign: 'center' },
+      4: { cellWidth: 22, halign: 'center' },
+      5: { cellWidth: 22, halign: 'center' },
+      6: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+      7: { cellWidth: 28, halign: 'center' },
+      8: { cellWidth: 40 }
     },
     didParseCell: function(data) {
       if (data.section === 'body') {
         if (data.column.index === 7) {
-          if (data.cell.raw === 'Eligible')     { data.cell.styles.textColor = [59,109,17]; }
-          else if (data.cell.raw === 'Not Eligible') { data.cell.styles.textColor = [163,45,45]; }
+          if (data.cell.raw.indexOf('Not Eligible') === 0) { data.cell.styles.textColor = [163,45,45]; }
+          else if (data.cell.raw.indexOf('Eligible') === 0) { data.cell.styles.textColor = [59,109,17]; }
         }
         if ([3,4,5,6].includes(data.column.index)) {
-          const v = parseFloat(data.cell.raw);
+          // Cell may be "X%→Y%" (corrected) or plain "Y%" — color by the FINAL value
+          const raw = String(data.cell.raw||'');
+          const finalPart = raw.indexOf(' -> ') >= 0 ? raw.split(' -> ')[1] : raw;
+          const v = parseFloat(finalPart);
           if (!isNaN(v)) {
             data.cell.styles.textColor = v>=95?[59,109,17]:v>=90?[133,79,11]:v>=85?[153,60,29]:[163,45,45];
           }
+          if (raw.indexOf(' -> ') >= 0) data.cell.styles.fontStyle = 'bold';
         }
       }
     },
@@ -2548,9 +2578,91 @@ function exportSSPDF() {
   const total   = _ssConsolidatedRows.length;
   const elig    = _ssConsolidatedRows.filter(function(e){return e.eligible;}).length;
   const notElig = total - elig;
-  const finalY  = doc.lastAutoTable.finalY + 6;
+  const correctedCount = _ssConsolidatedRows.filter(function(e){
+    return (e.rawRows||[]).some(function(r){ return r.originalOverallPct != null || r.originalOpeningPct != null || r.originalClosingPct != null || r.originalOicEvalPct != null; });
+  }).length;
+  let finalY  = doc.lastAutoTable.finalY + 6;
   doc.setFontSize(8); doc.setTextColor(100,116,139);
-  doc.text('Total: ' + total + '  |  Eligible ≥95%: ' + elig + '  |  Not Eligible: ' + notElig, 14, finalY);
+  doc.text('Total: ' + total + '  |  Eligible \u226595%: ' + elig + '  |  Not Eligible: ' + notElig + '  |  Corrected: ' + correctedCount, 14, finalY);
+  doc.setFontSize(7); doc.setTextColor(148,163,184);
+  doc.text('Format "X% -> Y%" means the staff\'s original self-reported score (X%) was corrected during verification to the final score (Y%).', 14, finalY + 5);
+
+  // ── Per-employee Daily Breakdown pages (2026-07-04) ──────────────────────
+  // Each staff member with day-level data gets their own page showing every
+  // submitted day's Opening/Closing/Eval — including Original->Verified
+  // where a correction was made — so managers can audit exactly what changed
+  // and when, not just the final weekly average.
+  // ── Yes/No/N/A tallies per day (2026-07-04) ──────────────────────────────
+  // Matches a verification log entry to a specific calendar date + shift so
+  // the Daily Breakdown can show the same "Yes: X No: Y N/A: Z" tally the
+  // Score Box shows live on the dashboard — not just the resulting percentage.
+  function _ssFindYNForDate(rawRows, date, shiftType) {
+    let found = null;
+    (rawRows||[]).forEach(function(r) {
+      _vlogArr(r.verificationLog).forEach(function(v) {
+        if (v && v.shift === shiftType && v.at && v.at.substring(0,10) === date) found = v;
+      });
+    });
+    return found;
+  }
+  function _ssYNLine(rawRows, date, shiftType) {
+    const v = _ssFindYNForDate(rawRows, date, shiftType);
+    if (!v) return '';
+    const parts = ['Y:' + (v.yn_yes||0), 'N:' + (v.yn_no||0)];
+    if (v.yn_na) parts.push('NA:' + v.yn_na);
+    return '\n' + parts.join(' ');
+  }
+
+  _ssConsolidatedRows.forEach(function(e) {
+    const daily = ssBuildDailyBreakdown(e.rawRows || []);
+    if (!daily || !daily.length) return; // no day-level data for this employee — skip
+    doc.addPage();
+    const mainRole = e.roles && e.roles.length ? e.roles[0] : {};
+    doc.setFontSize(13); doc.setTextColor(26,60,94);
+    doc.text('Daily Breakdown — ' + (e.staffName||'—'), 14, 14);
+    doc.setFontSize(8); doc.setTextColor(100,116,139);
+    const roleLbl = (e.roles||[]).map(function(r){return roleMap[r.role]||r.role;}).join(', ');
+    doc.text('Role: ' + roleLbl + '  |  Outlet: ' + (e.outlet||'—') + '  |  Period: ' + periodLabel, 14, 20);
+    doc.text('Verified By: ' + _ssVerifiedByList(e.rawRows||[]), 14, 25);
+
+    const dailyRows = daily.map(function(d) {
+      return [
+        d.date,
+        _ssCellWithOriginal(d.openingPct, d.originalOpeningPct) + _ssYNLine(e.rawRows, d.date, 'opening'),
+        _ssCellWithOriginal(d.closingPct, d.originalClosingPct) + _ssYNLine(e.rawRows, d.date, 'closing'),
+        _ssCellWithOriginal(d.oicEvalPct, d.originalOicEvalPct) + _ssYNLine(e.rawRows, d.date, 'evaluation'),
+        d.dayPct != null ? d.dayPct + '%' : '—'
+      ];
+    });
+    doc.autoTable({
+      startY: 30,
+      head: [['Date','Opening','Closing','Eval','Daily Avg']],
+      body: dailyRows,
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      headStyles: { fillColor: [26,60,94], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      alternateRowStyles: { fillColor: [248,250,252] },
+      columnStyles: {
+        0: { cellWidth: 35 },
+        1: { cellWidth: 35, halign: 'center' },
+        2: { cellWidth: 35, halign: 'center' },
+        3: { cellWidth: 35, halign: 'center' },
+        4: { cellWidth: 30, halign: 'center', fontStyle: 'bold' }
+      },
+      didParseCell: function(data) {
+        if (data.section === 'body' && [1,2,3,4].includes(data.column.index)) {
+          const raw = String(data.cell.raw||'');
+          const finalPart = raw.indexOf(' -> ') >= 0 ? raw.split(' -> ')[1] : raw;
+          const v = parseFloat(finalPart);
+          if (!isNaN(v)) data.cell.styles.textColor = v>=95?[59,109,17]:v>=90?[133,79,11]:v>=85?[153,60,29]:[163,45,45];
+          if (raw.indexOf(' -> ') >= 0) data.cell.styles.fontStyle = 'bold';
+        }
+      },
+      margin: { left: 14, right: 14 }
+    });
+    const dFinalY = doc.lastAutoTable.finalY + 6;
+    doc.setFontSize(9); doc.setTextColor(26,60,94);
+    doc.text('Final Weekly Average: ' + (e.combinedAvg != null ? e.combinedAvg + '%' : '—') + '  (' + (e.eligible?'Qualified':'Not Qualified') + ')', 14, dFinalY);
+  });
 
   doc.save('Weekly_Staff_Report_' + (from || weekF) + '.pdf');
 }
@@ -10726,7 +10838,7 @@ function _showReverifyDialog(staffName, shiftLabel, existingEntry, onConfirm) {
         </div>
         ${!stillWaiting ? '<div style="margin-bottom:12px;"><label style="font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.04em;">Reason for correction (required)</label><textarea id="_correctionReasonInput" placeholder="e.g. Miscounted the tally on first check" style="width:100%;margin-top:5px;padding:8px 10px;border-radius:8px;border:0.5px solid #E0DDD4;font-size:12px;font-family:inherit;resize:none;box-sizing:border-box;" rows="2"></textarea></div>' : ''}
         <div style="display:flex;gap:8px;">
-          <button onclick="document.getElementById('_reverifyDialog').remove()" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid #E0DDD4;background:#F8FAFC;font-size:12px;font-weight:500;color:#64748B;cursor:pointer;">Cancel</button>
+          <button onclick="document.getElementById('_reverifyDialog').remove(); _verifyInFlight=false; _fohVerifySaving=false;" style="flex:1;padding:9px;border-radius:8px;border:0.5px solid #E0DDD4;background:#F8FAFC;font-size:12px;font-weight:500;color:#64748B;cursor:pointer;">Cancel</button>
           ${!stillWaiting ? '<button id="_reverifyConfirmBtn" style="flex:1;padding:9px;border-radius:8px;border:none;background:#1A3C5E;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Save correction</button>' : '<button disabled style="flex:1;padding:9px;border-radius:8px;border:none;background:#E0DDD4;color:#94A3B8;font-size:12px;font-weight:600;cursor:not-allowed;">Wait '+_fmtMins(remaining)+' min</button>'}
         </div>
       </div>
@@ -10755,22 +10867,59 @@ function _showReverifyDialog(staffName, shiftLabel, existingEntry, onConfirm) {
   }
 }
 
+let _verifyInFlight = false;
+// ── Fix (2026-07-04): same days/ propagation as saveOverwrite(), now for
+// the Verify-panel save path too. Without this, verifying/re-verifying a
+// shift updates the top-level openingPct/closingPct/oicEvalPct (so the
+// live Score Box looks right) but never touches days/{date}, which is
+// what the Weekly Staff Report and Daily Breakdown actually read from —
+// so those kept showing the original pre-correction score forever.
+function _verifyDaysDate(daysObj, field, fallbackDate) {
+  const ds = Object.keys(daysObj || {}).filter(function(d){ return daysObj[d] && daysObj[d][field] != null; }).sort();
+  return ds.length ? ds[ds.length - 1] : fallbackDate;
+}
+function _verifyWriteDaysUpdate(updateMap, childKey, daysObj, shift, pct) {
+  const _field = shift === 'evaluation' ? 'oicEvalPct' : (shift + 'Pct');
+  const _fallback = new Date().toISOString().substring(0, 10);
+  const _d = _verifyDaysDate(daysObj, _field, _fallback);
+  const _existing = (daysObj && daysObj[_d]) || {};
+  const _origField = 'original' + _field.charAt(0).toUpperCase() + _field.slice(1);
+  if (pct == null) return; // don't write nulls — Firebase ignores them anyway
+  if (_existing[_field] != null && _existing[_origField] === undefined && _existing[_field] !== pct) {
+    updateMap['submissions/' + childKey + '/days/' + _d + '/' + _origField] = _existing[_field];
+  }
+  updateMap['submissions/' + childKey + '/days/' + _d + '/' + _field] = pct;
+}
+
 function saveBOHVerification() {
+  // ── Fix (2026-07-04): prevent duplicate verification entries ──────────
+  // Root cause of seeing two identical "Yes:3 No:1" entries one minute
+  // apart: existingLog is read synchronously from memory, but the actual
+  // Firebase write (and the update of s.verificationLog) only happens in
+  // an async .then() callback afterward. A second click before that
+  // callback finishes reads the same stale existingLog, computes the same
+  // tally, and the "identical to last entry" guard doesn't catch it
+  // because neither click's own new entry is in existingLog yet. A simple
+  // in-flight lock closes this window completely.
+  if (_verifyInFlight) { showToast('Already saving — please wait...', 'warn'); return; }
+  _verifyInFlight = true;
+  const _releaseVerifyLock = function() { _verifyInFlight = false; };
   const name = (document.getElementById('verifiedByInput')?.value || '').trim();
-  if (!name) { showToast('Please enter your name', 'warn'); return; }
+  if (!name) { _releaseVerifyLock(); showToast('Please enter your name', 'warn'); return; }
   // For FOH staff shown in fohDetailModal, _currentDetailStaff is null — use _fohFiltered instead
   if (!_currentDetailStaff && _fohFiltered && _fohDetailIdx >= 0 && _fohFiltered[_fohDetailIdx]) {
     // Route to FOH verify path
+    _releaseVerifyLock();
     saveFOHMultiVerify(); return;
   }
-  if (!_currentDetailStaff) { showToast('No record loaded', 'warn'); return; }
+  if (!_currentDetailStaff) { _releaseVerifyLock(); showToast('No record loaded', 'warn'); return; }
   const s = _currentDetailStaff;
   const isFOH = ['service','oic','delco','bartender'].includes(s.role);
   const firebaseRef = isFOH ? fohDb : db;
-  if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
+  if (!firebaseRef) { _releaseVerifyLock(); showToast('Firebase not connected', 'error'); return; }
   const now = new Date().toISOString();
   const shift = (document.getElementById('verifyShiftSelect')?.value) || '';
-  if (!shift) { showToast('Please select a checklist type first', 'warn'); return; }
+  if (!shift) { _releaseVerifyLock(); showToast('Please select a checklist type first', 'warn'); return; }
   const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog] : [];
   if (s.verifiedBy && !existingLog.length) {
     existingLog.push({ by: s.verifiedBy, role: s.verifiedByRole || '', at: s.verifiedAt || '', shift: 'opening' });
@@ -10790,6 +10939,7 @@ function saveBOHVerification() {
         (_lastEntry.yn_yes||0) === (newEntry.yn_yes||0) &&
         (_lastEntry.yn_no||0)  === (newEntry.yn_no||0)  &&
         (_lastEntry.yn_na||0)  === (newEntry.yn_na||0)) {
+      _releaseVerifyLock();
       showToast('Already verified with this exact result — no changes to record. (Last by ' + _lastEntry.by + ')', 'warn');
       return;
     }
@@ -10809,7 +10959,7 @@ function saveBOHVerification() {
       // Proceed with verification — same logic as first-time verify below
       const sDate2 = s.submittedAt ? s.submittedAt.substring(0, 10) : '';
       firebaseRef.ref('submissions').orderByChild('staffName').equalTo(s.staffName).once('value', snap2 => {
-        if (!snap2.exists()) { showToast('Record not found', 'warn'); return; }
+        if (!snap2.exists()) { _releaseVerifyLock(); showToast('Record not found', 'warn'); return; }
         const updateMap2 = {};
         snap2.forEach(child => {
           const v = child.val();
@@ -10830,12 +10980,15 @@ function saveBOHVerification() {
                 updateMap2['submissions/' + child.key + '/evalNotVisited'] = true;
                 updateMap2['submissions/' + child.key + '/oicEvalPct'] = null;
               } else {
-                updateMap2['submissions/' + child.key + '/oicEvalPct'] = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+                const _pct1 = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+                updateMap2['submissions/' + child.key + '/oicEvalPct'] = _pct1;
                 updateMap2['submissions/' + child.key + '/evalNotVisited'] = false;
+                _verifyWriteDaysUpdate(updateMap2, child.key, v.days, shift, _pct1);
               }
             } else if ((shift === 'opening' || shift === 'closing') && ((_bohYN.yes||0) + (_bohYN.no||0)) > 0) {
               const _bohShiftPct = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
               updateMap2['submissions/' + child.key + '/' + shift + 'Pct'] = _bohShiftPct;
+              _verifyWriteDaysUpdate(updateMap2, child.key, v.days, shift, _bohShiftPct);
             }
           }
         });
@@ -10867,8 +11020,9 @@ function saveBOHVerification() {
             });
             showToast('Re-verified: ' + s.staffName, 'ok');
             renderBOHStaff();
-          }).catch(e => showToast('Save failed: ' + e.message, 'error'));
-        } else { showToast('No matching record found to update', 'warn'); }
+            _releaseVerifyLock();
+          }).catch(e => { showToast('Save failed: ' + e.message, 'error'); _releaseVerifyLock(); });
+        } else { showToast('No matching record found to update', 'warn'); _releaseVerifyLock(); }
       });
     });
     return;
@@ -10894,16 +11048,20 @@ function saveBOHVerification() {
             updateMap['submissions/' + child.key + '/evalNotVisited'] = true;
             updateMap['submissions/' + child.key + '/oicEvalPct'] = null;
           } else {
-            updateMap['submissions/' + child.key + '/oicEvalPct'] = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+            const _pct2 = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+            updateMap['submissions/' + child.key + '/oicEvalPct'] = _pct2;
             updateMap['submissions/' + child.key + '/evalNotVisited'] = false;
+            _verifyWriteDaysUpdate(updateMap, child.key, v.days, shift, _pct2);
           }
         } else if ((shift === 'opening' || shift === 'closing') && ((_bohYN.yes||0) + (_bohYN.no||0)) > 0) {
-          updateMap['submissions/' + child.key + '/' + shift + 'Pct'] = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+          const _bohShiftPct0 = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+          updateMap['submissions/' + child.key + '/' + shift + 'Pct'] = _bohShiftPct0;
+          _verifyWriteDaysUpdate(updateMap, child.key, v.days, shift, _bohShiftPct0);
         }
         updateMap['submissions/' + child.key + '/lastUpdated'] = now;
       }
     });
-    if (!Object.keys(updateMap).length) { showToast('No matching record found', 'warn'); return; }
+    if (!Object.keys(updateMap).length) { _releaseVerifyLock(); showToast('No matching record found', 'warn'); return; }
     firebaseRef.ref().update(updateMap).then(() => {
       s.verifiedBy = name;
       s.verifiedByRole = currentRole;
@@ -10953,7 +11111,8 @@ function saveBOHVerification() {
       // Also refresh table
       if (document.getElementById('page-boh')?.classList.contains('active')) renderBOHStaff();
       if (document.getElementById('page-foh')?.classList.contains('active')) renderFOHStaff();
-    }).catch(e => showToast('Save failed: ' + e.message, 'error'));
+      _releaseVerifyLock();
+    }).catch(e => { showToast('Save failed: ' + e.message, 'error'); _releaseVerifyLock(); });
   });
 }
 
@@ -12472,7 +12631,7 @@ function saveFOHMultiVerify() {
   _fohVerifySaving = true;
   const now = new Date().toISOString();
   const fohShift = (document.getElementById('verifyShiftSelect')?.value) || '';
-  if (!fohShift) { showToast('Please select a checklist type first', 'warn'); return; }
+  if (!fohShift) { _fohVerifySaving = false; showToast('Please select a checklist type first', 'warn'); return; }
   var rawLog = staff.verificationLog;
   const log = Array.isArray(rawLog) ? [...rawLog]
     : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
@@ -12505,7 +12664,7 @@ function saveFOHMultiVerify() {
       }).catch(()=>{});
       const sDate2 = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
       fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap2 => {
-        if (!snap2.exists()) { showToast('Record not found', 'warn'); return; }
+        if (!snap2.exists()) { _fohVerifySaving = false; showToast('Record not found', 'warn'); return; }
         const updates2 = {};
         snap2.forEach(child => {
           const sub = child.val();
@@ -12527,9 +12686,12 @@ function saveFOHMultiVerify() {
                 const _fohEvalPct = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
                 updates2['submissions/' + child.key + '/oicEvalPct'] = _fohEvalPct;
                 updates2['submissions/' + child.key + '/evalNotVisited'] = false;
+                _verifyWriteDaysUpdate(updates2, child.key, sub.days, fohShift, _fohEvalPct);
               }
             } else if ((fohShift === 'opening' || fohShift === 'closing') && ((_fohYN.yes||0) + (_fohYN.no||0)) > 0) {
-              updates2['submissions/' + child.key + '/' + fohShift + 'Pct'] = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+              const _fohShiftPctRV = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+              updates2['submissions/' + child.key + '/' + fohShift + 'Pct'] = _fohShiftPctRV;
+              _verifyWriteDaysUpdate(updates2, child.key, sub.days, fohShift, _fohShiftPctRV);
             }
           }
         });
@@ -12561,8 +12723,9 @@ function saveFOHMultiVerify() {
             });
             showToast('Re-verified: ' + staff.staffName, 'ok');
             renderFOHStaff();
-          }).catch(e => showToast('Save failed: ' + e.message, 'error'));
-        } else { showToast('No matching record found', 'warn'); }
+            _fohVerifySaving = false;
+          }).catch(e => { showToast('Save failed: ' + e.message, 'error'); _fohVerifySaving = false; });
+        } else { showToast('No matching record found', 'warn'); _fohVerifySaving = false; }
       });
     });
     return;
@@ -12570,7 +12733,7 @@ function saveFOHMultiVerify() {
   log.push(newEntry);
   const sDate = staff.submittedAt ? staff.submittedAt.substring(0,10) : '';
   fohDb.ref('submissions').orderByChild('staffName').equalTo(staff.staffName).once('value', snap => {
-    if (!snap.exists()) { showToast('Record not found', 'warn'); return; }
+    if (!snap.exists()) { _fohVerifySaving = false; showToast('Record not found', 'warn'); return; }
     const updates = {};
     snap.forEach(child => {
       const sub = child.val();
@@ -12589,13 +12752,16 @@ function saveFOHMultiVerify() {
             const _fohEvalPct2 = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
             updates['submissions/' + child.key + '/oicEvalPct'] = _fohEvalPct2;
             updates['submissions/' + child.key + '/evalNotVisited'] = false;
+            _verifyWriteDaysUpdate(updates, child.key, sub.days, fohShift, _fohEvalPct2);
           }
         } else if ((fohShift === 'opening' || fohShift === 'closing') && ((_fohYN.yes||0) + (_fohYN.no||0)) > 0) {
-          updates['submissions/' + child.key + '/' + fohShift + 'Pct'] = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+          const _fohShiftPctFT = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+          updates['submissions/' + child.key + '/' + fohShift + 'Pct'] = _fohShiftPctFT;
+          _verifyWriteDaysUpdate(updates, child.key, sub.days, fohShift, _fohShiftPctFT);
         }
       }
     });
-    if (!Object.keys(updates).length) { showToast('No matching record', 'warn'); return; }
+    if (!Object.keys(updates).length) { _fohVerifySaving = false; showToast('No matching record', 'warn'); return; }
     fohDb.ref().update(updates).then(() => {
       staff.verifiedBy = name; staff.verifiedByRole = currentRole;
       staff.verifiedAt = now; staff.verificationLog = log;
