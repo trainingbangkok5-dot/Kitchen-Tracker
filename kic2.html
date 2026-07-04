@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260702200000">
+<meta name="app-version" content="20260704120000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260615290000">
@@ -105,14 +105,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .ot-record { background:#EDE9FE; color:#5B21B6; }
 .ot-auditor { background:#FCE7F3; color:#9D174D; }
 .task-text { font-size:13px; font-weight:500; line-height:1.4; flex:1; }
-.yn-row { display:flex; gap:6px; }
-.yn { flex:1; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
+.yn-row { display:flex; gap:6px; flex-wrap:wrap; }
+.yn { flex:1 1 70px; min-width:70px; padding:9px 4px; border-radius:8px; border:1.5px solid #E2E8F0; background:#F8FAFC; font-size:12px; font-weight:700; color:#64748B; text-align:center; cursor:pointer; -webkit-appearance:none; transition:all 0.12s; }
 .yn:active { transform:scale(0.96); }
 .yn.yes.on { background:#DCFCE7; border-color:#22C55E; color:#15803D; }
 .yn.no.on  { background:#FEE2E2; border-color:#EF4444; color:#B91C1C; }
 .yn.na.on  { background:#F3F4F6; border-color:#9CA3AF; color:#374151; }
 .photo-row { margin-top:9px; display:flex; align-items:center; gap:8px; }
-.photo-btn { display:flex; align-items:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; }
+.photo-btn { display:flex; align-items:center; justify-content:center; gap:6px; background:#F8FAFC; border:1.5px dashed #CBD5E1; border-radius:9px; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:600; color:#64748B; -webkit-appearance:none; transition:all 0.15s; flex-basis:100%; margin-top:6px; }
 .photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
 .photo-btn:active { transform:scale(0.97); }
 .photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
@@ -675,8 +675,7 @@ function _setupFileInput(id, withCapture, taskId) {
   input.addEventListener('change', function(e) {
     const file = e.target.files && e.target.files[0];
     if (file) {
-      if (taskId) activePhotoTask = taskId;
-      handlePhotoFile(file);
+      handlePhotoFile(file, taskId);
       setTimeout(function(){ try { input.value=''; } catch(e2){} }, 600);
     }
   });
@@ -932,6 +931,26 @@ let activePhotoTask = null;
 
 // ── Storage ───────────────────────────────────────────────────
 function load() { try { return JSON.parse(localStorage.getItem(SK))||{}; } catch(e) { return {}; } }
+
+// ── Fix (2026-07-03): safe SK switching — migrates today's data forward ──
+// SK changes on every keystroke while typing the name field. Without this,
+// answers saved under an earlier partial-name key become invisible the
+// moment SK shifts again, making a fully-answered checklist look empty at
+// submit time. This copies today's answers into the new key before
+// switching, so nothing is ever orphaned.
+function switchSK(newSK) {
+  if (newSK === SK) return;
+  try {
+    const oldData = JSON.parse(localStorage.getItem(SK)) || {};
+    const newData = JSON.parse(localStorage.getItem(newSK)) || {};
+    const todayKey = getTodayKey();
+    if (oldData[todayKey]) {
+      newData[todayKey] = Object.assign({}, oldData[todayKey], newData[todayKey] || {});
+      localStorage.setItem(newSK, JSON.stringify(newData));
+    }
+  } catch(e) {}
+  SK = newSK;
+}
 
 function _stripBase64(d) {
   try {
@@ -1251,6 +1270,35 @@ function renderDay() {
   const btnRow=document.createElement('div');
   btnRow.style.cssText='display:flex;align-items:center;flex-wrap:wrap;';
   btnRow.appendChild(backBtn); btnRow.appendChild(clearBtn);
+  // ── Debug button (2026-07-03) — shows raw storage data directly on
+  // screen, so issues can be checked on the actual phone without needing
+  // a computer/DevTools console.
+  const debugBtn = document.createElement('button');
+  debugBtn.style.cssText = 'display:flex;align-items:center;gap:6px;margin:12px 0 0 8px;padding:6px 12px;border:1.5px solid #94A3B8;border-radius:20px;font-size:12px;font-weight:600;color:#475569;background:#fff;cursor:pointer;';
+  debugBtn.innerHTML = '🔍 Debug';
+  debugBtn.onclick = () => {
+    const d = load();
+    const dk = getTodayKey();
+    const todayData = d[dk] || {};
+    let html = '<div style="position:fixed;inset:0;background:#fff;z-index:999999;overflow-y:auto;padding:16px;font-family:monospace;font-size:11px;">';
+    html += '<button id="_closeDebugBtn" style="position:sticky;top:0;padding:10px 16px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:12px;">Close</button>';
+    html += '<div style="margin-bottom:8px;"><b>SK:</b> ' + SK + '</div>';
+    html += '<div style="margin-bottom:8px;"><b>Today key:</b> ' + dk + '</div>';
+    html += '<div style="margin-bottom:8px;"><b>Tasks with data:</b> ' + Object.keys(todayData).join(', ') + '</div>';
+    Object.keys(todayData).forEach(taskId => {
+      const t = todayData[taskId];
+      html += '<div style="margin-top:12px;padding:10px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;">';
+      html += '<div style="font-weight:700;color:#1A3C5E;margin-bottom:6px;">Task: ' + taskId + '</div>';
+      html += '<pre style="white-space:pre-wrap;word-break:break-all;margin:0;">' + JSON.stringify(t, null, 2).replace(/</g,'&lt;') + '</pre>';
+      html += '</div>';
+    });
+    html += '</div>';
+    const overlay = document.createElement('div');
+    overlay.innerHTML = html;
+    document.body.appendChild(overlay);
+    document.getElementById('_closeDebugBtn').onclick = () => overlay.remove();
+  };
+  btnRow.appendChild(debugBtn);
   container.appendChild(btnRow);
 
   const isSubmitted = currentShift==='opening' ? openingDone : closingDone;
@@ -1330,15 +1378,20 @@ function renderDay() {
       const val=_allTd[task.id]?.yn;
       const comment=_allTd[task.id]?.comment||'';
       const photos=(() => {
-        const urls=[],td2=_allTd[task.id]||{};
+        // Fix: dedupe by SLOT, not by content. Value-based dedup silently
+        // dropped a 2nd photo whenever it looked identical to another
+        // slot's content (e.g. same test image used twice), even though
+        // it was saved correctly. Tracking by slot key means every
+        // occupied slot always shows, regardless of content.
+        const urls=[],seenSlots=new Set(),td2=_allTd[task.id]||{};
         const slots=[['photo_url','photo'],['photo_1_url','photo_1'],['photo_2_url','photo_2'],['photo_3_url','photo_3'],['photo_4_url','photo_4'],['photo_5_url','photo_5'],['photo_6_url','photo_6'],['photo_7_url','photo_7'],['photo_8_url','photo_8'],['photo_9_url','photo_9']];
         slots.forEach(([uk,bk])=>{
           const url=td2[uk]||td2[uk.replace('_url','Url')]||'';
           const b64=td2[bk]||'';
           const best=(url&&url.startsWith('http'))?url:(b64&&b64.startsWith('data:'))?b64:null;
-          if(best&&!urls.includes(best))urls.push(best);
+          if(best&&!seenSlots.has(bk)){urls.push(best);seenSlots.add(bk);}
         });
-        if(td2.photoUrl&&!urls.includes(td2.photoUrl))urls.push(td2.photoUrl);
+        if(td2.photoUrl&&!seenSlots.has('photo')){urls.push(td2.photoUrl);seenSlots.add('photo');}
         return urls.filter(Boolean);
       })();
       const card=document.createElement('div');
@@ -1493,7 +1546,7 @@ async function submitDay() {
   if(!_vn.valid){showToast(_vn.msg,'warn');document.getElementById('fName').focus();return;}
   if(!getOutlet()){showToast('Please select an outlet','warn');return;}
   if(!currentShift){showToast('Please select a shift first','warn');return;}
-  SK=SK_BASE+'_'+name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  switchSK(SK_BASE+'_'+name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase());
   const shiftSec=SECTIONS.filter(s=>s.shift===currentShift);
   await waitForPhotoUploads(shiftSec.flatMap(s=>s.tasks), 8000);
   const _tdNow=load()[getTodayKey()]||{};
@@ -1664,21 +1717,40 @@ async function _updateSubmittedPhoto(taskId, photoKey, photoUrl) {
   } catch(e) { console.warn('_updateSubmittedPhoto failed:', e); }
 }
 
-function handlePhotoFile(file) {
-  if (!file || !activePhotoTask) return;
-  const taskId = activePhotoTask;
+function handlePhotoFile(file, explicitTaskId) {
+  if (!file) return;
+  // ── Fix (2026-07-03): prefer an explicitly-passed taskId (captured safely
+  // in a closure at the moment the picker was opened) over the shared
+  // global activePhotoTask, which can be overwritten if a second task's
+  // photo button is tapped before the first picker returns — very
+  // plausible on mobile, where native camera/gallery pickers can take
+  // several seconds and the page can sometimes still be tapped underneath.
+  const taskId = explicitTaskId || activePhotoTask;
+  if (!taskId) return;
   activePhotoTask = null;
   closePhotoModal();
+
+  // ── Fix (2026-07-03): reserve the photo slot SYNCHRONOUSLY, right now,
+  // before compression even starts. Compression is async and its duration
+  // varies — if two photos are uploaded close together, the previous
+  // version only calculated "which slot is free" AFTER compression
+  // finished, so both could see the same empty slot and one would silently
+  // overwrite the other. Reserving immediately with a placeholder closes
+  // that window completely.
+  const _dReserve = load(); const _dkReserve = getTodayKey();
+  if (!_dReserve[_dkReserve]) _dReserve[_dkReserve] = {};
+  if (!_dReserve[_dkReserve][taskId]) _dReserve[_dkReserve][taskId] = {};
+  let _reservedIdx = 0;
+  while (_reservedIdx < 10 && ((_dReserve[_dkReserve][taskId][_reservedIdx === 0 ? 'photo' : 'photo_' + _reservedIdx]) ||
+         (_dReserve[_dkReserve][taskId][_reservedIdx === 0 ? 'photoUrl' : 'photoUrl_' + _reservedIdx]))) _reservedIdx++;
+  if (_reservedIdx >= 10) { showToast('Maximum 10 photos reached for this task', 'warn'); return; }
+  const _reservedKey = _reservedIdx === 0 ? 'photo' : 'photo_' + _reservedIdx;
+  // Write a tiny placeholder immediately so any concurrent upload sees this slot as taken
+  setVal(currentDay, taskId, _reservedKey, 'pending');
+
   compressAndReturn(file, async function(dataUrl) {
-    // Find next available photo slot
-    const _d = load(); const _dk = getTodayKey();
-    if (!_d[_dk]) _d[_dk] = {};
-    if (!_d[_dk][taskId]) _d[_dk][taskId] = {};
-    let _idx = 0;
-    while (_idx < 10 && ((_d[_dk][taskId][_idx === 0 ? 'photo' : 'photo_' + _idx]) ||
-           (_d[_dk][taskId][_idx === 0 ? 'photoUrl' : 'photoUrl_' + _idx]))) _idx++;
-    if (_idx >= 10) { showToast('Maximum 10 photos reached for this task', 'warn'); return; }
-    const _photoKey = _idx === 0 ? 'photo' : 'photo_' + _idx;
+    const _idx = _reservedIdx;
+    const _photoKey = _reservedKey;
     setVal(currentDay, taskId, _photoKey, dataUrl);
     renderDay();
     showToast('Photo saved ✓', 'ok');
@@ -1733,7 +1805,7 @@ window.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('input', () => {
       localStorage.setItem('kic_info_' + ROLE + '_' + id, el.value);
       const name = document.getElementById('fName')?.value?.trim();
-      if (name) SK = SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+      if (name) switchSK(SK_BASE + '_' + name.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase());
       buildDayRail(); renderDay();
     });
   });

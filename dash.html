@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260702200000">
+<meta name="app-version" content="20260704120000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1394,6 +1394,33 @@ function safeScoreProxy(val) {
   return (isNaN(n) || n <= 0) ? null : n;
 }
 
+// ── Fix (2026-07-04): verificationLog normalize + merge ──────────────────
+// Firebase RTDB does not reliably round-trip JS arrays — a verificationLog
+// saved as an array often comes back as a plain object ({0:{...},1:{...}}).
+// The old merge logic compared `.length` directly on whatever shape came
+// back; when one side was an object, `.length` was undefined and the
+// comparison silently failed, so the verifier's name/log could vanish
+// entirely when opening+closing records were merged into one staff record.
+// _vlogArr always normalizes to a real array; _vlogMerge unions both sides
+// by (by+at+shift) so no verification entry is ever lost during merging.
+function _vlogArr(vl) {
+  if (!vl) return [];
+  if (Array.isArray(vl)) return vl;
+  if (typeof vl === 'object') return Object.values(vl);
+  return [];
+}
+function _vlogMerge(a, b) {
+  const arrA = _vlogArr(a), arrB = _vlogArr(b);
+  const seen = new Set(), out = [];
+  arrA.concat(arrB).forEach(function(e) {
+    if (!e) return;
+    const k = (e.by||'') + '|' + (e.at||'') + '|' + (e.shift||'');
+    if (seen.has(k)) return;
+    seen.add(k); out.push(e);
+  });
+  return out;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 let currentRole = '', currentOutlet = '', currentName = '', currentStaffName = '';
 let fohDb = null;
@@ -1916,7 +1943,7 @@ function loadData() {
         if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
         if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
         if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; m.verifiedByRole = s.verifiedByRole||''; }
-        if (s.verificationLog && (!m.verificationLog || s.verificationLog.length > (m.verificationLog||[]).length)) m.verificationLog = s.verificationLog;
+        if (s.verificationLog || m.verificationLog) { m.verificationLog = _vlogMerge(m.verificationLog, s.verificationLog); if (!m.verifiedBy) { var _lastV = m.verificationLog[m.verificationLog.length-1]; if (_lastV && _lastV.by) { m.verifiedBy = _lastV.by; m.verifiedAt = _lastV.at||''; m.verifiedByRole = _lastV.role||''; } } }
       }
     });
     // NOTE: removed the destructive cleanup that deleted closingPct from Firebase —
@@ -1998,7 +2025,7 @@ function loadData() {
         if (new Date(s.submittedAt||0) > new Date(m.submittedAt||0)) m.submittedAt = s.submittedAt;
         if (!m.startedAt && s.startedAt) m.startedAt = s.startedAt;
         if (!m.verifiedBy && s.verifiedBy) { m.verifiedBy = s.verifiedBy; m.verifiedAt = s.verifiedAt; m.verifiedByRole = s.verifiedByRole||''; }
-        if (s.verificationLog && (!m.verificationLog || s.verificationLog.length > (m.verificationLog||[]).length)) m.verificationLog = s.verificationLog;
+        if (s.verificationLog || m.verificationLog) { m.verificationLog = _vlogMerge(m.verificationLog, s.verificationLog); if (!m.verifiedBy) { var _lastV = m.verificationLog[m.verificationLog.length-1]; if (_lastV && _lastV.by) { m.verifiedBy = _lastV.by; m.verifiedAt = _lastV.at||''; m.verifiedByRole = _lastV.role||''; } } }
       }
     });
     allStaff = Object.values(dedupMap);
@@ -5464,6 +5491,18 @@ function _buildVerifierTag(vlog, taskData, shiftKey, role) {
 
 
 function openStaffDetail(s) {
+  // ── Fix (2026-07-03): protect an active edit session from being wiped ──
+  // If the person is actively in Edit/Overwrite mode with unsaved changes
+  // or a shift already selected, a background live-data refresh calling
+  // this function would silently rebuild the whole modal — resetting the
+  // shift dropdown to blank and hiding the task list, even though nothing
+  // the person did was wrong. Legitimate paths (Cancel, Save) already set
+  // _editMode = false themselves before calling this, so they pass through
+  // safely; only an unwanted background re-render gets blocked here.
+  if (_editMode) {
+    console.warn('openStaffDetail: skipped re-render — edit mode is active');
+    return;
+  }
   // Always open in view mode
   _editMode = false;
   _editChanges = {};
@@ -7102,7 +7141,7 @@ function deleteRecord(fbKey, staffName, week) {
     fohDb.ref('submissions').orderByChild('staffName').equalTo(staffName).once('value', snap => {
       if (snap.exists()) {
         const updates = {};
-        snap.forEach(child => { if (child.val().week === week) updates['submissions/'+child.key] = null; });
+        snap.forEach(child => { if ((child.val().businessDate || child.val().week) === week) updates['submissions/'+child.key] = null; });
         if (Object.keys(updates).length) {
           fohDb.ref().update(updates).then(() => {
             allStaff = allStaff.filter(s => !(s.staffName===staffName && s.week===week));
@@ -7127,7 +7166,7 @@ function deleteRecord(fbKey, staffName, week) {
     if (data[fbKey]) { foundKey = fbKey; }
     if (!foundKey) {
       Object.keys(data).forEach(function(key) {
-        if (!foundKey && data[key] && data[key].staffName === staffName && data[key].week === week) {
+        if (!foundKey && data[key] && data[key].staffName === staffName && (data[key].businessDate || data[key].week) === week) {
           foundKey = key;
         }
       });
@@ -7141,7 +7180,17 @@ function deleteRecord(fbKey, staffName, week) {
     }
     if (!foundKey) { alert('Record not found. May already be deleted.'); return; }
     db.ref('submissions/' + foundKey).remove()
-      .then(function() { showDeleteToast(staffName + ' — ' + week + ' deleted'); })
+      .then(function() {
+        // ── Fix (2026-07-03): refresh UI after delete — was silently
+        // succeeding in Firebase but leaving the modal/list unchanged,
+        // making it look like the delete didn't work.
+        allStaff = allStaff.filter(function(s) { return !(s.staffName === staffName && s.week === week); });
+        allBOHData = allBOHData.filter(function(s) { return !(s.staffName === staffName && s.week === week); });
+        showDeleteToast(staffName + ' — ' + week + ' deleted');
+        const _dm = document.getElementById('detailModal');
+        if (_dm) _dm.classList.remove('open');
+        renderBOHStaff();
+      })
       .catch(function(e) { alert('Delete failed: ' + e.message); });
   });
 }
@@ -8894,7 +8943,13 @@ function toggleEditMode(s) {
     // Count real http photos only — don't render them again (already shown in task row)
     const httpPhotos = existingPhotos.filter(u => u && u.startsWith('http'));
     const photoCountLabel = httpPhotos.length > 0 ? `✓ ${httpPhotos.length} staff photo(s)` : (existingPhotos.length > 0 ? '📷 Photo taken' : '');
-    const staffPhotoHtml = httpPhotos.map(u=>`<img src="${u}" style="max-width:70px;max-height:55px;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;margin-right:4px;" onclick="openLightbox('${u}')" title="Tap to zoom">`).join('');
+    // ── Fix (2026-07-03): this section is for the VERIFIER's own photo, not
+    // a copy of the staff's. It was previously pre-filled with staffPhotoHtml,
+    // duplicating the staff's photos into what should be a separate,
+    // independent verification photo slot — causing the exact "photos
+    // getting duplicated into the OIC photo section" issue reported.
+    const _existingOicPhoto = (task && task.oicPhotoUrl && task.oicPhotoUrl.startsWith('http')) ? task.oicPhotoUrl : '';
+    const staffPhotoHtml = _existingOicPhoto ? `<img src="${_existingOicPhoto}" style="max-width:70px;max-height:55px;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;margin-right:4px;" onclick="openLightbox('${_existingOicPhoto}')" title="Tap to zoom">` : '';
     const extraDiv = document.createElement('div');
     extraDiv.className = 'edit-extra-fields';
     extraDiv.style.cssText = 'flex-basis:100%;padding:10px;background:#F8FAFC;border-radius:0 0 8px 8px;border-top:1px solid #E0DDD4;';
@@ -9074,12 +9129,26 @@ function toggleEditMode(s) {
       (['linecook','steward'].includes(s.role) && ['kic','areachef','areamanager','director','training','operations','ceo'].includes(currentRole)) ||
       (['service','bartender','delco'].includes(s.role) && ['oic','areamanager','director','training','operations','ceo'].includes(currentRole))
     );
-    // Always start blank — verifier must consciously select checklist type
-    _owShiftSel.value = '';
-    // Hide all task sections until selection made
-    _applyOverwriteShiftFilter('');
+    // ── Fix (2026-07-03): preserve an existing selection instead of force-
+    // resetting to blank every time edit mode is entered. This was the
+    // repeated cause of "task list not showing" — the dropdown looked
+    // selected, but silently got wiped back to blank on every edit-mode
+    // entry, requiring the person to reselect even when they'd already
+    // chosen a shift moments earlier (e.g. via the Verification panel).
+    const _existingShiftVal = _owShiftSel.value || '';
+    _applyOverwriteShiftFilter(_existingShiftVal);
     const _newOwSel = _owShiftSel.cloneNode(true);
+    _newOwSel.value = _existingShiftVal;
     _owShiftSel.parentNode.replaceChild(_newOwSel, _owShiftSel);
+    if (_existingShiftVal) {
+      const _saveBtn0 = document.querySelector('.edit-report-btn');
+      if (_saveBtn0) {
+        _saveBtn0.disabled = false;
+        _saveBtn0.style.background = '#16A34A';
+        _saveBtn0.style.cursor = 'pointer';
+        _saveBtn0.style.opacity = '1';
+      }
+    }
     _newOwSel.addEventListener('change', function() {
       const val = this.value;
       _applyOverwriteShiftFilter(val);
@@ -9278,8 +9347,6 @@ function updateLiveScore() {
     ? ['dc1','dc2','dc3','dc4','dc5']
     : s.role === 'bartender' ? ['bt1','bt2','bt3','bt4']
     : s.role === 'delco' ? ['dc1','dc2','dc3','dc4','dc5']
-    : s.role === 'oic'
-    ? ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1']
     : s.role === 'oic'
     ? ['s1','m1','p1','u1','w1','mp1']
     : ['s1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1','f1','f2','t1','t2','t3','t4'];
@@ -9705,6 +9772,50 @@ async function saveOverwrite(s) {
     updates['submissions/' + fbKey + '/originalOicEvalPct'] = s.oicEvalPct;
   }
 
+  // ── Fix (2026-07-04): propagate corrected scores into the days/ node ──
+  // Root cause of "overwrite resets back to original score": the Weekly
+  // Staff Report and Daily Breakdown rebuild themselves from
+  // submissions/{key}/days/{date}/{opening,closing,oicEval}Pct — which is
+  // written ONCE at self-report time and was never touched by this
+  // function. So the live Score Box (reading openingPct/closingPct/
+  // oicEvalPct directly) showed the correction, but every report/dashboard
+  // built from days/ kept showing the staff's original number forever.
+  // Fix: update the matching day entry here too, preserving the pre-
+  // correction value as originalOpeningPct/etc. the first time it changes
+  // (same pattern as the top-level original-score preservation above) so
+  // "Original: X%" audit displays keep working.
+  const _owDaysObj = s.days || {};
+  function _owLatestDateFor(field) {
+    const _ds = Object.keys(_owDaysObj).filter(function(d){ return _owDaysObj[d] && _owDaysObj[d][field] != null; }).sort();
+    if (_ds.length) return _ds[_ds.length - 1];
+    if (s.submittedAt) return s.submittedAt.substring(0, 10);
+    return new Date().toISOString().substring(0, 10);
+  }
+  if (opPct !== null) {
+    const _d = _owLatestDateFor('openingPct');
+    const _existing = _owDaysObj[_d] || {};
+    if (_existing.openingPct != null && _existing.originalOpeningPct === undefined && _existing.openingPct !== opPct) {
+      updates['submissions/' + fbKey + '/days/' + _d + '/originalOpeningPct'] = _existing.openingPct;
+    }
+    updates['submissions/' + fbKey + '/days/' + _d + '/openingPct'] = opPct;
+  }
+  if (clPct !== null) {
+    const _d = _owLatestDateFor('closingPct');
+    const _existing = _owDaysObj[_d] || {};
+    if (_existing.closingPct != null && _existing.originalClosingPct === undefined && _existing.closingPct !== clPct) {
+      updates['submissions/' + fbKey + '/days/' + _d + '/originalClosingPct'] = _existing.closingPct;
+    }
+    updates['submissions/' + fbKey + '/days/' + _d + '/closingPct'] = clPct;
+  }
+  if (!_evalNotVisited && ePct !== null) {
+    const _d = _owLatestDateFor('oicEvalPct');
+    const _existing = _owDaysObj[_d] || {};
+    if (_existing.oicEvalPct != null && _existing.originalOicEvalPct === undefined && _existing.oicEvalPct !== ePct) {
+      updates['submissions/' + fbKey + '/days/' + _d + '/originalOicEvalPct'] = _existing.oicEvalPct;
+    }
+    updates['submissions/' + fbKey + '/days/' + _d + '/oicEvalPct'] = ePct;
+  }
+
   updates['submissions/' + fbKey + '/overallPct']    = newScore;
   updates['submissions/' + fbKey + '/qualified']     = newQualified;
   updates['submissions/' + fbKey + '/overwrittenBy'] = currentRole;
@@ -9777,6 +9888,13 @@ async function saveOverwrite(s) {
     if (clPct !== null) s.closingPct = clPct;
     if (_evalNotVisited) { s.oicEvalPct = null; s.evalNotVisited = true; }
     else if (ePct !== null) s.oicEvalPct = ePct;
+    // Keep in-memory days/ node in sync with what was just written to Firebase,
+    // so the Weekly Staff Report / Daily Breakdown reflect the correction
+    // immediately instead of showing the stale original score until refresh.
+    s.days = s.days || {};
+    if (opPct !== null) { const _d = _owLatestDateFor('openingPct'); s.days[_d] = {...(s.days[_d]||{}), openingPct: opPct}; }
+    if (clPct !== null) { const _d = _owLatestDateFor('closingPct'); s.days[_d] = {...(s.days[_d]||{}), closingPct: clPct}; }
+    if (!_evalNotVisited && ePct !== null) { const _d = _owLatestDateFor('oicEvalPct'); s.days[_d] = {...(s.days[_d]||{}), oicEvalPct: ePct}; }
 
     // Update allStaff / allBOHData / allFOHData in-memory so Progress pills reflect immediately
     const idx = allStaff.findIndex(st => st._fbKey === fbKey);
@@ -10472,8 +10590,23 @@ function deleteVerificationEntry(btn, idx) {
 }
 
 // ── Snapshot current YN counts for a shift — stored on each verification log entry ──
+// ── Fix (2026-07-03): merge pending unsaved edits before verifying ──────
+// "Add Verification" must reflect any Yes/No/N/A taps made in Edit mode
+// that haven't been saved yet via "Save Changes" — otherwise it silently
+// verifies the OLD, already-saved answers and discards what was just
+// changed on screen, with no warning to the person doing the verification.
+function _mergeTaskDataWithEdits(taskData, editChanges) {
+  if (!editChanges || !Object.keys(editChanges).length) return taskData;
+  const merged = JSON.parse(JSON.stringify(taskData || {}));
+  Object.entries(editChanges).forEach(function([taskKey, newYn]) {
+    if (!merged[taskKey]) merged[taskKey] = {};
+    merged[taskKey].yn = newYn;
+  });
+  return merged;
+}
+
 function _snapYN(taskData, shift, role) {
-  if (!taskData) return { yes: 0, no: 0 };
+  if (!taskData) return { yes: 0, no: 0, na: 0 };
   // Use all answered tasks for the shift — count everything staff answered
   const openIds  = ['o1','o2','o3','o4','o5'];
   const closeIds = role === 'kic' ? ['cy1','cy2','cy3','cy4']
@@ -10485,16 +10618,16 @@ function _snapYN(taskData, shift, role) {
     's1','s2','s3','s4','m1','m2','u1','u2','w1','w2','p1','p2','mp1','mp2','a1',
     'f1','f2','t1','t2','t3','t4','bt1','bt2','bt3','bt4','dc1','dc2','dc3','dc4','dc5'];
   const ids = shift === 'opening' ? openIds : shift === 'closing' ? closeIds : evalIds;
-  let yes = 0, no = 0;
+  let yes = 0, no = 0, na = 0;
   Object.entries(taskData).forEach(function(e) {
     const tid = e[0].replace(/^d[0-9]+_/, '');
     const yn = (e[1]||{}).yn;
-    if (!yn || yn === 'na') return;
+    if (!yn) return;
     if (ids.some(function(id){ return tid === id; })) {
-      if (yn === 'yes') yes++; else no++;
+      if (yn === 'yes') yes++; else if (yn === 'no') no++; else if (yn === 'na') na++;
     }
   });
-  return { yes: yes, no: no };
+  return { yes: yes, no: no, na: na };
 }
 
 
@@ -10608,7 +10741,7 @@ function saveBOHVerification() {
   }
   // Auto-detect re-verify: if same shift already has an entry → show confirmation dialog
   const _sameShiftExists = existingLog.some(function(e){ return e.shift === shift; });
-  const _bohYN = _snapYN(s.taskData, shift, s.role);
+  const _bohYN = _snapYN(_mergeTaskDataWithEdits(s.taskData, _editChanges), shift, s.role);
   const newEntry = { by: name, role: currentRole, at: now, shift: shift, type: _sameShiftExists ? 'reverify' : 'verify', yn_yes: _bohYN.yes, yn_no: _bohYN.no, yn_na: _bohYN.na || 0 };
   // If already verified for this shift — show confirmation dialog with 10-min wait
   if (_sameShiftExists) {
@@ -10653,12 +10786,49 @@ function saveBOHVerification() {
             updateMap2['submissions/' + child.key + '/verifiedByRole'] = currentRole;
             updateMap2['submissions/' + child.key + '/verifiedAt'] = now;
             updateMap2['submissions/' + child.key + '/lastUpdated'] = now;
+            // ── Fix (2026-07-03): verifying ANY shift must update the actual
+            // score based on the (possibly just-edited) tally — not just log
+            // the sign-off while leaving the old percentage untouched.
+            if (shift === 'evaluation') {
+              if ((_bohYN.yes||0) + (_bohYN.no||0) === 0) {
+                updateMap2['submissions/' + child.key + '/evalNotVisited'] = true;
+                updateMap2['submissions/' + child.key + '/oicEvalPct'] = null;
+              } else {
+                updateMap2['submissions/' + child.key + '/oicEvalPct'] = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+                updateMap2['submissions/' + child.key + '/evalNotVisited'] = false;
+              }
+            } else if ((shift === 'opening' || shift === 'closing') && ((_bohYN.yes||0) + (_bohYN.no||0)) > 0) {
+              const _bohShiftPct = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+              updateMap2['submissions/' + child.key + '/' + shift + 'Pct'] = _bohShiftPct;
+            }
           }
         });
         if (Object.keys(updateMap2).length) {
           firebaseRef.ref().update(updateMap2).then(() => {
             s.verificationLog = existingLog;
             s.verifiedBy = name; s.verifiedByRole = currentRole; s.verifiedAt = now;
+            if (shift === 'evaluation') {
+              if ((_bohYN.yes||0) + (_bohYN.no||0) === 0) {
+                s.evalNotVisited = true; s.oicEvalPct = null;
+              } else {
+                s.oicEvalPct = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+                s.evalNotVisited = false;
+              }
+            } else if ((shift === 'opening' || shift === 'closing') && ((_bohYN.yes||0) + (_bohYN.no||0)) > 0) {
+              const _bohShiftPct2 = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+              if (shift === 'opening') s.openingPct = _bohShiftPct2;
+              else s.closingPct = _bohShiftPct2;
+            }
+            [allStaff, allBOHData, allFOHData].forEach(arr => {
+              arr.forEach(r => {
+                if (r.staffName === s.staffName && r.role === s.role && r.week === s.week) {
+                  r.evalNotVisited = s.evalNotVisited || false;
+                  r.oicEvalPct     = s.oicEvalPct != null ? s.oicEvalPct : null;
+                  r.openingPct     = s.openingPct != null ? s.openingPct : r.openingPct;
+                  r.closingPct     = s.closingPct != null ? s.closingPct : r.closingPct;
+                }
+              });
+            });
             showToast('Re-verified: ' + s.staffName, 'ok');
             renderBOHStaff();
           }).catch(e => showToast('Save failed: ' + e.message, 'error'));
@@ -10682,6 +10852,18 @@ function saveBOHVerification() {
         updateMap['submissions/' + child.key + '/verifiedBy'] = name;
         updateMap['submissions/' + child.key + '/verifiedByRole'] = currentRole;
         updateMap['submissions/' + child.key + '/verifiedAt'] = now;
+        // ── Fix (2026-07-03): same as reverify path — any shift, not just eval
+        if (shift === 'evaluation') {
+          if ((_bohYN.yes||0) + (_bohYN.no||0) === 0) {
+            updateMap['submissions/' + child.key + '/evalNotVisited'] = true;
+            updateMap['submissions/' + child.key + '/oicEvalPct'] = null;
+          } else {
+            updateMap['submissions/' + child.key + '/oicEvalPct'] = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+            updateMap['submissions/' + child.key + '/evalNotVisited'] = false;
+          }
+        } else if ((shift === 'opening' || shift === 'closing') && ((_bohYN.yes||0) + (_bohYN.no||0)) > 0) {
+          updateMap['submissions/' + child.key + '/' + shift + 'Pct'] = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+        }
         updateMap['submissions/' + child.key + '/lastUpdated'] = now;
       }
     });
@@ -10691,6 +10873,18 @@ function saveBOHVerification() {
       s.verifiedByRole = currentRole;
       s.verifiedAt = now;
       s.verificationLog = existingLog;
+      if (shift === 'evaluation') {
+        if ((_bohYN.yes||0) + (_bohYN.no||0) === 0) {
+          s.evalNotVisited = true; s.oicEvalPct = null;
+        } else {
+          s.oicEvalPct = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+          s.evalNotVisited = false;
+        }
+      } else if ((shift === 'opening' || shift === 'closing') && ((_bohYN.yes||0) + (_bohYN.no||0)) > 0) {
+        const _bohShiftPct3 = Math.round((_bohYN.yes / ((_bohYN.yes||0) + (_bohYN.no||0))) * 100);
+        if (shift === 'opening') s.openingPct = _bohShiftPct3;
+        else s.closingPct = _bohShiftPct3;
+      }
       [allStaff, allBOHData, allFOHData].forEach(arr => {
         arr.forEach(r => {
           if (r.staffName === s.staffName && r.role === s.role && r.week === s.week) {
@@ -10701,6 +10895,8 @@ function saveBOHVerification() {
             // Preserve evalNotVisited and oicEvalPct so N/A is not lost after verification
             r.evalNotVisited  = s.evalNotVisited || false;
             r.oicEvalPct      = s.oicEvalPct != null ? s.oicEvalPct : null;
+            r.openingPct      = s.openingPct != null ? s.openingPct : r.openingPct;
+            r.closingPct      = s.closingPct != null ? s.closingPct : r.closingPct;
           }
         });
       });
@@ -10712,6 +10908,8 @@ function saveBOHVerification() {
         _fohFiltered[_fohDetailIdx].verifiedByRole  = currentRole;
         _fohFiltered[_fohDetailIdx].evalNotVisited  = s.evalNotVisited || false;
         _fohFiltered[_fohDetailIdx].oicEvalPct      = s.oicEvalPct != null ? s.oicEvalPct : null;
+        _fohFiltered[_fohDetailIdx].openingPct      = s.openingPct != null ? s.openingPct : _fohFiltered[_fohDetailIdx].openingPct;
+        _fohFiltered[_fohDetailIdx].closingPct      = s.closingPct != null ? s.closingPct : _fohFiltered[_fohDetailIdx].closingPct;
       }
       showToast('Verified by ' + name + ' ✓', 'ok');
       // Re-render full modal so score boxes and verif history all update immediately
@@ -11168,21 +11366,9 @@ function renderBOHStaff() {
   const avg = filtered.length ? Math.round(filtered.reduce((a,s)=>a+s.overallPct,0)/filtered.length) : 0;
   document.getElementById('bohStatAvg').textContent = filtered.length ? avg+'%' : '—';
 
-  // AC alert — show only to areachef/director/training/operations/ceo
+  // AC alert — removed per request (2026-07-03), banner no longer shown
   const bohAlertEl = document.getElementById('bohACAlert');
-  const bohAlertTextEl = document.getElementById('bohACAlertText');
-  if (bohAlertEl && bohAlertTextEl && ['areachef','director','training','operations','ceo'].includes(currentRole)) {
-    const pendingKICs = filtered.filter(s => s.role === 'kic' && (s.oicEvalPct == null || s.oicEvalPct === undefined));
-    if (pendingKICs.length > 0) {
-      const names = pendingKICs.map(s => `<strong>${s.staffName}</strong> (${s.outlet})`).join(', ');
-      bohAlertTextEl.innerHTML = `${pendingKICs.length} KIC record${pendingKICs.length > 1 ? 's' : ''} still need your evaluation this week: ${names}.`;
-      bohAlertEl.style.display = 'block';
-    } else {
-      bohAlertEl.style.display = 'none';
-    }
-  } else if (bohAlertEl) {
-    bohAlertEl.style.display = 'none';
-  }
+  if (bohAlertEl) bohAlertEl.style.display = 'none';
   const tbody = document.getElementById('bohTableBody');
   tbody.innerHTML = '';
   document.getElementById('bohEmpty').style.display = filtered.length ? 'none' : 'block';
@@ -11453,21 +11639,9 @@ function renderFOHStaff() {
   const avg = filtered.length ? Math.round(filtered.reduce((a,s)=>a+s.overallPct,0)/filtered.length) : 0;
   document.getElementById('fohStatAvg').textContent = filtered.length ? avg + '%' : '—';
 
-  // AM alert — show only to areamanager/director/training/operations/ceo
+  // AM alert — removed per request (2026-07-03), banner no longer shown
   const alertEl = document.getElementById('fohAMAlert');
-  const alertTextEl = document.getElementById('fohAMAlertText');
-  if (alertEl && alertTextEl && ['areamanager','director','training','operations','ceo'].includes(currentRole)) {
-    const pendingOICs = filtered.filter(s => s.role === 'oic' && (s.oicEvalPct == null || s.oicEvalPct === undefined));
-    if (pendingOICs.length > 0) {
-      const names = pendingOICs.map(s => `<strong>${s.staffName}</strong> (${s.outlet})`).join(', ');
-      alertTextEl.innerHTML = `${pendingOICs.length} OIC record${pendingOICs.length > 1 ? 's' : ''} still need your evaluation this week: ${names}.`;
-      alertEl.style.display = 'block';
-    } else {
-      alertEl.style.display = 'none';
-    }
-  } else if (alertEl) {
-    alertEl.style.display = 'none';
-  }
+  if (alertEl) alertEl.style.display = 'none';
 
   const tbody = document.getElementById('fohTableBody');
   tbody.innerHTML = '';
@@ -11481,6 +11655,21 @@ function renderFOHStaff() {
   // Ensure evalNotVisited is carried through from allFOHData into _fohFiltered
   filtered.forEach(r => { if (r.evalNotVisited === undefined) r.evalNotVisited = false; });
   _fohFiltered = filtered;
+  // ── Stale-index fix (2026-07-03) ────────────────────────────────────
+  // If a detail view is currently open and this live-data refresh just
+  // rebuilt the array, re-locate the SAME record by its stable key rather
+  // than trusting the old numeric index — which can now point at a
+  // different record or nothing at all. This is what was causing the
+  // Evaluation section to silently vanish when re-opening a record after
+  // background data changed.
+  if (_fohDetailKey) {
+    const _newIdx = _fohFiltered.findIndex(s => ((s.staffName||'') + '_' + (s.role||'') + '_' + (s.week||'')) === _fohDetailKey);
+    if (_newIdx !== -1) {
+      _fohDetailIdx = _newIdx;
+    } else {
+      _fohDetailIdx = -1; // record no longer in current filter — safer than pointing at the wrong one
+    }
+  }
   filtered.forEach((staff, staffIdx) => {
     const tr = document.createElement('tr');
     tr.style.borderBottom = '0.5px solid #F1F5F9';
@@ -11511,11 +11700,13 @@ function renderFOHStaff() {
 let _bohFiltered = [];
 let _fohFiltered = [];
 let _fohDetailIdx = -1;
+let _fohDetailKey = null; // stable staffName_role_week identifier — survives live-data rebuilds
 
 function openFOHDetail(idx) {
   const staff = _fohFiltered[idx];
   if (!staff) return;
   _fohDetailIdx = idx;
+  _fohDetailKey = (staff.staffName||'') + '_' + (staff.role||'') + '_' + (staff.week||'');
   // Clear BOH staff references so FOH delete/verify use the correct FOH staff
   _currentDetailStaff = null;
   _currentStaffData = null;
@@ -11986,7 +12177,7 @@ function deleteFOHStaff(name, role, week) {
     const updates = {};
     snap.forEach(child => {
       const sub = child.val();
-      if (sub.role === role && sub.week === week) {
+      if (sub.role === role && (sub.businessDate || sub.week) === week) {
         updates[child.key] = null;
       }
     });
@@ -12008,6 +12199,7 @@ function deleteFOHRecord() {
 function closeFOHDetailModal() {
   _fohEditMode = false;
   _fohEditChanges = {};
+  _fohDetailKey = null;
   const btn = document.getElementById('fohEditBtn');
   if (btn) { btn.textContent = '✏️ Edit / Overwrite'; btn.style.background = '#E87722'; }
   document.getElementById('fohDetailModal').style.display = 'none';
@@ -12173,7 +12365,7 @@ function saveReVerification() {
   const firebaseRef = isFOH ? fohDb : db;
   if (!firebaseRef) { showToast('Firebase not connected', 'error'); return; }
   const now = new Date().toISOString();
-  const _revYN = _snapYN(s.taskData, shift, s.role);
+  const _revYN = _snapYN(_mergeTaskDataWithEdits(s.taskData, _editChanges), shift, s.role);
   const newEntry = { by: name, role: currentRole, at: now, shift: shift, yn_yes: _revYN.yes, yn_no: _revYN.no };
   const existingLog = Array.isArray(s.verificationLog) ? [...s.verificationLog]
     : (s.verificationLog && typeof s.verificationLog === 'object') ? Object.values(s.verificationLog) : [];
@@ -12249,7 +12441,7 @@ function saveFOHMultiVerify() {
   const log = Array.isArray(rawLog) ? [...rawLog]
     : (rawLog && typeof rawLog === 'object') ? Object.values(rawLog) : [];
   const _fohSameShift = log.some(function(e){ return e.shift === fohShift; });
-  const _fohYN = _snapYN(staff.taskData, fohShift, staff.role);
+  const _fohYN = _snapYN(_mergeTaskDataWithEdits(staff.taskData, _fohEditChanges), fohShift, staff.role);
   const newEntry = { by: name, role: currentRole, at: now, shift: fohShift, type: _fohSameShift ? 'reverify' : 'verify', yn_yes: _fohYN.yes, yn_no: _fohYN.no, yn_na: _fohYN.na || 0 };
   if (staff.verifiedBy && !log.length) log.push({ by: staff.verifiedBy, role: staff.verifiedByRole||''});
   // If already verified for this shift — show confirmation dialog with 10-min wait
@@ -12288,12 +12480,49 @@ function saveFOHMultiVerify() {
             updates2['submissions/' + child.key + '/verifiedByRole'] = currentRole;
             updates2['submissions/' + child.key + '/verifiedAt'] = now;
             updates2['submissions/' + child.key + '/lastUpdated'] = now;
+            // ── Fix (2026-07-03): verifying ANY shift must update the actual
+            // score, not just log the sign-off — extended beyond Evaluation
+            // to Opening/Closing too.
+            if (fohShift === 'evaluation') {
+              if ((_fohYN.yes||0) + (_fohYN.no||0) === 0) {
+                updates2['submissions/' + child.key + '/evalNotVisited'] = true;
+                updates2['submissions/' + child.key + '/oicEvalPct'] = null;
+              } else {
+                const _fohEvalPct = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+                updates2['submissions/' + child.key + '/oicEvalPct'] = _fohEvalPct;
+                updates2['submissions/' + child.key + '/evalNotVisited'] = false;
+              }
+            } else if ((fohShift === 'opening' || fohShift === 'closing') && ((_fohYN.yes||0) + (_fohYN.no||0)) > 0) {
+              updates2['submissions/' + child.key + '/' + fohShift + 'Pct'] = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+            }
           }
         });
         if (Object.keys(updates2).length) {
           fohDb.ref().update(updates2).then(() => {
             staff.verificationLog = log;
             staff.verifiedBy = name; staff.verifiedByRole = currentRole; staff.verifiedAt = now;
+            if (fohShift === 'evaluation') {
+              if ((_fohYN.yes||0) + (_fohYN.no||0) === 0) {
+                staff.evalNotVisited = true; staff.oicEvalPct = null;
+              } else {
+                staff.oicEvalPct = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+                staff.evalNotVisited = false;
+              }
+            } else if ((fohShift === 'opening' || fohShift === 'closing') && ((_fohYN.yes||0) + (_fohYN.no||0)) > 0) {
+              const _fohShiftPct = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+              if (fohShift === 'opening') staff.openingPct = _fohShiftPct;
+              else staff.closingPct = _fohShiftPct;
+            }
+            [allStaff, allFOHData].forEach(arr => {
+              arr.forEach(r => {
+                if (r.staffName === staff.staffName && r.role === staff.role && r.week === staff.week) {
+                  r.evalNotVisited = staff.evalNotVisited || false;
+                  r.oicEvalPct     = staff.oicEvalPct != null ? staff.oicEvalPct : null;
+                  r.openingPct     = staff.openingPct != null ? staff.openingPct : r.openingPct;
+                  r.closingPct     = staff.closingPct != null ? staff.closingPct : r.closingPct;
+                }
+              });
+            });
             showToast('Re-verified: ' + staff.staffName, 'ok');
             renderFOHStaff();
           }).catch(e => showToast('Save failed: ' + e.message, 'error'));
@@ -12315,12 +12544,37 @@ function saveFOHMultiVerify() {
         updates['submissions/' + child.key + '/verifiedBy'] = name;
         updates['submissions/' + child.key + '/verifiedByRole'] = currentRole;
         updates['submissions/' + child.key + '/verifiedAt'] = now;
+        // ── Fix (2026-07-03): same as reverify path — any shift, not just eval
+        if (fohShift === 'evaluation') {
+          if ((_fohYN.yes||0) + (_fohYN.no||0) === 0) {
+            updates['submissions/' + child.key + '/evalNotVisited'] = true;
+            updates['submissions/' + child.key + '/oicEvalPct'] = null;
+          } else {
+            const _fohEvalPct2 = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+            updates['submissions/' + child.key + '/oicEvalPct'] = _fohEvalPct2;
+            updates['submissions/' + child.key + '/evalNotVisited'] = false;
+          }
+        } else if ((fohShift === 'opening' || fohShift === 'closing') && ((_fohYN.yes||0) + (_fohYN.no||0)) > 0) {
+          updates['submissions/' + child.key + '/' + fohShift + 'Pct'] = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+        }
       }
     });
     if (!Object.keys(updates).length) { showToast('No matching record', 'warn'); return; }
     fohDb.ref().update(updates).then(() => {
       staff.verifiedBy = name; staff.verifiedByRole = currentRole;
       staff.verifiedAt = now; staff.verificationLog = log;
+      if (fohShift === 'evaluation') {
+        if ((_fohYN.yes||0) + (_fohYN.no||0) === 0) {
+          staff.evalNotVisited = true; staff.oicEvalPct = null;
+        } else {
+          staff.oicEvalPct = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+          staff.evalNotVisited = false;
+        }
+      } else if ((fohShift === 'opening' || fohShift === 'closing') && ((_fohYN.yes||0) + (_fohYN.no||0)) > 0) {
+        const _fohShiftPct2 = Math.round((_fohYN.yes / ((_fohYN.yes||0) + (_fohYN.no||0))) * 100);
+        if (fohShift === 'opening') staff.openingPct = _fohShiftPct2;
+        else staff.closingPct = _fohShiftPct2;
+      }
       allFOHData.forEach(r => {
         if (r.staffName===staff.staffName && r.role===staff.role && r.week===staff.week) {
           r.verifiedBy      = name;
@@ -12328,6 +12582,8 @@ function saveFOHMultiVerify() {
           r.verificationLog = log;
           r.evalNotVisited  = staff.evalNotVisited === true;
           r.oicEvalPct      = staff.oicEvalPct != null ? staff.oicEvalPct : null;
+          r.openingPct      = staff.openingPct != null ? staff.openingPct : r.openingPct;
+          r.closingPct      = staff.closingPct != null ? staff.closingPct : r.closingPct;
         }
       });
       const hEl = document.getElementById('fohVerifiedBy');
@@ -12340,6 +12596,10 @@ function saveFOHMultiVerify() {
             r.verificationLog = staff.verificationLog;
             r.verifiedBy      = staff.verifiedBy;
             r.verifiedByRole  = staff.verifiedByRole;
+            r.evalNotVisited  = staff.evalNotVisited === true;
+            r.oicEvalPct      = staff.oicEvalPct != null ? staff.oicEvalPct : null;
+            r.openingPct      = staff.openingPct != null ? staff.openingPct : r.openingPct;
+            r.closingPct      = staff.closingPct != null ? staff.closingPct : r.closingPct;
           }
         });
       });
@@ -12831,12 +13091,32 @@ function toggleFOHEditMode() {
   // ── Wire shift dropdown to show/hide FOH eval sections ──────────────────
   const _fohShiftSel = document.getElementById('verifyShiftSelect');
   if (_fohShiftSel) {
-    // Always start blank — verifier must consciously select checklist type
-    _fohShiftSel.value = '';
-    _applyFOHShiftFilter('');
+    // ── Fix (2026-07-03): preserve existing selection instead of blanking —
+    // matches the same fix applied on the BOH side.
+    const _fohExistingVal = _fohShiftSel.value || '';
+    _applyFOHShiftFilter(_fohExistingVal);
     // Remove any previous listener to avoid stacking
     const _newSel = _fohShiftSel.cloneNode(true);
+    _newSel.value = _fohExistingVal;
     _fohShiftSel.parentNode.replaceChild(_newSel, _fohShiftSel);
+    if (_fohExistingVal) {
+      const _fohArea0 = document.getElementById('fohChecklistArea');
+      if (_fohArea0) _fohArea0.style.display = '';
+      const _saveBtn0 = document.getElementById('fohEditBtn');
+      if (_saveBtn0) {
+        _saveBtn0.disabled = false;
+        _saveBtn0.style.background = '#16A34A';
+        _saveBtn0.style.cursor = 'pointer';
+        _saveBtn0.style.opacity = '1';
+      }
+      const _verifBtn0 = document.getElementById('addVerifBtn');
+      if (_verifBtn0) {
+        _verifBtn0.disabled = false;
+        _verifBtn0.style.background = '#15803D';
+        _verifBtn0.style.cursor = 'pointer';
+        _verifBtn0.style.opacity = '1';
+      }
+    }
     _newSel.addEventListener('change', function() {
       const val = this.value;
       if (val) {
@@ -12902,7 +13182,7 @@ async function saveFOHOverwrite(staff) {
     if (_fohVerifiedBy) {
       const _fohShift = (document.getElementById('verifyShiftSelect')?.value) || '';
   if (!_fohShift) { showToast('Please select a checklist type first', 'warn'); return; }
-      const _fohYNSnap = _snapYN(staff.taskData, _fohShift, staff.role);
+      const _fohYNSnap = _snapYN(_mergeTaskDataWithEdits(staff.taskData, _fohEditChanges), _fohShift, staff.role);
       const _fohNewEntry = { by: _fohVerifiedBy, role: currentRole, at: new Date().toISOString(), shift: _fohShift, yn_yes: _fohYNSnap.yes, yn_no: _fohYNSnap.no };
       const _fohExistingLog = Array.isArray(sub.verificationLog) ? [...sub.verificationLog] : [];
       if (sub.verifiedBy && !_fohExistingLog.length) {
@@ -14440,7 +14720,7 @@ async function deleteSelectedBOH() {
   if (snap.exists()) {
     snap.forEach(child => {
       const sub = child.val();
-      const rowKey = (sub.staffName||'') + '_' + (sub.role||'') + '_' + (sub.week||'');
+      const rowKey = (sub.staffName||'') + '_' + (sub.role||'') + '_' + (sub.businessDate || sub.week || '');
       if (keys.includes(rowKey)) updates['submissions/' + child.key] = null;
     });
   }
@@ -14649,7 +14929,7 @@ async function deleteSelectedFOH() {
   if (snap.exists()) {
     snap.forEach(child => {
       const sub = child.val();
-      const rowKey = (sub.staffName||'') + '_' + (sub.role||'') + '_' + (sub.week||'');
+      const rowKey = (sub.staffName||'') + '_' + (sub.role||'') + '_' + (sub.businessDate || sub.week || '');
       if (keys.includes(rowKey)) updates['submissions/' + child.key] = null;
     });
   }
