@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704190000">
+<meta name="app-version" content="20260704210000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -6858,11 +6858,11 @@ function openAuditDetail(a) {
   // Corrective actions HTML
   let correctiveHtml = '';
   if (a.correctiveActions && a.correctiveActions.length > 0) {
-    correctiveHtml = `<div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">⚠️ Failed Items — Corrective Actions Required (${a.correctiveActions.length})</div>`;
+    correctiveHtml = `<div style="background:#1A3C5E;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">🔧 Corrective Actions (${a.correctiveActions.length})</div>`;
     a.correctiveActions.forEach(ca => {
       correctiveHtml += `<div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #B91C1C;border-radius:8px;padding:12px;margin-bottom:8px;">
         <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;margin-bottom:4px;">${ca.section||'—'} — Item ${ca.item||''}</div>
-        <div style="font-size:13px;font-weight:600;color:#1A1A18;margin-bottom:6px;">❌ ${ca.criteria||'—'}</div>
+        <div style="font-size:13px;font-weight:600;color:#1A1A18;margin-bottom:6px;">${ca.criteria||'—'}</div>
         ${ca.observation?`<div style="font-size:12px;color:#475569;margin-bottom:4px;">💬 <strong>Observation:</strong> ${ca.observation}</div>`:''}
         ${ca.correctiveAction?`<div style="font-size:12px;color:#B91C1C;margin-bottom:4px;font-weight:600;">🔧 <strong>Corrective Action:</strong> ${ca.correctiveAction}</div>`:''}
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;">
@@ -6872,7 +6872,7 @@ function openAuditDetail(a) {
       </div>`;
     });
   } else {
-    correctiveHtml = `<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;text-align:center;font-size:13px;font-weight:600;color:#15803D;">✅ No failed items recorded</div>`;
+    correctiveHtml = `<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px;text-align:center;font-size:13px;font-weight:600;color:#15803D;">✅ No corrective actions recorded</div>`;
   }
 
   // Section breakdown HTML
@@ -7223,30 +7223,6 @@ function generateAuditPDF(a) {
     y += 13;
   }
 
-  // Corrective actions list
-  if ((a.correctiveActions||[]).length > 0) {
-    checkPage(14);
-    doc.setFillColor(185,28,28); doc.rect(margin,y,colW,9,'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('FAILED ITEMS ('+a.correctiveActions.length+')', margin+4, y+6);
-    y += 11;
-    a.correctiveActions.forEach((ca,ci)=>{
-      checkPage(16);
-      doc.setFillColor(...(ci%2===0?[255,248,248]:[255,255,255])); doc.rect(margin,y,colW,14,'F');
-      doc.setFillColor(185,28,28); doc.rect(margin,y,3,14,'F');
-      // Section label — fixed indent from border
-      doc.setTextColor(185,28,28); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-      const secLabel = doc.splitTextToSize((ca.section||'—'), colW-12)[0];
-      doc.text(secLabel, margin+6, y+5);
-      // Criteria text — same indent
-      doc.setTextColor(30,30,30); doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      const label = doc.splitTextToSize((ca.criteria||'—').replace(/[^\x00-\x7F]/g,'').trim(), colW-12);
-      doc.text(label[0], margin+6, y+10.5);
-      y += 14;
-    });
-    y += 4;
-  }
-
   // ── PAGE 2+: FULL DETAIL ─────────────────────────────────────
   doc.addPage(); y = 14;
 
@@ -7343,7 +7319,7 @@ function generateAuditPDF(a) {
     doc.addPage(); y = 14;
     doc.setFillColor(185,28,28); doc.rect(margin,y,colW,9,'F');
     doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.text('CORRECTIVE ACTIONS SUMMARY ('+a.correctiveActions.length+' Failed Items)', margin+3, y+6);
+    doc.text('CORRECTIVE ACTIONS SUMMARY ('+a.correctiveActions.length+')', margin+3, y+6);
     y += 13;
     a.correctiveActions.forEach(ca => {
       checkPage(30);
@@ -7352,7 +7328,7 @@ function generateAuditPDF(a) {
       doc.setTextColor(120,80,80); doc.setFontSize(8); doc.setFont('helvetica','normal');
       doc.text((ca.section||'-')+' - Item '+(ca.item||''), margin+4, y+5);
       doc.setTextColor(30,30,30); doc.setFontSize(10); doc.setFont('helvetica','bold');
-      doc.text('x '+(ca.criteria||'-').replace(/[^\x00-\x7F]/g,'').trim(), margin+4, y+11, {maxWidth:colW-8});
+      doc.text((ca.criteria||'-').replace(/[^\x00-\x7F]/g,'').trim(), margin+4, y+11, {maxWidth:colW-8});
       doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(70,70,70);
       if(ca.observation) doc.text('Observation: '+ca.observation, margin+4, y+17, {maxWidth:colW-8});
       if(ca.correctiveAction){doc.setTextColor(185,28,28); doc.text('Action: '+ca.correctiveAction, margin+4, y+22, {maxWidth:colW-8});}
