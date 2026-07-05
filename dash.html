@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260705140000">
+<meta name="app-version" content="20260705150000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -6738,6 +6738,31 @@ function exportMonthlyExcel() {
 
 
 
+// ── Fix (2026-07-05): Central Kitchen uses its OWN 6-tier grading scale
+// (S/A/B/C/D/F, with "C — Satisfactory" starting at 70%), completely
+// different from the outlet BOH/FOH audits' 4-tier scale (A/B/C/D, with
+// "C" starting at 71%). Every grade computation in this dashboard used
+// the outlet scale unconditionally — so a CK audit scoring exactly 70%
+// showed "D" here while the CK app itself (correctly, using its own
+// scale) showed "C — Satisfactory". This helper branches by audit source
+// so both always agree.
+function _auditGrade(a) {
+  const isCK = (a.auditType === 'GMP') || /^CK\b/.test(a.outlet || '');
+  const sc = a.score;
+  if (isCK) {
+    if (sc>=95) return {letter:'S', label:'Outstanding',    color:'#1a237e', bg:'#e8eaf6'};
+    if (sc>=90) return {letter:'A', label:'Excellent',      color:'#15803D', bg:'#DCFCE7'};
+    if (sc>=80) return {letter:'B', label:'Good',           color:'#33691e', bg:'#f1f8e9'};
+    if (sc>=70) return {letter:'C', label:'Satisfactory',   color:'#CA8A04', bg:'#FEF9C3'};
+    if (sc>=50) return {letter:'D', label:'Conditional',    color:'#EA580C', bg:'#FED7AA'};
+    return           {letter:'F', label:'Unsatisfactory', color:'#B91C1C', bg:'#FEE2E2'};
+  }
+  if (sc>=91) return {letter:'A', label:'Excellent',      color:'#15803D', bg:'#DCFCE7'};
+  if (sc>=81) return {letter:'B', label:'Very Good',      color:'#CAA300', bg:'#FEFCE8'};
+  if (sc>=71) return {letter:'C', label:'Fair/Acceptable',color:'#EA580C', bg:'#FEE8D6'};
+  return           {letter:'D', label:'Poor',            color:'#B91C1C', bg:'#FEE2E2'};
+}
+
 function renderAudits() {
   const body = document.getElementById('auditBody');
   const summaryCards = document.getElementById('auditSummaryCards');
@@ -6802,10 +6827,11 @@ function renderAudits() {
   }
   body.innerHTML = '';
   filtered.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
-    const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
-    const compliance2 = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
-    const gc2   = a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C';
-    const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEFCE8':a.score>=71?'#FEE8D6':'#FEE2E2';
+    const _g2 = _auditGrade(a);
+    const grade = _g2.letter;
+    const compliance2 = _g2.label;
+    const gc2   = _g2.color;
+    const gb    = _g2.bg;
     const row = document.createElement('div');
     row.className = 'at-row';
     row.style.cssText = `background:${i%2===0?'#fff':'#F5F3EE'};cursor:pointer;`;
@@ -6825,10 +6851,11 @@ function renderAudits() {
 }
 
 function openAuditDetail(a) {
-  const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
-  const compliance2 = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
-  const gc    = a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C';
-  const gb    = a.score>=91?'#DCFCE7':a.score>=81?'#FEFCE8':a.score>=71?'#FEE8D6':'#FEE2E2';
+  const _g3 = _auditGrade(a);
+  const grade = _g3.letter;
+  const compliance2 = _g3.label;
+  const gc    = _g3.color;
+  const gb    = _g3.bg;
   const pass  = a.score >= 80;
   window._currentAuditData = a;
 
@@ -7109,11 +7136,25 @@ function generateAuditPDF(a) {
   try {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
-  const grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
-  const compliance = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
+  // Fix (2026-07-05): use the same branching grade logic as _auditGrade()
+  // so this PDF always agrees with both the dashboard list/detail view
+  // and the CK app's own live grade display. See _auditGrade() comment
+  // for the root cause (CK's 6-tier scale vs outlet audits' 4-tier scale).
+  const _isCKPdf = (a.auditType === 'GMP') || /^CK\b/.test(a.outlet || '');
+  let grade, compliance, gradeColor;
+  if (_isCKPdf) {
+    if (a.score>=95)      { grade='S'; compliance='Outstanding';    gradeColor=[26,35,126]; }
+    else if (a.score>=90) { grade='A'; compliance='Excellent';      gradeColor=[21,128,61]; }
+    else if (a.score>=80) { grade='B'; compliance='Good';           gradeColor=[51,105,30]; }
+    else if (a.score>=70) { grade='C'; compliance='Satisfactory';   gradeColor=[202,138,4]; }
+    else if (a.score>=50) { grade='D'; compliance='Conditional';    gradeColor=[234,88,12]; }
+    else                  { grade='F'; compliance='Unsatisfactory'; gradeColor=[185,28,28]; }
+  } else {
+    grade = a.score>=91?'A':a.score>=81?'B':a.score>=71?'C':'D';
+    compliance = a.score>=91?'Excellent':a.score>=81?'Very Good':a.score>=71?'Fair/Acceptable':'Poor';
+    gradeColor = a.score>=91?[21,128,61]:a.score>=81?[202,163,0]:a.score>=71?[234,88,12]:[185,28,28];
+  }
   const pass  = a.score >= 80;
-  // Grade colors per DM grading: A=Green, B=Yellow, C=Orange, D=Red
-  const gradeColor = a.score>=91?[21,128,61]:a.score>=81?[202,163,0]:a.score>=71?[234,88,12]:[185,28,28];
   const pageW = 210, margin = 14, colW = pageW - margin*2;
   const photoSize = 38;
   let y = 14;
@@ -7176,7 +7217,9 @@ function generateAuditPDF(a) {
 
   // Stats row
   doc.setFillColor(248,250,252); doc.rect(margin,y,colW,14,'F');
-  const gradeColorHex = a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C';
+  const gradeColorHex = _isCKPdf
+    ? (a.score>=90?'#15803D':a.score>=80?'#33691E':a.score>=70?'#CA8A04':a.score>=50?'#EA580C':'#B91C1C')
+    : (a.score>=91?'#15803D':a.score>=81?'#CAA300':a.score>=71?'#EA580C':'#B91C1C');
   [['Passed',passedItems,'#15803D'],['Failed',failedItems,'#B91C1C'],['N/A',naItems,'#64748B'],['Total',allItems.length,gradeColorHex]].forEach(([lbl,val,col],i)=>{
     const x = margin+4+(i*(colW/4));
     doc.setTextColor(col); doc.setFontSize(11); doc.setFont('helvetica','bold');
