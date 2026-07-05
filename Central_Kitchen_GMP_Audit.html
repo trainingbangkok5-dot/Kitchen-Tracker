@@ -115,6 +115,31 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
 .btn-clear{font-size:11px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;color:#888;font-weight:600;font-family:Arial,sans-serif}
 .btn-clear:hover{background:#fce4ec;border-color:#e53935;color:#c62828}
 .save-info{font-size:11px;color:#888;align-self:center;flex:1}
+
+/* ── Mobile fixes (2026-07-05) ──────────────────────────────────────────
+   This file had NO responsive breakpoints at all before this. On phone
+   screens the 6 score buttons (4/3/2/1/0/N-A) were crammed into one row
+   at ~45-50px each with 9px labels — hard to read and imprecise to tap.
+   The header's 4 inputs were also squeezed into a fixed 2-column grid
+   regardless of screen width. The footer was worse: SIX buttons (Save,
+   Reset, Summary, Export Excel, Export PDF, and now Submit to Dashboard)
+   plus a text label all sat in one non-wrapping flex row — guaranteed to
+   overflow off-screen on any phone. This breakpoint fixes all three
+   without touching desktop layout at all. */
+@media (max-width: 640px) {
+  .header{padding:0.85rem 1rem}
+  .header h1{font-size:15px;line-height:1.3}
+  .meta{grid-template-columns:1fr}
+  .score-row{grid-template-columns:repeat(3,1fr);gap:8px}
+  .score-btn{padding:10px 4px;min-height:44px}
+  .score-btn .sb-num{font-size:18px}
+  .score-btn .sb-lbl{font-size:9.5px}
+  .footer{flex-wrap:wrap;padding:0.85rem 1rem;gap:0.6rem}
+  .footer .btn-pdf,.footer .btn-save,.footer .btn-summary,.footer .btn-excel,.footer .btn-clear{flex:1 1 auto;min-width:130px;justify-content:center;padding:10px 12px;min-height:44px}
+  .footer .save-info{flex:1 1 100%;order:99;text-align:center}
+  .item-card{padding:0.8rem 0.85rem}
+  .section-panel{padding:1rem 0.85rem}
+}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -160,7 +185,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
   <button class="btn-summary" onclick="showSummary()">&#128202; Summary</button>
   <button class="btn-excel" onclick="exportExcel()">&#128218; Export Excel</button>
   <button class="btn-pdf" onclick="exportPDF()">&#128196; Export PDF</button>
-  <button class="btn-pdf" onclick="submitAuditToDashboard()" style="background:#E8F5E9;border-color:#2E7D32;color:#1B5E20;">&#128202; Submit to Dashboard</button>
+  <button class="btn-pdf" onclick="submitAuditToDashboard(this)" style="background:#E8F5E9;border-color:#2E7D32;color:#1B5E20;">&#128202; Submit to Dashboard</button>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -242,11 +267,11 @@ function pushAuditToFirebase(record) {
     const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.auditType
               + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
-    _db.ref('audits/' + key).set({
+    return _db.ref('audits/' + key).set({
       ...record,
       lastUpdated: new Date().toISOString()
-    }).catch(e => console.warn('Audit write failed:', e));
-  } catch(e) { console.warn('Firebase audit error:', e); }
+    }).catch(e => { console.warn('Audit write failed:', e); throw e; });
+  } catch(e) { console.warn('Firebase audit error:', e); return Promise.reject(e); }
 }
 
 // Submits the current CK GMP audit to the shared dashboard, mirroring the
@@ -255,7 +280,7 @@ function pushAuditToFirebase(record) {
 // scoring scale. Items scored 0 ("No System") or 1 ("Deficient") are
 // treated as needing corrective action — matching the same threshold
 // already used for this file's own on-screen "needs attention" summary.
-function submitAuditToDashboard() {
+async function submitAuditToDashboard(btnEl) {
   const {pct, totEarned, totMax} = calcScores();
   const auditor   = document.getElementById('auditor')?.value || '—';
   const location  = document.getElementById('location')?.value || '';
@@ -263,6 +288,10 @@ function submitAuditToDashboard() {
   const auditDate = document.getElementById('audit-date')?.value || new Date().toISOString().split('T')[0];
   const outlet    = 'CK — ' + location;
   const auditType = 'GMP';
+
+  const submitBtn = btnEl || null;
+  const _origBtnText = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '&#8987; Uploading...'; }
 
   try {
     const correctiveActions = [];
@@ -304,9 +333,22 @@ function submitAuditToDashboard() {
       sectionBreakdown.push({ id: s.id, title: s.title, earned: Math.round(secEarned*10)/10, max: secMax, items: secItems });
     });
 
+    // ── Fix (2026-07-05): removed the fire-and-forget race condition ──────
+    // The old version showed "Audit submitted!" the INSTANT this function
+    // was called, while photo compression + Firebase upload kept running
+    // unawaited in the background. If the user closed the tab or navigated
+    // away shortly after seeing that message (a very natural thing to do,
+    // since it looked complete), the photo uploads could get cut off
+    // mid-way — records saved fine, but photos silently missing. Now every
+    // step is properly awaited: photo compression → record write → ALL
+    // photo writes (via Promise.all) → only THEN is success shown, and the
+    // submit button stays disabled with a visible "Uploading..." state the
+    // whole time so there's no ambiguity about whether it's safe to leave.
     async function pushWithPhotos() {
       const auditKey = outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
       const photoUploads = [];
+      let totalPhotos = 0, donePhotos = 0;
+      sectionBreakdown.forEach(sec => sec.items.forEach(it => { totalPhotos += (it.photos||[]).length; }));
       for (const sec of sectionBreakdown) {
         for (const it of sec.items) {
           if (it.photos && it.photos.length > 0) {
@@ -316,22 +358,26 @@ function submitAuditToDashboard() {
               const photoKey = auditKey + '_' + sec.id + '_' + it.n + '_' + pi;
               photoUploads.push({key: photoKey, data: compressed});
               photoKeys.push(photoKey);
+              donePhotos++;
+              if (submitBtn && totalPhotos > 0) submitBtn.innerHTML = '&#8987; Uploading photos ' + donePhotos + '/' + totalPhotos + '...';
             }
             it.photoKeys = photoKeys;
             it.photos = [];
           }
         }
       }
-      pushAuditToFirebase({outlet, auditType, score:pct, rawScore:Math.round(totEarned*10)/10, maxScore:totMax, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
-      photoUploads.forEach(({key, data}) => {
-        try { _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e)); }
-        catch(e) { console.warn('Photo push error:', e); }
-      });
+      if (submitBtn) submitBtn.innerHTML = '&#8987; Saving to dashboard...';
+      await pushAuditToFirebase({outlet, auditType, score:pct, rawScore:Math.round(totEarned*10)/10, maxScore:totMax, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+      await Promise.all(photoUploads.map(({key, data}) =>
+        _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e))
+      ));
     }
-    pushWithPhotos();
+    await pushWithPhotos();
     showToast('✅ Audit submitted! Score: ' + pct + '% — Dashboard updated', '#2e7d32');
   } catch(e) {
     showToast('⚠ Could not submit to dashboard: ' + e.message, '#c62828');
+  } finally {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = _origBtnText; }
   }
 }
 
