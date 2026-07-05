@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central Kitchen — GMP Audit</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1a}
+.header{background:#fff;border-bottom:1px solid #e0e0e0;padding:1rem 1.5rem;position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.header h1{font-size:17px;font-weight:700;margin-bottom:.75rem;color:#111}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.meta input,.meta select{width:100%;font-size:13px;padding:7px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#111}
+.score-bar{background:#f9f9f9;border:1px solid #e0e0e0;border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:1rem}
+.grade-badge{width:58px;height:58px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;border:2px solid rgba(0,0,0,.08);text-align:center;padding:4px}
+.grade-badge .g-letter{font-size:22px;font-weight:800;line-height:1}
+.grade-badge .g-label{font-size:9px;font-weight:700;margin-top:2px;line-height:1.2}
+.score-info{flex:1}
+.score-pct{font-size:22px;font-weight:700}
+.score-sub{font-size:11px;color:#666;margin-top:2px}
+.progress-track{height:7px;background:#e0e0e0;border-radius:4px;margin-top:6px}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+/* Score guide */
+.score-guide{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.sg{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;border:1px solid rgba(0,0,0,.1);cursor:default}
+/* Nav */
+.section-nav{display:flex;gap:6px;padding:.75rem 1.5rem;overflow-x:auto;border-bottom:1px solid #e0e0e0;background:#fff;position:sticky;top:128px;z-index:40}
+.section-nav::-webkit-scrollbar{height:4px}.section-nav::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+.nav-btn{font-size:11px;padding:5px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:Arial,sans-serif;font-weight:600}
+.nav-btn:hover{background:#f0f0f0}
+.nav-btn.active{background:#e8eaf6;color:#283593;border-color:#283593}
+/* Panels */
+.section-panel{padding:1.25rem 1.5rem;display:none;max-width:920px;margin:0 auto}
+.section-panel.active{display:block}
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem}
+.sec-header h2{font-size:15px;font-weight:700;color:#111}
+.sec-pill{font-size:12px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:3px 10px;color:#555;font-weight:700;white-space:nowrap}
+.sec-note{font-size:12px;color:#888;margin-bottom:1rem;font-style:italic;border-left:3px solid #283593;padding-left:8px;background:#f0f4ff;border-radius:0 4px 4px 0;padding:5px 10px}
+/* Item card */
+.item-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:.9rem 1rem;margin-bottom:.8rem}
+.item-card.s4{border-left:4px solid #1565c0}
+.item-card.s3{border-left:4px solid #2e7d32}
+.item-card.s2{border-left:4px solid #f57c00}
+.item-card.s1{border-left:4px solid #c62828}
+.item-card.s0{border-left:4px solid #7f0000}
+.item-card.sna{border-left:4px solid #9e9e9e}
+.item-top{display:flex;align-items:flex-start;gap:.75rem}
+.item-ref{font-size:11px;font-weight:700;color:#aaa;min-width:34px;padding-top:2px;flex-shrink:0}
+.item-info{flex:1}
+.item-label{font-size:14px;font-weight:700;color:#111;margin-bottom:4px}
+.item-what{font-size:12px;color:#333;font-weight:600;margin-bottom:3px}
+.item-desc{font-size:12px;color:#777;line-height:1.55}
+.item-maxpts{font-size:11px;color:#aaa;white-space:nowrap;flex-shrink:0;font-weight:700;background:#f5f5f5;padding:2px 8px;border-radius:5px;border:1px solid #e0e0e0}
+/* Score buttons */
+.score-row{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:.875rem}
+.score-btn{padding:8px 4px;border:1.5px solid #ddd;border-radius:6px;background:#fafafa;cursor:pointer;font-family:Arial,sans-serif;text-align:center;transition:all .15s}
+.score-btn:hover{background:#f0f0f0}
+.score-btn .sb-num{font-size:16px;font-weight:800;display:block;line-height:1}
+.score-btn .sb-lbl{font-size:9px;font-weight:600;display:block;margin-top:2px;color:#777;line-height:1.2}
+.score-btn.a4{background:#e8eaf6;border-color:#1565c0;color:#1a237e}
+.score-btn.a4 .sb-lbl{color:#283593}
+.score-btn.a3{background:#e8f5e9;border-color:#2e7d32;color:#1b5e20}
+.score-btn.a3 .sb-lbl{color:#388e3c}
+.score-btn.a2{background:#fff8e1;border-color:#f57c00;color:#bf360c}
+.score-btn.a2 .sb-lbl{color:#e65100}
+.score-btn.a1{background:#ffebee;border-color:#c62828;color:#7f0000}
+.score-btn.a1 .sb-lbl{color:#b71c1c}
+.score-btn.a0{background:#fce4ec;border-color:#7f0000;color:#560027}
+.score-btn.a0 .sb-lbl{color:#880e4f}
+.score-btn.ana{background:#f5f5f5;border-color:#9e9e9e;color:#424242}
+.score-btn.ana .sb-lbl{color:#757575}
+/* Comment & photo */
+.item-bottom{display:flex;align-items:center;gap:6px;margin-top:.75rem;flex-wrap:wrap}
+.comment-input{flex:1;min-width:160px;font-size:12px;padding:6px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#111;font-family:Arial,sans-serif}
+.photo-label{font-size:12px;padding:5px 11px;border:1px solid #ccc;border-radius:6px;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:5px;background:#fff;font-weight:700;white-space:nowrap}
+.photo-label:hover{background:#f5f5f5}
+.photo-input{display:none}
+.photo-thumbs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.thumb-wrap{position:relative;display:inline-block}
+.thumb{width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #ddd;display:block;cursor:pointer}
+.thumb:hover{opacity:.85}
+.thumb-del{position:absolute;top:-6px;right:-6px;background:#c62828;color:#fff;border:2px solid #fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
+/* Footer */
+.footer{background:#fff;padding:1rem 1.5rem;border-top:1px solid #e0e0e0;display:flex;gap:.75rem;justify-content:flex-end;position:sticky;bottom:0;z-index:40;box-shadow:0 -1px 4px rgba(0,0,0,.06)}
+.btn-summary{font-size:13px;padding:8px 18px;border:1px solid #6a1b9a;border-radius:6px;background:#f3e5f5;cursor:pointer;color:#4a148c;font-weight:700;font-family:Arial,sans-serif}
+.btn-excel{font-size:13px;padding:8px 18px;border:1px solid #2e7d32;border-radius:6px;background:#e8f5e9;cursor:pointer;color:#1b5e20;font-weight:700;font-family:Arial,sans-serif}
+.btn-pdf{font-size:13px;padding:8px 18px;border:1px solid #283593;border-radius:6px;background:#e8eaf6;cursor:pointer;color:#1a237e;font-weight:700;font-family:Arial,sans-serif}
+/* Toast, lightbox, modal, pdf */
+.toast{display:none;position:fixed;bottom:80px;right:24px;font-size:13px;padding:10px 18px;border-radius:8px;font-weight:700;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.toast.show{display:block}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox img{max-width:90vw;max-height:88vh;border-radius:8px}
+.lb-close{position:fixed;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;font-weight:700;background:none;border:none;z-index:201}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:1.5rem;width:640px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.18)}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:1rem;color:#111}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
+.sum-row:last-child{border-bottom:none}
+.spill{font-size:11px;padding:3px 9px;border-radius:5px;font-weight:700}
+.modal-close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:#888;font-weight:700}
+.pdf-progress{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center}
+.pdf-progress.open{display:flex}
+.pdf-box{background:#fff;border-radius:12px;padding:2rem;text-align:center;width:300px}
+.pdf-box p{font-size:14px;font-weight:700;margin-bottom:1rem;color:#111}
+.pdf-track{height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden}
+.pdf-fill{height:100%;background:#283593;border-radius:4px;transition:width .2s}
+.pdf-box small{font-size:11px;color:#888;margin-top:.5rem;display:block}
+
+.btn-save{font-size:13px;padding:8px 18px;border:1px solid #283593;border-radius:6px;background:#e8eaf6;cursor:pointer;color:#1a237e;font-weight:700;font-family:Arial,sans-serif;display:inline-flex;align-items:center;gap:6px}
+.btn-save:hover{background:#c5cae9}
+.btn-clear{font-size:11px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;color:#888;font-weight:600;font-family:Arial,sans-serif}
+.btn-clear:hover{background:#fce4ec;border-color:#e53935;color:#c62828}
+.save-info{font-size:11px;color:#888;align-self:center;flex:1}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div class="header">
+  <h1>&#127981; Central Kitchen (CFP) &mdash; GMP Internal Monthly Audit</h1>
+  <div class="meta">
+    <input id="auditor" placeholder="Auditor name" value="Sunshine Jade Rogel" />
+    <input id="location" placeholder="CK Location (e.g. CK-1, CK-2)" />
+    <input id="audit-date" type="date" />
+    <select id="shift"><option value="">Select shift</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select>
+  </div>
+  <div class="score-bar">
+    <div class="grade-badge" id="grade-badge" style="background:#ffebee;color:#7f0000">
+      <span class="g-letter" id="g-letter">D</span>
+      <span class="g-label" id="g-label">Unsatisfactory</span>
+    </div>
+    <div class="score-info">
+      <div class="score-pct"><span id="score-pct">0</span>% &nbsp;<span id="score-raw" style="font-size:14px;color:#888;font-weight:400">0 / 0 pts</span></div>
+      <div class="score-sub">Dubai Municipality GMP Compliance &nbsp;|&nbsp; <span id="items-status">0 of 27 items scored</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%;background:#c62828"></div></div>
+      <div class="score-guide">
+        <span class="sg" style="background:#e8eaf6;color:#1a237e">4 &#10003;&#10003; Outstanding</span>
+        <span class="sg" style="background:#e8f5e9;color:#1b5e20">3 &#10003; Acceptable</span>
+        <span class="sg" style="background:#fff8e1;color:#bf360c">2 &#9888; Needs Work</span>
+        <span class="sg" style="background:#ffebee;color:#7f0000">1 &#10006; Deficient</span>
+        <span class="sg" style="background:#fce4ec;color:#560027">0 &#10006;&#10006; No System</span>
+        <span class="sg" style="background:#f5f5f5;color:#424242">N/A Not Applicable</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-nav" id="section-nav"></div>
+<div id="sections-container"></div>
+
+<div class="footer">
+  <button class="btn-save" onclick="saveAudit()">&#128190; Save Progress</button>
+  <span class="save-info" id="last-saved-label"></span>
+  <button class="btn-clear" onclick="clearSave()" title="Clear saved data &amp; restart">&#128465; Reset</button>
+  <button class="btn-summary" onclick="showSummary()">&#128202; Summary</button>
+  <button class="btn-excel" onclick="exportExcel()">&#128218; Export Excel</button>
+  <button class="btn-pdf" onclick="exportPDF()">&#128196; Export PDF</button>
+  <button class="btn-pdf" onclick="submitAuditToDashboard()" style="background:#E8F5E9;border-color:#2E7D32;color:#1B5E20;">&#128202; Submit to Dashboard</button>
+</div>
+
+<div id="toast" class="toast"></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lb-close" onclick="closeLightbox()">&#x2715;</button>
+  <img id="lb-img" src="" alt="Photo" onclick="event.stopPropagation()" />
+</div>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">&#x2715;</button>
+    <h2>&#128202; GMP Audit Summary Report</h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div class="pdf-progress" id="pdf-progress">
+  <div class="pdf-box">
+    <p>&#128196; Generating PDF Report...</p>
+    <div class="pdf-track"><div class="pdf-fill" id="pdf-bar" style="width:0%"></div></div>
+    <small id="pdf-lbl">Preparing...</small>
+  </div>
+</div>
+
+<script>
+/* ── GRADE SCALE (same as DM framework) ─────────────────── */
+const GRADES=[
+  {min:95,letter:'S',lbl:'Outstanding', col:'#1a237e',bg:'#e8eaf6',fill:'#283593'},
+  {min:90,letter:'A',lbl:'Excellent',   col:'#1b5e20',bg:'#e8f5e9',fill:'#2e7d32'},
+  {min:80,letter:'B',lbl:'Good',        col:'#33691e',bg:'#f1f8e9',fill:'#558b2f'},
+  {min:70,letter:'C',lbl:'Satisfactory',col:'#e65100',bg:'#fff3e0',fill:'#ef6c00'},
+  {min:50,letter:'D',lbl:'Conditional', col:'#bf360c',bg:'#fbe9e7',fill:'#d84315'},
+  {min:0, letter:'F',lbl:'Unsatisfactory',col:'#7f0000',bg:'#ffebee',fill:'#c62828'},
+];
+function getGrade(p){return GRADES.find(g=>p>=g.min)||GRADES[GRADES.length-1];}
+
+const SCORE_INFO={
+  '4':{lbl:'Outstanding',  short:'4 — Outstanding',  col:'#1a237e',bg:'#e8eaf6',border:'#1565c0'},
+  '3':{lbl:'Acceptable',   short:'3 — Acceptable',   col:'#1b5e20',bg:'#e8f5e9',border:'#2e7d32'},
+  '2':{lbl:'Needs Work',   short:'2 — Needs Work',   col:'#bf360c',bg:'#fff8e1',border:'#f57c00'},
+  '1':{lbl:'Deficient',    short:'1 — Deficient',    col:'#7f0000',bg:'#ffebee',border:'#c62828'},
+  '0':{lbl:'No System',    short:'0 — No System',    col:'#560027',bg:'#fce4ec',border:'#7f0000'},
+  'na':{lbl:'N/A',         short:'N/A',               col:'#424242',bg:'#f5f5f5',border:'#9e9e9e'},
+};
+
+// ══ FIREBASE CONFIG (2026-07-04) — added so CK audits sync to the
+// Culex dashboard, same project/database as every other audit tool ═══
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const _db = firebase.database();
+
+function compressPhoto(dataUrl, maxW, quality) {
+  return new Promise(resolve => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch(e) { resolve(dataUrl); }
+  });
+}
+
+function pushAuditToFirebase(record) {
+  try {
+    const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.auditType
+              + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+    _db.ref('audits/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).catch(e => console.warn('Audit write failed:', e));
+  } catch(e) { console.warn('Firebase audit error:', e); }
+}
+
+// Submits the current CK GMP audit to the shared dashboard, mirroring the
+// same record shape the outlet BOH/FOH audit tools use (score, rawScore,
+// maxScore, correctiveActions, sectionBreakdown), adapted for CK's 0-4
+// scoring scale. Items scored 0 ("No System") or 1 ("Deficient") are
+// treated as needing corrective action — matching the same threshold
+// already used for this file's own on-screen "needs attention" summary.
+function submitAuditToDashboard() {
+  const {pct, totEarned, totMax} = calcScores();
+  const auditor   = document.getElementById('auditor')?.value || '—';
+  const location  = document.getElementById('location')?.value || '';
+  if (!location) { showToast('⚠ Please enter a CK location before submitting!', '#c62828'); return; }
+  const auditDate = document.getElementById('audit-date')?.value || new Date().toISOString().split('T')[0];
+  const outlet    = 'CK — ' + location;
+  const auditType = 'GMP';
+
+  try {
+    const correctiveActions = [];
+    SECTIONS.forEach(s => s.items.forEach(it => {
+      const k = s.id + '_' + it.ref;
+      const v = state[k].score;
+      if (v === '0' || v === '1') {
+        correctiveActions.push({
+          section: s.title, item: it.ref, criteria: it.label,
+          observation: state[k].comment || '',
+          correctiveAction: state[k].correctiveAction || '',
+          responsible: state[k].responsible || '',
+          deadline: state[k].deadline || '',
+        });
+      }
+    }));
+
+    const sectionBreakdown = [];
+    SECTIONS.forEach(s => {
+      const secItems = [];
+      let secEarned = 0, secMax = 0;
+      s.items.forEach(it => {
+        const k = s.id + '_' + it.ref;
+        const st = state[k];
+        if (st.score !== 'na' && st.score !== null) {
+          const pts = parseInt(st.score) * it.maxScore / 4;
+          secEarned += pts; secMax += it.maxScore;
+        } else if (st.score !== 'na') {
+          secMax += it.maxScore; // unscored counts toward max, same as calcScores()
+        }
+        secItems.push({
+          n: it.ref, label: it.label, desc: it.what || '',
+          maxScore: it.maxScore, status: st.score || '',
+          comment: st.comment || '', correctiveAction: st.correctiveAction || '',
+          responsible: st.responsible || '', deadline: st.deadline || '',
+          photos: st.photos || [],
+        });
+      });
+      sectionBreakdown.push({ id: s.id, title: s.title, earned: Math.round(secEarned*10)/10, max: secMax, items: secItems });
+    });
+
+    async function pushWithPhotos() {
+      const auditKey = outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+      const photoUploads = [];
+      for (const sec of sectionBreakdown) {
+        for (const it of sec.items) {
+          if (it.photos && it.photos.length > 0) {
+            const photoKeys = [];
+            for (let pi = 0; pi < it.photos.length; pi++) {
+              const compressed = await compressPhoto(it.photos[pi], 600, 0.65);
+              const photoKey = auditKey + '_' + sec.id + '_' + it.n + '_' + pi;
+              photoUploads.push({key: photoKey, data: compressed});
+              photoKeys.push(photoKey);
+            }
+            it.photoKeys = photoKeys;
+            it.photos = [];
+          }
+        }
+      }
+      pushAuditToFirebase({outlet, auditType, score:pct, rawScore:Math.round(totEarned*10)/10, maxScore:totMax, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+      photoUploads.forEach(({key, data}) => {
+        try { _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e)); }
+        catch(e) { console.warn('Photo push error:', e); }
+      });
+    }
+    pushWithPhotos();
+    showToast('✅ Audit submitted! Score: ' + pct + '% — Dashboard updated', '#2e7d32');
+  } catch(e) {
+    showToast('⚠ Could not submit to dashboard: ' + e.message, '#c62828');
+  }
+}
+
+
+/* ── SECTIONS — DM-aligned Central Kitchen GMP ──────────── */
+const SECTIONS=[
+{id:'s1',title:'Premises & Facility',note:'Dubai Municipality requires all food premises to be properly designed, maintained, and protected against contamination and pest entry (DM Food Code, Section 4).',items:[
+{ref:'1.1',label:'Facility Grounds & Layout',
+ what:'Is the facility clean, organized, and free from contamination risks?',
+ desc:'Grounds and parking areas are well maintained and clean. There is adequate space for orderly placement of equipment and materials to prevent mix-ups and contamination. Floors, walls, ceilings, doors, and windows are completely sealed to prevent pest entry. There is clear separation of food preparation areas (raw vs. cooked, clean vs. dirty) to prevent cross-contamination.',maxScore:4},
+{ref:'1.2',label:'Equipment & Maintenance',
+ what:'Is all equipment clean, maintained, and fit for food use?',
+ desc:'All food contact surfaces are made of food-safe materials (e.g. stainless steel). A preventative maintenance programme is in place for all major equipment. Weighing, measuring, and temperature monitoring equipment is calibrated regularly according to a written schedule. Non-toxic and food-grade lubricants and chemicals are used around food areas. Seams and joints are smooth, well-bonded, and easy to clean.',maxScore:4},
+{ref:'1.3',label:'Pest Control Programme',
+ what:'Is there an active, documented pest control programme in place?',
+ desc:'A valid pest control contract with a DM-approved PCO (Pest Control Operator) is in place and filed. A site map showing all trap locations is available. Regular inspections are conducted and records are kept for at least 3 months. Written procedures exist for the application of pesticides. All pest control chemicals are accurately labeled and stored securely. Fly traps, insect killers, and glue boards are monitored regularly and replaced when full. Building exterior is protected from rodent and pest entry.',maxScore:4},
+{ref:'1.4',label:'Cleaning & Sanitation Programme',
+ what:'Is there a written sanitation programme that is being followed?',
+ desc:'A written and comprehensive cleaning and sanitation programme exists for both the facility and equipment. Written SOPs (Standard Operating Procedures) or work instructions are available for all cleaning tasks. Cleaning logs are maintained for all major equipment, including dates, products used, lot numbers, and the name of the person who cleaned. All cleaning chemicals are food-safe, correctly labeled, stored separately from food, and used according to approved procedures. Brushes and other cleaning tools for food contact surfaces are clearly identified and controlled. Measures are in place to verify the effectiveness of cleaning, such as visual checks or swab testing.',maxScore:4},
+]},
+{id:'s2',title:'Food Safety & Hygiene',note:'DM Food Code requires all food handlers to follow strict hygiene practices and all food to be handled safely to prevent contamination and foodborne illness.',items:[
+{ref:'2.1',label:'Personal Hygiene & Uniform',
+ what:'Are all staff following DM personal hygiene requirements?',
+ desc:'All kitchen staff wear clean, properly fitted uniforms including bandana or hairnet, stain-free apron, and appropriate closed-toe chef shoes. Fingernails are short, clean, and free from nail polish. No jewellery is worn in food areas. Staff with illness, open wounds, or skin infections are excluded from food handling until cleared. Personal belongings (phones, bags, jackets) are stored in designated areas outside of food preparation zones.',maxScore:4},
+{ref:'2.2',label:'Handwashing Practices',
+ what:'Are staff washing hands properly at all required moments?',
+ desc:'Handwashing is performed immediately upon arriving at the kitchen, before and after handling food, after handling raw meat or seafood, after touching waste bins, after using the toilet, after sneezing or coughing, and after any contaminating activity. Handwash stations are equipped with soap, tissue/paper towels, and are accessible in all food preparation and washing areas.',maxScore:4},
+{ref:'2.3',label:'Food Storage & Stock Rotation (FIFO/FEFO)',
+ what:'Is food stored correctly and rotated using FIFO/FEFO?',
+ desc:'First-In-First-Out (FIFO) and First-Expired-First-Out (FEFO) principles are consistently applied — older stock is used before newer stock. All products are correctly labeled with preparation date, expiry date, and product name. No expired, spoiled, or unlabeled products are stored in any chiller, freezer, or dry storage area. Materials are stored properly to prevent contamination and degradation. Rejected or quarantined items are clearly segregated and labeled.',maxScore:4},
+{ref:'2.4',label:'Temperature Control & Monitoring',
+ what:'Are chillers, freezers, and cooking temperatures within safe DM limits?',
+ desc:'Chillers are maintained at or below 5°C. Freezers are maintained at -18°C or colder. Cooked food is heated to a minimum core temperature of 75°C for at least 60 seconds. Thawing is done correctly — either inside the chiller or under continuous cold running water. Manual temperature logs are updated according to the required timeframe and retained for at least 3 months. Temperature monitoring equipment (thermometers, probes) is clean, functional, and calibrated regularly.',maxScore:4},
+{ref:'2.5',label:'Cross-Contamination Prevention',
+ what:'Are raw and ready-to-eat foods kept fully separated at all times?',
+ desc:'Raw meat, seafood, and poultry are stored below and completely separate from ready-to-eat items at every stage — storage, preparation, and handling. Colour-coded chopping boards are used correctly. Utensils and equipment used for raw foods are not used for cooked or ready-to-eat foods without thorough cleaning and sanitizing first. Staff handling raw food change gloves before handling cooked food.',maxScore:4},
+]},
+{id:'s3',title:'Food Handling & Production',note:'DM Food Code requires that all food is manufactured, prepared, and handled in a controlled and documented manner to ensure consistency, quality, and food safety.',items:[
+{ref:'3.1',label:'Production & Batch Records',
+ what:'Are production records complete, accurate, and properly maintained?',
+ desc:'All food production activities are recorded, including ingredients used (with lot numbers and quantities), preparation steps, production date and time, and the name of the person responsible. Records are reviewed and signed off by a supervisor or person in charge (PIC). Batch records are retained for at least 1 year after the expiry date of the product.',maxScore:4},
+{ref:'3.2',label:'Contamination Control',
+ what:'Are effective controls in place to prevent physical, chemical, and biological contamination?',
+ desc:'Any food observed to have insect infestation, foreign objects, or signs of spoilage is immediately quarantined and removed from the premises. Effective measures are in place to protect against physical contaminants such as metal, glass, and extraneous materials. Chemical controls are in place — cleaning chemicals, lubricants, and pesticides are never stored near or above food.',maxScore:4},
+{ref:'3.3',label:'Menu Specification Compliance',
+ what:'Are food products prepared according to current, approved specifications?',
+ desc:'Up-to-date recipe and menu specifications (for dine-in and takeaway products) are available, displayed, and consistently followed in all preparation areas. All portioning, seasoning, and preparation methods follow the approved standards. Any changes to specifications are communicated and documented.',maxScore:4},
+{ref:'3.4',label:'Allergen Management',
+ what:'Are allergen controls in place to protect guests from allergic reactions?',
+ desc:'A documented allergen management programme is in place. All 14 major allergens are identified in recipes and production records. Staff are trained on allergen risks and controls. Allergen-containing ingredients are clearly labeled and stored separately. Production scheduling prevents cross-contact between allergen-containing and allergen-free products.',maxScore:4},
+]},
+{id:'s4',title:'Storage & Materials Management',note:'DM Food Code requires that all incoming materials are verified, stored correctly, and traceable. FIFO and FEFO practices must be followed at all stages.',items:[
+{ref:'4.1',label:'Receiving & Supplier Verification',
+ what:'Are all incoming deliveries inspected and from approved suppliers?',
+ desc:'All deliveries are inspected upon arrival — temperature, condition, labeling, and expiry dates are checked and recorded. Materials are only accepted from approved, licensed suppliers. A system is in place to verify supplier compliance (supplier approval letters, DM-required halal certificates, etc.). Out-of-specification deliveries are rejected and documented.',maxScore:4},
+{ref:'4.2',label:'Dry Storage & Storeroom',
+ what:'Is the dry storage area clean, organized, and pest-free?',
+ desc:'All dried goods are organized on shelving — never stored directly on the floor. An 18-inch perimeter clearance is maintained around all walls. No expired, damaged, or unlabeled products are present. All opened products are sealed, labeled with opening date, and stored in designated areas. Packaging is intact with no signs of damage, swelling, leakage, or pest activity. Storage area is free from pest activity and pest control devices are properly placed.',maxScore:4},
+{ref:'4.3',label:'Chiller & Freezer Storage',
+ what:'Are upright and walk-in chillers and freezers properly managed?',
+ desc:'Upright and walk-in chillers and freezers are clean, operating at the correct temperatures, well-organized, and properly logged. All products are clearly labeled with accurate expiry dates and stored covered or wrapped. No expired, unlabeled, or improperly stored items are present. High-risk and low-risk products are stored separately. All items in crate baskets are labeled.',maxScore:4},
+{ref:'4.4',label:'Traceability & Lot Control',
+ what:'Can all raw materials and finished products be traced through the system?',
+ desc:'A lot traceability system is in place with a distinctive lot number for all raw materials, in-process materials, finished goods, and packaging components. FIFO and FEFO procedures are documented and consistently followed. Records allow full traceability from raw material receipt to final product distribution.',maxScore:4},
+]},
+{id:'s5',title:'Packaging & Labelling',note:'Dubai Municipality requires that all food products are correctly labeled, including product name, lot number, date of preparation, expiry date, and allergen information.',items:[
+{ref:'5.1',label:'Packaging Materials Control',
+ what:'Are packaging materials food-safe, clean, and properly managed?',
+ desc:'All packaging materials are stored hygienically, away from contamination risks. Packaging materials are food-safe and appropriate for the product and storage conditions. Receipt, storage, handling, and issuance of packaging materials are managed according to a written procedure.',maxScore:4},
+{ref:'5.2',label:'Label Accuracy & Control',
+ what:'Are all labels accurate, compliant, and properly applied?',
+ desc:'All food products are labeled with: product name, preparation date, expiry or use-by date, lot number, net weight or quantity, allergen information, and storage conditions. Labels are printed clearly and legibly — no handwritten, damaged, or outdated labels are in use. Access to label storage is controlled. Procedures exist for the destruction of obsolete labels. A representative label is retained in the batch production record.',maxScore:4},
+{ref:'5.3',label:'Packaging Operations',
+ what:'Are packing and labelling operations carried out correctly to prevent mix-ups?',
+ desc:'Packaging and labelling operations for different products are adequately separated to prevent mix-ups. Proper line clearance procedures are in place and followed during changeovers. Packaged products are inspected to ensure they carry the correct label and lot number before despatch.',maxScore:4},
+]},
+{id:'s6',title:'Quality Management & Documentation',note:'DM Food Code and HACCP requirements mandate that all food establishments maintain a documented food safety management system with regular internal audits and corrective actions.',items:[
+{ref:'6.1',label:'Food Safety Management System (FSMS)',
+ what:'Is there a documented food safety management system in place?',
+ desc:'A documented food safety management system (HACCP or equivalent) is in place, reviewed regularly, and communicated to all relevant staff. Quality objectives are documented, signed, dated, and understood at all levels. An organizational chart is available showing the current reporting structure and responsibilities. A designated Person in Charge (PIC) with a valid PIC certificate is responsible for food safety compliance.',maxScore:4},
+{ref:'6.2',label:'DM Regulatory Documentation',
+ what:'Are all required Dubai Municipality documents up to date and properly filed?',
+ desc:'The following documents are valid, current, and properly organized: Trade License with Food Activity, Food Safety Permit, Occupational Health Cards (OHC) for all staff, Basic Food Hygiene (BFH) certificates, PIC certificates, Halal certificate, HACCP certificate, Food Analysis reports, Pest Control contract and records (minimum 3 months), Grease trap cleaning contract and records, Exhaust/duct cleaning records, FoodWatch checklist submissions. All documents are retained for at least 3 months (or as required by DM).',maxScore:4},
+{ref:'6.3',label:'Internal Audits & Corrective Actions',
+ what:'Are internal audits conducted regularly with corrective actions followed up?',
+ desc:'A documented procedure for conducting internal GMP audits is in place. Internal audits are conducted at least monthly and results are documented. Audit findings are brought to the attention of management and corrective actions are assigned, recorded, and verified for effectiveness. A documented complaint investigation and response programme exists.',maxScore:4},
+{ref:'6.4',label:'Temperature & Monitoring Logs',
+ what:'Are all temperature logs and monitoring records complete and up to date?',
+ desc:'Kitchen and refrigeration manual temperature logs are updated in accordance with the required checklist timeframe (minimum twice daily). All log files are properly maintained, signed, and retained for at least 3 months. FoodWatch checklists are fully completed, verified, and submitted within the designated timeframe. Wastage logs, cooling logs, and other monitoring records are accurately completed and accessible.',maxScore:4},
+]},
+{id:'s7',title:'Personnel, Training & Wellbeing',note:'DM Food Code requires that all food handlers are trained in food safety and hygiene, hold valid health cards, and follow all personal hygiene requirements.',items:[
+{ref:'7.1',label:'Staff Qualifications & Health Cards',
+ what:'Do all staff have valid OHC and food hygiene certificates?',
+ desc:'All food handlers, including support staff, hold a valid Occupational Health Card (OHC) from Dubai Municipality. All staff have completed a Basic Food Hygiene (BFH) training course and certificates are on file. Any expired certificates have been reported to HR and are being renewed. An up-to-date staff list with certificate expiry dates is maintained.',maxScore:4},
+{ref:'7.2',label:'Food Safety Training',
+ what:'Are all staff trained in food safety, GMP, and HACCP?',
+ desc:'A training programme is in place for all staff covering: DM food safety requirements, GMP practices, HACCP principles, allergen awareness, personal hygiene, cleaning and sanitation procedures, and temperature control. Training is provided upon hiring and refresher sessions are conducted regularly. Training records include: date, topic, trainer name, employee signatures, and assessment results. Training effectiveness is evaluated periodically.',maxScore:4},
+{ref:'7.3',label:'Hygienic Work Practices',
+ what:'Are staff demonstrating proper hygienic behaviour on the floor?',
+ desc:'Staff are observed following all required hygiene practices: correct uniform and PPE usage, proper glove use (both hands, changed regularly), no eating or drinking in food areas, no mobile phones in food areas, and immediate reporting of illness or injury to supervisors. Consumption of food, beverages, or chewing gum in food processing areas is strictly prohibited.',maxScore:4},
+]},
+{id:'s8',title:'Purchasing, Suppliers & Compliance',note:'DM Food Code requires that food establishments source all products from DM-approved suppliers and maintain full traceability documentation.',items:[
+{ref:'8.1',label:'Supplier Approval & Verification',
+ what:'Are all suppliers DM-approved and regularly evaluated?',
+ desc:'A documented approved supplier list is maintained. All key suppliers hold valid DM licences, Halal certificates, and food safety certifications. Supplier performance is reviewed regularly based on delivery quality, food safety compliance, and documentation accuracy. Any new suppliers are assessed and approved before materials are accepted.',maxScore:4},
+{ref:'8.2',label:'Delivery Verification & Recall Readiness',
+ what:'Is there a system for verifying deliveries and managing product recalls?',
+ desc:'A written procedure exists for receiving, inspecting, and accepting or rejecting incoming deliveries. A documented product recall procedure is in place and has been tested through a mock recall within the past 12 months. Contingency plans are available for serious operational disruptions (fire, flood, equipment failure). Lot traceability allows any product to be recalled within a defined timeframe.',maxScore:4},
+{ref:'8.3',label:'Waste Management & Environmental Controls',
+ what:'Are waste and environmental controls properly managed?',
+ desc:'A valid grease trap cleaning contract is in place with service records retained for at least 3 months. A valid exhaust and duct cleaning contract is maintained with service records on file. Waste bins in all food areas are clean, properly lined, and not overflowing at any time. Waste is disposed of regularly and in a manner that does not pose a contamination or pest risk. The facility maintains effective environmental controls — temperature, ventilation, humidity, and lighting are appropriate for the products being prepared.',maxScore:4},
+]},
+];
+
+/* ── STATE ──────────────────────────────────────────────── */
+const state={};
+SECTIONS.forEach(s=>s.items.forEach(it=>{state[s.id+'_'+it.ref]={score:null,comment:'',photos:[]};}));
+
+/* ── SCORING LOGIC ──────────────────────────────────────── */
+function calcScores(){
+  const ss={};let totEarned=0,totMax=0,totItems=0,scoredItems=0;
+  SECTIONS.forEach(s=>{
+    let e=0,m=0;
+    s.items.forEach(it=>{
+      const k=s.id+'_'+it.ref;const v=state[k].score;
+      totItems++;
+      if(v==='na'){}
+      else if(v!==null){
+        const pts=parseInt(v)*it.maxScore/4;
+        e+=pts;m+=it.maxScore;
+        totEarned+=pts;totMax+=it.maxScore;scoredItems++;
+      } else {m+=it.maxScore;totMax+=it.maxScore;}
+    });
+    const pct=m>0?Math.round(e/m*100):0;
+    ss[s.id]={earned:Math.round(e*10)/10,max:m,pct};
+  });
+  const pct=totMax>0?Math.round(totEarned/totMax*100):0;
+  return{pct,totEarned:Math.round(totEarned*10)/10,totMax,totItems,scoredItems,ss};
+}
+
+function updateBar(){
+  const{pct,totEarned,totMax,totItems,scoredItems,ss}=calcScores();
+  const gr=getGrade(pct);
+  const gb=document.getElementById('grade-badge');
+  gb.style.background=gr.bg;gb.style.color=gr.col;
+  document.getElementById('g-letter').textContent=gr.letter;
+  document.getElementById('g-label').textContent=gr.lbl;
+  document.getElementById('score-pct').textContent=pct;
+  document.getElementById('score-raw').textContent=totEarned+' / '+totMax+' pts';
+  document.getElementById('items-status').textContent=scoredItems+' of '+totItems+' items scored'+(scoredItems<totItems?' ('+( totItems-scoredItems)+' remaining)':'');
+  document.getElementById('progress-fill').style.cssText='width:'+pct+'%;background:'+gr.fill;
+  SECTIONS.forEach(s=>{
+    const el=document.getElementById('pill-'+s.id);
+    if(el)el.textContent=ss[s.id].earned+'/'+ss[s.id].max+' ('+ss[s.id].pct+'%)';
+  });
+}
+
+function setScore(secId,ref,val){
+  const k=secId+'_'+ref;
+  state[k].score=val;
+  const card=document.getElementById('card-'+k);
+  card.className='item-card'+(val!==null?' s'+(val==='na'?'na':val):'');
+  ['4','3','2','1','0','na'].forEach(v=>{
+    const btn=document.getElementById('sb-'+v+'-'+k);
+    if(btn)btn.className='score-btn'+(val===v?' a'+v:'');
+  });
+  updateBar();
+}
+
+function setComment(k,val){state[k].comment=val;}
+
+function addPhotos(k,files){
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{state[k].photos.push(e.target.result);renderThumbs(k);};
+    r.readAsDataURL(f);
+  });
+}
+function removePhoto(k,idx){state[k].photos.splice(idx,1);renderThumbs(k);}
+
+function renderThumbs(k){
+  const el=document.getElementById('thumbs-'+k);
+  el.innerHTML='';
+  state[k].photos.forEach((src,i)=>{
+    const w=document.createElement('div');w.className='thumb-wrap';
+    const img=document.createElement('img');img.className='thumb';img.src=src;img.title='Click to enlarge';
+    img.onclick=()=>openLightbox(src);
+    const del=document.createElement('button');del.className='thumb-del';del.innerHTML='x';
+    del.onclick=()=>removePhoto(k,i);
+    w.appendChild(img);w.appendChild(del);el.appendChild(w);
+  });
+  const lbl=document.getElementById('plbl-'+k);
+  if(lbl)lbl.textContent=state[k].photos.length>0?'📷 '+state[k].photos.length+' photo(s)':'📷 Add photo';
+}
+
+function openLightbox(src){document.getElementById('lb-img').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+function showToast(msg,bg){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.background=bg||'#2e7d32';t.style.color='#fff';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+/* ── BUILD UI ───────────────────────────────────────────── */
+function buildUI(){
+  const nav=document.getElementById('section-nav');
+  const container=document.getElementById('sections-container');
+  SECTIONS.forEach((s,si)=>{
+    const nb=document.createElement('button');
+    nb.className='nav-btn'+(si===0?' active':'');
+    nb.textContent=(si+1)+'. '+s.title;nb.onclick=()=>switchSection(s.id);
+    nav.appendChild(nb);
+
+    const panel=document.createElement('div');
+    panel.className='section-panel'+(si===0?' active':'');
+    panel.id='panel-'+s.id;
+
+    const maxPts=s.items.reduce((a,it)=>a+it.maxScore,0);
+    panel.innerHTML='<div class="sec-header"><h2>Section '+(si+1)+': '+s.title+'</h2><span class="sec-pill" id="pill-'+s.id+'">0/'+maxPts+' (0%)</span></div>'
+      +'<div class="sec-note">&#9432; '+s.note+'</div>';
+
+    s.items.forEach(it=>{
+      const k=s.id+'_'+it.ref;
+      const card=document.createElement('div');
+      card.className='item-card';card.id='card-'+k;
+
+      const btnHtml=[
+        ['4','4','Outstanding'],
+        ['3','3','Acceptable'],
+        ['2','2','Needs Work'],
+        ['1','1','Deficient'],
+        ['0','0','No System'],
+        ['na','N/A','Not Appl.'],
+      ].map(([v,num,lbl])=>
+        '<button id="sb-'+v+'-'+k+'" class="score-btn" onclick="setScore(\''+s.id+'\',\''+it.ref+'\',\''+v+'\')">'
+        +'<span class="sb-num">'+num+'</span><span class="sb-lbl">'+lbl+'</span></button>'
+      ).join('');
+
+      card.innerHTML=
+        '<div class="item-top">'
+          +'<div class="item-ref">'+it.ref+'</div>'
+          +'<div class="item-info">'
+            +'<div class="item-label">'+it.label+'</div>'
+            +'<div class="item-what">&#10003; What to check: '+it.what+'</div>'
+            +'<div class="item-desc">'+it.desc+'</div>'
+          +'</div>'
+          +'<div class="item-maxpts">Max '+it.maxScore+'pts</div>'
+        +'</div>'
+        +'<div class="score-row">'+btnHtml+'</div>'
+        +'<div class="item-bottom">'
+          +'<input type="text" class="comment-input" placeholder="Observations / corrective action..." oninput="setComment(\''+k+'\',this.value)" />'
+          +'<label class="photo-label" id="plbl-'+k+'" for="pi-'+k+'">&#128247; Add photo</label>'
+          +'<input type="file" class="photo-input" id="pi-'+k+'" accept="image/*" multiple onchange="addPhotos(\''+k+'\',this.files)" />'
+        +'</div>'
+        +'<div class="photo-thumbs" id="thumbs-'+k+'"></div>';
+      panel.appendChild(card);
+    });
+    container.appendChild(panel);
+  });
+}
+
+function switchSection(secId){
+  document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+secId).classList.add('active');
+  SECTIONS.forEach((s,si)=>{if(s.id===secId)document.querySelectorAll('.nav-btn')[si].classList.add('active');});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── SUMMARY ────────────────────────────────────────────── */
+function showSummary(){
+  const{pct,totEarned,totMax,totItems,scoredItems,ss}=calcScores();
+  const gr=getGrade(pct);
+  const auditor=document.getElementById('auditor').value||'—';
+  const location=document.getElementById('location').value||'—';
+  const date=document.getElementById('audit-date').value||'—';
+  const shift=document.getElementById('shift').value||'—';
+
+  let html='<div style="display:flex;align-items:center;gap:14px;margin-bottom:1rem;padding:1rem;background:'+gr.bg+';border-radius:8px;border-left:4px solid '+gr.fill+'">'
+    +'<div style="width:56px;height:56px;border-radius:10px;background:'+gr.fill+';color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">'
+    +'<span style="font-size:22px;font-weight:800;line-height:1">'+gr.letter+'</span>'
+    +'<span style="font-size:9px;font-weight:700;margin-top:2px">'+gr.lbl+'</span></div>'
+    +'<div><div style="font-size:18px;font-weight:700;color:'+gr.col+'">'+pct+'% &mdash; '+gr.lbl+'</div>'
+    +'<div style="font-size:12px;color:#666;margin-top:2px">'+totEarned+' / '+totMax+' pts &nbsp;|&nbsp; '+scoredItems+'/'+totItems+' items scored</div>'
+    +'<div style="font-size:12px;color:#666;margin-top:1px">'+auditor+' &nbsp;|&nbsp; CK: '+location+' &nbsp;|&nbsp; '+date+' &nbsp;|&nbsp; '+shift+'</div></div></div>';
+
+  html+='<div style="font-weight:700;font-size:13px;margin-bottom:.5rem;color:#333">Section Breakdown</div>';
+  SECTIONS.forEach((s,si)=>{
+    const sc=ss[s.id];
+    const col=sc.pct>=90?'#1b5e20':sc.pct>=70?'#e65100':'#7f0000';
+    const bg=sc.pct>=90?'#e8f5e9':sc.pct>=70?'#fff3e0':'#ffebee';
+    html+='<div class="sum-row"><span>'+(si+1)+'. '+s.title+'</span>'
+      +'<span style="display:flex;align-items:center;gap:8px">'
+      +'<span style="font-size:12px;color:#888">'+sc.earned+'/'+sc.max+'</span>'
+      +'<span class="spill" style="background:'+bg+';color:'+col+'">'+sc.pct+'%</span>'
+      +'</span></div>';
+  });
+
+  const attn=[];
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.ref;const v=state[k].score;
+    if(v==='0'||v==='1')attn.push({s,it,v,d:state[k]});
+  }));
+  if(attn.length){
+    html+='<div style="margin-top:1rem;font-weight:700;font-size:13px;margin-bottom:.5rem;color:#c62828">&#9888; Items Requiring Corrective Action (Score 0 or 1)</div>';
+    attn.forEach(a=>{
+      const si=SCORE_INFO[a.v];
+      html+='<div style="margin-bottom:.5rem;padding:.6rem .875rem;background:'+si.bg+';border-radius:6px;border-left:3px solid '+si.border+'">'
+        +'<div style="font-size:12px;font-weight:700;color:'+si.col+'">'+a.it.ref+' '+a.it.label+' &mdash; Score: '+a.v+' ('+si.lbl+')</div>'
+        +'<div style="font-size:11px;color:'+si.col+';opacity:.85;margin-top:2px">'+(a.d.comment||'No observations recorded')+'</div>'
+        +(a.d.photos.length?'<div style="font-size:11px;color:#555;margin-top:2px">📷 '+a.d.photos.length+' photo(s) attached</div>':'')
+        +'</div>';
+    });
+  } else {
+    html+='<div style="margin-top:1rem;padding:.75rem;background:#e8f5e9;border-radius:6px;font-size:13px;color:#1b5e20;font-weight:700">&#10004; No items scored 0 or 1 — great result!</div>';
+  }
+  document.getElementById('modal-body').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+/* ── EXCEL ──────────────────────────────────────────────── */
+function exportExcel(){
+  if(typeof XLSX==='undefined'){alert('Excel library not loaded.');return;}
+  const wb=XLSX.utils.book_new();
+  const auditor=document.getElementById('auditor').value||'';
+  const location=document.getElementById('location').value||'';
+  const auditDate=document.getElementById('audit-date').value||'';
+  const shift=document.getElementById('shift').value||'';
+  const{pct,totEarned,totMax,scoredItems,totItems,ss}=calcScores();
+  const gr=getGrade(pct);
+
+  const sumData=[
+    ['CENTRAL KITCHEN (CFP) — GMP INTERNAL MONTHLY AUDIT'],[''],
+    ['Auditor',auditor,'Date',auditDate],['CK Location',location,'Shift',shift],[''],
+    ['OVERALL SCORE',totEarned+' / '+totMax,'Compliance %',pct+'%','Grade',gr.letter+' — '+gr.lbl],[''],
+    ['SCORING REFERENCE: 4=Outstanding  |  3=Acceptable  |  2=Needs Work  |  1=Deficient  |  0=No System  |  N/A=Not Applicable'],[''],
+    ['SECTION SUMMARY'],['No.','Section','Max Pts','Earned','%','Status'],
+  ];
+  SECTIONS.forEach((s,si)=>{
+    const sc=ss[s.id];
+    const status=sc.pct>=90?'Excellent':sc.pct>=80?'Good':sc.pct>=70?'Satisfactory':sc.pct>=50?'Conditional':'Unsatisfactory';
+    sumData.push([si+1,s.title,sc.max,sc.earned,sc.pct+'%',status]);
+  });
+  sumData.push([''],['ITEMS REQUIRING CORRECTIVE ACTION (Score 0 or 1)'],
+    ['Ref','Section','Item','Score','Rating','Observations / Corrective Action','Photos']);
+  let fc=0;
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.ref;const v=state[k].score;
+    if(v==='0'||v==='1'){
+      sumData.push([it.ref,s.title,it.label,v,SCORE_INFO[v].lbl,state[k].comment||'',state[k].photos.length>0?state[k].photos.length+' photo(s)':'None']);fc++;
+    }
+  }));
+  if(!fc)sumData.push(['—','—','No items scored 0 or 1','','','','']);
+  const ws=XLSX.utils.aoa_to_sheet(sumData);
+  ws['!cols']=[{wch:5},{wch:34},{wch:12},{wch:12},{wch:12},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws,'Summary');
+
+  SECTIONS.forEach((s,si)=>{
+    const rows=[['CK GMP AUDIT — SECTION '+(si+1)+': '+s.title.toUpperCase()],
+      ['Auditor: '+auditor,'','CK: '+location,'','Date: '+auditDate,'Shift: '+shift],
+      ['DM Requirement: '+s.note],[''],
+      ['Ref','Item','What to Check','Score (0-4/N/A)','Rating','Max Pts','Points Earned','Observations / Corrective Action','Photos']];
+    s.items.forEach(it=>{
+      const k=s.id+'_'+it.ref;const d=state[k];const v=d.score;
+      const earned=v&&v!=='na'?Math.round(parseInt(v)*it.maxScore/4*10)/10:'';
+      rows.push([it.ref,it.label,it.what,v!==null?(v==='na'?'N/A':v):'',v!==null&&v!=='na'?SCORE_INFO[v].lbl:(v==='na'?'N/A':'Not Scored'),it.maxScore,earned,d.comment||'',d.photos.length>0?d.photos.length+' photo(s)':'None']);
+    });
+    const sc=ss[s.id];
+    rows.push([''],['','SECTION TOTAL','','','',sc.max,sc.earned,sc.pct+'%','']);
+    const sheet=XLSX.utils.aoa_to_sheet(rows);
+    sheet['!cols']=[{wch:6},{wch:22},{wch:38},{wch:10},{wch:16},{wch:8},{wch:12},{wch:40},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,sheet,('S'+(si+1)+'_'+s.title).substring(0,31).replace(/[:\\/?*\[\]]/g,''));
+  });
+
+  const ds=(auditDate||'').replace(/-/g,'');
+  const ls=location?'_'+location.replace(/\s+/g,'_'):'';
+  XLSX.writeFile(wb,'CK_GMP_Audit'+(ds?'_'+ds:'')+ls+'.xlsx');
+  showToast('✔ Excel downloaded!','#2e7d32');
+}
+
+/* ── PDF ────────────────────────────────────────────────── */
+async function exportPDF(){
+  if(typeof window.jspdf==='undefined'){alert('PDF library not loaded.');return;}
+  const{jsPDF}=window.jspdf;
+  const auditor=document.getElementById('auditor').value||'Not specified';
+  const location=document.getElementById('location').value||'Not specified';
+  const auditDate=document.getElementById('audit-date').value||'Not specified';
+  const shift=document.getElementById('shift').value||'Not specified';
+  const{pct,totEarned,totMax,scoredItems,totItems,ss}=calcScores();
+  const gr=getGrade(pct);
+
+  const prog=document.getElementById('pdf-progress');
+  prog.classList.add('open');
+  const bar=document.getElementById('pdf-bar'),lbl=document.getElementById('pdf-lbl');
+  function sp(p,msg){bar.style.width=p+'%';lbl.textContent=msg;}
+  function hRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+  await new Promise(r=>setTimeout(r,50));
+
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,ML=12,CW=186;let y=0;
+  function ap(){doc.addPage();y=12;}
+  function cy(n){if(y+n>287)ap();}
+  function sf(sz,st,c){doc.setFontSize(sz);doc.setFont('helvetica',st||'normal');doc.setTextColor(...(c||[30,30,30]));}
+  function fr(x,fy,w,h,r,g,b){doc.setFillColor(r,g,b);doc.rect(x,fy,w,h,'F');}
+
+  sp(5,'Building cover...');await new Promise(r=>setTimeout(r,10));
+
+  fr(0,0,W,40,...hRgb('#283593'));
+  sf(18,'bold',[255,255,255]);doc.text('Central Kitchen (CFP)',ML,15);
+  sf(11,'normal',[180,200,255]);doc.text('GMP Internal Monthly Audit Report',ML,23);
+  sf(9,'normal',[150,175,255]);doc.text('Dubai Municipality Good Manufacturing Practice Compliance',ML,30);
+  y=46;
+
+  fr(ML,y,CW,24,...hRgb(gr.fill));
+  sf(26,'bold',[255,255,255]);doc.text(gr.letter,ML+8,y+19);
+  sf(13,'bold',[255,255,255]);doc.text(gr.lbl+' (Grade '+gr.letter+')',ML+22,y+12);
+  sf(10,'normal',[255,255,255]);doc.text(pct+'% Compliance   |   '+totEarned+' / '+totMax+' pts   |   '+scoredItems+'/'+totItems+' items scored',ML+22,y+22);
+  y+=30;
+
+  const info=[['Auditor',auditor],['CK Location',location],['Audit Date',auditDate],['Shift',shift]];
+  info.forEach(([lb,vl],i)=>{
+    const ix=ML+(i%2)*(CW/2+2),iy=y+Math.floor(i/2)*12;
+    fr(ix,iy,CW/2-2,12,245,245,245);
+    sf(8,'bold',[120,120,120]);doc.text(lb.toUpperCase(),ix+3,iy+5);
+    sf(10,'normal',[30,30,30]);doc.text(String(vl),ix+3,iy+10);
+  });
+  y+=36;
+
+  sf(9,'bold',[30,30,30]);doc.text('Scoring: 4=Outstanding  |  3=Acceptable  |  2=Needs Work  |  1=Deficient  |  0=No System  |  N/A=Not Applicable',ML,y);y+=9;
+
+  sf(11,'bold',[30,30,30]);doc.text('Section Summary',ML,y);y+=6;
+  fr(ML,y,CW,7,40,40,40);
+  sf(8,'bold',[255,255,255]);doc.text('Section',ML+2,y+5);doc.text('Earned',ML+CW-48,y+5);doc.text('Max',ML+CW-33,y+5);doc.text('%',ML+CW-18,y+5);doc.text('Grade',ML+CW-9,y+5);
+  y+=7;
+  SECTIONS.forEach((s,si)=>{
+    const sc=ss[s.id];
+    fr(ML,y,CW,6,...(si%2===0?[255,255,255]:[248,248,248]));
+    sf(8,'normal',[30,30,30]);doc.text((si+1)+'. '+s.title.substring(0,36),ML+2,y+5);
+    doc.text(''+sc.earned,ML+CW-48,y+5);doc.text(''+sc.max,ML+CW-33,y+5);
+    const gsc=getGrade(sc.pct);
+    sf(8,'bold',...[hRgb(gsc.col)]);doc.text(sc.pct+'%',ML+CW-18,y+5);
+    doc.text(gsc.letter,ML+CW-9,y+5);y+=7;
+  });
+  fr(ML,y,CW,8,30,30,30);
+  sf(9,'bold',[255,255,255]);doc.text('TOTAL: '+totEarned+' / '+totMax+'  ('+pct+'%)  Grade: '+gr.letter+' — '+gr.lbl,ML+2,y+5.5);y+=12;
+
+  const attn=[];
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.ref;const v=state[k].score;
+    if(v==='0'||v==='1')attn.push({s,it,v,d:state[k]});
+  }));
+  if(attn.length){
+    cy(12);sf(11,'bold',[180,30,30]);doc.text('Items Requiring Corrective Action ('+attn.length+')',ML,y);y+=6;
+    attn.forEach(a=>{
+      cy(14);
+      fr(ML+3,y,CW-3,10,255,235,225);fr(ML,y,3,10,180,30,30);
+      sf(8,'bold',[120,0,0]);doc.text(a.it.ref+' '+a.it.label+' — Score: '+a.v+' ('+SCORE_INFO[a.v].lbl+')',ML+6,y+4);
+      sf(7,'normal',[140,40,40]);const cl=doc.splitTextToSize(a.d.comment||'No observations recorded',CW-10);
+      doc.text(cl[0],ML+6,y+8);
+      if(a.d.photos.length){sf(7,'normal',[80,80,200]);doc.text('📷 '+a.d.photos.length+' photo(s)',ML+CW-28,y+8);}
+      y+=9;
+    });
+  }
+
+  for(let si=0;si<SECTIONS.length;si++){
+    const s=SECTIONS[si];
+    sp(10+Math.round(si/SECTIONS.length*80),'Section '+(si+1)+'/'+SECTIONS.length+'...');
+    await new Promise(r=>setTimeout(r,10));
+    ap();
+    fr(0,0,W,12,...hRgb('#283593'));
+    sf(9,'bold',[255,255,255]);doc.text('Section '+(si+1)+': '+s.title,ML,8);
+    const sc=ss[s.id];
+    doc.text('Score: '+sc.earned+'/'+sc.max+' ('+sc.pct+'%)',W-14-42,8);
+    y=18;
+
+    for(const it of s.items){
+      const k=s.id+'_'+it.ref;const st=state[k];const v=st.score;
+      const sColor=v==='4'?[20,60,150]:v==='3'?[30,120,30]:v==='2'?[180,80,0]:v==='1'?[180,20,20]:(v==='0'?[130,5,40]:[100,100,100]);
+      const rowBg=v==='4'?[232,234,246]:v==='3'?[232,245,232]:v==='2'?[255,248,224]:v==='1'?[255,235,235]:(v==='0'?[252,228,236]:[250,250,250]);
+      const hasC=st.comment&&st.comment.trim();
+      const cLines=hasC?doc.splitTextToSize(st.comment,CW-36):[];
+      const dL=doc.splitTextToSize(it.desc,CW-40);
+      const dShow=dL.slice(0,3);
+      const descH=dShow.length*4;
+      const pH=st.photos.length>0?Math.ceil(st.photos.length/4)*38+4:0;
+      const iH=11+descH+(hasC?cLines.length*4+3:0)+pH+4;
+      cy(iH+2);
+      fr(ML,y,CW,iH,...rowBg);
+      doc.setFillColor(...sColor);doc.rect(ML,y,14,iH,'F');
+      sf(7,'bold',[255,255,255]);doc.text(v!==null?(v==='na'?'N/A':v):'?',ML+3,y+iH/2+2);
+      sf(8,'bold',[20,20,20]);doc.text(it.ref+' '+it.label,ML+17,y+5.5);
+      sf(7,'bold',[60,60,160]);doc.text('Check: '+it.what,ML+17,y+10);
+      sf(7,'normal',[100,100,100]);doc.text(dShow,ML+17,y+14.5);
+      sf(7,'bold',[120,120,120]);doc.text('Max '+it.maxScore+'pt',ML+CW-14,y+5.5);
+      let iy=y+14+descH+2;
+      if(hasC){sf(7,'normal',[60,60,160]);doc.text('Notes: ',ML+17,iy);sf(7,'normal',[40,40,40]);doc.text(cLines,ML+34,iy);iy+=cLines.length*4+3;}
+      if(st.photos.length>0){
+        sf(7,'bold',[40,40,180]);doc.text('Photos ('+st.photos.length+'):',ML+17,iy+4);iy+=6;
+        const pw=34,ph=32,gap=2;let px=ML+17;
+        for(let pi=0;pi<st.photos.length;pi++){
+          if(pi>0&&pi%4===0){px=ML+17;iy+=ph+gap;}
+          try{doc.addImage(st.photos[pi],'JPEG',px,iy,pw,ph,'','FAST');}catch(e){fr(px,iy,pw,ph,200,200,200);}
+          px+=pw+gap;
+        }
+        iy+=ph+4;
+      }
+      y+=iH+1;
+    }
+    cy(8);fr(ML,y,CW,7,235,235,235);
+    sf(8,'bold',[60,60,60]);doc.text('Section Total: '+sc.earned+' / '+sc.max+' pts  ('+sc.pct+'%)',ML+2,y+5.5);y+=12;
+  }
+
+  sp(95,'Adding page numbers...');await new Promise(r=>setTimeout(r,10));
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);sf(7,'normal',[180,180,180]);
+    doc.text('CK GMP Audit  |  Page '+i+' of '+pages+'  |  '+auditor+'  |  '+location+'  |  '+auditDate,W/2,292,{align:'center'});
+  }
+
+  const ds=(auditDate||'').replace(/-/g,'');
+  const ls=location!=='Not specified'?'_'+location.replace(/\s+/g,'_'):'';
+  doc.save('CK_GMP_Audit'+(ds?'_'+ds:'')+ls+'.pdf');
+  prog.classList.remove('open');bar.style.width='0%';
+  showToast('✔ PDF downloaded with all photos!','#283593');
+}
+
+/* ── SAVE / LOAD (GMP) ──────────────────────────────────── */
+const SAVE_KEY = 'audit_save_ck_gmp';
+
+function saveAudit(){
+  const payload={
+    state: state,
+    auditor: document.getElementById('auditor').value,
+    location: document.getElementById('location').value,
+    date: document.getElementById('audit-date').value,
+    shift: document.getElementById('shift').value,
+    savedAt: new Date().toISOString()
+  };
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    showToast('✔ Audit saved at '+t+' — data will be here when you reopen!','#283593');
+    document.getElementById('last-saved-label').textContent='Last saved: '+t;
+  } catch(e){
+    showToast('⚠ Could not save — try removing some photos first.','#c62828');
+  }
+}
+
+function loadAudit(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    const payload=JSON.parse(raw);
+    if(payload.auditor) document.getElementById('auditor').value=payload.auditor;
+    if(payload.location) document.getElementById('location').value=payload.location;
+    if(payload.date) document.getElementById('audit-date').value=payload.date;
+    if(payload.shift) document.getElementById('shift').value=payload.shift;
+    if(payload.state){
+      Object.keys(payload.state).forEach(k=>{
+        if(state[k]!==undefined){
+          state[k].score   = payload.state[k].score  !== undefined ? payload.state[k].score  : null;
+          state[k].comment = payload.state[k].comment || '';
+          state[k].photos  = payload.state[k].photos  || [];
+        }
+      });
+    }
+    // Re-render
+    SECTIONS.forEach(s=>s.items.forEach(it=>{
+      const k=s.id+'_'+it.ref;
+      if(state[k]&&state[k].score!==null) setScore(s.id,it.ref,state[k].score);
+      if(state[k]&&state[k].comment){
+        const inp=document.querySelector('#card-'+k+' .comment-input');
+        if(inp) inp.value=state[k].comment;
+      }
+      if(state[k]&&state[k].photos&&state[k].photos.length>0) renderThumbs(k);
+    }));
+    updateBar();
+    const t=new Date(payload.savedAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('last-saved-label').textContent='Restored: '+t;
+    showToast('✔ Previous GMP audit restored!','#2e7d32');
+  } catch(e){ console.log('Load error:',e); }
+}
+
+function clearSave(){
+  if(!confirm('Are you sure you want to clear all saved data and start fresh?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+}
+
+/* ── INIT ───────────────────────────────────────────────── */
+buildUI();
+updateBar();
+document.getElementById('audit-date').valueAsDate=new Date();
+</script>
+</body>
+</html>
