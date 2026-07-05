@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704120000">
+<meta name="app-version" content="20260705110000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260615290000">
@@ -38,23 +38,42 @@
   } catch(e) {}
 })();
 
-// Force fresh load — clear old cached version
+// Force fresh load — clear old cached version + PWA cache
+// (2026-07-04: replaced malformed version of this block — the reload()
+// call was misplaced inside the for-loop, and there was no service worker
+// cache clearing at all. That combination could leave a phone stuck
+// showing an old cached version indefinitely, since a service worker
+// caching the HTML file itself would keep serving the old version tag
+// forever, defeating the version check. Now clears service worker caches
+// and unregisters stale workers too, so updates apply automatically on
+// the next visit — no manual cache-clearing needed from staff.)
 (function() {
   var v = document.querySelector('meta[name="app-version"]').content;
   var stored = localStorage.getItem('app_version');
   if (stored !== v) {
-    // Clear ALL cached data on version update
+    var hadOldVersion = !!stored;
     try {
       var keysToRemove = [];
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
         if (k && (k.startsWith('kic_') || k.startsWith('oic_'))) keysToRemove.push(k);
-      
-    location.reload(true);
-  }
+      }
       keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
     } catch(e) {}
     try { localStorage.setItem('app_version', v); } catch(e) {}
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(name) { caches.delete(name); });
+      });
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(reg) {
+          if (reg.scope && !reg.scope.includes('OneSignal')) reg.unregister();
+        });
+      });
+    }
+    if (hadOldVersion) location.reload(true);
   }
 })();
 </script>
@@ -1096,7 +1115,14 @@ function getDubaiHour() {
 // operational day; everything else is simply today.
 function getBusinessDate(shiftType) {
   const _h = getDubaiHour();
-  const _isLateClosing = shiftType === 'closing' && _h < 2;
+  // Fix (2026-07-05): cutoff widened from 2am to 7am, matching the
+  // restaurant's actual hours (open 7am, close 2am). The old 2-hour window
+  // only covered submissions right at closing time — but staff finish the
+  // checklist itself sometime AFTER the 2am close, and that submission was
+  // getting misattributed to the NEW calendar day instead of the shift's
+  // actual business day. Since opening never starts before 7am, extending
+  // the cutoff all the way to 7am is fully safe with zero overlap risk.
+  const _isLateClosing = shiftType === 'closing' && _h < 7;
   const _bd = new Date(_isLateClosing ? Date.now() - 86400000 : Date.now());
   return _bd.toLocaleDateString('en-CA', {timeZone: 'Asia/Dubai'});
 }

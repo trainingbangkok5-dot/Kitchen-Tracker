@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704120000">
+<meta name="app-version" content="20260705110000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260615280000">
@@ -38,13 +38,34 @@
   } catch(e) {}
 })();
 
-// Force fresh load — clear old cached version
+// Force fresh load — clear old cached version + PWA cache
+// (2026-07-04: upgraded to match dash.html's thorough cache-busting —
+// the old version here only reloaded the page, which isn't enough when a
+// service worker has cached the HTML itself; that could leave a phone
+// stuck showing an old version indefinitely even after every reload,
+// since the version-check comparison would be reading the stale cached
+// file's own old version tag. This now clears service worker caches and
+// unregisters stale workers too, so updates apply automatically on the
+// next visit — no manual cache-clearing needed from staff.)
 (function() {
   var v = document.querySelector('meta[name="app-version"]').content;
   var stored = localStorage.getItem('app_version_oic');
   if (stored !== v) {
+    var hadOldVersion = !!stored;
     try { localStorage.setItem('app_version_oic', v); } catch(e) {}
-    location.reload(true);
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(name) { caches.delete(name); });
+      });
+    }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(reg) {
+          if (reg.scope && !reg.scope.includes('OneSignal')) reg.unregister();
+        });
+      });
+    }
+    if (hadOldVersion) location.reload(true);
   }
 })();
 </script>
@@ -1133,7 +1154,14 @@ function getDubaiHour() {
 // operational day; everything else is simply today.
 function getBusinessDate(shiftType) {
   const _h = getDubaiHour();
-  const _isLateClosing = shiftType === 'closing' && _h < 2;
+  // Fix (2026-07-05): cutoff widened from 2am to 7am, matching the
+  // restaurant's actual hours (open 7am, close 2am). The old 2-hour window
+  // only covered submissions right at closing time — but staff finish the
+  // checklist itself sometime AFTER the 2am close, and that submission was
+  // getting misattributed to the NEW calendar day instead of the shift's
+  // actual business day. Since opening never starts before 7am, extending
+  // the cutoff all the way to 7am is fully safe with zero overlap risk.
+  const _isLateClosing = shiftType === 'closing' && _h < 7;
   const _bd = new Date(_isLateClosing ? Date.now() - 86400000 : Date.now());
   return _bd.toLocaleDateString('en-CA', {timeZone: 'Asia/Dubai'});
 }
