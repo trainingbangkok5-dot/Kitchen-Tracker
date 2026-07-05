@@ -353,9 +353,15 @@ async function submitAuditToDashboard(btnEl) {
         for (const it of sec.items) {
           if (it.photos && it.photos.length > 0) {
             const photoKeys = [];
+            // Fix (2026-07-05): Firebase paths can't contain ".", but CK
+            // items are numbered "1.1", "1.2" etc — sanitize before use so
+            // the write itself succeeds (previously this threw at ref()
+            // construction, silently caught, meaning NO photo ever
+            // actually saved despite the audit record saving fine).
+            const _safeN = String(it.n).replace(/[.#$\[\]]/g, '_');
             for (let pi = 0; pi < it.photos.length; pi++) {
               const compressed = await compressPhoto(it.photos[pi], 600, 0.65);
-              const photoKey = auditKey + '_' + sec.id + '_' + it.n + '_' + pi;
+              const photoKey = auditKey + '_' + sec.id + '_' + _safeN + '_' + pi;
               photoUploads.push({key: photoKey, data: compressed});
               photoKeys.push(photoKey);
               donePhotos++;
@@ -368,9 +374,10 @@ async function submitAuditToDashboard(btnEl) {
       }
       if (submitBtn) submitBtn.innerHTML = '&#8987; Saving to dashboard...';
       await pushAuditToFirebase({outlet, auditType, score:pct, rawScore:Math.round(totEarned*10)/10, maxScore:totMax, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
-      await Promise.all(photoUploads.map(({key, data}) =>
-        _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e))
-      ));
+      await Promise.all(photoUploads.map(({key, data}) => {
+        try { return _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e)); }
+        catch(e) { console.warn('Skipping invalid photo key:', key, e); return Promise.resolve(); }
+      }));
     }
     await pushWithPhotos();
     showToast('✅ Audit submitted! Score: ' + pct + '% — Dashboard updated', '#2e7d32');

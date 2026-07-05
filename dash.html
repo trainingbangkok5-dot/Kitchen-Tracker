@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260704210000">
+<meta name="app-version" content="20260705130000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -6885,11 +6885,22 @@ function openAuditDetail(a) {
       const bg  = pct>=91?'#DCFCE7':pct>=81?'#FEFCE8':pct>=71?'#FEE8D6':'#FEE2E2';
       const hBg = pct>=91?'#F0FDF4':pct>=81?'#FEFCE8':pct>=71?'#FFF7ED':'#FEF2F2';
       let itemsHtml = (s.items||[]).map((it,ii) => {
-        const sc = it.status==='pass'?'#15803D':it.status==='fail'?'#B91C1C':it.status==='na'?'#6B6B60':'#94A3B8';
-        const sb = it.status==='pass'?'#DCFCE7':it.status==='fail'?'#FEE2E2':it.status==='na'?'#F3F4F6':'#F8FAFC';
-        const sl = it.status==='pass'?'✓ PASS':it.status==='fail'?'✗ FAIL':it.status==='na'?'— N/A':'—';
-        const rb = it.status==='fail'?'#FFF5F5':ii%2===0?'#fff':'#FAFAF8';
-        const bl = it.status==='fail'?'3px solid #B91C1C':it.status==='pass'?'3px solid #15803D':'3px solid #E0DDD4';
+        // ── Fix (2026-07-05): support BOTH scoring models ──────────────
+        // Outlet BOH/FOH audits use pass/fail/na. Central Kitchen GMP uses
+        // a 0-4 numeric scale ('0'..'4' or 'na'). The old code only
+        // understood pass/fail/na, so every CK item fell through to the
+        // "—" default — showing no score, no color, no label at all.
+        const _isNumeric = it.status !== '' && it.status != null && it.status !== 'na' && it.status !== 'pass' && it.status !== 'fail' && !isNaN(parseInt(it.status));
+        const _numLbl = {'4':'Outstanding','3':'Acceptable','2':'Needs Work','1':'Deficient','0':'No System'};
+        const _numCol = {'4':'#1565c0','3':'#15803D','2':'#CA8A04','1':'#EA580C','0':'#B91C1C'};
+        const _numBg  = {'4':'#e8eaf6','3':'#DCFCE7','2':'#FEF9C3','1':'#FED7AA','0':'#FEE2E2'};
+        const sc = _isNumeric ? (_numCol[it.status]||'#94A3B8') : (it.status==='pass'?'#15803D':it.status==='fail'?'#B91C1C':it.status==='na'?'#6B6B60':'#94A3B8');
+        const sb = _isNumeric ? (_numBg[it.status]||'#F8FAFC')  : (it.status==='pass'?'#DCFCE7':it.status==='fail'?'#FEE2E2':it.status==='na'?'#F3F4F6':'#F8FAFC');
+        const sl = _isNumeric ? (it.status+' — '+(_numLbl[it.status]||'')) : (it.status==='pass'?'✓ PASS':it.status==='fail'?'✗ FAIL':it.status==='na'?'— N/A':'—');
+        const rb = (_isNumeric ? (it.status==='0'||it.status==='1') : it.status==='fail')?'#FFF5F5':ii%2===0?'#fff':'#FAFAF8';
+        const bl = _isNumeric
+          ? ((it.status==='0'||it.status==='1') ? '3px solid #B91C1C' : (it.status==='3'||it.status==='4') ? '3px solid #15803D' : '3px solid #E0DDD4')
+          : (it.status==='fail'?'3px solid #B91C1C':it.status==='pass'?'3px solid #15803D':'3px solid #E0DDD4');
         return `<div style="padding:10px 14px;border-top:1px solid #F0EDE4;background:${rb};border-left:${bl};">
           <div style="display:flex;align-items:flex-start;gap:10px;">
             <div style="font-size:10px;font-weight:700;color:#94A3B8;min-width:22px;padding-top:2px;">${it.n}.</div>
@@ -6900,13 +6911,13 @@ function openAuditDetail(a) {
               </div>
               ${it.desc?`<div style="font-size:11px;color:#6B6B60;margin-bottom:5px;line-height:1.5;">${it.desc}</div>`:''}
               ${it.comment?`<div style="font-size:11px;color:#475569;margin-top:4px;background:#F8FAFC;padding:4px 8px;border-radius:6px;">💬 <strong>Observation:</strong> ${it.comment}</div>`:''}
-              ${it.status==='fail'&&it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:4px;background:#FEF2F2;padding:4px 8px;border-radius:6px;font-weight:600;">🔧 <strong>Action:</strong> ${it.correctiveAction}</div>`:''}
-              ${it.status==='fail'&&(it.responsible||it.deadline)?`<div style="font-size:11px;color:#6B6B60;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">${it.responsible?`<span>👤 ${it.responsible}</span>`:''} ${it.deadline?`<span>📅 ${it.deadline}</span>`:''}</div>`:''}
+              ${(_isNumeric?(it.status==='0'||it.status==='1'):it.status==='fail')&&it.correctiveAction?`<div style="font-size:11px;color:#B91C1C;margin-top:4px;background:#FEF2F2;padding:4px 8px;border-radius:6px;font-weight:600;">🔧 <strong>Action:</strong> ${it.correctiveAction}</div>`:''}
+              ${(_isNumeric?(it.status==='0'||it.status==='1'):it.status==='fail')&&(it.responsible||it.deadline)?`<div style="font-size:11px;color:#6B6B60;margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">${it.responsible?`<span>👤 ${it.responsible}</span>`:''} ${it.deadline?`<span>📅 ${it.deadline}</span>`:''}</div>`:''}
               <div id="photos-${s.id}-${it.n}" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"></div>
             </div>
             <div style="flex-shrink:0;text-align:right;">
               <span style="font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;background:${sb};color:${sc};white-space:nowrap;display:block;">${sl}</span>
-              <div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:center;">${it.status==='pass'?it.maxScore:it.status==='fail'?'0':it.status==='na'?'N/A':'—'}${it.status!=='na'?'/'+it.maxScore:''}</div>
+              <div style="font-size:10px;color:#94A3B8;margin-top:3px;text-align:center;">${_isNumeric ? (it.status==='na'?'N/A':Math.round(parseInt(it.status)*it.maxScore/4*10)/10) : (it.status==='pass'?it.maxScore:it.status==='fail'?'0':it.status==='na'?'N/A':'—')}${it.status!=='na'?'/'+it.maxScore:''}</div>
             </div>
           </div>
         </div>`;
@@ -6961,13 +6972,21 @@ function openAuditDetail(a) {
       (s.items||[]).forEach(it => {
         const container = document.getElementById('photos-'+s.id+'-'+it.n);
         if (!container) return;
+        // Fix (2026-07-05): Firebase paths can't contain ".", but Central
+        // Kitchen GMP items are numbered like "1.1", "1.2" — that dot made
+        // every photo path invalid, throwing synchronously the moment a
+        // ref() was constructed. Sanitizing here (and everywhere else this
+        // key format is built) fixes both the on-screen photo display and
+        // the PDF export crash this caused.
+        const _safeN = String(it.n).replace(/[.#$\[\]]/g, '_');
         const seenKeys = new Set();
         const photoKeys = [];
-        (it.photoKeys||[]).forEach(k=>{if(!seenKeys.has(k)){seenKeys.add(k);photoKeys.push(k);}});
-        for(let pi=0;pi<5;pi++){const k=auditKey+'_'+s.id+'_'+it.n+'_'+pi;if(!seenKeys.has(k)){seenKeys.add(k);photoKeys.push(k);}}
+        (it.photoKeys||[]).forEach(k=>{const sk=String(k).replace(/[.#$\[\]]/g,'_');if(!seenKeys.has(sk)){seenKeys.add(sk);photoKeys.push(sk);}});
+        for(let pi=0;pi<5;pi++){const k=auditKey+'_'+s.id+'_'+_safeN+'_'+pi;if(!seenKeys.has(k)){seenKeys.add(k);photoKeys.push(k);}}
         const seenUrls = new Set();
         let firstFound = false;
         photoKeys.forEach(key=>{
+          try {
           db.ref('auditPhotos/'+key).once('value').then(snap=>{
             const url=snap.val();
             if(!url||seenUrls.has(url))return;
@@ -6975,12 +6994,13 @@ function openAuditDetail(a) {
             if(!firstFound){container.innerHTML='';firstFound=true;}
             const img=document.createElement('img');
             img.src=url;
-            const bc=it.status==='fail'?'#FECACA':'#BBF7D0';
+            const bc=(it.status==='fail'||it.status==='0'||it.status==='1')?'#FECACA':'#BBF7D0';
             img.style.cssText=`width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${bc};cursor:pointer;`;
             img.onclick=function(){this.style.cssText=this.style.width==='88px'?`width:100%;height:auto;border-radius:8px;cursor:pointer;margin-top:4px;display:block;`:`width:88px;height:88px;object-fit:cover;border-radius:8px;border:2px solid ${bc};cursor:pointer;`;};
             img.onerror=function(){this.style.display='none';};
             container.appendChild(img);
           }).catch(()=>{});
+          } catch(e) { console.warn('Skipping invalid photo key:', key, e); }
         });
       });
     });
@@ -7014,23 +7034,35 @@ function exportAuditPDF(a) {
       a.sectionBreakdown.forEach(sec => {
         (sec.items||[]).forEach(it => {
           it.photos = [];
-          const keys = [...(it.photoKeys||[])];
+          // Fix (2026-07-05): sanitize EVERY key before use — this is the
+          // exact crash point from the reported error. Firebase paths
+          // can't contain ".", but Central Kitchen items are numbered like
+          // "1.1", making both freshly-built AND already-stored photoKeys
+          // invalid. db.ref() throws synchronously (not a promise
+          // rejection) on an invalid path, which is why this crashed the
+          // whole PDF export before it ever reached doc.save() — the
+          // report looked like it "generated" (the toast appeared) but
+          // nothing came out, because the crash happened moments later.
+          const _safeN = String(it.n).replace(/[.#$\[\]]/g, '_');
+          const keys = [...(it.photoKeys||[])].map(k => k.replace(/[.#$\[\]]/g, '_'));
           // Only try pattern keys if no photoKeys stored
           if (keys.length === 0) {
-            for(let pi=0;pi<3;pi++) keys.push(auditKey+'_'+sec.id+'_'+it.n+'_'+pi);
+            for(let pi=0;pi<3;pi++) keys.push(auditKey+'_'+sec.id+'_'+_safeN+'_'+pi);
           }
           if (keys.length > 0) {
             const seenUrls = new Set();
             // Fetch all keys in parallel with 3s timeout
-            const itemPromise = Promise.all(keys.map(key =>
-              Promise.race([
-                db.ref('auditPhotos/'+key).once('value').then(snap => {
-                  const url = snap.val();
-                  if (url && !seenUrls.has(url)) { seenUrls.add(url); it.photos.push(url); }
-                }).catch(()=>{}),
-                new Promise(resolve => setTimeout(resolve, 3000)) // 3s timeout per key
-              ])
-            ));
+            const itemPromise = Promise.all(keys.map(key => {
+              try {
+                return Promise.race([
+                  db.ref('auditPhotos/'+key).once('value').then(snap => {
+                    const url = snap.val();
+                    if (url && !seenUrls.has(url)) { seenUrls.add(url); it.photos.push(url); }
+                  }).catch(()=>{}),
+                  new Promise(resolve => setTimeout(resolve, 3000)) // 3s timeout per key
+                ]);
+              } catch(e) { console.warn('Skipping invalid photo key:', key, e); return Promise.resolve(); }
+            }));
             fetchPromises.push(itemPromise);
           }
         });
@@ -7131,8 +7163,8 @@ function generateAuditPDF(a) {
   // Card 3 — Actions
   const secs = a.sectionBreakdown||[];
   const allItems = secs.flatMap(s=>s.items||[]);
-  const passedItems = allItems.filter(it=>it.status==='pass').length;
-  const failedItems = allItems.filter(it=>it.status==='fail').length;
+  const passedItems = allItems.filter(it=>it.status==='pass'||it.status==='3'||it.status==='4').length;
+  const failedItems = allItems.filter(it=>it.status==='fail'||it.status==='0'||it.status==='1').length;
   const naItems = allItems.filter(it=>it.status==='na').length;
   const caCount = (a.correctiveActions||[]).length;
   doc.setFillColor(255,248,230); doc.rect(card3X, y, card3W, cardH, 'F');
@@ -7270,10 +7302,17 @@ function generateAuditPDF(a) {
       y += 16;
 
       (s.items||[]).forEach((it,ii) => {
-        const stCol = it.status==='pass'?[21,128,61]:it.status==='fail'?[185,28,28]:[100,100,100];
-        const stBg  = it.status==='pass'?[240,253,244]:it.status==='fail'?[254,242,242]:[248,250,252];
-        const stLbl = it.status==='pass'?'PASS':it.status==='fail'?'FAIL':it.status==='na'?'N/A':'—';
-        const rowBg = it.status==='fail'?[255,248,248]:ii%2===0?[255,255,255]:[250,250,248];
+        // Fix (2026-07-05): support the 0-4 numeric scale used by CK GMP
+        // audits, same fix as the on-screen view above.
+        const _isNumericPdf = it.status !== '' && it.status != null && it.status !== 'na' && it.status !== 'pass' && it.status !== 'fail' && !isNaN(parseInt(it.status));
+        const _pdfNumLbl = {'4':'4 - OUTSTANDING','3':'3 - ACCEPTABLE','2':'2 - NEEDS WORK','1':'1 - DEFICIENT','0':'0 - NO SYSTEM'};
+        const _pdfNumCol = {'4':[21,101,192],'3':[21,128,61],'2':[202,138,4],'1':[234,88,12],'0':[185,28,28]};
+        const _pdfNumBg  = {'4':[232,234,246],'3':[240,253,244],'2':[254,249,195],'1':[254,215,170],'0':[254,242,242]};
+        const stCol = _isNumericPdf ? (_pdfNumCol[it.status]||[100,100,100]) : (it.status==='pass'?[21,128,61]:it.status==='fail'?[185,28,28]:[100,100,100]);
+        const stBg  = _isNumericPdf ? (_pdfNumBg[it.status]||[248,250,252])  : (it.status==='pass'?[240,253,244]:it.status==='fail'?[254,242,242]:[248,250,252]);
+        const stLbl = _isNumericPdf ? (it.status+' '+(_pdfNumLbl[it.status]||'')) : (it.status==='pass'?'PASS':it.status==='fail'?'FAIL':it.status==='na'?'N/A':'—');
+        const _isFailLike = _isNumericPdf ? (it.status==='0'||it.status==='1') : it.status==='fail';
+        const rowBg = _isFailLike?[255,248,248]:ii%2===0?[255,255,255]:[250,250,248];
         const photos = it.photos||[];
 
         const descLines = it.desc ? doc.splitTextToSize(it.desc, colW-32).length : 0;
@@ -7285,21 +7324,22 @@ function generateAuditPDF(a) {
         checkPage(baseH);
         const startY = y;
         doc.setFillColor(...rowBg); doc.rect(margin,y,colW,baseH,'F');
-        if(it.status==='fail'){doc.setDrawColor(185,28,28);doc.setLineWidth(0.8);doc.line(margin,y,margin,y+baseH);doc.setLineWidth(0.1);}
+        if(_isFailLike){doc.setDrawColor(185,28,28);doc.setLineWidth(0.8);doc.line(margin,y,margin,y+baseH);doc.setLineWidth(0.1);}
         doc.setDrawColor(224,221,212); doc.line(margin,y+baseH,margin+colW,y+baseH);
 
         doc.setTextColor(150,150,150); doc.setFontSize(7.5); doc.setFont('helvetica','normal');
         doc.text(String(it.n)+'.', margin+2, y+6);
         doc.setTextColor(20,20,20); doc.setFontSize(9); doc.setFont('helvetica','bold');
-        doc.text(it.label, margin+8, y+6, {maxWidth:colW-38});
+        doc.text(it.label, margin+8, y+6, {maxWidth:colW-56});
         doc.setTextColor(100,100,100); doc.setFontSize(7); doc.setFont('helvetica','normal');
         doc.text('Max: '+it.maxScore+' pt'+(it.maxScore>1?'s':''), margin+8, y+10.5);
-        doc.setFillColor(...stBg); doc.rect(pageW-margin-22,y+1.5,21,6,'F');
-        doc.setTextColor(...stCol); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-        doc.text(stLbl, pageW-margin-11.5, y+5.5, {align:'center'});
-        const scored = it.status==='pass'?it.maxScore:it.status==='fail'?'0':it.status==='na'?'N/A':'—';
+        const _badgeW = _isNumericPdf ? 38 : 21;
+        doc.setFillColor(...stBg); doc.rect(pageW-margin-_badgeW-1,y+1.5,_badgeW,6,'F');
+        doc.setTextColor(...stCol); doc.setFontSize(_isNumericPdf?6.5:7.5); doc.setFont('helvetica','bold');
+        doc.text(stLbl, pageW-margin-1-_badgeW/2, y+5.5, {align:'center'});
+        const scored = _isNumericPdf ? (it.status==='na'?'N/A':Math.round(parseInt(it.status)*it.maxScore/4*10)/10) : (it.status==='pass'?it.maxScore:it.status==='fail'?'0':it.status==='na'?'N/A':'—');
         doc.setTextColor(100,100,100); doc.setFontSize(7); doc.setFont('helvetica','normal');
-        doc.text(String(scored)+(it.status!=='na'?'/'+it.maxScore:''), pageW-margin-11.5, y+10, {align:'center'});
+        doc.text(String(scored)+(it.status!=='na'?'/'+it.maxScore:''), pageW-margin-1-_badgeW/2, y+10, {align:'center'});
 
         let iy = y+13;
         if(it.desc){doc.setTextColor(80,80,80);doc.setFontSize(7.5);doc.setFont('helvetica','italic');const dt=doc.splitTextToSize(it.desc,colW-12);doc.text(dt,margin+8,iy);iy+=dt.length*3.5;}
@@ -12322,11 +12362,24 @@ function openFOHDetail(idx) {
         }
         return (s.day||1) == day;
       });
-      const dayDate = daySub && daySub.date
-        ? new Date(daySub.date).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'})
-        : (daySub && daySub.submittedAt
-          ? new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'})
-          : 'Day ' + day);
+      // Fix (2026-07-05): compute the label from week-start + day-number
+      // FIRST — this is the authoritative business date. Falling back to
+      // daySub.submittedAt's raw calendar timestamp (as before) could show
+      // the wrong date for a late-night closing shift, since a shift that
+      // wraps up after midnight has a submittedAt on the NEXT calendar day
+      // even though it correctly belongs to the previous business day.
+      let dayDate = 'Day ' + day;
+      try {
+        const ws = new Date(staff.week + 'T00:00:00');
+        ws.setDate(ws.getDate() + (parseInt(day) - 1));
+        dayDate = ws.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+      } catch(e) {
+        if (daySub && daySub.date) {
+          dayDate = new Date(daySub.date).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+        } else if (daySub && daySub.submittedAt) {
+          dayDate = new Date(daySub.submittedAt).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+        }
+      }
 
       // Group by section — skip OIC observation tasks (rendered separately below)
       // Exception: for oic role, ALL tasks are the main checklist — don't filter any out
