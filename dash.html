@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260705150000">
+<meta name="app-version" content="20260705170000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -187,6 +187,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .at-row{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
 
 .empty{padding:40px 20px;text-align:center;color:#6B6B60;}
+/* ── Rigid photo container boundaries (2026-07-05) ────────────────────────
+   Applied to dash.html's verify-panel photo uploads and read-only staff
+   photo displays. High-resolution mobile photos previously relied only on
+   max-width/max-height, which caps growth but doesn't guarantee uniform
+   box dimensions across different aspect ratios. These classes hard-lock
+   the box with overflow:hidden as a boundary the image content cannot
+   break out of, regardless of its native resolution or aspect ratio. */
+.photo-item-wrap { display:inline-block; text-align:center; vertical-align:top; margin:2px; width:110px; }
+.photo-img-box { width:100%; height:160px; max-width:280px; overflow:hidden; border-radius:6px; border:2px solid #22C55E; background:#F1F5F9; position:relative; cursor:zoom-in; }
+.photo-img-box img { width:100% !important; height:100% !important; object-fit:cover !important; display:block; }
 </style>
 </head>
 <body>
@@ -5651,17 +5661,22 @@ function buildPhotoHtml(t, role) {
     if (pi > 10) break;
   }
   // Staff photos HTML
+  // Fix (2026-07-05): switched from bare <img> with max-width/max-height to
+  // the rigid .photo-img-box wrapper (overflow:hidden + forced 100%/cover).
+  // max-width/max-height caps growth but doesn't force a UNIFORM box across
+  // different photo aspect ratios — a very tall portrait photo could still
+  // end up visually wider or narrower than its neighbors, and on some
+  // mobile browsers a brief unstyled paint before object-fit applied could
+  // let one image render into the next slot's space during upload.
   let html = '';
   if (!imgs.length) {
     if (t.hasPhoto) html += '<span style="font-size:11px;color:#92400E;background:#FEF3C7;padding:2px 8px;border-radius:6px;margin-top:4px;display:inline-block;border:1px solid #FCD34D;">📷 Photo taken — pending sync</span>';
   } else {
-    html += imgs.map(url =>
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">' + imgs.map(url =>
       url.startsWith('db:')
-        ? `<img ${dbrefAttr}="${url.slice(3)}" src="" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;display:none;cursor:zoom-in;" onclick="if(this.src)openLightbox(this.src)">`
-        : url.startsWith('data:')
-        ? `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;cursor:zoom-in;" onclick="openLightbox(this.src)">`
-        : `<img src="${url}" style="max-width:80px;max-height:60px;border-radius:5px;margin-top:5px;margin-right:4px;border:2px solid #22C55E;cursor:zoom-in;" onerror="this.style.display='none'" onclick="openLightbox(this.src)">`
-    ).join('');
+        ? `<div class="photo-item-wrap"><div class="photo-img-box"><img ${dbrefAttr}="${url.slice(3)}" src="" style="display:none;" onclick="if(this.src)openLightbox(this.src)"></div></div>`
+        : `<div class="photo-item-wrap"><div class="photo-img-box"><img src="${url}" onerror="this.closest('.photo-item-wrap').style.display='none'" onclick="openLightbox(this.src)"></div></div>`
+    ).join('') + '</div>';
   }
   // Verifier photo
   const oicUrls = [];
@@ -9803,10 +9818,21 @@ function _editTakePhoto(taskKey, withCapture) {
           lbl.textContent = '📷 ' + (['linecook','steward','lc','st'].includes(_editStaffData?.role||'') ? 'KIC' : 'OIC') + ' Photo:';
           previewContainer.appendChild(lbl);
         }
+        // Fix (2026-07-05): rigid box wrapper with overflow:hidden instead of
+        // a bare <img> with only inline width/height — a high-resolution
+        // mobile photo could otherwise render at its natural size for a
+        // frame before object-fit fully applied, visually pushing into the
+        // next photo slot. The wrapper boundary makes that impossible.
+        const wrap = document.createElement('div');
+        wrap.className = 'photo-item-wrap';
+        const box = document.createElement('div');
+        box.className = 'photo-img-box';
         const img = document.createElement('img');
-        img.style.cssText = 'width:70px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #7B2D42;display:inline-block;';
         img.src = e.target.result;
-        previewContainer.appendChild(img);
+        img.onclick = () => openLightbox(img.src);
+        box.appendChild(img);
+        wrap.appendChild(box);
+        previewContainer.appendChild(wrap);
         previewContainer.style.display = 'flex';
         previewContainer.style.flexWrap = 'wrap';
         previewContainer.style.gap = '4px';
@@ -9828,8 +9854,9 @@ function _editTakePhoto(taskKey, withCapture) {
             .then(j => {
               if (j.secure_url) {
                 _editPhotoChanges[taskKey] = j.secure_url;
-                // Update the last img src to Cloudinary URL
-                const imgs = previewContainer ? previewContainer.querySelectorAll('img') : [];
+                // Update the last img src to Cloudinary URL — targeted
+                // .src update only, no re-render of anything else.
+                const imgs = previewContainer ? previewContainer.querySelectorAll('.photo-img-box img') : [];
                 if (imgs.length > 0) imgs[imgs.length-1].src = j.secure_url;
               }
             })
