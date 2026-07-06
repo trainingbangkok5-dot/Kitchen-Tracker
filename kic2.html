@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260705110000">
+<meta name="app-version" content="20260705160000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="20260615290000">
@@ -135,6 +135,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .photo-btn.taken { border-style:solid; border-color:#22C55E; color:#15803D; background:#F0FDF4; }
 .photo-btn:active { transform:scale(0.97); }
 .photo-thumb { width:44px; height:44px; border-radius:8px; object-fit:cover; border:2px solid #22C55E; flex-shrink:0; }
+
+/* ── Rigid photo container boundaries (2026-07-05) ────────────────────────
+   Root cause of layout breaking on mobile: high-resolution photos from
+   phone cameras could exceed their intended box before object-fit/sizing
+   rules fully applied, pushing the whole card layout out of shape and
+   visually "overlapping" the next slot. These classes hard-lock the box
+   dimensions with overflow:hidden as a wrapper boundary that CANNOT be
+   broken by image content, regardless of the photo's native resolution
+   or aspect ratio. */
+.photo-thumbs-container { display:flex; gap:6px; flex-wrap:wrap; padding:6px 0; }
+.photo-item-wrap { display:inline-block; text-align:center; vertical-align:top; margin:2px; width:110px; }
+.photo-img-box { width:100%; height:160px; overflow:hidden; border-radius:6px; border:2px solid #22C55E; background:#F1F5F9; position:relative; cursor:zoom-in; }
+.photo-img-box img { width:100% !important; height:100% !important; object-fit:cover !important; display:block; }
+.photo-delete-btn { display:block; width:100%; margin-top:3px; padding:3px 4px; font-size:10px; font-weight:700; background:#FEE2E2; border:1px solid #FCA5A5; border-radius:4px; color:#B91C1C; cursor:pointer; }
 .status-card { margin:16px 0 0; border-radius:12px; padding:16px; text-align:center; border:2px solid #E2E8F0; background:#fff; }
 .status-card.pass { background:#F0FDF4; border-color:#22C55E; }
 .status-card.fail { background:#FEF2F2; border-color:#EF4444; }
@@ -1403,25 +1417,24 @@ function renderDay() {
     section.tasks.forEach(task => {
       const val=_allTd[task.id]?.yn;
       const comment=_allTd[task.id]?.comment||'';
-      const photos=(() => {
-        // Fix: dedupe by SLOT, not by content. Value-based dedup silently
-        // dropped a 2nd photo whenever it looked identical to another
-        // slot's content (e.g. same test image used twice), even though
-        // it was saved correctly. Tracking by slot key means every
-        // occupied slot always shows, regardless of content.
-        const urls=[],seenSlots=new Set(),td2=_allTd[task.id]||{};
+      // Fix (2026-07-05): now returns [{slot,url}] instead of just [url] —
+      // photos are keyed by their stable slot name so add/remove can target
+      // one specific photo directly, without re-indexing every other photo.
+      const photoEntries=(() => {
+        const entries=[],seenSlots=new Set(),td2=_allTd[task.id]||{};
         const slots=[['photo_url','photo'],['photo_1_url','photo_1'],['photo_2_url','photo_2'],['photo_3_url','photo_3'],['photo_4_url','photo_4'],['photo_5_url','photo_5'],['photo_6_url','photo_6'],['photo_7_url','photo_7'],['photo_8_url','photo_8'],['photo_9_url','photo_9']];
         slots.forEach(([uk,bk])=>{
           const url=td2[uk]||td2[uk.replace('_url','Url')]||'';
           const b64=td2[bk]||'';
           const best=(url&&url.startsWith('http'))?url:(b64&&b64.startsWith('data:'))?b64:null;
-          if(best&&!seenSlots.has(bk)){urls.push(best);seenSlots.add(bk);}
+          if(best&&!seenSlots.has(bk)){entries.push({slot:bk,url:best});seenSlots.add(bk);}
         });
-        if(td2.photoUrl&&!seenSlots.has('photo')){urls.push(td2.photoUrl);seenSlots.add('photo');}
-        return urls.filter(Boolean);
+        if(td2.photoUrl&&!seenSlots.has('photo')){entries.push({slot:'photo',url:td2.photoUrl});seenSlots.add('photo');}
+        return entries;
       })();
       const card=document.createElement('div');
       card.className='task-card';
+      card.id='task-card-'+task.id;
       if(isSubmitted&&!ALLOW_OVERWRITE) card.style.opacity='0.85';
       // Build task card safely using DOM to avoid quote escaping issues
       const top=document.createElement('div'); top.className='task-top';
@@ -1438,8 +1451,9 @@ function renderDay() {
       });
       if(task.photo){
         const pb=document.createElement('button');
-        pb.className='photo-btn'+(photos.length?' taken':'');
-        pb.textContent=photos.length?'\ud83d\udcf7 \u2713':'\ud83d\udcf7';
+        pb.className='photo-btn'+(photoEntries.length?' taken':'');
+        pb.id='photo-btn-'+task.id;
+        pb.textContent=photoEntries.length?'\ud83d\udcf7 \u2713':'\ud83d\udcf7';
         pb.onclick=()=>openPhotoModal(task.id);
         ynRow.appendChild(pb);
       }
@@ -1459,25 +1473,13 @@ function renderDay() {
         inp.onchange=e=>setVal(currentDay,task.id,'comment',e.target.value);
         cr.appendChild(clbl); cr.appendChild(inp); card.appendChild(cr);
       }
-      if(photos.length){
-        const prow=document.createElement('div');
-        prow.style.cssText='display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;';
-        photos.forEach(function(u,pi) {
-          const wrap=document.createElement('div');
-          wrap.style.cssText='display:inline-block;text-align:center;vertical-align:top;margin:2px;';
-          const img=document.createElement('img');
-          img.src=u;
-          img.style.cssText='display:block;width:60px;height:60px;object-fit:cover;border-radius:6px;border:2px solid #22C55E;cursor:zoom-in;';
-          img.title='Tap to zoom';
-          img.addEventListener('click', function() { if(typeof openLightbox==='function') openLightbox(u); });
-          const delBtn=document.createElement('button');
-          delBtn.textContent='Delete';
-          delBtn.style.cssText='display:block;width:100%;margin-top:3px;padding:2px 4px;font-size:10px;font-weight:700;background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;color:#B91C1C;cursor:pointer;';
-          delBtn.addEventListener('click', (function(n){ return function(){ removePhoto(task.id,n); }; })(pi));
-          wrap.appendChild(img); wrap.appendChild(delBtn); prow.appendChild(wrap);
-        });
-        card.appendChild(prow);
-      }
+      // Photo container — always present (even empty) so dynamic photo
+      // add/remove can target it directly without checking existence.
+      const prow=document.createElement('div');
+      prow.className='photo-thumbs-container';
+      prow.id='photos-'+task.id;
+      photoEntries.forEach(({slot,url})=>{ prow.appendChild(_buildPhotoItemEl(task.id, slot, url)); });
+      card.appendChild(prow);
       container.appendChild(card);
     });
   });
@@ -1743,6 +1745,52 @@ async function _updateSubmittedPhoto(taskId, photoKey, photoUrl) {
   } catch(e) { console.warn('_updateSubmittedPhoto failed:', e); }
 }
 
+// ── Shared photo DOM builder (2026-07-05) ──────────────────────────────
+// Single source of truth for one photo's markup, used both by renderDay()
+// on initial page load AND by the targeted add/remove functions below.
+// This guarantees dynamic updates always look identical to a full render,
+// while never triggering one.
+function _buildPhotoItemEl(taskId, slotKey, url) {
+  const wrap = document.createElement('div');
+  wrap.className = 'photo-item-wrap';
+  wrap.dataset.slot = slotKey;
+  const box = document.createElement('div');
+  box.className = 'photo-img-box';
+  const img = document.createElement('img');
+  img.src = url;
+  img.title = 'Tap to zoom';
+  img.addEventListener('click', function() { if (typeof openLightbox === 'function') openLightbox(img.src); });
+  box.appendChild(img);
+  const delBtn = document.createElement('button');
+  delBtn.className = 'photo-delete-btn';
+  delBtn.textContent = 'Delete';
+  delBtn.addEventListener('click', function() { removePhoto(taskId, slotKey); });
+  wrap.appendChild(box);
+  wrap.appendChild(delBtn);
+  return wrap;
+}
+
+// Adds a newly-captured photo directly into the DOM — no renderDay() call,
+// no innerHTML rebuild of anything above this specific photo container.
+function _addPhotoToDOM(taskId, slotKey, url) {
+  const container = document.getElementById('photos-' + taskId);
+  if (!container) return; // task card not currently in view — safe no-op
+  const existing = container.querySelector('[data-slot="' + slotKey + '"] img');
+  if (existing) { existing.src = url; return; }
+  container.appendChild(_buildPhotoItemEl(taskId, slotKey, url));
+  const btn = document.getElementById('photo-btn-' + taskId);
+  if (btn) { btn.classList.add('taken'); btn.textContent = '\ud83d\udcf7 \u2713'; }
+}
+
+// Updates just the <img>.src for an already-displayed photo slot — used
+// when the Cloudinary URL comes back after the initial local preview.
+function _updatePhotoSrcInDOM(taskId, slotKey, url) {
+  const container = document.getElementById('photos-' + taskId);
+  if (!container) return;
+  const img = container.querySelector('[data-slot="' + slotKey + '"] img');
+  if (img) img.src = url;
+}
+
 function handlePhotoFile(file, explicitTaskId) {
   if (!file) return;
   // ── Fix (2026-07-03): prefer an explicitly-passed taskId (captured safely
@@ -1778,7 +1826,16 @@ function handlePhotoFile(file, explicitTaskId) {
     const _idx = _reservedIdx;
     const _photoKey = _reservedKey;
     setVal(currentDay, taskId, _photoKey, dataUrl);
-    renderDay();
+    // Fix (2026-07-05): targeted DOM insertion instead of renderDay().
+    // The old renderDay() call rebuilt the ENTIRE checklist container on
+    // every single photo — destroying and recreating every task card,
+    // every button, every other task's photos. On a slower mobile browser
+    // this could visibly flash/jank mid-rebuild, and any timing overlap
+    // between two such rebuilds (e.g. compression finishing for photo #2
+    // while photo #3's rebuild was still in flight) is exactly what could
+    // make two photos appear to render on top of each other. Adding just
+    // the one new photo element directly removes that entire class of bug.
+    _addPhotoToDOM(taskId, _photoKey, dataUrl);
     showToast('Photo saved ✓', 'ok');
 
     // Save compressed photo to Firebase
@@ -1790,22 +1847,35 @@ function handlePhotoFile(file, explicitTaskId) {
         setVal(currentDay, taskId, _urlKey, dbRef);
         showToast('Photo synced ✓', 'ok');
         _updateSubmittedPhoto(taskId, _urlKey, dbRef);
+        // Targeted update: swap the displayed image to the synced Cloudinary
+        // URL in place, rather than re-rendering anything.
+        _updatePhotoSrcInDOM(taskId, _photoKey, dbRef);
       }
     }
   });
 }
 // ── Persist info fields ───────────────────────────────────────
-function removePhoto(taskId, idx) {
+function removePhoto(taskId, slotKey) {
   if (!confirm('Remove this photo?')) return;
-  for (let pi = idx; pi < 9; pi++) {
-    const curKey    = pi === 0 ? 'photo'    : 'photo_'    + pi;
-    const curUrlKey = pi === 0 ? 'photoUrl' : 'photoUrl_' + pi;
-    setVal(currentDay, taskId, curKey,    getVal(currentDay, taskId, 'photo_'+(pi+1))    || '');
-    setVal(currentDay, taskId, curUrlKey, getVal(currentDay, taskId, 'photoUrl_'+(pi+1)) || '');
+  // Fix (2026-07-05): removes by stable slot key directly instead of
+  // shifting every subsequent photo down by one index. The old approach
+  // required a full renderDay() afterward since every remaining photo's
+  // position (and therefore its delete button's index argument) changed.
+  // Clearing just the one slot means every other photo's slot key and DOM
+  // element are completely unaffected — so only that one element needs to
+  // be removed, nothing else touches the page.
+  const urlKey = slotKey === 'photo' ? 'photoUrl' : slotKey.replace('photo_', 'photoUrl_');
+  setVal(currentDay, taskId, slotKey, '');
+  setVal(currentDay, taskId, urlKey, '');
+  const container = document.getElementById('photos-' + taskId);
+  if (container) {
+    const el = container.querySelector('[data-slot="' + slotKey + '"]');
+    if (el) el.remove();
+    if (!container.children.length) {
+      const btn = document.getElementById('photo-btn-' + taskId);
+      if (btn) { btn.classList.remove('taken'); btn.textContent = '\ud83d\udcf7'; }
+    }
   }
-  setVal(currentDay, taskId, 'photo_9',    '');
-  setVal(currentDay, taskId, 'photoUrl_9', '');
-  renderDay();
   showToast('Photo removed ' + String.fromCharCode(10003), 'ok');
 }
 
