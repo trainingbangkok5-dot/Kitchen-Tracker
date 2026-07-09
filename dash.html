@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260705170000">
+<meta name="app-version" content="20260709220000">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -55,7 +55,7 @@
       appId: "00b1008a-43c6-4035-9b22-4f8258d9b975",
       notifyButton: { enable: false },
       allowLocalhostAsSecureOrigin: true,
-      serviceWorkerParam: { scope: "/Kitchen-Tracker/" },
+      serviceWorkerParam: { scope: "/Kitchen-Tracker-v3/" },
       serviceWorkerPath: "OneSignalSDKWorker.js",
       serviceWorkerUpdaterPath: "OneSignalSDKWorker.js",
     });
@@ -1734,7 +1734,7 @@ function doLogin() {
   const fohRoles = ['oic','areamanager','training','operations','director','ceo','maintsupervisor'];
   document.getElementById('tabFOH').style.display = (_bohFohAllowed && fohRoles.includes(currentRole)) ? 'flex' : 'none';
   // Audits tab — visible to management roles
-  const auditRoles = ['training','operations','director','ceo','areamanager','areachef'];
+  const auditRoles = ['training','operations','director','ceo','areamanager','areachef','kic','oic'];
   const tabAudits = document.getElementById('tabAudits');
   if (tabAudits) tabAudits.style.display = auditRoles.includes(currentRole) ? 'flex' : 'none';
   const fohSubOicBtn = document.getElementById('fohSubOic');
@@ -1964,7 +1964,7 @@ function loadData() {
       const rawA = aSnap.val() ? Object.values(aSnap.val()) : [];
       // Only BOH audits — FOH not included in KPI system
       const allAuditTypes = rawA; // include both BOH and FOH
-      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole)) ? allAuditTypes :
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole) || currentRole === 'kic' || currentRole === 'oic') ? allAuditTypes :
                   allAuditTypes.filter(a => a.outlet === currentOutlet);
       // Also load FOH submissions into allStaff
       if (fohDb) {
@@ -4272,7 +4272,7 @@ function showTab(el,id) {
     if (!db) { renderAudits(); return; }
     db.ref('audits').on('value', snap => {
       const rawA = snap.val() ? Object.values(snap.val()) : [];
-      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole))
+      allAudits = (MGMT_ACCESS.includes(currentRole) || AREA_ACCESS.includes(currentRole) || currentRole === 'kic' || currentRole === 'oic')
         ? rawA : rawA.filter(a => a.outlet === currentOutlet);
       // Show ALL audits — real-time listener so new submissions appear instantly
       renderAudits();
