@@ -509,7 +509,6 @@ const SECTIONS=[
 ]},
 ];
 
-/* ── STATE ──────────────────────────────────────────────── */
 const state={};
 SECTIONS.forEach(s=>s.items.forEach(it=>{state[s.id+'_'+it.ref]={score:null,comment:'',photos:[]};}));
 
