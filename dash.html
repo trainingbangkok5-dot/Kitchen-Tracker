@@ -183,8 +183,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* AUDIT */
 .audit-table{background:#fff;border:1px solid #E0DDD4;border-radius:12px;overflow:hidden;}
-.at-head{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;background:#1A3C5E;}
-.at-row{display:grid;grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
+.at-head{display:grid;grid-template-columns:36px 1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;background:#1A3C5E;}
+.at-row{display:grid;grid-template-columns:36px 1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;border-top:1px solid #E0DDD4;align-items:center;}
+.at-head.no-select,.at-row.no-select{grid-template-columns:1.5fr 0.8fr 0.8fr 0.8fr 1fr 1fr;}
 
 .empty{padding:40px 20px;text-align:center;color:#6B6B60;}
 /* ── Rigid photo container boundaries (2026-07-05) ────────────────────────
@@ -1045,6 +1046,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
       <div style="font-size:15px;font-weight:700;color:#1A3C5E;">📋 Internal Audit Results</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button id="auditDeleteSelectedBtn" onclick="deleteSelectedAudits()" style="display:none;padding:6px 12px;border:none;border-radius:8px;font-size:12px;font-weight:700;background:#B91C1C;color:#fff;cursor:pointer;">🗑 Delete Selected (<span id="auditSelectedCount">0</span>)</button>
         <select id="auditMonthFilter" onchange="renderAudits()" style="padding:6px 10px;border:1.5px solid #E0DDD4;border-radius:8px;font-size:12px;background:#fff;outline:none;">
           <option value="">All Months</option>
           <option value="2026-01">January 2026</option>
@@ -1072,7 +1074,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div id="auditSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px;"></div>
     <div class="audit-table">
-      <div class="at-head">
+      <div class="at-head" id="auditTableHead">
+        <div class="th"><input type="checkbox" id="auditSelectAll" onclick="toggleAuditSelectAll(this.checked)" style="cursor:pointer;"></div>
         <div class="th">Outlet</div><div class="th">Type</div><div class="th">Score</div>
         <div class="th">Points</div><div class="th">Auditor</div><div class="th">Date</div>
       </div>
@@ -1374,6 +1377,7 @@ let db = null;
 let maintenanceDb = null;
 let allMaintenanceLogs = [];
 let allStaff = [], allAudits = [];
+let selectedAuditKeys = new Set();
 
 // ═══════════════════════════════════════════════════════════════════
 // GLOBAL SCORE HELPERS — single source of truth, called everywhere
@@ -6838,8 +6842,17 @@ function renderAudits() {
 
   if (!filtered.length) {
     body.innerHTML = '<div class="empty"><div style="font-size:36px">📋</div>No audits submitted yet<br><small>Open an audit form, fill it, and tap Submit to Dashboard</small></div>';
+    updateAuditDeleteBar();
     return;
   }
+  const canSelect = currentRole === 'training';
+  const tableHead = document.getElementById('auditTableHead');
+  if (tableHead) tableHead.classList.toggle('no-select', !canSelect);
+  const selectAllBox = document.getElementById('auditSelectAll');
+  if (selectAllBox) selectAllBox.parentElement.style.display = canSelect ? '' : 'none';
+
+  // Drop selections for audits no longer in the filtered set's identity space
+  // (keeps checked state stable across re-renders triggered by the same filters)
   body.innerHTML = '';
   filtered.sort((a,b)=>new Date(b.submittedAt||0)-new Date(a.submittedAt||0)).forEach((a,i) => {
     const _g2 = _auditGrade(a);
@@ -6848,12 +6861,14 @@ function renderAudits() {
     const gc2   = _g2.color;
     const gb    = _g2.bg;
     const row = document.createElement('div');
-    row.className = 'at-row';
+    row.className = 'at-row' + (canSelect ? '' : ' no-select');
     row.style.cssText = `background:${i%2===0?'#fff':'#F5F3EE'};cursor:pointer;`;
     row.onmouseover = ()=>row.style.background='#EFF6FF';
     row.onmouseout  = ()=>row.style.background=i%2===0?'#fff':'#F5F3EE';
     const d = a.auditDate||(a.submittedAt?new Date(a.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—');
+    const key = _auditSelKey(a);
     row.innerHTML = `
+      ${canSelect ? `<div class="td" onclick="event.stopPropagation()"><input type="checkbox" class="audit-select-box" data-key="${key.replace(/"/g,'&quot;')}" ${selectedAuditKeys.has(key)?'checked':''} onchange="toggleAuditSelect('${key.replace(/'/g,"\\'")}', this.checked)" style="cursor:pointer;"></div>` : ''}
       <div class="td" style="font-weight:600;color:#1A3C5E;text-decoration:underline;">${a.outlet||'—'}</div>
       <div class="td"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:${a.auditType==='BOH'?'#FFF7ED':'#EFF6FF'};color:${a.auditType==='BOH'?'#C2410C':'#1D4ED8'}">${a.auditType||'—'}</span></div>
       <div class="td" style="font-weight:700;color:${gc2}">${a.score}% <span style="font-size:11px;background:${gb};color:${gc2};padding:1px 6px;border-radius:10px;margin-left:4px;">${grade}</span></div>
@@ -6863,6 +6878,69 @@ function renderAudits() {
     row.onclick = () => openAuditDetail(a);
     body.appendChild(row);
   });
+  updateAuditDeleteBar();
+}
+
+function _auditSelKey(a) {
+  return (a.outlet||'unknown')+'|||'+(a.auditType||'')+'|||'+(a.auditDate||'');
+}
+
+function toggleAuditSelect(key, checked) {
+  if (checked) selectedAuditKeys.add(key); else selectedAuditKeys.delete(key);
+  updateAuditDeleteBar();
+}
+
+function toggleAuditSelectAll(checked) {
+  document.querySelectorAll('.audit-select-box').forEach(box => {
+    box.checked = checked;
+    const key = box.getAttribute('data-key');
+    if (checked) selectedAuditKeys.add(key); else selectedAuditKeys.delete(key);
+  });
+  updateAuditDeleteBar();
+}
+
+function updateAuditDeleteBar() {
+  const btn = document.getElementById('auditDeleteSelectedBtn');
+  const countEl = document.getElementById('auditSelectedCount');
+  if (!btn) return;
+  const n = selectedAuditKeys.size;
+  if (countEl) countEl.textContent = n;
+  btn.style.display = (currentRole === 'training' && n > 0) ? 'inline-block' : 'none';
+  const selectAllBox = document.getElementById('auditSelectAll');
+  if (selectAllBox) {
+    const boxes = document.querySelectorAll('.audit-select-box');
+    const total = boxes.length;
+    const checkedCount = document.querySelectorAll('.audit-select-box:checked').length;
+    selectAllBox.checked = total > 0 && checkedCount === total;
+    selectAllBox.indeterminate = checkedCount > 0 && checkedCount < total;
+  }
+}
+
+function deleteSelectedAudits() {
+  if (!db) { showToast('Firebase not ready','error'); return; }
+  const keys = [...selectedAuditKeys];
+  if (!keys.length) return;
+  if (!confirm(`Delete ${keys.length} selected audit${keys.length>1?'s':''}?\n\nThis cannot be undone.`)) return;
+
+  const targets = keys.map(key => {
+    const [outlet, auditType, auditDate] = key.split('|||');
+    return { outlet, auditType, auditDate };
+  });
+
+  const removals = targets.map(t => {
+    const dbKey = (t.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')+'_'+t.auditType+'_'+(t.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+    return db.ref('audits/'+dbKey).remove();
+  });
+
+  Promise.all(removals).then(()=>{
+    allAudits = allAudits.filter(x => {
+      const xKey = _auditSelKey(x);
+      return !keys.includes(xKey);
+    });
+    selectedAuditKeys.clear();
+    renderAudits();
+    showToast(`${targets.length} audit${targets.length>1?'s':''} deleted ✓`,'ok');
+  }).catch(e => showToast('Delete failed: '+e.message,'error'));
 }
 
 function openAuditDetail(a) {
@@ -7055,6 +7133,7 @@ function deleteAuditRecord(a) {
   const key=(a.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')+'_'+a.auditType+'_'+(a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
   db.ref('audits/'+key).remove().then(()=>{
     allAudits=allAudits.filter(x=>!(x.outlet===a.outlet&&x.auditType===a.auditType&&x.auditDate===a.auditDate));
+    selectedAuditKeys.delete(_auditSelKey(a));
     renderAudits();
     document.getElementById('detailModal').classList.remove('open');
     showToast('Audit deleted ✓','ok');
