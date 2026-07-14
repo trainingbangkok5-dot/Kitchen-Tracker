@@ -2,36 +2,71 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="app-version" content="20260709220000">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
+<meta name="app-version" content="20260714120000">
 <script>
-// Force fresh load — clear old cached version + PWA cache
-(function() {
-  var v = document.querySelector('meta[name="app-version"]').content;
-  var stored = localStorage.getItem('app_version');
-  if (stored !== v) {
-    localStorage.setItem('app_version', v);
-    // Clear all service worker caches so PWA gets fresh files
-    if ('caches' in window) {
-      caches.keys().then(function(names) {
-        names.forEach(function(name) { caches.delete(name); });
-      });
-    }
-    // Unregister service workers except OneSignal
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        regs.forEach(function(reg) {
-          if (reg.scope && !reg.scope.includes('OneSignal')) reg.unregister();
+/* ============================================================
+   CULEX VERSION CHECK  v2  (2026-07-14)
+   Replaces the old self-referential check, which could never
+   detect a stale page: it read the version from the cached
+   file itself, so a stale copy always "matched" and no reload
+   ever fired.
+
+   This asks FIREBASE what the current version is — a live call
+   that cannot be served from cache. If this page is older, it
+   redirects to a URL the browser has never seen (?v=NNN), which
+   bypasses both the device cache and GitHub's CDN.
+
+   Self-publishing: the first device to load a genuinely newer
+   file writes that version to Firebase for everyone else.
+   Offline: does nothing, app runs as normal.
+
+   TO DEPLOY A NEW VERSION: bump the app-version meta above.
+   Nothing else. No hard refresh needed.
+   ============================================================ */
+(function () {
+  var FILE_KEY = 'dash';   // per-file: dash, lc, st, kic2, oic, service, bartender, delco
+  var VER_URL  = 'https://kitchen-tracker-35293-default-rtdb.firebaseio.com/appVersions/'
+               + FILE_KEY + '.json';
+
+  var meta = document.querySelector('meta[name="app-version"]');
+  if (!meta) return;
+  var MINE = String(meta.content || '').trim();
+  if (!MINE) return;
+
+  // Guard: if we already redirected for this version, never loop.
+  var alreadyTried = new URLSearchParams(window.location.search).get('v');
+
+  // Clear any legacy PWA cache left behind by the old mechanism (one-time).
+  try {
+    if (!localStorage.getItem('culex_cache_purged_v2')) {
+      localStorage.setItem('culex_cache_purged_v2', '1');
+      if ('caches' in window) {
+        caches.keys().then(function (names) {
+          names.forEach(function (n) { caches.delete(n); });
         });
-      });
+      }
     }
-    if (stored) {
-      // Old version detected — reload without cache
-      window.location.reload(true);
-    }
-  }
+  } catch (e) { /* private mode — ignore */ }
+
+  fetch(VER_URL + '?_cb=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (live) {
+      live = live ? String(live).trim() : '';
+
+      // Nothing published yet, or this file is newer → publish it.
+      if (!live || MINE > live) {
+        fetch(VER_URL, { method: 'PUT', body: JSON.stringify(MINE) })
+          .catch(function () {});
+        return;
+      }
+
+      // This page is stale → fetch the real one via a fresh URL.
+      if (live > MINE) {
+        if (alreadyTried === live) return;   // tried already; stop (avoid loop)
+        window.location.replace(window.location.pathname + '?v=' + live);
+      }
+    })
+    .catch(function () { /* offline or blocked — carry on */ });
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
