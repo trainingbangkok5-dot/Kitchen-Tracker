@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="20260714230000">
+<meta name="app-version" content="20260715000000">
 <title>Culex Audit Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -90,6 +90,37 @@ tr:hover td{background:#f8fafd}
 .rpt{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;padding:24px}
 .rpt-x{float:right;background:none;border:0;font-size:24px;cursor:pointer;color:#8a99b3;font-weight:700}
 .rpt h3{font-size:18px;color:#1B3A6B;margin-bottom:3px}
+.rhd{background:#1B3A6B;color:#fff;border-radius:11px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.rhd h3{color:#fff;margin:0;font-size:17px}
+.rhd .acts{display:flex;gap:7px}
+.rhd button{border:0;border-radius:7px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#fff}
+.b-pdf{background:#2e7d32}.b-del{background:#c62828}.b-cls{background:#5a6b87}
+.rmeta{background:#f6f8fc;border-radius:9px;padding:11px 14px;font-size:13px;color:#33415c;margin-bottom:14px}
+.rmeta b{color:#1B3A6B}
+.rst{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.rst>div{flex:1;min-width:130px;border:1px solid #e4e8ef;border-radius:11px;padding:13px;text-align:center}
+.rst .l{font-size:10px;color:#8a99b3;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.rst .v{font-size:26px;font-weight:700;margin:3px 0}
+.rst .s{font-size:11px;font-weight:700}
+.rbar{background:#1B3A6B;color:#fff;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;margin-bottom:12px}
+.rsc{border-radius:10px 10px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700}
+.rsc .pp{font-size:12px;padding:3px 10px;border-radius:6px}
+.rtrk{height:5px;background:#e4e8ef;border-radius:0 0 3px 3px;overflow:hidden;margin-bottom:10px}
+.rtrk div{height:100%}
+.rit{display:flex;gap:11px;padding:11px 13px;border-radius:9px;margin-bottom:6px;align-items:flex-start}
+.rit.p{background:#f4fbf6;border-left:4px solid #2e7d32}
+.rit.f{background:#fdf1f1;border-left:4px solid #c62828}
+.rit.na{background:#f7f8fa;border-left:4px solid #b8c2d4}
+.rit .rn{font-size:11px;color:#9aa7bd;font-weight:700;min-width:18px;padding-top:2px}
+.rit .rb{flex:1;min-width:0}
+.rit .rt{font-size:13px;font-weight:700;color:#1f2937;margin-bottom:3px}
+.rit .rmx{font-size:10px;background:#eef1f6;color:#5a6b87;border-radius:4px;padding:2px 7px;font-weight:700;margin-left:6px}
+.rit .rd{font-size:12px;color:#6b7a94;line-height:1.5}
+.rit .rc{font-size:12px;color:#33415c;margin-top:4px}
+.rit .rca{font-size:12px;color:#c62828;font-weight:700;margin-top:4px}
+.rit .rr{text-align:right;flex-shrink:0}
+.rit .rbg{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap}
+.rit .rsm{font-size:11px;color:#9aa7bd;font-weight:700;margin-top:3px}
 .rpt .rsub{font-size:12px;color:#8a99b3;font-weight:700;margin-bottom:16px}
 .rsum{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
 .rsum div{flex:1;min-width:110px;border:1px solid #e4e8ef;border-radius:9px;padding:11px}
@@ -489,6 +520,20 @@ function delSelected(){
 }
 
 /* ── FULL AUDIT REPORT ────────────────────────────────────── */
+function photosFor(P, auditKey, sid, it){
+  var sn = String(it.n).replace(/[.#$\[\]]/g,'_');
+  var out = [], seen = {};
+  (it.photoKeys || []).forEach(function(k){
+    k = String(k).replace(/[.#$\[\]]/g,'_');
+    if(P[k] && !seen[k]){ seen[k] = 1; out.push(k); }
+  });
+  for(var i=0;i<5;i++){
+    var k2 = auditKey + '_' + sid + '_' + sn + '_' + i;
+    if(P[k2] && !seen[k2]){ seen[k2] = 1; out.push(k2); }
+  }
+  return out;
+}
+
 function closeRpt(){ document.getElementById('ovl').classList.remove('open'); }
 function zoom(src){
   document.getElementById('lbximg').src = src;
@@ -502,361 +547,138 @@ function openRpt(key){
   document.getElementById('rpt').innerHTML = '<div class="empty">Loading report...</div>';
   ovl.classList.add('open');
 
-  db.ref('auditPhotos/' + key).once('value').then(function(snap){
-    renderRpt(key, a, snap.val() || {});
-  }).catch(function(){ renderRpt(key, a, {}); });
+  /* Photos live FLAT: auditPhotos/{auditKey}_{sid}_{n}_{i}
+     Collect every key each item references, plus the standard pattern. */
+  var want = [];
+  (a.sectionBreakdown || []).forEach(function(sec){
+    (sec.items || []).forEach(function(it){
+      var sn = String(it.n).replace(/[.#$\[\]]/g,'_');
+      (it.photoKeys || []).forEach(function(k){
+        k = String(k).replace(/[.#$\[\]]/g,'_');
+        if(want.indexOf(k) < 0) want.push(k);
+      });
+      for(var i=0;i<5;i++){
+        var k2 = key + '_' + sec.id + '_' + sn + '_' + i;
+        if(want.indexOf(k2) < 0) want.push(k2);
+      }
+    });
+  });
+
+  if(!want.length){ renderRpt(key, a, {}); return; }
+
+  Promise.all(want.map(function(k){
+    return db.ref('auditPhotos/' + k).once('value')
+      .then(function(sn){ return [k, sn.val()]; })
+      .catch(function(){ return [k, null]; });
+  })).then(function(res){
+    var P = {}, seen = {};
+    res.forEach(function(p){
+      if(p[1] && !seen[p[1]]){ seen[p[1]] = 1; P[p[0]] = p[1]; }
+    });
+    renderRpt(key, a, P);
+  });
 }
 
 var RPT = null;
 function renderRpt(key, a, photos){
   RPT = {key:key, a:a, photos:photos};
-  var p = Number(a.score)||0, g = grade(p);
-  var head = '<button class="rpt-x" onclick="closeRpt()">&times;</button>'
-    + '<h3>' + a.outlet + ' &mdash; ' + a.auditType + ' Audit</h3>'
-    + '<div class="rsub">' + fmtDate(a.auditDate) + ' &middot; ' + (a.auditor||'\u2014') + '</div>'
-    + '<div style="display:flex;gap:7px;margin-bottom:15px">'
-    +   '<button class="btn" onclick="rptPDF()">Export PDF</button>'
-    +   '<button class="btn" onclick="rptXLS()">Export Excel</button>'
-    + '</div>'
-    + '<div class="rsum">'
-    +   '<div><div class="l">Score</div><div class="v ' + g[0] + '">' + p + '%</div></div>'
-    +   '<div><div class="l">Points</div><div class="v">' + (a.rawScore||0) + ' / ' + (a.maxScore||0) + '</div></div>'
-    +   '<div><div class="l">Type</div><div class="v">' + a.auditType + '</div></div>'
-    +   '<div><div class="l">Date</div><div class="v" style="font-size:15px">' + fmtDate(a.auditDate) + '</div></div>'
+  var pct = Number(a.score)||0, gr = getGrade(pct);
+  var gcol = pct>=91?'#2e7d32' : pct>=81?'#ef6c00' : pct>=71?'#d84315' : '#c62828';
+  var gbg  = pct>=91?'#e8f5e9' : pct>=81?'#fff3e0' : pct>=71?'#fbe9e7' : '#ffebee';
+
+  var head = '<div class="rhd"><h3>' + a.outlet + ' \u2014 ' + a.auditType + ' Audit Report</h3>'
+    + '<div class="acts">'
+    +   '<button class="b-pdf" onclick="rptPDF()">Export PDF</button>'
+    +   (CAN_DELETE ? '<button class="b-del" onclick="delOne(\'' + key + '\')">Delete</button>' : '')
+    +   '<button class="b-cls" onclick="closeRpt()">Close</button>'
+    + '</div></div>'
+    + '<div class="rmeta"><b>Outlet:</b> ' + a.outlet
+    +   ' &nbsp;&nbsp; <b>Type:</b> ' + a.auditType
+    +   ' &nbsp;&nbsp; <b>Auditor:</b> ' + (a.auditor||'\u2014')
+    +   ' &nbsp;&nbsp; <b>Date:</b> ' + (a.auditDate||'\u2014') + '</div>'
+    + '<div class="rst">'
+    +   '<div style="background:' + gbg + ';border-color:' + gcol + '">'
+    +     '<div class="l">Score</div><div class="v" style="color:' + gcol + '">' + pct + '%</div>'
+    +     '<div class="s" style="color:' + gcol + '">Grade ' + gr.g + ' \u00b7 ' + gr.label + '</div></div>'
+    +   '<div><div class="l">Points</div><div class="v" style="color:#1B3A6B">' + (a.rawScore||0) + '</div>'
+    +     '<div class="s" style="color:#9aa7bd">out of ' + (a.maxScore||0) + '</div></div>'
+    +   '<div><div class="l">Submitted</div>'
+    +     '<div class="v" style="font-size:15px;color:#1B3A6B;margin-top:8px">' + fmtDate(a.auditDate) + '</div>'
+    +     '<div class="s" style="color:#9aa7bd">' + (a.auditor||'') + '</div></div>'
     + '</div>';
 
   var secs = a.sectionBreakdown;
   if(!secs || !secs.length){
     document.getElementById('rpt').innerHTML = head
       + '<div class="nodet"><b>No detailed breakdown available for this audit.</b><br>'
-      + 'This audit was restored from a summary backup, so the item-by-item detail '
-      + '(which checks failed, corrective actions, photos) was not preserved. '
-      + 'Audits submitted from now on will include full detail.</div>';
+      + 'It was restored from a summary backup, so the item-by-item detail was not preserved. '
+      + 'Audits submitted from now on include the full report.</div>';
     return;
   }
 
-  var body = secs.map(function(s){
-    var items = (s.items||[]).map(function(it){
-      var st = it.status || '';
-      var cls = st==='pass' ? 'p' : st==='fail' ? 'f' : 'na';
-      var lbl = st==='pass' ? 'PASS' : st==='fail' ? 'FAIL' : st==='na' ? 'N/A' : '\u2014';
-      var ph = '';
-      var pk = Object.keys(photos).filter(function(x){
-        return x.indexOf(s.id + '_' + it.n + '_') === 0
-            || x.indexOf('_' + s.id + '_' + it.n + '_') > -1;
-      });
-      if(pk.length){
-        ph = '<div class="rph">' + pk.map(function(x){
-          return '<img src="' + photos[x] + '" onclick="zoom(this.src)" alt="" />';
-        }).join('') + '</div>';
-      }
-      return '<div class="ri"><span class="st ' + cls + '">' + lbl + '</span>'
-        + '<div class="ri-b"><div class="ri-n">' + it.n + '. ' + (it.label||'') 
-        +   ' <span style="color:#9aa7bd;font-weight:400">(' + (it.maxScore||0) + ' pts)</span></div>'
-        + (it.comment ? '<div class="ri-c">' + it.comment + '</div>' : '')
-        + (it.correctiveAction ? '<div class="ri-ca">Corrective: ' + it.correctiveAction
-             + (it.responsible ? ' \u2014 ' + it.responsible : '')
-             + (it.deadline ? ' (by ' + it.deadline + ')' : '') + '</div>' : '')
-        + ph + '</div></div>';
-    }).join('');
-    var pct = s.max > 0 ? Math.round(s.earned / s.max * 100) : 0;
-    return '<div class="rsec"><div class="rsec-h"><span>' + s.title + '</span>'
-      + '<span>' + s.earned + ' / ' + s.max + ' \u00b7 ' + pct + '%</span></div>'
-      + items + '</div>';
-  }).join('');
+  var body = '<div class="rbar">FULL AUDIT REPORT \u2014 SECTION BY SECTION</div>';
 
-  var fails = 0;
-  secs.forEach(function(s){
-    (s.items||[]).forEach(function(it){ if(it.status === 'fail') fails++; });
-  });
-  var warn = fails
-    ? '<div class="nodet" style="background:#fdecec;border-color:#f0b8b8;color:#c62828;margin-bottom:14px">'
-      + '<b>' + fails + ' item(s) failed</b> \u2014 corrective actions shown in red below.</div>'
-    : '';
+  secs.forEach(function(sec, si){
+    var sp = sec.max>0 ? Math.round(sec.earned/sec.max*100) : 0;
+    var sc = sp>=91?'#2e7d32' : sp>=71?'#c77700' : '#c62828';
+    var sb = sp>=71?'#fff8ec' : '#fdf1f1';
 
-  document.getElementById('rpt').innerHTML = head + warn + body;
-}
+    body += '<div class="rsc" style="background:' + sb + ';color:#1f2937">'
+      + '<span>' + (si+1) + '. ' + sec.title + '</span>'
+      + '<span class="pp" style="background:#fff;color:' + sc + '">'
+      +   sec.earned + '/' + sec.max + ' pts &nbsp; ' + sp + '%</span></div>'
+      + '<div class="rtrk"><div style="width:' + sp + '%;background:' + sc + '"></div></div>';
 
-/* ── REPORT EXPORT — full Culex format ────────────────────── */
-function getGrade(p){
-  if(p>=91) return {g:'A',fill:'#2e7d32',label:'Excellent'};
-  if(p>=81) return {g:'B',fill:'#ef6c00',label:'Very Good'};
-  if(p>=71) return {g:'C',fill:'#d84315',label:'Fair/Acceptable'};
-  return       {g:'D',fill:'#c62828',label:'Poor'};
-}
-function hRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
-
-async function rptPDF(){
-  if(!RPT) return;
-  if(typeof window.jspdf === 'undefined'){ toast('PDF library not loaded.', true); return; }
-  var a = RPT.a, PH = RPT.photos || {};
-  var secs = a.sectionBreakdown;
-
-  var btn = event && event.target;
-  if(btn){ btn.disabled = true; btn.textContent = 'Generating...'; }
-
-  var jsPDF = window.jspdf.jsPDF;
-  var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  var W = 210, ML = 12, CW = 186, y = 0;
-  var pct = Number(a.score)||0, gr = getGrade(pct);
-  var gen = new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-
-  function sf(sz,st,c){ doc.setFontSize(sz); doc.setFont('helvetica',st||'normal');
-                        doc.setTextColor(c[0],c[1],c[2]); }
-  function fr(x,fy,w,h,r,g,b){ doc.setFillColor(r,g,b); doc.rect(x,fy,w,h,'F'); }
-  function ap(){ doc.addPage(); pageHead(); y = 26; }
-  function cy(n){ if(y+n > 280) ap(); }
-
-  function pageHead(){
-    sf(11,'bold',[27,58,107]);
-    doc.text(a.outlet + ' - ' + a.auditType + ' Full Audit Detail', ML, 12);
-    sf(7,'normal',[140,140,140]);
-    doc.text('Culex Hospitality Operations | Dubai Municipality Compliance', ML, 17);
-    doc.text('Generated: ' + gen, W-ML, 17, {align:'right'});
-    doc.setDrawColor(225,228,235); doc.setLineWidth(0.3);
-    doc.line(ML, 19, W-ML, 19);
-  }
-
-  /* ══ COVER ══ */
-  sf(15,'bold',[27,58,107]);
-  doc.text(a.outlet + ' - ' + a.auditType + ' Audit Report', ML, 15);
-  sf(7,'normal',[140,140,140]);
-  doc.text('Culex Hospitality Operations | Dubai Municipality Compliance', ML, 21);
-  doc.text('Generated: ' + gen, W-ML, 21, {align:'right'});
-  doc.setDrawColor(225,228,235); doc.line(ML, 24, W-ML, 24);
-
-  y = 32;
-  var info = [['Outlet',a.outlet],['Type',a.auditType],['Auditor',a.auditor||'-'],['Date',a.auditDate||'-']];
-  info.forEach(function(p,i){
-    var x = ML + i*(CW/4);
-    sf(7,'bold',[150,155,165]); doc.text(p[0].toUpperCase(), x, y);
-    sf(9,'bold',[45,50,60]);    doc.text(String(p[1]).substring(0,22), x, y+5);
-  });
-  y += 14;
-
-  var c = hRgb(gr.fill);
-  fr(ML, y, CW, 22, c[0],c[1],c[2]);
-  sf(20,'bold',[255,255,255]); doc.text(pct + '%', ML+6, y+14);
-  sf(11,'bold',[255,255,255]); doc.text('Grade ' + gr.g + ' - ' + gr.label, ML+34, y+9);
-  sf(9,'normal',[255,255,255]);
-  doc.text((a.rawScore||0) + '/' + (a.maxScore||0) + ' Points Scored', ML+34, y+17);
-  y += 30;
-
-  /* no detail (recovered summary-only audits) */
-  if(!secs || !secs.length){
-    fr(ML, y, CW, 26, 255,246,229);
-    doc.setDrawColor(255,217,138); doc.setLineWidth(0.4);
-    doc.rect(ML, y, CW, 26);
-    sf(9,'bold',[122,89,0]);
-    doc.text('No detailed breakdown available for this audit', ML+5, y+8);
-    sf(7.5,'normal',[122,89,0]);
-    doc.text(doc.splitTextToSize(
-      'This audit was restored from a summary backup, so the item-by-item detail '
-      + '(which checks passed or failed, corrective actions and photos) was not preserved. '
-      + 'Audits submitted from now on include the full report.', CW-10), ML+5, y+14);
-    stamp(); doc.save(fn()); done(); return;
-  }
-
-  /* stat boxes */
-  var nP=0,nF=0,nN=0,nT=0;
-  if(secs) secs.forEach(function(s){ (s.items||[]).forEach(function(it){
-    nT++;
-    if(it.status==='pass') nP++; else if(it.status==='fail') nF++; else if(it.status==='na') nN++;
-  }); });
-  var stats = [[nF,'Actions',[198,40,40]],[nP,'Passed',[27,127,59]],
-               [nF,'Failed',[198,40,40]],[nN,'N/A',[130,135,145]],[nT,'Total',[45,50,60]]];
-  var bw = CW/5 - 2;
-  stats.forEach(function(st,i){
-    var x = ML + i*(CW/5);
-    fr(x, y, bw, 16, 246,248,252);
-    sf(13,'bold',st[2]); doc.text(String(st[0]), x+bw/2, y+8, {align:'center'});
-    sf(6.5,'bold',[140,145,155]); doc.text(st[1].toUpperCase(), x+bw/2, y+13, {align:'center'});
-  });
-  y += 24;
-
-  /* section summary */
-  sf(9,'bold',[27,58,107]); doc.text('SECTION SUMMARY', ML, y); y += 6;
-  fr(ML, y, CW, 7, 27,58,107);
-  sf(7.5,'bold',[255,255,255]);
-  doc.text('Section', ML+3, y+4.8);
-  doc.text('Earned', ML+CW-46, y+4.8, {align:'right'});
-  doc.text('Max',    ML+CW-26, y+4.8, {align:'right'});
-  doc.text('Score',  ML+CW-3,  y+4.8, {align:'right'});
-  y += 7;
-
-  if(secs) secs.forEach(function(s,i){
-    cy(8);
-    var sp = s.max>0 ? Math.round(s.earned/s.max*100) : 0;
-    var zb = (i%2) ? [248,250,253] : [255,255,255];
-    fr(ML, y, CW, 6.5, zb[0],zb[1],zb[2]);
-    sf(7.5,'normal',[45,50,60]);
-    doc.text((i+1)+'. '+String(s.title).substring(0,44), ML+3, y+4.5);
-    doc.text(String(s.earned), ML+CW-46, y+4.5, {align:'right'});
-    doc.text(String(s.max),    ML+CW-26, y+4.5, {align:'right'});
-    var sc = sp>=91?[27,127,59] : sp>=71?[199,119,0] : [198,40,40];
-    sf(7.5,'bold',sc); doc.text(sp+'%', ML+CW-3, y+4.5, {align:'right'});
-    y += 6.5;
-  });
-  fr(ML, y, CW, 8, 27,58,107);
-  sf(8,'bold',[255,255,255]);
-  doc.text('TOTAL', ML+3, y+5.5);
-  doc.text((a.rawScore||0)+'', ML+CW-46, y+5.5, {align:'right'});
-  doc.text((a.maxScore||0)+'', ML+CW-26, y+5.5, {align:'right'});
-  doc.text(pct+'%', ML+CW-3, y+5.5, {align:'right'});
-  y += 14;
-
-  /* ══ DETAIL ══ */
-  ap();
-  sf(10,'bold',[27,58,107]);
-  doc.text('FULL AUDIT REPORT - SECTION BY SECTION', ML, y); y += 8;
-
-  for(var si=0; si<secs.length; si++){
-    var s = secs[si];
-    var sp = s.max>0 ? Math.round(s.earned/s.max*100) : 0;
-    var sc = sp>=91?[27,127,59] : sp>=71?[199,119,0] : [198,40,40];
-
-    cy(18);
-    var hb = sp>=71 ? [255,250,230] : [253,236,236];
-    fr(ML, y, CW, 9, hb[0],hb[1],hb[2]);
-    sf(9,'bold',[45,50,60]);
-    doc.text((si+1)+'. '+s.title, ML+3, y+6);
-    sf(9,'bold',sc);
-    doc.text(s.earned+'/'+s.max+' pts  ('+sp+'%)', ML+CW-3, y+6, {align:'right'});
-    fr(ML, y+9, CW, 2, 225,228,235);
-    fr(ML, y+9, CW*sp/100, 2, sc[0],sc[1],sc[2]);
-    y += 15;
-
-    for(var ii=0; ii<(s.items||[]).length; ii++){
-      var it = s.items[ii];
+    (sec.items||[]).forEach(function(it){
       var st = it.status||'';
-      var lbl = st==='pass'?'PASS' : st==='fail'?'FAIL' : st==='na'?'N/A' : '-';
-      var col = st==='pass'?[27,127,59] : st==='fail'?[198,40,40] : [140,145,155];
-      var bg  = st==='pass'?[247,252,248] : st==='fail'?[253,240,240] : [250,250,250];
+      var cls = st==='pass' ? 'p' : st==='fail' ? 'f' : 'na';
+      var lbl = st==='pass' ? '\u2713 PASS' : st==='fail' ? '\u2715 FAIL' : st==='na' ? 'N/A' : '\u2014';
+      var bg  = st==='pass' ? '#e8f5e9' : st==='fail' ? '#ffebee' : '#eef1f6';
+      var fg  = st==='pass' ? '#1b7f3b' : st==='fail' ? '#c62828' : '#8a99b3';
+      var got = st==='na' ? 'N/A' : (st==='pass' ? (it.maxScore||0) : 0) + '/' + (it.maxScore||0);
 
-      var dL = doc.splitTextToSize(String(it.desc||''), CW-46);
-      var cL = it.comment ? doc.splitTextToSize('Note: '+it.comment, CW-46) : [];
-      var aL = it.correctiveAction
-        ? doc.splitTextToSize('Corrective: '+it.correctiveAction
-            + (it.responsible?'  -  '+it.responsible:'')
-            + (it.deadline?'  (by '+it.deadline+')':''), CW-46) : [];
+      var pk = photosFor(photos, key, sec.id, it);
+      var ph = pk.length
+        ? '<div class="rph">' + pk.map(function(k){
+            return '<img src="' + photos[k] + '" onclick="zoom(this.src)" alt="" style="border-color:'
+                 + (st==='fail' ? '#f0b8b8' : '#bfe3c7') + '" />';
+          }).join('') + '</div>'
+        : '';
 
-      var pk = Object.keys(PH).filter(function(x){
-        return x.indexOf('_'+s.id+'_'+it.n+'_') > -1 || x.indexOf(s.id+'_'+it.n+'_') === 0;
-      });
-      var pH = pk.length ? Math.ceil(pk.length/4)*32 + 3 : 0;
-      var iH = 11 + dL.length*3.4 + cL.length*3.4 + aL.length*3.4 + pH + 4;
-
-      cy(iH+3);
-      fr(ML, y, CW, iH, bg[0],bg[1],bg[2]);
-      if(st==='fail'){ fr(ML, y, 1.6, iH, 198,40,40); }
-
-      sf(7,'normal',[165,170,180]); doc.text(String(it.n)+'.', ML+5, y+6);
-      sf(9,'bold',[35,40,50]);      doc.text(String(it.label||''), ML+12, y+6);
-      sf(8,'bold',col);             doc.text(lbl, ML+CW-4, y+5, {align:'right'});
-      sf(7,'normal',[130,135,145]);
-      doc.text(st==='na' ? 'N/A'
-        : (st==='pass'?(it.maxScore||0):0) + '/' + (it.maxScore||0), ML+CW-4, y+9.5, {align:'right'});
-      sf(6.5,'normal',[150,155,165]);
-      doc.text('Max: '+(it.maxScore||0)+' pt'+((it.maxScore||0)>1?'s':''), ML+12, y+10);
-
-      var iy = y + 14;
-      sf(7,'italic',[110,118,130]); doc.text(dL, ML+12, iy); iy += dL.length*3.4;
-      if(cL.length){ sf(7,'normal',[80,86,96]); doc.text(cL, ML+12, iy+1.5); iy += cL.length*3.4 + 1.5; }
-      if(aL.length){ sf(7,'bold',[198,40,40]);  doc.text(aL, ML+12, iy+1.5); iy += aL.length*3.4 + 1.5; }
-
-      if(pk.length){
-        var px = ML+12, pw = 30, ph = 29;
-        for(var pi=0; pi<pk.length; pi++){
-          if(pi>0 && pi%4===0){ px = ML+12; iy += ph+2; }
-          try{ doc.addImage(PH[pk[pi]], 'JPEG', px, iy+2, pw, ph, '', 'FAST'); }
-          catch(e){ fr(px, iy+2, pw, ph, 225,228,235); }
-          px += pw+2;
-        }
-      }
-      y += iH + 2;
-    }
-    y += 3;
-  }
-
-  /* ══ CORRECTIVE ACTIONS SUMMARY ══ */
-  var fails = [];
-  secs.forEach(function(s,si){
-    (s.items||[]).forEach(function(it){
-      if(it.status==='fail') fails.push({sec:s.title, n:it.n, label:it.label,
-                                         act:it.correctiveAction, resp:it.responsible, dl:it.deadline});
+      body += '<div class="rit ' + cls + '">'
+        + '<span class="rn">' + it.n + '.</span>'
+        + '<div class="rb">'
+        +   '<div class="rt">' + (it.label||'')
+        +     '<span class="rmx">Max: ' + (it.maxScore||0) + ' pt' + ((it.maxScore||0)>1?'s':'') + '</span></div>'
+        +   '<div class="rd">' + (it.desc||'') + '</div>'
+        +   (it.comment ? '<div class="rc">' + it.comment + '</div>' : '')
+        +   (it.correctiveAction
+              ? '<div class="rca">Corrective: ' + it.correctiveAction
+                + (it.responsible ? ' \u2014 ' + it.responsible : '')
+                + (it.deadline ? ' (by ' + it.deadline + ')' : '') + '</div>'
+              : '')
+        +   ph
+        + '</div>'
+        + '<div class="rr"><span class="rbg" style="background:' + bg + ';color:' + fg + '">' + lbl + '</span>'
+        +   '<div class="rsm">' + got + '</div></div>'
+        + '</div>';
     });
+    body += '<div style="height:10px"></div>';
   });
-  if(fails.length){
-    ap();
-    sf(11,'bold',[198,40,40]);
-    doc.text('CORRECTIVE ACTIONS SUMMARY (' + fails.length + ')', ML, y); y += 9;
-    fails.forEach(function(f){
-      var aL2 = f.act ? doc.splitTextToSize(f.act, CW-10) : [];
-      var h = 12 + aL2.length*3.6;
-      cy(h+2);
-      fr(ML, y, CW, h, 253,240,240);
-      fr(ML, y, 1.6, h, 198,40,40);
-      sf(7,'bold',[150,60,60]);
-      doc.text(f.sec + ' - Item ' + f.n, ML+5, y+5);
-      sf(9,'bold',[35,40,50]);
-      doc.text(String(f.label||''), ML+5, y+10);
-      if(aL2.length){ sf(7,'normal',[110,60,60]); doc.text(aL2, ML+5, y+14); }
-      if(f.resp || f.dl){
-        sf(6.5,'bold',[150,60,60]);
-        doc.text((f.resp?'Responsible: '+f.resp:'') + (f.dl?'   Deadline: '+f.dl:''),
-                 ML+CW-4, y+5, {align:'right'});
-      }
-      y += h + 2.5;
-    });
-  }
 
-  stamp(); doc.save(fn()); done();
-
-  function stamp(){
-    var n = doc.internal.getNumberOfPages();
-    for(var i=1;i<=n;i++){
-      doc.setPage(i);
-      doc.setDrawColor(235,238,243); doc.setLineWidth(0.3);
-      doc.line(ML, 286, W-ML, 286);
-      sf(6.5,'normal',[175,180,190]);
-      doc.text('Culex Hospitality Operations - Internal Audit Report - Confidential', ML, 291);
-      doc.text('Page ' + i + ' of ' + n, W-ML, 291, {align:'right'});
-    }
-  }
-  function fn(){
-    var d = (a.auditDate||'').split('-');
-    var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var ds = d.length===3 ? d[2]+'_'+M[parseInt(d[1],10)-1]+'_'+d[0] : 'report';
-    return ds + '_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_Audit_Report.pdf';
-  }
-  function done(){
-    if(btn){ btn.disabled = false; btn.textContent = 'Export PDF'; }
-    toast('PDF exported');
-  }
+  document.getElementById('rpt').innerHTML = head + body;
 }
 
-function rptXLS(){
-  if(!RPT || typeof XLSX === 'undefined'){ toast('Excel library not loaded.', true); return; }
-  var a = RPT.a;
-  var rows = [['Outlet',a.outlet],['Type',a.auditType],['Date',a.auditDate],
-              ['Auditor',a.auditor||''],['Score',(a.score||0)+'%'],
-              ['Points',(a.rawScore||0)+' / '+(a.maxScore||0)],[]];
-  if(a.sectionBreakdown && a.sectionBreakdown.length){
-    rows.push(['Section','#','Item','Max','Status','Observation','Corrective action','Responsible','Deadline']);
-    a.sectionBreakdown.forEach(function(s){
-      (s.items||[]).forEach(function(it){
-        rows.push([s.title, it.n, it.label||'', it.maxScore||0,
-                   (it.status||'').toUpperCase(), it.comment||'',
-                   it.correctiveAction||'', it.responsible||'', it.deadline||'']);
-      });
-    });
-  } else {
-    rows.push(['No detailed breakdown available for this audit.']);
-  }
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Audit');
-  XLSX.writeFile(wb, 'Audit_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_' + a.auditDate + '.xlsx');
-  toast('Excel exported');
+function delOne(key){
+  var a = AUDITS[key];
+  if(!a) return;
+  if(!confirm('Permanently delete this audit?\n\n' + a.outlet + ' ' + a.auditType
+    + ' \u2014 ' + fmtDate(a.auditDate) + ' (' + (a.score||0) + '%)\n\nThis cannot be undone.')) return;
+  var ops = {};
+  ops['audits/' + key] = null;
+  db.ref().update(ops).then(function(){
+    closeRpt(); toast('Audit deleted');
+  }).catch(function(e){ toast('Delete failed: ' + e.message, true); });
 }
 
 /* ── ACCESS MANAGER (Admin only) ──────────────────────────── */
