@@ -642,6 +642,21 @@ async function rptPDF(){
   doc.text((a.rawScore||0) + '/' + (a.maxScore||0) + ' Points Scored', ML+34, y+17);
   y += 30;
 
+  /* no detail (recovered summary-only audits) */
+  if(!secs || !secs.length){
+    fr(ML, y, CW, 26, 255,246,229);
+    doc.setDrawColor(255,217,138); doc.setLineWidth(0.4);
+    doc.rect(ML, y, CW, 26);
+    sf(9,'bold',[122,89,0]);
+    doc.text('No detailed breakdown available for this audit', ML+5, y+8);
+    sf(7.5,'normal',[122,89,0]);
+    doc.text(doc.splitTextToSize(
+      'This audit was restored from a summary backup, so the item-by-item detail '
+      + '(which checks passed or failed, corrective actions and photos) was not preserved. '
+      + 'Audits submitted from now on include the full report.', CW-10), ML+5, y+14);
+    stamp(); doc.save(fn()); done(); return;
+  }
+
   /* stat boxes */
   var nP=0,nF=0,nN=0,nT=0;
   if(secs) secs.forEach(function(s){ (s.items||[]).forEach(function(it){
@@ -664,9 +679,9 @@ async function rptPDF(){
   fr(ML, y, CW, 7, 27,58,107);
   sf(7.5,'bold',[255,255,255]);
   doc.text('Section', ML+3, y+4.8);
-  doc.text('Earned', ML+CW-52, y+4.8);
-  doc.text('Max',    ML+CW-32, y+4.8);
-  doc.text('Score',  ML+CW-15, y+4.8);
+  doc.text('Earned', ML+CW-46, y+4.8, {align:'right'});
+  doc.text('Max',    ML+CW-26, y+4.8, {align:'right'});
+  doc.text('Score',  ML+CW-3,  y+4.8, {align:'right'});
   y += 7;
 
   if(secs) secs.forEach(function(s,i){
@@ -675,23 +690,20 @@ async function rptPDF(){
     var zb = (i%2) ? [248,250,253] : [255,255,255];
     fr(ML, y, CW, 6.5, zb[0],zb[1],zb[2]);
     sf(7.5,'normal',[45,50,60]);
-    doc.text((i+1)+'. '+String(s.title).substring(0,46), ML+3, y+4.5);
-    doc.text(String(s.earned), ML+CW-52, y+4.5);
-    doc.text(String(s.max),    ML+CW-32, y+4.5);
+    doc.text((i+1)+'. '+String(s.title).substring(0,44), ML+3, y+4.5);
+    doc.text(String(s.earned), ML+CW-46, y+4.5, {align:'right'});
+    doc.text(String(s.max),    ML+CW-26, y+4.5, {align:'right'});
     var sc = sp>=91?[27,127,59] : sp>=71?[199,119,0] : [198,40,40];
-    sf(7.5,'bold',sc); doc.text(sp+'%', ML+CW-15, y+4.5);
+    sf(7.5,'bold',sc); doc.text(sp+'%', ML+CW-3, y+4.5, {align:'right'});
     y += 6.5;
   });
   fr(ML, y, CW, 8, 27,58,107);
   sf(8,'bold',[255,255,255]);
   doc.text('TOTAL', ML+3, y+5.5);
-  doc.text((a.rawScore||0)+'', ML+CW-52, y+5.5);
-  doc.text((a.maxScore||0)+'', ML+CW-32, y+5.5);
-  doc.text(pct+'%  '+gr.label, ML+CW-15, y+5.5);
-
-  if(!secs || !secs.length){
-    stamp(); doc.save(fn()); done(); return;
-  }
+  doc.text((a.rawScore||0)+'', ML+CW-46, y+5.5, {align:'right'});
+  doc.text((a.maxScore||0)+'', ML+CW-26, y+5.5, {align:'right'});
+  doc.text(pct+'%', ML+CW-3, y+5.5, {align:'right'});
+  y += 14;
 
   /* ══ DETAIL ══ */
   ap();
