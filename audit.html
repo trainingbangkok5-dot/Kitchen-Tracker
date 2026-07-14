@@ -127,6 +127,9 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1
 <body>
 <div class="header">
   <h1 id="audit-title">Culex Internal Audit</h1>
+  <div id="practice-banner" style="display:none;background:#f3e5f5;border:1.5px solid #ce93d8;color:#6a1b9a;border-radius:6px;padding:7px 11px;font-size:12px;font-weight:700;margin-bottom:.6rem;">
+    PRACTICE MODE &mdash; this audit is for training only and will NOT affect real outlet scores.
+  </div>
   <div style="margin-bottom:.6rem">
     <select id="audit-select" onchange="selectTemplate(this.value)" style="font-family:Arial,sans-serif;font-size:13px;padding:6px;border:1.5px solid #1B3A6B;border-radius:4px;width:100%;font-weight:700;color:#1B3A6B;">
       <option value="">Loading audits...</option>
@@ -238,7 +241,7 @@ function pushAuditToFirebase(record) {
     const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
               + '_' + record.auditType
               + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
-    _db.ref('audits/' + key).set({
+    _db.ref((PRACTICE ? 'auditsPractice/' : 'audits/') + key).set({
       ...record,
       lastUpdated: new Date().toISOString()
     }).catch(e => console.warn('Audit write failed:', e));
@@ -249,6 +252,7 @@ let ORIG_MAX = 0;
 let SECTIONS = [];
 let TEMPLATE_KEY = '';
 let TEMPLATES = {};
+const PRACTICE = new URLSearchParams(location.search).get('practice') === '1';
 
 /* ── Load audit templates from Firebase ──────────────────────────
    Items carry permanent IDs in Firebase, but are mapped back to a
@@ -870,6 +874,9 @@ function submitAuditToDashboard() {
   const outletKey= outlet.trim().toLowerCase().replace(/\s+/g,'_');
 
   try {
+    if (PRACTICE) {
+      // practice: skip the shared local DB entirely
+    } else {
     const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{"submissions":[],"audits":[]}');
     if (!db.audits) db.audits = [];
 
@@ -888,6 +895,7 @@ function submitAuditToDashboard() {
     });
 
     localStorage.setItem('KIC_SHARED_DB_V2', JSON.stringify(db));
+    }
     // Collect photos keyed by section+item for inline display
     const photos = {};
     SECTIONS.forEach(s=>s.items.forEach(it=>{
@@ -946,7 +954,7 @@ function submitAuditToDashboard() {
     });
     // Push photos separately to Firebase, store keys in items
     async function pushWithPhotos() {
-      const auditKey = outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+      const auditKey = (PRACTICE?'PRACTICE_':'') + outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
 
       // Store photos separately — strip from sectionBreakdown to keep record small
       const photoUploads = [];
@@ -977,7 +985,7 @@ function submitAuditToDashboard() {
       });
     }
     pushWithPhotos();
-    showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
+    showToast(PRACTICE ? '✅ Practice audit saved. Score: ' + pct + '% (does not affect real scores)' : '✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', PRACTICE ? '#6a1b9a' : '#2e7d32');
     console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
   } catch(e) {
     showToast('⚠ Could not submit to dashboard: ' + e.message, '#c62828');
@@ -985,6 +993,10 @@ function submitAuditToDashboard() {
 }
 
 /* ── BOOT ─────────────────────────────────────────────────── */
+if(PRACTICE){
+  document.getElementById('practice-banner').style.display='block';
+  document.title = 'PRACTICE — Culex Audit';
+}
 if(!document.getElementById('audit-date').value){
   document.getElementById('audit-date').valueAsDate=new Date();
 }

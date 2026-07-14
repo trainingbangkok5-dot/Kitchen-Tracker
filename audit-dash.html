@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="app-version" content="20260714190000">
+<title>Culex Audit Dashboard</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#1B3A6B;padding:16px;color:#111;min-height:100vh}
+.card{max-width:1100px;margin:0 auto;background:#fff;border-radius:16px;padding:26px 24px;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+
+/* LOGIN */
+.login{max-width:430px}
+.logo{text-align:center;font-size:36px;margin-bottom:6px}
+.login h1{text-align:center;font-size:23px;color:#1B3A6B;margin-bottom:3px}
+.login .sub{text-align:center;font-size:12px;color:#8a99b3;font-weight:700;margin-bottom:20px}
+.roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.role{border:1px solid #e4e8ef;border-radius:10px;padding:14px 6px;text-align:center;cursor:pointer;background:#fff}
+.role:hover{border-color:#1B3A6B;background:#f6f8fc}
+.role.on{border-color:#1B3A6B;background:#eef3fb;border-width:2px}
+.role .ic{font-size:22px;display:block;margin-bottom:6px}
+.role .nm{font-size:11px;font-weight:700;color:#33415c}
+.role .lk{font-size:10px;margin-top:3px}
+.fld{width:100%;padding:12px 14px;border:1px solid #dfe4ec;border-radius:10px;font-size:14px;margin-bottom:11px;font-family:inherit}
+.go{width:100%;padding:14px;border:0;border-radius:10px;background:#1B3A6B;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+.go:hover{background:#2E5FA3}
+.err{background:#fdecec;color:#c62828;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:11px;display:none}
+
+/* DASH */
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.hdr h2{font-size:19px;color:#1B3A6B}
+.who{font-size:12px;color:#8a99b3;font-weight:700}
+.who a{color:#1B3A6B;cursor:pointer;margin-left:10px}
+.tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tab{padding:9px 18px;border:1px solid #dfe4ec;border-radius:8px;background:#fff;font-size:13px;font-weight:700;color:#5a6b87;cursor:pointer;font-family:inherit}
+.tab.on{background:#1B3A6B;color:#fff;border-color:#1B3A6B}
+.bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.bar select,.bar input{padding:9px 11px;border:1px solid #dfe4ec;border-radius:8px;font-size:13px;font-family:inherit;color:#33415c}
+.newbtn{margin-left:auto;padding:9px 18px;border:0;border-radius:8px;background:#1B3A6B;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-block}
+.ro{background:#fff6e5;border:1px solid #ffd98a;border-radius:8px;padding:9px 13px;font-size:12px;color:#7a5900;font-weight:700;margin-bottom:16px}
+
+.lbl{font-size:11px;font-weight:700;color:#8a99b3;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:24px}
+.oc{border:1px solid #e4e8ef;border-radius:10px;padding:14px}
+.oc .o{font-size:12px;font-weight:700;color:#33415c;margin-bottom:5px}
+.oc .p{font-size:25px;font-weight:700;line-height:1}
+.oc .m{font-size:10px;color:#9aa7bd;margin-top:5px;font-weight:700}
+.g{color:#1b7f3b}.a{color:#c77700}.r{color:#c62828}.n{color:#9aa7bd}
+.bg-g{background:#e8f5ec}.bg-a{background:#fff6e5}.bg-r{background:#fdecec}.bg-n{background:#f6f8fc}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;color:#8a99b3;font-weight:700;text-transform:uppercase;padding:0 10px 8px;letter-spacing:.5px}
+td{padding:11px 10px;border-top:1px solid #eef1f6;color:#33415c}
+tr:hover td{background:#f8fafd}
+.pill{display:inline-block;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700}
+.empty{padding:40px;text-align:center;color:#9aa7bd;font-size:13px}
+
+/* EDITOR */
+.ebar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.ebar select{padding:9px 11px;border:1px solid #dfe4ec;border-radius:8px;font-size:13px;font-family:inherit;color:#33415c;font-weight:700}
+.btn{padding:9px 16px;border:1px solid #1B3A6B;border-radius:8px;background:#fff;color:#1B3A6B;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn:hover{background:#eef3fb}
+.btn.pri{background:#1B3A6B;color:#fff}
+.btn.pri:hover{background:#2E5FA3}
+.btn.pri:disabled{background:#b8c2d4;border-color:#b8c2d4;cursor:default}
+.dirty{background:#fff6e5;border:1px solid #ffd98a;border-radius:8px;padding:9px 13px;font-size:12px;color:#7a5900;font-weight:700;margin-bottom:14px;display:none}
+.sec{border:1px solid #e4e8ef;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.sec-h{background:#f6f8fc;padding:10px 13px;display:flex;align-items:center;gap:9px;border-bottom:1px solid #e4e8ef}
+.sec-h input{flex:1;padding:6px 9px;border:1px solid #dfe4ec;border-radius:6px;font-size:13px;font-weight:700;color:#1B3A6B;font-family:inherit}
+.sec-h .cnt{font-size:11px;color:#8a99b3;font-weight:700;white-space:nowrap}
+.it{display:flex;align-items:flex-start;gap:8px;padding:10px 13px;border-bottom:1px solid #f2f5f9}
+.it:last-child{border-bottom:0}
+.it.off{opacity:.45;background:#fafbfd}
+.it-b{flex:1;min-width:0}
+.it-b input,.it-b textarea{width:100%;padding:6px 9px;border:1px solid #dfe4ec;border-radius:6px;font-size:13px;font-family:inherit;color:#33415c;margin-bottom:4px}
+.it-b textarea{font-size:12px;color:#6b7a94;resize:vertical;min-height:36px}
+.it-b input{font-weight:700}
+.it .w{width:60px;padding:6px;border:1px solid #dfe4ec;border-radius:6px;font-size:12px;font-family:inherit;font-weight:700;text-align:center}
+.ib{border:1px solid #dfe4ec;border-radius:6px;background:#fff;padding:5px 8px;font-size:12px;cursor:pointer;color:#5a6b87;font-family:inherit;font-weight:700}
+.ib:hover{background:#f1f4f9}
+.ib.del:hover{background:#fdecec;color:#c62828;border-color:#f0b8b8}
+.hide{display:none}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:9px;font-size:13px;font-weight:700;color:#fff;background:#1b7f3b;display:none;z-index:99;box-shadow:0 3px 12px rgba(0,0,0,.25)}
+@media(max-width:640px){.grid{grid-template-columns:1fr 1fr}th:nth-child(2),td:nth-child(2){display:none}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="card login" id="login">
+  <div class="logo">&#127859;</div>
+  <h1>Culex Audit</h1>
+  <div class="sub">Culex Hospitality Operations</div>
+  <div class="roles" id="roles"></div>
+  <div class="err" id="err"></div>
+  <input class="fld" id="uname" placeholder="Enter your name..." />
+  <input class="fld hide" id="upin" type="password" placeholder="Admin PIN" />
+  <button class="go" onclick="doLogin()">Enter Audit System</button>
+</div>
+
+<!-- DASHBOARD -->
+<div class="card hide" id="dash">
+  <div class="hdr">
+    <h2>Audit Dashboard</h2>
+    <span class="who" id="who">&mdash;<a onclick="logout()">Sign out</a></span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" id="t-ov" onclick="showTab('ov')">Overview</div>
+    <div class="tab hide" id="t-pr" onclick="showTab('pr')">Practice Audits</div>
+    <div class="tab hide" id="t-ed" onclick="showTab('ed')">Audit Editor</div>
+    <div class="tab hide" id="t-ac" onclick="showTab('ac')">Access</div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="pane-ov">
+    <div class="ro hide" id="ro">View only &mdash; audits are conducted by Admin</div>
+    <div class="bar">
+      <select id="f-brand" onchange="renderOverview()"><option value="">All brands</option></select>
+      <select id="f-type" onchange="renderOverview()">
+        <option value="">All types</option><option>BOH</option><option>FOH</option>
+      </select>
+      <a class="newbtn hide" id="newbtn" href="audit.html">+ New Audit</a>
+      <a class="newbtn hide" id="practbtn" href="audit.html?practice=1" style="background:#6a1b9a">+ Practice Audit</a>
+    </div>
+
+    <div class="lbl">Scores by outlet &mdash; latest audit</div>
+    <div class="grid" id="cards"><div class="empty">Loading...</div></div>
+
+    <div class="lbl">Audit history</div>
+    <div id="hist"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- PRACTICE -->
+  <div id="pane-pr" class="hide">
+    <div class="ro" style="background:#f3e5f5;border-color:#ce93d8;color:#6a1b9a">
+      Practice audits &mdash; for training only. These never affect real outlet scores or compliance records.
+    </div>
+    <div id="prac"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- EDITOR -->
+  <div id="pane-ed" class="hide">
+    <div class="dirty" id="dirty">You have unsaved changes. Click Publish to send them to every device.</div>
+    <div class="ebar">
+      <select id="e-tpl" onchange="loadEditor(this.value)"><option value="">Select audit...</option></select>
+      <button class="btn" onclick="addSection()">+ Section</button>
+      <button class="btn pri" id="pub" onclick="publish()" disabled>Publish</button>
+      <span class="who" id="e-max"></span>
+    </div>
+    <div id="e-body"><div class="empty">Select an audit to edit.</div></div>
+  </div>
+</div>
+
+  <!-- ACCESS -->
+  <div id="pane-ac" class="hide">
+    <div class="ro" style="background:#eef3fb;border-color:#c9d9ef;color:#1B3A6B">
+      Add roles and switch access on or off. Changes are live immediately &mdash; no deploy needed.
+    </div>
+    <div class="ebar">
+      <input id="nr-name" placeholder="New role name (e.g. CEO)" style="padding:9px 11px;border:1px solid #dfe4ec;border-radius:8px;font-size:13px;font-family:inherit" />
+      <button class="btn" onclick="addRole()">+ Add role</button>
+    </div>
+    <div id="ac-body"><div class="empty">Loading...</div></div>
+  </div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+var db = firebase.database();
+
+/* ═══ CHANGE THE ADMIN PIN HERE ═══ */
+var ADMIN_PIN = '1234';
+
+var DEFAULT_ROLES = {
+  kic:          {name:'KIC',          icon:'\uD83D\uDC68\u200D\uD83C\uDF73', order:1, active:true,  canAudit:false, canPractice:false, canEdit:false, canAccess:false},
+  oic:          {name:'OIC',          icon:'\uD83D\uDCBC',                     order:2, active:true,  canAudit:false, canPractice:false, canEdit:false, canAccess:false},
+  areachef:     {name:'Area Chef',    icon:'\uD83C\uDF74',                     order:3, active:true,  canAudit:false, canPractice:false, canEdit:false, canAccess:false},
+  areamanager:  {name:'Area Manager', icon:'\uD83D\uDCCB',                     order:4, active:true,  canAudit:false, canPractice:false, canEdit:false, canAccess:false},
+  trainee:      {name:'Trainee',      icon:'\uD83C\uDF93',                     order:5, active:true,  canAudit:false, canPractice:true,  canEdit:false, canAccess:false},
+  admin:        {name:'Admin',        icon:'\uD83D\uDC51',                     order:99,active:true,  canAudit:true,  canPractice:false, canEdit:true,  canAccess:true, pin:true}
+};
+var ROLES = {};
+
+var ROLE='', USER='', AUDITS={}, TPLS={}, EDIT=null, EKEY='', DIRTY=false;
+
+function toast(m,bad){
+  var t=document.getElementById('toast');
+  t.textContent=m; t.style.background = bad ? '#c62828' : '#1b7f3b';
+  t.style.display='block';
+  setTimeout(function(){t.style.display='none';}, 3000);
+}
+
+/* ── LOGIN ────────────────────────────────────────────────── */
+function roleList(){
+  return Object.keys(ROLES).map(function(k){ return [k, ROLES[k]]; })
+    .filter(function(p){ return p[1].active !== false; })
+    .sort(function(a,b){ return (a[1].order||0) - (b[1].order||0); });
+}
+
+function renderRoleTiles(){
+  document.getElementById('roles').innerHTML = roleList().map(function(p){
+    var k = p[0], r = p[1];
+    return '<div class="role" onclick="pickRole(this,\'' + k + '\')">'
+         + '<span class="ic">' + r.icon + '</span>'
+         + '<span class="nm">' + r.name + '</span>'
+         + (r.pin ? '<div class="lk">\uD83D\uDD12</div>' : '') + '</div>';
+  }).join('');
+}
+
+function loadRoles(){
+  db.ref('auditRoles').once('value').then(function(snap){
+    ROLES = snap.val();
+    if(!ROLES || !Object.keys(ROLES).length){
+      ROLES = DEFAULT_ROLES;
+      db.ref('auditRoles').set(ROLES);
+    }
+    if(!ROLES.admin){ ROLES.admin = DEFAULT_ROLES.admin; db.ref('auditRoles/admin').set(ROLES.admin); }
+    ROLES.admin.active = true;
+    renderRoleTiles();
+  }).catch(function(){
+    ROLES = DEFAULT_ROLES;
+    renderRoleTiles();
+  });
+}
+loadRoles();
+
+function pickRole(el, k){
+  var all = document.querySelectorAll('.role');
+  for(var i=0;i<all.length;i++) all[i].classList.remove('on');
+  el.classList.add('on');
+  ROLE = k;
+  document.getElementById('upin').classList.toggle('hide', !ROLES[k].pin);
+  document.getElementById('err').style.display='none';
+}
+
+function doLogin(){
+  var e = document.getElementById('err');
+  var name = document.getElementById('uname').value.trim();
+  if(!ROLE){ e.textContent='Please select a role.'; e.style.display='block'; return; }
+  if(!name){ e.textContent='Please enter your name.'; e.style.display='block'; return; }
+  var R = ROLES[ROLE];
+  if(R.pin && document.getElementById('upin').value !== ADMIN_PIN){
+    e.textContent='Incorrect PIN.'; e.style.display='block'; return;
+  }
+  USER = name;
+  document.getElementById('login').classList.add('hide');
+  document.getElementById('dash').classList.remove('hide');
+  document.getElementById('who').innerHTML = USER + ' &middot; ' + R.name
+    + '<a onclick="logout()">Sign out</a>';
+
+  document.getElementById('t-ed').classList.toggle('hide',  !R.canEdit);
+  document.getElementById('t-ac').classList.toggle('hide',  !R.canAccess);
+  document.getElementById('t-pr').classList.toggle('hide',  !(R.canPractice || R.canEdit));
+  document.getElementById('newbtn').classList.toggle('hide',   !R.canAudit);
+  document.getElementById('practbtn').classList.toggle('hide', !R.canPractice);
+  document.getElementById('ro').classList.toggle('hide', R.canAudit || R.canPractice);
+
+  loadAudits();
+  if(R.canPractice || R.canEdit) loadPractice();
+  if(R.canEdit)   loadTemplateList();
+  if(R.canAccess) renderAccess();
+}
+
+function logout(){
+  if(DIRTY && !confirm('You have unsaved editor changes. Sign out anyway?')) return;
+  location.reload();
+}
+
+function showTab(t){
+  ['ov','pr','ed','ac'].forEach(function(x){
+    var tb=document.getElementById('t-'+x), pn=document.getElementById('pane-'+x);
+    if(tb) tb.classList.toggle('on', x===t);
+    if(pn) pn.classList.toggle('hide', x!==t);
+  });
+}
+
+/* ── OVERVIEW ─────────────────────────────────────────────── */
+function grade(p){
+  if(p >= 85) return ['g','bg-g'];
+  if(p >= 70) return ['a','bg-a'];
+  return ['r','bg-r'];
+}
+function fmtDate(d){
+  if(!d) return '\u2014';
+  var p = d.split('-');
+  if(p.length !== 3) return d;
+  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return parseInt(p[2],10) + ' ' + M[parseInt(p[1],10)-1] + ' ' + p[0];
+}
+
+function loadAudits(){
+  db.ref('audits').on('value', function(snap){
+    AUDITS = snap.val() || {};
+    var brands = {};
+    for(var k in AUDITS){
+      var o = AUDITS[k].outlet || '';
+      var b = o.indexOf('LB') === 0 ? 'Little Bangkok'
+            : o.indexOf('SB') === 0 ? 'Superbowl'
+            : o.indexOf('Red') > -1 ? 'The Red Door' : 'Other';
+      brands[b] = 1;
+    }
+    var sel = document.getElementById('f-brand');
+    var cur = sel.value;
+    sel.innerHTML = '<option value="">All brands</option>'
+      + Object.keys(brands).sort().map(function(b){
+          return '<option>' + b + '</option>'; }).join('');
+    sel.value = cur;
+    renderOverview();
+  }, function(e){
+    document.getElementById('cards').innerHTML =
+      '<div class="empty">Could not load audits: ' + e.message + '</div>';
+  });
+}
+
+function brandOf(o){
+  o = o || '';
+  if(o.indexOf('LB') === 0) return 'Little Bangkok';
+  if(o.indexOf('SB') === 0) return 'Superbowl';
+  if(o.indexOf('Red') > -1) return 'The Red Door';
+  return 'Other';
+}
+
+function renderOverview(){
+  var fb = document.getElementById('f-brand').value;
+  var ft = document.getElementById('f-type').value;
+
+  var list = [];
+  for(var k in AUDITS){
+    var a = AUDITS[k];
+    if(fb && brandOf(a.outlet) !== fb) continue;
+    if(ft && a.auditType !== ft) continue;
+    list.push(a);
+  }
+  list.sort(function(x,y){
+    return (y.auditDate||'').localeCompare(x.auditDate||'');
+  });
+
+  /* latest per outlet+type */
+  var latest = {};
+  list.forEach(function(a){
+    var key = a.outlet + '|' + a.auditType;
+    if(!latest[key]) latest[key] = a;
+  });
+
+  var cards = Object.keys(latest).sort().map(function(key){
+    var a = latest[key];
+    var p = Number(a.score) || 0;
+    var g = grade(p);
+    return '<div class="oc ' + g[1] + '">'
+         + '<div class="o">' + a.outlet + '</div>'
+         + '<div class="p ' + g[0] + '">' + p + '%</div>'
+         + '<div class="m">' + a.auditType + ' &middot; ' + fmtDate(a.auditDate) + '</div></div>';
+  }).join('');
+  document.getElementById('cards').innerHTML = cards ||
+    '<div class="empty">No audits match this filter.</div>';
+
+  var rows = list.map(function(a){
+    var p = Number(a.score) || 0;
+    var g = grade(p);
+    return '<tr><td>' + a.outlet + '</td>'
+         + '<td>' + (a.auditor || '\u2014') + '</td>'
+         + '<td>' + a.auditType + '</td>'
+         + '<td>' + fmtDate(a.auditDate) + '</td>'
+         + '<td><span class="pill ' + g[1] + ' ' + g[0] + '">' + p + '%</span></td>'
+         + '<td>' + (a.rawScore || 0) + ' / ' + (a.maxScore || 0) + '</td></tr>';
+  }).join('');
+  document.getElementById('hist').innerHTML = rows
+    ? '<table><thead><tr><th>Outlet</th><th>Auditor</th><th>Type</th><th>Date</th><th>Score</th><th>Points</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    : '<div class="empty">No audits yet.</div>';
+}
+
+/* ── ACCESS MANAGER (Admin only) ──────────────────────────── */
+var PERMS = [
+  ['canAudit',   'Conduct real audits'],
+  ['canPractice','Practice audits'],
+  ['canEdit',    'Edit audit questions'],
+  ['canAccess',  'Manage access']
+];
+
+function renderAccess(){
+  var rows = Object.keys(ROLES).map(function(k){ return [k, ROLES[k]]; })
+    .sort(function(a,b){ return (a[1].order||0) - (b[1].order||0); })
+    .map(function(p){
+      var k = p[0], r = p[1];
+      var locked = (k === 'admin');
+      var perms = PERMS.map(function(q){
+        return '<label style="font-size:12px;color:#5a6b87;margin-right:14px;white-space:nowrap">'
+             + '<input type="checkbox" ' + (r[q[0]] ? 'checked' : '') + ' '
+             + (locked ? 'disabled' : '')
+             + ' onchange="setPerm(\'' + k + '\',\'' + q[0] + '\',this.checked)" /> '
+             + q[1] + '</label>';
+      }).join('');
+      return '<div class="sec"><div class="sec-h">'
+        + '<span style="font-size:20px">' + r.icon + '</span>'
+        + '<span style="flex:1;font-weight:700;color:#1B3A6B">' + r.name
+        +   (locked ? ' <span style="font-size:10px;color:#8a99b3">(cannot be disabled)</span>' : '')
+        + '</span>'
+        + '<label style="font-size:12px;font-weight:700;color:'
+        +   (r.active!==false ? '#1b7f3b' : '#c62828') + '">'
+        +   '<input type="checkbox" ' + (r.active!==false ? 'checked' : '') + ' '
+        +   (locked ? 'disabled' : '')
+        +   ' onchange="setActive(\'' + k + '\',this.checked)" /> '
+        +   (r.active!==false ? 'Enabled' : 'Disabled') + '</label>'
+        + (locked ? '' : '<button class="ib del" onclick="delRole(\'' + k + '\')">&#128465;</button>')
+        + '</div><div style="padding:11px 13px">' + perms + '</div></div>';
+    }).join('');
+  document.getElementById('ac-body').innerHTML = rows;
+}
+
+function saveRoles(){
+  return db.ref('auditRoles').set(ROLES)
+    .then(function(){ renderAccess(); renderRoleTiles(); })
+    .catch(function(e){ toast('Save failed: ' + e.message, true); });
+}
+
+function setPerm(k, perm, val){
+  if(k === 'admin'){ toast('Admin permissions are fixed.', true); renderAccess(); return; }
+  ROLES[k][perm] = val;
+  saveRoles().then(function(){ toast(ROLES[k].name + ' updated'); });
+}
+
+function setActive(k, val){
+  if(k === 'admin'){ toast('Admin cannot be disabled.', true); renderAccess(); return; }
+  ROLES[k].active = val;
+  saveRoles().then(function(){
+    toast(ROLES[k].name + (val ? ' enabled' : ' disabled'));
+  });
+}
+
+function delRole(k){
+  if(k === 'admin'){ toast('Admin cannot be deleted.', true); return; }
+  if(!confirm('Delete the "' + ROLES[k].name + '" role?\n\nAnyone using it will lose access.')) return;
+  var n = ROLES[k].name;
+  delete ROLES[k];
+  db.ref('auditRoles').set(ROLES).then(function(){
+    renderAccess(); renderRoleTiles(); toast(n + ' deleted');
+  });
+}
+
+function addRole(){
+  var el = document.getElementById('nr-name');
+  var name = el.value.trim();
+  if(!name){ toast('Enter a role name.', true); return; }
+  var k = name.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(!k){ toast('Invalid role name.', true); return; }
+  if(ROLES[k]){ toast('That role already exists.', true); return; }
+  var maxO = 0;
+  for(var x in ROLES) if(x !== 'admin') maxO = Math.max(maxO, ROLES[x].order || 0);
+  ROLES[k] = {name:name, icon:'\uD83D\uDC64', order:maxO+1, active:true,
+              canAudit:false, canPractice:false, canEdit:false, canAccess:false};
+  el.value = '';
+  saveRoles().then(function(){ toast(name + ' added \u2014 view only by default'); });
+}
+
+/* ── PRACTICE AUDITS (separate node — never mixed with real) ── */
+function loadPractice(){
+  db.ref('auditsPractice').on('value', function(snap){
+    var P = snap.val() || {};
+    var list = [];
+    for(var k in P) list.push(P[k]);
+    list.sort(function(x,y){
+      return (y.submittedAt||'').localeCompare(x.submittedAt||'');
+    });
+    var rows = list.map(function(a){
+      var p = Number(a.score)||0, g = grade(p);
+      return '<tr><td>' + (a.outlet||'\u2014') + '</td>'
+           + '<td>' + (a.auditor||'\u2014') + '</td>'
+           + '<td>' + (a.auditType||'\u2014') + '</td>'
+           + '<td>' + fmtDate(a.auditDate) + '</td>'
+           + '<td><span class="pill ' + g[1] + ' ' + g[0] + '">' + p + '%</span></td>'
+           + '<td>' + (a.rawScore||0) + ' / ' + (a.maxScore||0) + '</td></tr>';
+    }).join('');
+    document.getElementById('prac').innerHTML = rows
+      ? '<table><thead><tr><th>Outlet</th><th>Trainee</th><th>Type</th><th>Date</th><th>Score</th><th>Points</th></tr></thead><tbody>' + rows + '</tbody></table>'
+      : '<div class="empty">No practice audits yet.</div>';
+  });
+}
+
+/* ── EDITOR ───────────────────────────────────────────────── */
+function loadTemplateList(){
+  db.ref('auditTemplates').once('value').then(function(snap){
+    TPLS = snap.val() || {};
+    document.getElementById('e-tpl').innerHTML = '<option value="">Select audit...</option>'
+      + Object.keys(TPLS).sort().map(function(k){
+          return '<option value="' + k + '">'
+               + ((TPLS[k].meta && TPLS[k].meta.name) || k) + '</option>';
+        }).join('');
+  });
+}
+
+function setDirty(v){
+  DIRTY = v;
+  document.getElementById('dirty').style.display = v ? 'block' : 'none';
+  document.getElementById('pub').disabled = !v;
+}
+
+function loadEditor(key){
+  if(DIRTY && !confirm('Discard unsaved changes?')){
+    document.getElementById('e-tpl').value = EKEY; return;
+  }
+  EKEY = key;
+  setDirty(false);
+  if(!key){
+    EDIT = null;
+    document.getElementById('e-body').innerHTML = '<div class="empty">Select an audit to edit.</div>';
+    document.getElementById('e-max').textContent = '';
+    return;
+  }
+  EDIT = JSON.parse(JSON.stringify(TPLS[key]));
+  renderEditor();
+}
+
+function itemsOf(sid){
+  var out = [];
+  for(var id in (EDIT.items || {})){
+    if(EDIT.items[id].section === sid) out.push([id, EDIT.items[id]]);
+  }
+  out.sort(function(a,b){ return (a[1].order||0) - (b[1].order||0); });
+  return out;
+}
+
+function calcMax(){
+  var m = 0;
+  for(var id in (EDIT.items||{})){
+    if(EDIT.items[id].active !== false) m += Number(EDIT.items[id].weight) || 0;
+  }
+  return m;
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderEditor(){
+  var secs = Object.keys(EDIT.sections || {}).map(function(sid){
+    return [sid, EDIT.sections[sid]];
+  }).sort(function(a,b){ return (a[1].order||0) - (b[1].order||0); });
+
+  var html = secs.map(function(pair){
+    var sid = pair[0], s = pair[1];
+    var items = itemsOf(sid);
+    var live = items.filter(function(p){ return p[1].active !== false; });
+    var pts = live.reduce(function(a,p){ return a + (Number(p[1].weight)||0); }, 0);
+
+    var rows = items.map(function(p, idx){
+      var id = p[0], it = p[1];
+      var off = it.active === false;
+      return '<div class="it' + (off ? ' off' : '') + '">'
+        + '<div style="display:flex;flex-direction:column;gap:3px">'
+        +   '<button class="ib" onclick="move(\'' + id + '\',-1)" title="Up">&#9650;</button>'
+        +   '<button class="ib" onclick="move(\'' + id + '\',1)" title="Down">&#9660;</button>'
+        + '</div>'
+        + '<div class="it-b">'
+        +   '<input value="' + esc(it.label) + '" placeholder="Item name"'
+        +     ' oninput="upd(\'' + id + '\',\'label\',this.value)" ' + (off?'disabled':'') + ' />'
+        +   '<textarea placeholder="What is being checked"'
+        +     ' oninput="upd(\'' + id + '\',\'desc\',this.value)" ' + (off?'disabled':'') + '>'
+        +     esc(it.desc) + '</textarea>'
+        + '</div>'
+        + '<select class="w" onchange="upd(\'' + id + '\',\'weight\',this.value)" ' + (off?'disabled':'') + '>'
+        +   [1,2,3,5].map(function(w){
+              return '<option' + (Number(it.weight)===w?' selected':'') + '>' + w + '</option>';
+            }).join('')
+        + '</select>'
+        + '<button class="ib del" onclick="retire(\'' + id + '\')" title="'
+        +   (off?'Restore':'Retire') + '">' + (off ? '&#8635;' : '&#128465;') + '</button>'
+        + '</div>';
+    }).join('');
+
+    return '<div class="sec">'
+      + '<div class="sec-h">'
+      +   '<input value="' + esc(s.title) + '" oninput="updSec(\'' + sid + '\',this.value)" />'
+      +   '<span class="cnt">' + live.length + ' items &middot; ' + pts + ' pts</span>'
+      +   '<button class="ib" onclick="addItem(\'' + sid + '\')">+ Item</button>'
+      + '</div>' + rows + '</div>';
+  }).join('');
+
+  document.getElementById('e-body').innerHTML = html ||
+    '<div class="empty">This audit has no sections yet. Click + Section.</div>';
+  document.getElementById('e-max').textContent = 'Max score: ' + calcMax();
+}
+
+function upd(id, field, val){
+  if(field === 'weight') val = Number(val);
+  EDIT.items[id][field] = val;
+  setDirty(true);
+  if(field === 'weight') renderEditor();
+}
+function updSec(sid, val){ EDIT.sections[sid].title = val; setDirty(true); }
+
+function move(id, dir){
+  var sid = EDIT.items[id].section;
+  var items = itemsOf(sid);
+  var i = items.findIndex(function(p){ return p[0] === id; });
+  var j = i + dir;
+  if(j < 0 || j >= items.length) return;
+  var a = items[i][1], b = items[j][1];
+  var t = a.order; a.order = b.order; b.order = t;
+  setDirty(true); renderEditor();
+}
+
+function retire(id){
+  var it = EDIT.items[id];
+  if(it.active === false){ it.active = true; }
+  else {
+    if(!confirm('Retire "' + it.label + '"?\n\nIt disappears from new audits, but past audits keep their scores.')) return;
+    it.active = false;
+  }
+  setDirty(true); renderEditor();
+}
+
+function newId(){
+  return 'i_' + Math.random().toString(16).slice(2,12);
+}
+
+function addItem(sid){
+  var items = itemsOf(sid);
+  var maxOrder = items.reduce(function(m,p){ return Math.max(m, p[1].order||0); }, 0);
+  EDIT.items[newId()] = {section:sid, order:maxOrder+1, label:'New item',
+    desc:'', weight:1, allowNA:true, active:true};
+  setDirty(true); renderEditor();
+}
+
+function addSection(){
+  if(!EDIT){ toast('Select an audit first.', true); return; }
+  var n = 1;
+  while(EDIT.sections['s' + n]) n++;
+  var maxOrder = 0;
+  for(var k in EDIT.sections) maxOrder = Math.max(maxOrder, EDIT.sections[k].order||0);
+  EDIT.sections['s' + n] = {title:'New section', order:maxOrder+1};
+  setDirty(true); renderEditor();
+}
+
+function publish(){
+  if(!EDIT || !EKEY) return;
+  EDIT.meta.maxScore = calcMax();
+  EDIT.meta.version  = (Number(EDIT.meta.version) || 1) + 1;
+  EDIT.meta.editedBy = USER;
+  EDIT.meta.editedAt = new Date().toISOString();
+
+  document.getElementById('pub').disabled = true;
+  document.getElementById('pub').textContent = 'Publishing...';
+
+  db.ref('auditTemplates/' + EKEY).set(EDIT).then(function(){
+    TPLS[EKEY] = JSON.parse(JSON.stringify(EDIT));
+    setDirty(false);
+    document.getElementById('pub').textContent = 'Publish';
+    toast('Published \u2014 live on every device. Max score: ' + EDIT.meta.maxScore);
+  }).catch(function(e){
+    document.getElementById('pub').disabled = false;
+    document.getElementById('pub').textContent = 'Publish';
+    toast('Publish failed: ' + e.message, true);
+  });
+}
+
+window.addEventListener('beforeunload', function(e){
+  if(DIRTY){ e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
