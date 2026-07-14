@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="20260714200000">
+<meta name="app-version" content="20260714220000">
 <title>Culex Audit Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -156,9 +158,14 @@ tr.clk{cursor:pointer}
     </div>
 
     <div class="lbl">Scores by outlet &mdash; latest audit</div>
-    <div class="grid" id="cards"><div class="empty">Loading...</div></div>
+    <div class="grid" id="cards" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))"><div class="empty">Loading...</div></div>
 
-    <div class="lbl">Audit history</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span class="lbl" style="margin:0">Audit history</span>
+      <button class="btn hide" id="delbtn" onclick="delSelected()"
+        style="margin-left:auto;border-color:#c62828;color:#c62828;padding:6px 13px">
+        Delete selected (<span id="delcnt">0</span>)</button>
+    </div>
     <div id="hist"><div class="empty">Loading...</div></div>
   </div>
 
@@ -228,6 +235,7 @@ var DEFAULT_ROLES = {
 var ROLES = {};
 
 var ROLE='', USER='', AUDITS={}, TPLS={}, EDIT=null, EKEY='', DIRTY=false;
+var CAN_DELETE=false, SEL={};
 
 function toast(m,bad){
   var t=document.getElementById('toast');
@@ -298,6 +306,7 @@ function doLogin(){
   document.getElementById('t-ac').classList.toggle('hide',  !R.canAccess);
   document.getElementById('t-pr').classList.toggle('hide',  !(R.canPractice || R.canEdit));
   document.getElementById('newbtn').classList.toggle('hide',   !R.canAudit);
+  CAN_DELETE = !!R.canEdit;
   document.getElementById('practbtn').classList.toggle('hide', !R.canPractice);
   document.getElementById('ro').classList.toggle('hide', R.canAudit || R.canPractice);
 
@@ -388,14 +397,32 @@ function renderOverview(){
     if(!latest[key]) latest[key] = a;
   });
 
-  var cards = Object.keys(latest).sort().map(function(key){
-    var a = latest[key];
-    var p = Number(a.score) || 0;
-    var g = grade(p);
-    return '<div class="oc ' + g[1] + '">'
-         + '<div class="o">' + a.outlet + '</div>'
-         + '<div class="p ' + g[0] + '">' + p + '%</div>'
-         + '<div class="m">' + a.auditType + ' &middot; ' + fmtDate(a.auditDate) + '</div></div>';
+  /* one card per outlet — BOH and FOH side by side */
+  var byOutlet = {};
+  for(var lk in latest){
+    var la = latest[lk];
+    if(!byOutlet[la.outlet]) byOutlet[la.outlet] = {};
+    byOutlet[la.outlet][la.auditType] = la;
+  }
+
+  var cards = Object.keys(byOutlet).sort().map(function(o){
+    var t = byOutlet[o];
+    var half = ['BOH','FOH'].map(function(ty){
+      var a = t[ty];
+      if(!a) return '<div style="flex:1"><div class="m">' + ty + '</div>'
+                   + '<div class="p n" style="font-size:19px">\u2014</div></div>';
+      var p = Number(a.score)||0, g = grade(p);
+      return '<div style="flex:1;cursor:pointer" onclick="openRpt(\''
+           + a.outlet.replace(/[^a-zA-Z0-9]/g,'_') + '_' + a.auditType + '_'
+           + (a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_') + '\')">'
+           + '<div class="m">' + ty + '</div>'
+           + '<div class="p ' + g[0] + '" style="font-size:21px">' + p + '%</div>'
+           + '<div class="m" style="margin-top:2px">' + fmtDate(a.auditDate) + '</div></div>';
+    }).join('<div style="width:1px;background:#e4e8ef;margin:0 8px"></div>');
+
+    return '<div class="oc" style="min-width:190px">'
+         + '<div class="o" style="margin-bottom:8px">' + o + '</div>'
+         + '<div style="display:flex">' + half + '</div></div>';
   }).join('');
   document.getElementById('cards').innerHTML = cards ||
     '<div class="empty">No audits match this filter.</div>';
@@ -405,7 +432,11 @@ function renderOverview(){
     var g = grade(p);
     var rk = a.outlet.replace(/[^a-zA-Z0-9]/g,'_') + '_' + a.auditType + '_'
            + (a.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
-    return '<tr class="clk" onclick="openRpt(\'' + rk + '\')"><td>' + a.outlet + '</td>'
+    var cb = CAN_DELETE
+      ? '<td onclick="event.stopPropagation()" style="width:28px"><input type="checkbox" '
+        + (SEL[rk]?'checked':'') + ' onchange="selRow(\'' + rk + '\',this.checked)" /></td>'
+      : '';
+    return '<tr class="clk" onclick="openRpt(\'' + rk + '\')">' + cb + '<td>' + a.outlet + '</td>'
          + '<td>' + (a.auditor || '\u2014') + '</td>'
          + '<td>' + a.auditType + '</td>'
          + '<td>' + fmtDate(a.auditDate) + '</td>'
@@ -414,8 +445,47 @@ function renderOverview(){
          + '<td style="color:#1B3A6B;font-weight:700">Open &rsaquo;</td></tr>';
   }).join('');
   document.getElementById('hist').innerHTML = rows
-    ? '<table><thead><tr><th>Outlet</th><th>Auditor</th><th>Type</th><th>Date</th><th>Score</th><th>Points</th><th>Report</th></tr></thead><tbody>' + rows + '</tbody></table>'
+    ? '<table><thead><tr>' + (CAN_DELETE?'<th></th>':'')
+      + '<th>Outlet</th><th>Auditor</th><th>Type</th><th>Date</th><th>Score</th><th>Points</th><th>Report</th></tr></thead><tbody>'
+      + rows + '</tbody></table>'
     : '<div class="empty">No audits yet.</div>';
+}
+
+/* ── DELETE AUDITS (Admin only) ───────────────────────────── */
+function selRow(k, on){
+  if(on) SEL[k] = 1; else delete SEL[k];
+  var n = Object.keys(SEL).length;
+  document.getElementById('delcnt').textContent = n;
+  document.getElementById('delbtn').classList.toggle('hide', n === 0 || !CAN_DELETE);
+}
+
+function delSelected(){
+  var keys = Object.keys(SEL);
+  if(!keys.length) return;
+
+  var names = keys.map(function(k){
+    var a = AUDITS[k];
+    return a ? ('\u2022 ' + a.outlet + ' ' + a.auditType + ' \u2014 ' + fmtDate(a.auditDate)
+              + ' (' + (a.score||0) + '%)') : k;
+  }).join('\n');
+
+  if(!confirm('Permanently delete ' + keys.length + ' audit(s)?\n\n' + names
+    + '\n\nThis cannot be undone. Take a backup first if you are unsure.')) return;
+
+  var ops = {};
+  keys.forEach(function(k){
+    ops['audits/' + k] = null;
+    ops['auditPhotos/' + k] = null;
+  });
+
+  db.ref().update(ops).then(function(){
+    SEL = {};
+    document.getElementById('delcnt').textContent = '0';
+    document.getElementById('delbtn').classList.add('hide');
+    toast(keys.length + ' audit(s) deleted');
+  }).catch(function(e){
+    toast('Delete failed: ' + e.message, true);
+  });
 }
 
 /* ── FULL AUDIT REPORT ────────────────────────────────────── */
@@ -437,11 +507,17 @@ function openRpt(key){
   }).catch(function(){ renderRpt(key, a, {}); });
 }
 
+var RPT = null;
 function renderRpt(key, a, photos){
+  RPT = {key:key, a:a, photos:photos};
   var p = Number(a.score)||0, g = grade(p);
   var head = '<button class="rpt-x" onclick="closeRpt()">&times;</button>'
     + '<h3>' + a.outlet + ' &mdash; ' + a.auditType + ' Audit</h3>'
     + '<div class="rsub">' + fmtDate(a.auditDate) + ' &middot; ' + (a.auditor||'\u2014') + '</div>'
+    + '<div style="display:flex;gap:7px;margin-bottom:15px">'
+    +   '<button class="btn" onclick="rptPDF()">Export PDF</button>'
+    +   '<button class="btn" onclick="rptXLS()">Export Excel</button>'
+    + '</div>'
     + '<div class="rsum">'
     +   '<div><div class="l">Score</div><div class="v ' + g[0] + '">' + p + '%</div></div>'
     +   '<div><div class="l">Points</div><div class="v">' + (a.rawScore||0) + ' / ' + (a.maxScore||0) + '</div></div>'
@@ -499,6 +575,153 @@ function renderRpt(key, a, photos){
     : '';
 
   document.getElementById('rpt').innerHTML = head + warn + body;
+}
+
+/* ── REPORT EXPORT ────────────────────────────────────────── */
+function GR(p){
+  if(p>=95) return ['S','Outstanding','#1a237e'];
+  if(p>=90) return ['A','Excellent','#1b5e20'];
+  if(p>=80) return ['B','Good','#33691e'];
+  if(p>=70) return ['C','Satisfactory','#e65100'];
+  if(p>=50) return ['D','Conditional','#bf360c'];
+  return ['F','Unsatisfactory','#7f0000'];
+}
+function rgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+
+function rptPDF(){
+  if(!RPT){ return; }
+  if(typeof window.jspdf === 'undefined'){ toast('PDF library not loaded.', true); return; }
+  var a = RPT.a, photos = RPT.photos || {};
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  var W = 210, M = 14, y = 0;
+  var pct = Number(a.score)||0;
+  var g = GR(pct);
+
+  doc.setFillColor(27,58,107); doc.rect(0,0,W,30,'F');
+  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+  doc.text(a.outlet + ' \u2014 ' + a.auditType + ' Audit', M, 13);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Culex Hospitality Operations', M, 20);
+  doc.text(fmtDate(a.auditDate) + '   |   Auditor: ' + (a.auditor||'\u2014'), M, 26);
+
+  var c = rgb(g[2]);
+  doc.setFillColor(c[0],c[1],c[2]); doc.roundedRect(W-M-38,7,38,17,2,2,'F');
+  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(17);
+  doc.text(pct + '%', W-M-19, 15, {align:'center'});
+  doc.setFontSize(8);
+  doc.text(g[0] + ' \u00b7 ' + g[1], W-M-19, 21, {align:'center'});
+
+  y = 40;
+  doc.setTextColor(50); doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text('Score: ' + (a.rawScore||0) + ' / ' + (a.maxScore||0) + ' points', M, y);
+  y += 9;
+
+  var secs = a.sectionBreakdown;
+  if(!secs || !secs.length){
+    doc.setFontSize(10); doc.setTextColor(150);
+    doc.text('No detailed breakdown available for this audit.', M, y);
+    doc.save('Audit_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_' + a.auditDate + '.pdf');
+    return;
+  }
+
+  function page(need){
+    if(y + need > 280){ doc.addPage(); y = 18; }
+  }
+
+  secs.forEach(function(s){
+    page(16);
+    var sp = s.max > 0 ? Math.round(s.earned/s.max*100) : 0;
+    doc.setFillColor(240,243,248); doc.rect(M,y-4,W-2*M,8,'F');
+    doc.setTextColor(27,58,107); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text(s.title, M+2, y+1.5);
+    doc.text(s.earned + '/' + s.max + '  (' + sp + '%)', W-M-2, y+1.5, {align:'right'});
+    y += 10;
+
+    (s.items||[]).forEach(function(it){
+      page(12);
+      var st = it.status||'';
+      var col = st==='pass' ? [27,127,59] : st==='fail' ? [198,40,40] : [150,150,150];
+      var lbl = st==='pass' ? 'PASS' : st==='fail' ? 'FAIL' : st==='na' ? 'N/A' : '\u2014';
+      doc.setFillColor(col[0],col[1],col[2]);
+      doc.roundedRect(M,y-3.2,11,4.6,1,1,'F');
+      doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(6);
+      doc.text(lbl, M+5.5, y, {align:'center'});
+
+      doc.setTextColor(40); doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
+      var t = doc.splitTextToSize(it.n + '. ' + (it.label||'') + '  (' + (it.maxScore||0) + ' pts)', W-2*M-16);
+      doc.text(t, M+14, y);
+      y += t.length * 3.9;
+
+      if(it.comment){
+        doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(110);
+        var cm = doc.splitTextToSize(it.comment, W-2*M-16);
+        page(cm.length*3.4 + 3);
+        doc.text(cm, M+14, y); y += cm.length*3.4;
+      }
+      if(it.correctiveAction){
+        doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(198,40,40);
+        var ca = 'Corrective: ' + it.correctiveAction
+               + (it.responsible ? '  \u2014 ' + it.responsible : '')
+               + (it.deadline ? '  (by ' + it.deadline + ')' : '');
+        var cl = doc.splitTextToSize(ca, W-2*M-16);
+        page(cl.length*3.4 + 3);
+        doc.text(cl, M+14, y); y += cl.length*3.4;
+      }
+
+      var pk = Object.keys(photos).filter(function(x){
+        return x.indexOf('_'+s.id+'_'+it.n+'_') > -1 || x.indexOf(s.id+'_'+it.n+'_') === 0;
+      });
+      if(pk.length){
+        page(30);
+        var px = M+14;
+        pk.slice(0,4).forEach(function(k){
+          try{
+            doc.addImage(photos[k], 'JPEG', px, y+1, 24, 24);
+            px += 26;
+          }catch(e){}
+        });
+        y += 27;
+      }
+      y += 2.5;
+    });
+    y += 3;
+  });
+
+  var n = doc.internal.getNumberOfPages();
+  for(var i=1;i<=n;i++){
+    doc.setPage(i);
+    doc.setFontSize(7); doc.setTextColor(160);
+    doc.text('Culex Hospitality \u00b7 ' + a.outlet + ' ' + a.auditType + ' \u00b7 ' + a.auditDate,
+             M, 291);
+    doc.text('Page ' + i + ' of ' + n, W-M, 291, {align:'right'});
+  }
+  doc.save('Audit_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_' + a.auditDate + '.pdf');
+  toast('PDF exported');
+}
+
+function rptXLS(){
+  if(!RPT || typeof XLSX === 'undefined'){ toast('Excel library not loaded.', true); return; }
+  var a = RPT.a;
+  var rows = [['Outlet',a.outlet],['Type',a.auditType],['Date',a.auditDate],
+              ['Auditor',a.auditor||''],['Score',(a.score||0)+'%'],
+              ['Points',(a.rawScore||0)+' / '+(a.maxScore||0)],[]];
+  if(a.sectionBreakdown && a.sectionBreakdown.length){
+    rows.push(['Section','#','Item','Max','Status','Observation','Corrective action','Responsible','Deadline']);
+    a.sectionBreakdown.forEach(function(s){
+      (s.items||[]).forEach(function(it){
+        rows.push([s.title, it.n, it.label||'', it.maxScore||0,
+                   (it.status||'').toUpperCase(), it.comment||'',
+                   it.correctiveAction||'', it.responsible||'', it.deadline||'']);
+      });
+    });
+  } else {
+    rows.push(['No detailed breakdown available for this audit.']);
+  }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Audit');
+  XLSX.writeFile(wb, 'Audit_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_' + a.auditDate + '.xlsx');
+  toast('Excel exported');
 }
 
 /* ── ACCESS MANAGER (Admin only) ──────────────────────────── */

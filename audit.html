@@ -640,7 +640,8 @@ function exportExcel(){
   caSheet['!cols']=[{wch:4},{wch:25},{wch:6},{wch:28},{wch:35},{wch:45},{wch:20},{wch:14},{wch:10}];
   XLSX.utils.book_append_sheet(wb, caSheet, 'Corrective Actions');
 
-  XLSX.writeFile(wb,'LittleBangkok_BOH_Audit'+(ds?'_'+ds:'')+os+'.xlsx');
+  const fnBase=(TEMPLATES[TEMPLATE_KEY]&&TEMPLATES[TEMPLATE_KEY].meta.name||'Culex_Audit').replace(/[^a-zA-Z0-9]+/g,'_').replace(/^_|_$/g,'');
+  XLSX.writeFile(wb,fnBase+(ds?'_'+ds:'')+os+'.xlsx');
   showToast('✔ Excel downloaded!','#2e7d32');
 }
 
