@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Culex Data Recovery</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;background:#1B3A6B;padding:16px;color:#111;min-height:100vh}
+.card{max-width:760px;margin:0 auto;background:#fff;border-radius:14px;padding:22px;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+h1{font-size:20px;color:#1B3A6B;margin-bottom:6px}
+.sub{font-size:12px;color:#7a8699;margin-bottom:18px}
+.warn{background:#fff6e5;border:1px solid #ffd98a;border-radius:8px;padding:11px 13px;font-size:12px;color:#7a5900;margin-bottom:18px;line-height:1.6}
+.warn b{display:block;margin-bottom:3px}
+.found{border:1px solid #e4e8ef;border-radius:10px;padding:0;margin-bottom:16px;overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid #eef1f6;font-size:13px}
+.row:last-child{border-bottom:0}
+.row .k{flex:1;font-family:monospace;font-size:12px;color:#33415c;word-break:break-all}
+.row .sz{font-size:11px;color:#8a99b3;white-space:nowrap;font-weight:700}
+.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.hot{background:#e8f5ec;color:#1b7f3b}
+.mid{background:#eef3fb;color:#1B3A6B}
+.empty{padding:28px;text-align:center;color:#8a99b3;font-size:13px}
+button{padding:12px 20px;border:0;border-radius:8px;background:#1B3A6B;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:8px;margin-bottom:8px}
+button:hover{background:#2E5FA3}
+button.alt{background:#fff;color:#1B3A6B;border:1.5px solid #1B3A6B}
+.stat{font-size:13px;padding:11px 13px;border-radius:8px;margin-bottom:16px;font-weight:700}
+.ok{background:#e8f5ec;color:#1b7f3b}
+.no{background:#fdecec;color:#c62828}
+pre{background:#f6f8fc;border:1px solid #e4e8ef;border-radius:8px;padding:12px;font-size:11px;max-height:260px;overflow:auto;margin-top:14px;white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Culex Data Recovery</h1>
+  <div class="sub">Reads Culex data stored on THIS device and exports it to a file.</div>
+
+  <div class="warn">
+    <b>Run this on every device that used the system</b>
+    Each phone and laptop stores its own copy. Run it on every device that ever submitted an audit or a checklist &mdash; each one may hold different data. Do not clear browser data before running this.
+  </div>
+
+  <div id="status"></div>
+  <div id="list" class="found"><div class="empty">Scanning...</div></div>
+
+  <button onclick="downloadAll()">Download everything found</button>
+  <button class="alt" onclick="togglePeek()">Show raw data</button>
+
+  <pre id="peek" style="display:none"></pre>
+</div>
+
+<script>
+var FOUND = {};
+var TOTAL = 0;
+
+function human(n){
+  if(n < 1024) return n + ' B';
+  if(n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
+}
+
+function classify(k){
+  var s = k.toLowerCase();
+  if(s.indexOf('kic_shared_db') > -1) return ['hot','AUDITS + SUBMISSIONS'];
+  if(s.indexOf('audit') > -1)         return ['hot','AUDIT DRAFT'];
+  if(s.indexOf('checklist') > -1)     return ['hot','CHECKLIST'];
+  if(s.indexOf('culex') > -1)         return ['mid','CULEX'];
+  if(s.indexOf('incentive') > -1)     return ['hot','INCENTIVE'];
+  if(s.indexOf('exam') > -1 || s.indexOf('quiz') > -1) return ['hot','EXAM'];
+  if(s.indexOf('registry') > -1)      return ['mid','REGISTRY'];
+  if(s.indexOf('kic') > -1 || s.indexOf('oic') > -1)   return ['mid','ROLE DATA'];
+  return null;
+}
+
+function scan(){
+  var list = document.getElementById('list');
+  var rows = '';
+  for(var i = 0; i < localStorage.length; i++){
+    var k = localStorage.key(i);
+    var c = classify(k);
+    if(!c) continue;
+    var v = localStorage.getItem(k) || '';
+    FOUND[k] = v;
+    TOTAL += v.length;
+    rows += '<div class="row"><span class="tag ' + c[0] + '">' + c[1] + '</span>'
+          + '<span class="k">' + k + '</span>'
+          + '<span class="sz">' + human(v.length) + '</span></div>';
+  }
+  var n = Object.keys(FOUND).length;
+  var st = document.getElementById('status');
+  if(n === 0){
+    st.innerHTML = '<div class="stat no">Nothing found on this device. Try another phone or laptop that submitted audits.</div>';
+    list.innerHTML = '<div class="empty">No Culex data in this browser.</div>';
+  } else {
+    st.innerHTML = '<div class="stat ok">Found ' + n + ' item(s) &mdash; ' + human(TOTAL) + ' of recoverable data.</div>';
+    list.innerHTML = rows;
+  }
+}
+
+function downloadAll(){
+  if(!Object.keys(FOUND).length){ alert('Nothing to download on this device.'); return; }
+  var out = {
+    recoveredAt: new Date().toISOString(),
+    device: navigator.userAgent,
+    url: location.href,
+    data: FOUND
+  };
+  var blob = new Blob([JSON.stringify(out, null, 1)], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'culex-recovery-' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.json';
+  a.click();
+}
+
+function togglePeek(){
+  var p = document.getElementById('peek');
+  if(p.style.display === 'none'){
+    p.style.display = 'block';
+    p.textContent = JSON.stringify(FOUND, null, 1).slice(0, 20000);
+  } else {
+    p.style.display = 'none';
+  }
+}
+
+scan();
+</script>
+</body>
+</html>
