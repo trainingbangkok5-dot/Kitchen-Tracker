@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="20260715020000">
+<meta name="app-version" content="20260715030000">
 <title>Culex Audit Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -85,65 +85,70 @@ tr:hover td{background:#f8fafd}
 .ib:hover{background:#f1f4f9}
 .ib.del:hover{background:#fdecec;color:#c62828;border-color:#f0b8b8}
 .hide{display:none}
-.ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:150;padding:20px;overflow:auto}
+.ovl{display:none;position:fixed;inset:0;background:rgba(12,26,48,.65);z-index:150;padding:24px 16px;overflow:auto}
 .ovl.open{display:block}
-.rpt{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;padding:24px}
-.rpt-x{float:right;background:none;border:0;font-size:24px;cursor:pointer;color:#8a99b3;font-weight:700}
-.rpt h3{font-size:18px;color:#1B3A6B;margin-bottom:3px}
-.rhd{background:#1B3A6B;color:#fff;border-radius:11px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.rhd h3{color:#fff;margin:0;font-size:17px}
-.rhd .acts{display:flex;gap:7px}
-.rhd button{border:0;border-radius:7px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#fff}
-.b-pdf{background:#2e7d32}.b-del{background:#c62828}.b-cls{background:#5a6b87}
-.rmeta{background:#f6f8fc;border-radius:9px;padding:11px 14px;font-size:13px;color:#33415c;margin-bottom:14px}
-.rmeta b{color:#1B3A6B}
-.rst{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
-.rst>div{flex:1;min-width:130px;border:1px solid #e4e8ef;border-radius:11px;padding:13px;text-align:center}
-.rst .l{font-size:10px;color:#8a99b3;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
-.rst .v{font-size:26px;font-weight:700;margin:3px 0}
+.rpt{max-width:900px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.3)}
+.rpt-in{padding:0 26px 26px}
+
+.rhd{background:#1B3A6B;color:#fff;padding:20px 26px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rhd h3{color:#fff;margin:0;font-size:18px;font-weight:700;letter-spacing:.2px}
+.rhd .rsb{font-size:11px;color:#9db4d6;margin-top:3px;font-weight:700;letter-spacing:.4px}
+.rhd .acts{display:flex;gap:8px}
+.rhd button{border:0;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#fff;transition:.12s}
+.rhd button:hover{transform:translateY(-1px)}
+.b-pdf{background:#2e7d32}.b-pdf:hover{background:#1b5e20}
+.b-del{background:#c62828}.b-del:hover{background:#8e0000}
+.b-cls{background:rgba(255,255,255,.16)}.b-cls:hover{background:rgba(255,255,255,.28)}
+
+.rmeta{display:flex;gap:0;background:#f7f9fc;border-bottom:1px solid #e8ecf3;padding:15px 26px;flex-wrap:wrap}
+.rmeta>div{flex:1;min-width:120px}
+.rmeta .k{font-size:9px;color:#9aa7bd;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px}
+.rmeta .v{font-size:13px;color:#1f2937;font-weight:700}
+
+.rst{display:flex;gap:12px;padding:22px 0 6px;flex-wrap:wrap}
+.rst>div{flex:1;min-width:145px;border:1px solid #e8ecf3;border-radius:12px;padding:16px;text-align:center;background:#fff}
+.rst .l{font-size:9px;color:#9aa7bd;font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+.rst .v{font-size:30px;font-weight:700;margin:6px 0 2px;line-height:1}
 .rst .s{font-size:11px;font-weight:700}
-.rbar{background:#1B3A6B;color:#fff;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:700;margin-bottom:12px}
-.rsc{border-radius:10px 10px 0 0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700}
-.rsc .pp{font-size:12px;padding:3px 10px;border-radius:6px}
-.rtrk{height:5px;background:#e4e8ef;border-radius:0 0 3px 3px;overflow:hidden;margin-bottom:10px}
-.rtrk div{height:100%}
-.rit{display:flex;gap:11px;padding:11px 13px;border-radius:9px;margin-bottom:6px;align-items:flex-start}
-.rit.p{background:#f4fbf6;border-left:4px solid #2e7d32}
-.rit.f{background:#fdf1f1;border-left:4px solid #c62828}
-.rit.na{background:#f7f8fa;border-left:4px solid #b8c2d4}
-.rit .rn{font-size:11px;color:#9aa7bd;font-weight:700;min-width:18px;padding-top:2px}
+
+.rbar{display:flex;align-items:center;gap:9px;margin:24px 0 14px;padding-bottom:10px;border-bottom:2px solid #eef1f6}
+.rbar span{font-size:12px;font-weight:700;color:#1B3A6B;text-transform:uppercase;letter-spacing:.8px}
+.rbar em{margin-left:auto;font-style:normal;font-size:11px;color:#9aa7bd;font-weight:700}
+
+.rgrp{margin-bottom:22px;border:1px solid #e8ecf3;border-radius:12px;overflow:hidden}
+.rsc{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rsc .nm{font-size:14px;font-weight:700;color:#1f2937}
+.rsc .pp{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:#fff;white-space:nowrap}
+.rtrk{height:4px;background:#e8ecf3}
+.rtrk div{height:100%;transition:width .4s}
+
+.rit{display:flex;gap:13px;padding:14px 16px;border-top:1px solid #f2f5f9;align-items:flex-start}
+.rit.f{background:#fffafa}
+.rit.na{background:#fbfcfd}
+.rit .rn{font-size:11px;color:#b8c2d4;font-weight:700;min-width:20px;padding-top:3px}
 .rit .rb{flex:1;min-width:0}
-.rit .rt{font-size:13px;font-weight:700;color:#1f2937;margin-bottom:3px}
-.rit .rmx{font-size:10px;background:#eef1f6;color:#5a6b87;border-radius:4px;padding:2px 7px;font-weight:700;margin-left:6px}
-.rit .rd{font-size:12px;color:#6b7a94;line-height:1.5}
-.rit .rc{font-size:12px;color:#33415c;margin-top:4px}
-.rit .rca{font-size:12px;color:#c62828;font-weight:700;margin-top:4px}
-.rit .rr{text-align:right;flex-shrink:0}
-.rit .rbg{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap}
-.rit .rsm{font-size:11px;color:#9aa7bd;font-weight:700;margin-top:3px}
-.rpt .rsub{font-size:12px;color:#8a99b3;font-weight:700;margin-bottom:16px}
-.rsum{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.rsum div{flex:1;min-width:110px;border:1px solid #e4e8ef;border-radius:9px;padding:11px}
-.rsum .l{font-size:10px;color:#8a99b3;font-weight:700;text-transform:uppercase;margin-bottom:3px}
-.rsum .v{font-size:20px;font-weight:700;color:#1B3A6B}
-.rsec{border:1px solid #e4e8ef;border-radius:9px;margin-bottom:9px;overflow:hidden}
-.rsec-h{background:#f6f8fc;padding:9px 12px;display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:#1B3A6B}
-.ri{padding:8px 12px;border-top:1px solid #f2f5f9;font-size:12px;display:flex;gap:9px;align-items:flex-start}
-.st{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
-.st.p{background:#e8f5ec;color:#1b7f3b}
-.st.f{background:#fdecec;color:#c62828}
-.st.na{background:#f1f4f9;color:#8a99b3}
-.ri-b{flex:1;min-width:0}
-.ri-n{font-weight:700;color:#33415c}
-.ri-c{color:#6b7a94;margin-top:2px}
-.ri-ca{color:#c62828;margin-top:3px;font-weight:700}
-.rph{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.rph img{width:64px;height:64px;object-fit:cover;border-radius:5px;border:1px solid #dfe4ec;cursor:pointer}
-.nodet{background:#fff6e5;border:1px solid #ffd98a;border-radius:9px;padding:12px 14px;font-size:12px;color:#7a5900;line-height:1.6}
-.lbx{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;align-items:center;justify-content:center}
+.rit .rt{font-size:13.5px;font-weight:700;color:#1f2937;margin-bottom:5px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rit .rmx{font-size:10px;background:#eef1f6;color:#7a8699;border-radius:20px;padding:2px 9px;font-weight:700}
+.rit .rd{font-size:12.5px;color:#7a8699;line-height:1.6}
+.rit .rc{font-size:12.5px;color:#33415c;margin-top:7px;padding:7px 11px;background:#f4f7fb;border-radius:7px;line-height:1.5}
+.rit .rca{font-size:12.5px;color:#a01f1f;margin-top:7px;padding:8px 11px;background:#fdeeee;border-radius:7px;line-height:1.5;font-weight:700}
+.rit .rca b{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:#c62828;margin-bottom:2px}
+.rit .rr{flex-shrink:0;text-align:right}
+.rit .rbg{font-size:10px;font-weight:700;padding:5px 11px;border-radius:20px;white-space:nowrap;letter-spacing:.4px;display:inline-block}
+.rit .rsm{font-size:12px;color:#9aa7bd;font-weight:700;margin-top:6px}
+
+.rph{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.rph img{width:82px;height:82px;object-fit:cover;border-radius:9px;border:2px solid #e8ecf3;cursor:zoom-in;transition:.15s}
+.rph img:hover{transform:scale(1.05);border-color:#1B3A6B}
+
+.nodet{background:#fff9ec;border:1px solid #ffdfa0;border-radius:12px;padding:18px 20px;font-size:13px;color:#8a6400;line-height:1.7;margin-top:22px}
+.nodet b{display:block;font-size:14px;color:#7a5900;margin-bottom:4px}
+
+.lbx{display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:300;align-items:center;justify-content:center;cursor:zoom-out}
 .lbx.open{display:flex}
-.lbx img{max-width:94%;max-height:94%;border-radius:6px}
+.lbx img{max-width:94%;max-height:94%;border-radius:8px}
 tr.clk{cursor:pointer}
+@media(max-width:640px){.rpt-in{padding:0 16px 16px}.rhd{padding:16px}.rmeta{padding:13px 16px}.rit{padding:12px}.rit .rr{text-align:left}}
 .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:9px;font-size:13px;font-weight:700;color:#fff;background:#1b7f3b;display:none;z-index:99;box-shadow:0 3px 12px rgba(0,0,0,.25)}
 @media(max-width:640px){.grid{grid-template-columns:1fr 1fr}th:nth-child(2),td:nth-child(2){display:none}}
 </style>
@@ -589,85 +594,108 @@ var RPT = null;
 function renderRpt(key, a, photos){
   RPT = {key:key, a:a, photos:photos};
   var pct = Number(a.score)||0, gr = getGrade(pct);
-  var gcol = pct>=91?'#2e7d32' : pct>=81?'#ef6c00' : pct>=71?'#d84315' : '#c62828';
-  var gbg  = pct>=91?'#e8f5e9' : pct>=81?'#fff3e0' : pct>=71?'#fbe9e7' : '#ffebee';
+  var gc = gr.fill;
+  var gb = pct>=91?'#eef8ef' : pct>=81?'#fff5eb' : pct>=71?'#fdf0ec' : '#fdeeee';
 
-  var head = '<div class="rhd"><h3>' + a.outlet + ' \u2014 ' + a.auditType + ' Audit Report</h3>'
+  var secs = a.sectionBreakdown || [];
+  var nP=0,nF=0,nN=0,nT=0;
+  secs.forEach(function(s){ (s.items||[]).forEach(function(it){
+    nT++;
+    if(it.status==='pass') nP++; else if(it.status==='fail') nF++; else if(it.status==='na') nN++;
+  }); });
+
+  var h = '<div class="rhd">'
+    + '<div><h3>' + a.outlet + ' \u2014 ' + a.auditType + ' Audit Report</h3>'
+    +   '<div class="rsb">Culex Hospitality Operations \u00b7 Dubai Municipality Compliance</div></div>'
     + '<div class="acts">'
     +   '<button class="b-pdf" onclick="rptPDF()">Export PDF</button>'
     +   (CAN_DELETE ? '<button class="b-del" onclick="delOne(\'' + key + '\')">Delete</button>' : '')
     +   '<button class="b-cls" onclick="closeRpt()">Close</button>'
     + '</div></div>'
-    + '<div class="rmeta"><b>Outlet:</b> ' + a.outlet
-    +   ' &nbsp;&nbsp; <b>Type:</b> ' + a.auditType
-    +   ' &nbsp;&nbsp; <b>Auditor:</b> ' + (a.auditor||'\u2014')
-    +   ' &nbsp;&nbsp; <b>Date:</b> ' + (a.auditDate||'\u2014') + '</div>'
-    + '<div class="rst">'
-    +   '<div style="background:' + gbg + ';border-color:' + gcol + '">'
-    +     '<div class="l">Score</div><div class="v" style="color:' + gcol + '">' + pct + '%</div>'
-    +     '<div class="s" style="color:' + gcol + '">Grade ' + gr.g + ' \u00b7 ' + gr.label + '</div></div>'
-    +   '<div><div class="l">Points</div><div class="v" style="color:#1B3A6B">' + (a.rawScore||0) + '</div>'
-    +     '<div class="s" style="color:#9aa7bd">out of ' + (a.maxScore||0) + '</div></div>'
-    +   '<div><div class="l">Submitted</div>'
-    +     '<div class="v" style="font-size:15px;color:#1B3A6B;margin-top:8px">' + fmtDate(a.auditDate) + '</div>'
-    +     '<div class="s" style="color:#9aa7bd">' + (a.auditor||'') + '</div></div>'
-    + '</div>';
 
-  var secs = a.sectionBreakdown;
-  if(!secs || !secs.length){
-    document.getElementById('rpt').innerHTML = head
-      + '<div class="nodet"><b>No detailed breakdown available for this audit.</b><br>'
-      + 'It was restored from a summary backup, so the item-by-item detail was not preserved. '
-      + 'Audits submitted from now on include the full report.</div>';
+    + '<div class="rmeta">'
+    +   '<div><div class="k">Outlet</div><div class="v">' + a.outlet + '</div></div>'
+    +   '<div><div class="k">Type</div><div class="v">' + a.auditType + '</div></div>'
+    +   '<div><div class="k">Auditor</div><div class="v">' + (a.auditor||'\u2014') + '</div></div>'
+    +   '<div><div class="k">Date</div><div class="v">' + fmtDate(a.auditDate) + '</div></div>'
+    + '</div>'
+
+    + '<div class="rpt-in">'
+    + '<div class="rst">'
+    +   '<div style="background:' + gb + ';border-color:' + gc + '">'
+    +     '<div class="l">Compliance score</div>'
+    +     '<div class="v" style="color:' + gc + '">' + pct + '%</div>'
+    +     '<div class="s" style="color:' + gc + '">Grade ' + gr.g + ' \u00b7 ' + gr.label + '</div></div>'
+    +   '<div><div class="l">Points scored</div>'
+    +     '<div class="v" style="color:#1B3A6B">' + (a.rawScore||0) + '</div>'
+    +     '<div class="s" style="color:#9aa7bd">out of ' + (a.maxScore||0) + '</div></div>';
+
+  if(nT){
+    h += '<div><div class="l">Passed</div>'
+      +    '<div class="v" style="color:#1b7f3b">' + nP + '</div>'
+      +    '<div class="s" style="color:#9aa7bd">of ' + nT + ' checks</div></div>'
+      +  '<div><div class="l">Failed</div>'
+      +    '<div class="v" style="color:#c62828">' + nF + '</div>'
+      +    '<div class="s" style="color:#9aa7bd">' + nN + ' marked N/A</div></div>';
+  }
+  h += '</div>';
+
+  if(!secs.length){
+    h += '<div class="nodet"><b>No detailed breakdown available</b>'
+      +  'This audit was restored from a summary backup, so the item-by-item detail \u2014 '
+      +  'which checks passed or failed, corrective actions and photos \u2014 was not preserved. '
+      +  'Audits submitted from now on include the full report.</div></div>';
+    document.getElementById('rpt').innerHTML = h;
     return;
   }
 
-  var body = '<div class="rbar">FULL AUDIT REPORT \u2014 SECTION BY SECTION</div>';
+  h += '<div class="rbar"><span>Full audit report \u2014 section by section</span>'
+    +  '<em>' + secs.length + ' sections \u00b7 ' + nT + ' checks</em></div>';
 
   secs.forEach(function(sec, si){
     var sp = sec.max>0 ? Math.round(sec.earned/sec.max*100) : 0;
-    var sc = sp>=91?'#2e7d32' : sp>=71?'#c77700' : '#c62828';
-    var sb = sp>=71?'#fff8ec' : '#fdf1f1';
+    var sc = sp>=91?'#2e7d32' : sp>=81?'#ef6c00' : sp>=71?'#d84315' : '#c62828';
+    var sb = sp>=91?'#f4faf5' : sp>=81?'#fffaf3' : sp>=71?'#fdf5f2' : '#fdf3f3';
 
-    body += '<div class="rsc" style="background:' + sb + ';color:#1f2937">'
-      + '<span>' + (si+1) + '. ' + sec.title + '</span>'
-      + '<span class="pp" style="background:#fff;color:' + sc + '">'
-      +   sec.earned + '/' + sec.max + ' pts &nbsp; ' + sp + '%</span></div>'
-      + '<div class="rtrk"><div style="width:' + sp + '%;background:' + sc + '"></div></div>';
+    h += '<div class="rgrp"><div class="rsc" style="background:' + sb + '">'
+      +    '<span class="nm">' + (si+1) + '. ' + sec.title + '</span>'
+      +    '<span class="pp" style="color:' + sc + '">' + sec.earned + ' / ' + sec.max
+      +      ' pts &nbsp;\u00b7&nbsp; ' + sp + '%</span></div>'
+      +  '<div class="rtrk"><div style="width:' + sp + '%;background:' + sc + '"></div></div>';
 
     (sec.items||[]).forEach(function(it){
-      var st = it.status||'';
+      var st  = it.status||'';
       var cls = st==='pass' ? 'p' : st==='fail' ? 'f' : 'na';
-      var lbl = st==='pass' ? '\u2713 PASS' : st==='fail' ? '\u2715 FAIL' : st==='na' ? 'N/A' : '\u2014';
-      var bg  = st==='pass' ? '#e8f5e9' : st==='fail' ? '#ffebee' : '#eef1f6';
+      var lbl = st==='pass' ? 'PASS' : st==='fail' ? 'FAIL' : st==='na' ? 'N/A' : '\u2014';
+      var bg  = st==='pass' ? '#e6f5ea' : st==='fail' ? '#fdeaea' : '#eef1f6';
       var fg  = st==='pass' ? '#1b7f3b' : st==='fail' ? '#c62828' : '#8a99b3';
-      var got = st==='na' ? 'N/A' : (st==='pass' ? (it.maxScore||0) : 0) + '/' + (it.maxScore||0);
+      var got = st==='na' ? 'N/A' : (st==='pass' ? (it.maxScore||0) : 0) + ' / ' + (it.maxScore||0);
+      var sn  = String(it.n).replace(/[.#$\[\]]/g,'_');
 
-      var sn = String(it.n).replace(/[.#$\[\]]/g,'_');
-      var ph = '<div class="rph" id="ph_' + sec.id + '_' + sn + '"></div>';
-
-      body += '<div class="rit ' + cls + '">'
-        + '<span class="rn">' + it.n + '.</span>'
-        + '<div class="rb">'
-        +   '<div class="rt">' + (it.label||'')
-        +     '<span class="rmx">Max: ' + (it.maxScore||0) + ' pt' + ((it.maxScore||0)>1?'s':'') + '</span></div>'
-        +   '<div class="rd">' + (it.desc||'') + '</div>'
-        +   (it.comment ? '<div class="rc">' + it.comment + '</div>' : '')
-        +   (it.correctiveAction
-              ? '<div class="rca">Corrective: ' + it.correctiveAction
-                + (it.responsible ? ' \u2014 ' + it.responsible : '')
-                + (it.deadline ? ' (by ' + it.deadline + ')' : '') + '</div>'
-              : '')
-        +   ph
-        + '</div>'
-        + '<div class="rr"><span class="rbg" style="background:' + bg + ';color:' + fg + '">' + lbl + '</span>'
-        +   '<div class="rsm">' + got + '</div></div>'
+      h += '<div class="rit ' + cls + '">'
+        +   '<span class="rn">' + it.n + '</span>'
+        +   '<div class="rb">'
+        +     '<div class="rt">' + (it.label||'')
+        +       '<span class="rmx">' + (it.maxScore||0) + ' pt' + ((it.maxScore||0)>1?'s':'') + '</span></div>'
+        +     '<div class="rd">' + (it.desc||'') + '</div>'
+        +     (it.comment ? '<div class="rc">' + it.comment + '</div>' : '')
+        +     (it.correctiveAction
+                ? '<div class="rca"><b>Corrective action</b>' + it.correctiveAction
+                  + (it.responsible ? ' \u2014 ' + it.responsible : '')
+                  + (it.deadline ? ' (by ' + it.deadline + ')' : '') + '</div>'
+                : '')
+        +     '<div class="rph" id="ph_' + sec.id + '_' + sn + '"></div>'
+        +   '</div>'
+        +   '<div class="rr">'
+        +     '<span class="rbg" style="background:' + bg + ';color:' + fg + '">' + lbl + '</span>'
+        +     '<div class="rsm">' + got + '</div></div>'
         + '</div>';
     });
-    body += '<div style="height:10px"></div>';
+    h += '</div>';
   });
 
-  document.getElementById('rpt').innerHTML = head + body;
+  h += '</div>';
+  document.getElementById('rpt').innerHTML = h;
 }
 
 function delOne(key){
