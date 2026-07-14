@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="app-version" content="20260606180000">
+<script>
+// Force fresh load — clear old cached version
+(function() {
+  var v = '20260606180000';
+  var stored = localStorage.getItem('app_version');
+  if (stored !== v) {
+    localStorage.setItem('app_version', v);
+    if (stored) {
+      // Old version detected — reload without cache
+      window.location.reload(true);
+    }
+  }
+})();
+</script>
+<link rel="manifest" href="manifest_Little_Bangkok_BOH.json">
+<link rel="apple-touch-icon" href="apple-touch-icon_Little_Bangkok_BOH.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1A3C5E">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Culex Internal Audit</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f5f5f5;color:#1a1a1a}
+.header{background:#fff;border-bottom:1px solid #e0e0e0;padding:1rem 1.5rem;position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.header h1{font-size:17px;font-weight:700;margin-bottom:.75rem;color:#111}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.meta input,.meta select{width:100%;font-size:13px;padding:7px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#111}
+.score-bar{background:#f9f9f9;border:1px solid #e0e0e0;border-radius:10px;padding:.75rem 1rem;display:flex;align-items:center;gap:1rem}
+.grade-badge{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex-shrink:0;border:2px solid rgba(0,0,0,.1)}
+.score-info{flex:1}
+.score-pct{font-size:22px;font-weight:700}
+.score-sub{font-size:11px;color:#666;margin-top:2px}
+.progress-track{height:7px;background:#e0e0e0;border-radius:4px;margin-top:6px}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.section-nav{display:flex;gap:6px;padding:.75rem 1.5rem;overflow-x:auto;border-bottom:1px solid #e0e0e0;background:#fff;position:sticky;top:118px;z-index:40}
+.section-nav::-webkit-scrollbar{height:4px}.section-nav::-webkit-scrollbar-thumb{background:#ccc;border-radius:2px}
+.nav-btn{font-size:11px;padding:5px 12px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:Arial,sans-serif;font-weight:600}
+.nav-btn:hover{background:#f0f0f0}
+.nav-btn.active{background:#fbe9e7;color:#bf360c;border-color:#bf360c}
+.section-panel{padding:1.25rem 1.5rem;display:none;max-width:900px;margin:0 auto}
+.section-panel.active{display:block}
+.section-title{font-size:15px;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;color:#111}
+.sec-score-pill{font-size:12px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:3px 10px;color:#555;font-weight:700}
+.item-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:.9rem 1rem;margin-bottom:.75rem}
+.item-card.pass{border-left:4px solid #2e7d32}
+.item-card.fail{border-left:4px solid #c62828}
+.item-card.na{border-left:4px solid #757575}
+.item-top{display:flex;align-items:flex-start;gap:.75rem}
+.item-num{font-size:11px;font-weight:700;color:#888;min-width:22px;margin-top:2px}
+.item-text{flex:1;font-size:13px;line-height:1.5}
+.item-text strong{font-weight:700;display:block;margin-bottom:2px;color:#111}
+.item-text span{color:#666;font-size:12px}
+.item-score-badge{font-size:11px;color:#888;white-space:nowrap;flex-shrink:0;font-weight:700;background:#f5f5f5;padding:2px 8px;border-radius:5px;border:1px solid #e0e0e0}
+.item-controls{display:flex;align-items:center;gap:6px;margin-top:.75rem;flex-wrap:wrap}
+.status-btn{font-size:12px;padding:5px 13px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-family:Arial,sans-serif;font-weight:700}
+.status-btn:hover{background:#f5f5f5}
+.status-btn.active-pass{background:#e8f5e9;color:#1b5e20;border-color:#2e7d32}
+.status-btn.active-fail{background:#ffebee;color:#7f0000;border-color:#c62828}
+.status-btn.active-na{background:#f5f5f5;color:#424242;border-color:#757575}
+.comment-input{flex:1;min-width:140px;font-size:12px;padding:6px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#111;font-family:Arial,sans-serif}
+.photo-label{font-size:12px;padding:5px 11px;border:1px solid #ccc;border-radius:6px;cursor:pointer;color:#555;display:inline-flex;align-items:center;gap:5px;background:#fff;font-weight:700;white-space:nowrap}
+.photo-label:hover{background:#f5f5f5;border-color:#999}
+.photo-input{display:none}
+.photo-thumbs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.thumb-wrap{position:relative;display:inline-block}
+.thumb{width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #ddd;display:block;cursor:pointer}
+.thumb:hover{opacity:.85}
+.thumb-del{position:absolute;top:-6px;right:-6px;background:#c62828;color:#fff;border:2px solid #fff;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
+.footer{background:#fff;padding:.4rem .5rem;border-top:1px solid #e0e0e0;display:flex;gap:4px;justify-content:flex-end;align-items:center;position:sticky;bottom:0;z-index:40;box-shadow:0 -1px 4px rgba(0,0,0,.06)}
+.btn-summary{font-size:11px;padding:5px 7px;border:1px solid #6a1b9a;border-radius:6px;background:#f3e5f5;cursor:pointer;color:#4a148c;font-weight:700;font-family:Arial,sans-serif}
+.btn-excel{font-size:11px;padding:5px 7px;border:1px solid #2e7d32;border-radius:6px;background:#e8f5e9;cursor:pointer;color:#1b5e20;font-weight:700;font-family:Arial,sans-serif}
+.btn-pdf{font-size:11px;padding:5px 7px;border:1px solid #b71c1c;border-radius:6px;background:#ffebee;cursor:pointer;color:#7f0000;font-weight:700;font-family:Arial,sans-serif}
+.toast{display:none;position:fixed;bottom:80px;right:24px;font-size:13px;padding:10px 18px;border-radius:8px;font-weight:700;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.toast.show{display:block}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+.lightbox.open{display:flex}
+.lightbox img{max-width:90vw;max-height:85vh;border-radius:8px}
+.lightbox-close{position:fixed;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;font-weight:700;background:none;border:none;z-index:201}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:1.5rem;width:600px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:0 4px 24px rgba(0,0,0,.18)}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:1rem;color:#111}
+.summary-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #eee;font-size:13px}
+.summary-row:last-child{border-bottom:none}
+.pct-pill{font-size:11px;padding:3px 9px;border-radius:5px;font-weight:700}
+.modal-close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:#888;font-weight:700}
+.pdf-progress{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center}
+.pdf-progress.open{display:flex}
+.pdf-box{background:#fff;border-radius:12px;padding:2rem;text-align:center;width:300px}
+.pdf-box p{font-size:14px;font-weight:700;margin-bottom:1rem;color:#111}
+.pdf-track{height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden}
+.pdf-fill{height:100%;background:#c62828;border-radius:4px;transition:width .2s}
+.pdf-box small{font-size:11px;color:#888;margin-top:.5rem;display:block}
+
+.btn-save{font-size:11px;padding:5px 7px;border:1px solid #283593;border-radius:6px;background:#e8eaf6;cursor:pointer;color:#1a237e;font-weight:700;font-family:Arial,sans-serif;display:inline-flex;align-items:center;gap:6px}
+.btn-save:hover{background:#c5cae9}
+.btn-clear{font-size:11px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;color:#888;font-weight:600;font-family:Arial,sans-serif}
+.btn-clear:hover{background:#fce4ec;border-color:#e53935;color:#c62828}
+.save-info{font-size:11px;color:#888;align-self:center;flex:1}
+
+.corrective-row{margin-top:6px;display:flex;align-items:flex-start;gap:6px;}
+.corrective-label{font-size:11px;font-weight:700;color:#c62828;white-space:nowrap;padding-top:7px;flex-shrink:0;}
+.corrective-input{flex:1;font-size:12px;padding:6px 9px;border:1.5px solid #f44336;border-radius:6px;background:#fff9f9;color:#111;font-family:Arial,sans-serif;resize:vertical;min-height:32px;}
+.corrective-input:focus{outline:none;border-color:#c62828;background:#fff;}
+.corrective-input:not(:placeholder-shown){background:#fff3f3;border-color:#c62828;}
+.deadline-row{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;flex-wrap:wrap;}
+.deadline-label{color:#c62828;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.deadline-input{font-size:11px;padding:4px 8px;border:1px solid #f44336;border-radius:5px;background:#fff9f9;color:#111;font-family:Arial,sans-serif;}
+.responsible-input{flex:1;font-size:11px;padding:4px 8px;border:1px solid #f44336;border-radius:5px;background:#fff9f9;color:#111;font-family:Arial,sans-serif;}
+.corrective-row.hidden{display:none;}
+
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body>
+<div class="header">
+  <h1 id="audit-title">Culex Internal Audit</h1>
+  <div style="margin-bottom:.6rem">
+    <select id="audit-select" onchange="selectTemplate(this.value)" style="font-family:Arial,sans-serif;font-size:13px;padding:6px;border:1.5px solid #1B3A6B;border-radius:4px;width:100%;font-weight:700;color:#1B3A6B;">
+      <option value="">Loading audits...</option>
+    </select>
+  </div>
+  <div class="meta">
+    <input id="auditor" placeholder="Auditor name" value="Sunshine Jade Rogel" />
+    <select id="outlet" onchange="if(TEMPLATE_KEY){loadAudit();updateScoreBar();showCorrectiveFields();}" style="font-family:Arial,sans-serif;font-size:13px;padding:4px 6px;border:1px solid #ccc;border-radius:4px;width:100%;">
+<option value="">Select outlet...</option>
+</select>
+    <input id="audit-date" type="date" />
+    
+  </div>
+  <div class="score-bar">
+    <div class="grade-badge" id="grade-badge" style="background:#ffebee;color:#7f0000">D</div>
+    <div class="score-info">
+      <div class="score-pct"><span id="score-pct">0</span>% &nbsp;<span id="score-raw" style="font-size:14px;color:#888;font-weight:400">0 / 0</span></div>
+      <div class="score-sub">Dubai Municipality Compliance Score</div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%;background:#c62828"></div></div>
+    </div>
+  </div>
+</div>
+<div class="section-nav" id="section-nav"></div>
+<div id="sections-container"></div>
+<div class="footer">
+  <button class="btn-save" onclick="saveAudit()"><span class="btn-full">&#128190; Save</span></button>
+  <span class="save-info" id="last-saved-label"></span>
+  <button class="btn-clear" onclick="clearSave()" title="Reset">&#128465;</button>
+  <button class="btn-summary" onclick="showSummary()"><span class="btn-full">&#128202; Summary</span></button>
+  <button class="btn-excel" onclick="exportExcel()"><span class="btn-full">&#128218; Excel</span></button>
+  <button class="btn-pdf" onclick="exportPDF()"><span class="btn-full">&#128196; PDF</span></button>
+  <button class="btn-pdf" onclick="submitAuditToDashboard()" style="background:#E8F5E9;border-color:#2E7D32;color:#1B5E20;"><span class="btn-full">📊 Submit</span></button>
+</div>
+<div id="toast" class="toast"></div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">&#x2715;</button>
+  <img id="lightbox-img" src="" alt="Photo" onclick="event.stopPropagation()" />
+</div>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open')">&#x2715;</button>
+    <h2>&#128202; Audit Compliance Summary</h2>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div class="pdf-progress" id="pdf-progress">
+  <div class="pdf-box">
+    <p>&#128196; Generating PDF Report...</p>
+    <div class="pdf-track"><div class="pdf-fill" id="pdf-bar" style="width:0%"></div></div>
+    <small id="pdf-lbl">Preparing...</small>
+  </div>
+</div>
+<script>
+
+// ══ FIREBASE CONFIG ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBOrDRoUCAPJqldlsV-IMHO9JylVShSNnI",
+  authDomain:        "kitchen-tracker-35293.firebaseapp.com",
+  databaseURL:       "https://kitchen-tracker-35293-default-rtdb.firebaseio.com",
+  projectId:         "kitchen-tracker-35293",
+  storageBucket:     "kitchen-tracker-35293.firebasestorage.app",
+  messagingSenderId: "608954017135",
+  appId:             "1:608954017135:web:5e57e576c52c62b85ef49a"
+};
+// ══════════════════════════════════════════════════════════════
+
+// Init Firebase
+firebase.initializeApp(FIREBASE_CONFIG);
+const _db = firebase.database();
+
+function pushToFirebase(record) {
+  try {
+    const key = (record.staffName||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.role
+              + '_' + (record.week||'').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + Date.now();
+    _db.ref('submissions/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).then(() => {
+      showToast('✓ Synced to dashboard', 'ok');
+    }).catch(e => {
+      console.warn('Firebase write failed:', e);
+    });
+  } catch(e) { console.warn('Firebase error:', e); }
+}
+
+function compressPhoto(dataUrl, maxW, quality) {
+  return new Promise(resolve => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    } catch(e) { resolve(dataUrl); }
+  });
+}
+
+function pushAuditToFirebase(record) {
+  try {
+    const key = (record.outlet||'unknown').replace(/[^a-zA-Z0-9]/g,'_')
+              + '_' + record.auditType
+              + '_' + (record.auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+    _db.ref('audits/' + key).set({
+      ...record,
+      lastUpdated: new Date().toISOString()
+    }).catch(e => console.warn('Audit write failed:', e));
+  } catch(e) { console.warn('Firebase audit error:', e); }
+}
+
+let ORIG_MAX = 0;
+let SECTIONS = [];
+let TEMPLATE_KEY = '';
+let TEMPLATES = {};
+
+/* ── Load audit templates from Firebase ──────────────────────────
+   Items carry permanent IDs in Firebase, but are mapped back to a
+   sequential `n` per section here so the submitted record keeps the
+   exact same shape dash.html already reads. Do not change this.  */
+function templateToSections(tpl){
+  const secs = Object.entries(tpl.sections || {})
+    .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+  const out = [];
+  let max = 0;
+  secs.forEach(([sid, s]) => {
+    const items = Object.entries(tpl.items || {})
+      .filter(([id,it]) => it.section === sid && it.active !== false)
+      .sort((a,b) => (a[1].order||0) - (b[1].order||0));
+    if (!items.length) return;
+    const list = items.map(([id,it], idx) => {
+      max += Number(it.weight) || 0;
+      return { n: idx+1, itemId: id, label: it.label, desc: it.desc,
+               score: Number(it.weight)||0, allowNA: it.allowNA !== false };
+    });
+    out.push({ id: sid, title: s.title, items: list });
+  });
+  return { sections: out, max: max };
+}
+
+function loadTemplates(){
+  return _db.ref('auditTemplates').once('value').then(snap => {
+    TEMPLATES = snap.val() || {};
+    const sel = document.getElementById('audit-select');
+    sel.innerHTML = '<option value="">Select audit...</option>';
+    Object.entries(TEMPLATES)
+      .filter(([k,t]) => t.meta && t.meta.active !== false)
+      .sort((a,b) => (a[1].meta.name||'').localeCompare(b[1].meta.name||''))
+      .forEach(([k,t]) => {
+        const o = document.createElement('option');
+        o.value = k; o.textContent = t.meta.name || k;
+        sel.appendChild(o);
+      });
+  });
+}
+
+function selectTemplate(key){
+  TEMPLATE_KEY = key;
+  if(key) localStorage.setItem('audit_last_template', key);
+  const outSel = document.getElementById('outlet');
+  const cont   = document.getElementById('sections-container');
+  const nav    = document.getElementById('section-nav');
+
+  if (!key || !TEMPLATES[key]) {
+    SECTIONS = []; ORIG_MAX = 0; state = {};
+    outSel.innerHTML = '<option value="">Select outlet...</option>';
+    cont.innerHTML = '<div style="padding:2rem;text-align:center;color:#888;font-size:13px;">Select an audit above to begin.</div>';
+    nav.innerHTML = '';
+    document.getElementById('audit-title').textContent = 'Culex Internal Audit';
+    updateScoreBar();
+    return;
+  }
+
+  const tpl = TEMPLATES[key];
+  const built = templateToSections(tpl);
+  SECTIONS = built.sections;
+  ORIG_MAX = built.max;
+
+  document.getElementById('audit-title').textContent = tpl.meta.name || 'Culex Internal Audit';
+
+  outSel.innerHTML = '<option value="">Select outlet...</option>';
+  (tpl.meta.outlets || []).forEach(o => {
+    const op = document.createElement('option');
+    op.value = o; op.textContent = o;
+    outSel.appendChild(op);
+  });
+
+  state = {};
+  SECTIONS.forEach(s => s.items.forEach(it => {
+    state[s.id+'_'+it.n] = {status:null, comment:'', correctiveAction:'',
+                            responsible:'', deadline:'', photos:[]};
+  }));
+
+  buildUI();
+  loadAudit();
+  updateScoreBar();
+  showCorrectiveFields();
+}
+
+let state={};
+SECTIONS.forEach(s=>s.items.forEach(it=>{state[s.id+'_'+it.n]={status:null,comment:'',photos:[]};}));
+
+function getGrade(p){
+  if(p>=91)return{g:'A',col:'#1b5e20',bg:'#e8f5e9',fill:'#2e7d32',label:'Excellent'};
+  if(p>=81)return{g:'B',col:'#e65100',bg:'#fff3e0',fill:'#ef6c00',label:'Good'};
+  if(p>=71)return{g:'C',col:'#bf360c',bg:'#fbe9e7',fill:'#d84315',label:'Fair/Acceptable'};
+  return{g:'D',col:'#7f0000',bg:'#ffebee',fill:'#c62828',label:'Poor'};
+}
+
+/* N/A items are excluded from denominator so 100% is always achievable */
+function calcScores(){
+  let total=0;
+  const secScores={};
+  SECTIONS.forEach(s=>{
+    let earned=0,max=0;
+    s.items.forEach(it=>{
+      const st=state[s.id+'_'+it.n];
+      if(st.status!=='na'){
+        max+=it.score;
+        if(st.status==='pass') earned+=it.score;
+      }
+    });
+    secScores[s.id]={earned,max};
+    total+=earned;
+  });
+  const maxTotal=Object.values(secScores).reduce((a,v)=>a+v.max,0);
+  return{total,maxTotal,secScores};
+}
+
+function updateScoreBar(){
+  const{total,maxTotal,secScores}=calcScores();
+  const pct=maxTotal>0?Math.round(total/maxTotal*100):0;
+  const gr=getGrade(pct);
+  const gb=document.getElementById('grade-badge');
+  gb.textContent=gr.g;gb.style.background=gr.bg;gb.style.color=gr.col;
+  document.getElementById('score-pct').textContent=pct;
+  const naActive=maxTotal<ORIG_MAX;
+  document.getElementById('score-raw').textContent=total+' / '+maxTotal+(naActive?' (excl. N/A)':'');
+  const pf=document.getElementById('progress-fill');
+  pf.style.width=pct+'%';pf.style.background=gr.fill;
+  SECTIONS.forEach(s=>{
+    const el=document.getElementById('sec-score-'+s.id);
+    if(el)el.textContent=secScores[s.id].earned+'/'+secScores[s.id].max;
+  });
+}
+
+function setStatus(secId,n,status){
+  const k=secId+'_'+n;
+  state[k].status=status;
+  document.getElementById('card-'+k).className='item-card '+(status||'');
+  ['pass','fail','na'].forEach(s=>{
+    document.getElementById('btn-'+s+'-'+k).className='status-btn'+(status===s?' active-'+s:'');
+  });
+  updateScoreBar();
+  showCorrectiveFields();
+}
+
+function setComment(secId,n,val){state[secId+'_'+n].comment=val;}
+
+function addPhotos(secId,n,files){
+  const k=secId+'_'+n;
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{state[k].photos.push(e.target.result);renderThumbs(secId,n);};
+    r.readAsDataURL(f);
+  });
+}
+function removePhoto(secId,n,idx){state[secId+'_'+n].photos.splice(idx,1);renderThumbs(secId,n);}
+
+function renderThumbs(secId,n){
+  const k=secId+'_'+n;
+  const el=document.getElementById('thumbs-'+k);
+  el.innerHTML='';
+  state[k].photos.forEach((src,i)=>{
+    const wrap=document.createElement('div');wrap.className='thumb-wrap';
+    const img=document.createElement('img');img.className='thumb';img.src=src;img.title='Click to enlarge';
+    img.onclick=()=>openLightbox(src);
+    const del=document.createElement('button');del.className='thumb-del';del.innerHTML='x';
+    del.onclick=()=>removePhoto(secId,n,i);
+    wrap.appendChild(img);wrap.appendChild(del);el.appendChild(wrap);
+  });
+  const lbl=document.getElementById('photo-label-'+k);
+  if(lbl)lbl.textContent=state[k].photos.length>0?'📷 '+state[k].photos.length+' photo(s)':'📷 Add photo';
+}
+
+function openLightbox(src){document.getElementById('lightbox-img').src=src;document.getElementById('lightbox').classList.add('open');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+function showToast(msg,bg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.background=bg||'#2e7d32';t.style.color='#fff';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+
+function setCorrectiveAction(secId,n,val){
+  const k=secId+'_'+n;
+  if(!state[k])state[k]={status:'',score:0,comment:'',correctiveAction:'',deadline:'',responsible:'',photos:[]};
+  state[k].correctiveAction=val;
+}
+function setDeadline(secId,n,val){
+  const k=secId+'_'+n;
+  if(!state[k])state[k]={status:'',score:0,comment:'',correctiveAction:'',deadline:'',responsible:'',photos:[]};
+  state[k].deadline=val;
+}
+function setResponsible(secId,n,val){
+  const k=secId+'_'+n;
+  if(!state[k])state[k]={status:'',score:0,comment:'',correctiveAction:'',deadline:'',responsible:'',photos:[]};
+  state[k].responsible=val;
+}
+
+function showCorrectiveFields(){
+  // Show corrective fields only for FAIL items
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.n;
+    const cr=document.getElementById('corrective-row-'+k);
+    const dr=document.getElementById('deadline-row-'+k);
+    if(cr&&dr){
+      const show=state[k].status==='fail';
+      cr.style.display=show?'flex':'none';
+      dr.style.display=show?'flex':'none';
+    }
+  }));
+}
+
+function buildUI(){
+  const nav=document.getElementById('section-nav');
+  const container=document.getElementById('sections-container');
+  SECTIONS.forEach((s,si)=>{
+    const nb=document.createElement('button');
+    nb.className='nav-btn'+(si===0?' active':'');
+    nb.textContent=(si+1)+'. '+s.title;nb.onclick=()=>switchSection(s.id);
+    nav.appendChild(nb);
+    const panel=document.createElement('div');
+    panel.className='section-panel'+(si===0?' active':'');
+    panel.id='panel-'+s.id;
+    const maxS=s.items.reduce((a,it)=>a+it.score,0);
+    panel.innerHTML='<div class="section-title">Section '+(si+1)+': '+s.title+'<span class="sec-score-pill" id="sec-score-'+s.id+'">0/'+maxS+'</span></div>';
+    s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;
+      const card=document.createElement('div');
+      card.className='item-card';card.id='card-'+k;
+      card.innerHTML='<div class="item-top"><div class="item-num">'+it.n+'</div><div class="item-text"><strong>'+it.label+'</strong><span>'+it.desc+'</span></div><div class="item-score-badge">Max: '+it.score+'pt'+(it.score>1?'s':'')+'</div></div>'
+        +'<div class="item-controls" style="flex-wrap:wrap">'
+        +'<button id="btn-pass-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'pass\')">&#10004; Pass</button>'
+        +'<button id="btn-fail-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'fail\')">&#10008; Fail</button>'
+        +'<button id="btn-na-'+k+'" class="status-btn" onclick="setStatus(\''+s.id+'\','+it.n+',\'na\')">&#8212; N/A</button>'
+        +'<input type="text" class="comment-input" placeholder="Observation / comment..." oninput="setComment(\''+s.id+'\','+it.n+',this.value)" />'+'</div>'+'<div class="corrective-row" id="corrective-row-'+k+'">'+'<span class="corrective-label">⚠ Corrective Action:</span>'+'<textarea class="corrective-input" rows="1" placeholder="Describe corrective action required..." oninput="setCorrectiveAction(\''+s.id+'\','+it.n+',this.value)"></textarea>'+'</div>'+'<div class="deadline-row" id="deadline-row-'+k+'">'+'<span class="deadline-label">📅 Deadline:</span>'+'<input type="date" class="deadline-input" id="deadline-'+k+'" onchange="setDeadline(\''+s.id+'\','+it.n+',this.value)" />'+'<span class="deadline-label" style="margin-left:8px">👤 Responsible:</span>'+'<input type="text" class="responsible-input" placeholder="Name..." oninput="setResponsible(\''+s.id+'\','+it.n+',this.value)" />'+'</div>'+'<div class="item-controls" style="margin-top:4px">'
+        +'<label class="photo-label" for="photo-cam-'+k+'" style="background:#fff3e0;border-color:#e65100;color:#e65100;">📷 Camera</label>'
+        +'<input type="file" class="photo-input" id="photo-cam-'+k+'" accept="image/*" capture="environment" onchange="addPhotos(\''+s.id+'\','+it.n+',this.files)" />'
+        +'<label class="photo-label" for="photo-gal-'+k+'">🖼 Gallery</label>'
+        +'<input type="file" class="photo-input" id="photo-gal-'+k+'" accept="image/*" multiple onchange="addPhotos(\''+s.id+'\','+it.n+',this.files)" />'
+        +'</div><div class="photo-thumbs" id="thumbs-'+k+'"></div>';
+      panel.appendChild(card);
+    });
+    container.appendChild(panel);
+  });
+}
+
+function switchSection(secId){
+  document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+secId).classList.add('active');
+  SECTIONS.forEach((s,si)=>{if(s.id===secId)document.querySelectorAll('.nav-btn')[si].classList.add('active');});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showSummary(){
+  const{total,maxTotal,secScores}=calcScores();
+  const pct=maxTotal>0?Math.round(total/maxTotal*100):0;
+  const gr=getGrade(pct);
+  const auditor=document.getElementById('auditor').value||'—';
+  const outlet=document.getElementById('outlet').value||'—';
+  const date=document.getElementById('audit-date').value||'—';
+    let html='<div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:.875rem 1rem;background:'+gr.bg+';border-radius:8px;border-left:4px solid '+gr.fill+'">'
+    +'<div style="width:48px;height:48px;border-radius:50%;background:'+gr.fill+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0">'+gr.g+'</div>'
+    +'<div><div style="font-size:18px;font-weight:700;color:'+gr.col+'">'+pct+'% &mdash; Grade '+gr.g+' ('+gr.label+')</div>'
+    +'<div style="font-size:12px;color:#666;margin-top:2px">'+total+'/'+maxTotal+' pts | '+auditor+' | '+outlet+' | '+date+'</div></div></div>'
+    +'<div style="font-weight:700;font-size:13px;margin-bottom:.5rem;color:#333">Section Breakdown</div>';
+  SECTIONS.forEach((s,si)=>{
+    const ss=secScores[s.id];const sp=ss.max>0?Math.round(ss.earned/ss.max*100):0;
+    const col=sp>=91?'#1b5e20':sp>=71?'#e65100':'#7f0000';
+    const bg=sp>=91?'#e8f5e9':sp>=71?'#fff3e0':'#ffebee';
+    html+='<div class="summary-row"><span>'+(si+1)+'. '+s.title+'</span><span style="display:flex;align-items:center;gap:8px"><span style="font-size:12px;color:#888">'+ss.earned+'/'+ss.max+'</span><span class="pct-pill" style="background:'+bg+';color:'+col+'">'+sp+'%</span></span></div>';
+  });
+  const fails=[];
+  SECTIONS.forEach(s=>s.items.forEach(it=>{const k=s.id+'_'+it.n;if(state[k].status==='fail')fails.push({section:s.title,label:it.label,comment:state[k].comment,photos:state[k].photos});}));
+  if(fails.length){
+    html+='<div style="margin-top:1rem;font-weight:700;font-size:13px;margin-bottom:.5rem;color:#c62828">Failed Items &mdash; Corrective Action Required</div>';
+    fails.forEach(f=>{
+      html+='<div style="margin-bottom:.5rem;padding:.6rem .875rem;background:#ffebee;border-radius:6px;border-left:3px solid #c62828">'
+        +'<div style="font-size:12px;font-weight:700;color:#7f0000">'+f.section+' &mdash; '+f.label+'</div>'
+        +'<div style="font-size:11px;color:#c62828;margin-top:2px">'+(f.comment||'No comment added')+'</div>'
+        +(f.photos.length?'<div style="font-size:11px;color:#555;margin-top:2px">📷 '+f.photos.length+' photo(s) attached</div>':'')
+        +'</div>';
+    });
+  } else {
+    html+='<div style="margin-top:1rem;padding:.75rem;background:#e8f5e9;border-radius:6px;font-size:13px;color:#1b5e20;font-weight:700">&#10004; No failed items recorded.</div>';
+  }
+  document.getElementById('modal-body').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function exportExcel(){
+  if(typeof XLSX==='undefined'){alert('Excel library not loaded. Please check your internet connection.');return;}
+  const wb=XLSX.utils.book_new();
+  const auditor=document.getElementById('auditor').value||'';
+  const outlet=document.getElementById('outlet').value||'';
+  const auditDate=document.getElementById('audit-date').value||'';
+    const{total,maxTotal,secScores}=calcScores();
+  const pct=maxTotal>0?Math.round(total/maxTotal*100):0;
+  const gr=getGrade(pct);
+  const summaryData=[
+    ['LITTLE BANGKOK &MDASH; BOH INTERNAL MONTHLY AUDIT'],[''],
+    ['Auditor',auditor,'Date',auditDate],['Outlet',outlet],[''],
+    ['OVERALL SCORE',total+' / '+maxTotal,'Compliance %',pct+'%','Grade',gr.g+' — '+gr.label],[''],
+    ['SECTION SUMMARY'],['No.','Section','Max Score','Score Achieved','Percentage','Status'],
+  ];
+  SECTIONS.forEach((s,si)=>{
+    const ss=secScores[s.id];const sp=ss.max>0?Math.round(ss.earned/ss.max*100):0;
+    summaryData.push([si+1,s.title,ss.max,ss.earned,sp+'%',sp>=91?'Excellent':sp>=81?'Good':sp>=71?'Fair':'Poor']);
+  });
+  summaryData.push([''],['FAILED ITEMS & CORRECTIVE ACTIONS'],['Section','Item #','Criteria','Observation','Corrective Action Required','Responsible Person','Deadline','Photos']);
+  let fc=0;
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.n;
+    if(state[k].status==='fail'){
+      summaryData.push([
+        s.title, it.n, it.label,
+        state[k].comment||'—',
+        state[k].correctiveAction||'⚠ No corrective action entered',
+        state[k].responsible||'—',
+        state[k].deadline||'—',
+        state[k].photos.length>0 ? state[k].photos.length+' photo(s) — see PDF for images' : 'None'
+      ]);
+      fc++;
+    }
+  }));
+  if(!fc)summaryData.push(['—','','No failed items','','','','','']);
+  const ws=XLSX.utils.aoa_to_sheet(summaryData);
+  ws['!cols']=[{wch:5},{wch:38},{wch:14},{wch:16},{wch:14},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws,'Summary');
+  SECTIONS.forEach((s,si)=>{
+    const rows=[['LITTLE BANGKOK &MDASH; BOH INTERNAL MONTHLY AUDIT'],['Section '+(si+1)+': '+s.title],
+      ['Auditor: '+auditor,'','Outlet: '+outlet,'','Date: '+auditDate],[''],
+      ['No.','Criteria','Description','Status','Score','Max Score','Observation','Corrective Action','Responsible','Deadline','Photos']];
+    s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;const d=state[k];
+      rows.push([
+        it.n, it.label, it.desc,
+        d.status==='pass'?'PASS':d.status==='fail'?'FAIL':d.status==='na'?'N/A':'Not Audited',
+        d.status==='pass'?it.score:0, it.score,
+        d.comment||'',
+        d.status==='fail'?(d.correctiveAction||'⚠ Required'):'—',
+        d.status==='fail'?(d.responsible||'—'):'—',
+        d.status==='fail'?(d.deadline||'—'):'—',
+        d.photos.length>0 ? d.photos.map((_,i)=>'Photo '+(i+1)+': [image_'+i+']').join(' | ') : 'None'
+      ]);
+    });
+    const ss=secScores[s.id];
+    rows.push([''],['','TOTAL','',ss.max>0?Math.round(ss.earned/ss.max*100)+'%':'—',ss.earned,ss.max,'','']);
+    const sheet=XLSX.utils.aoa_to_sheet(rows);
+    sheet['!cols']=[{wch:5},{wch:28},{wch:40},{wch:13},{wch:8},{wch:10},{wch:30},{wch:40},{wch:20},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,sheet,('S'+(si+1)+'_'+s.title).substring(0,31).replace(/[:\\/?*\[\]]/g,''));
+  });
+  const ds=(auditDate||'').replace(/-/g,'');
+  const os=outlet?'_'+outlet.replace(/\s+/g,'_'):'';
+  // Dedicated Corrective Actions sheet
+  const caRows = [
+    ['CORRECTIVE ACTION REGISTER'],[''],
+    ['Outlet:', outlet, '', 'Auditor:', auditor, '', 'Date:', auditDate],[''],
+    ['#','Section','Item','Criteria','Observation / Finding','Corrective Action Required','Responsible Person','Target Date','Status']
+  ];
+  let caNum = 0;
+  SECTIONS.forEach(s=>s.items.forEach(it=>{
+    const k=s.id+'_'+it.n;
+    if(state[k].status==='fail'){
+      caNum++;
+      caRows.push([
+        caNum, s.title, it.n, it.label,
+        state[k].comment||'—',
+        state[k].correctiveAction||'⚠ Action required',
+        state[k].responsible||'TBD',
+        state[k].deadline||'TBD',
+        'Open'
+      ]);
+    }
+  }));
+  if(caNum===0) caRows.push(['','','','No failed items — all criteria passed','','','','','']);
+  caRows.push([''],['Total corrective actions required:', caNum]);
+  caRows.push([''],['Note: Photos are embedded in the PDF export. Export PDF for full visual report.']);
+  const caSheet = XLSX.utils.aoa_to_sheet(caRows);
+  // Style the header row
+  const caRange = XLSX.utils.decode_range(caSheet['!ref']||'A1:I1');
+  for (let C = caRange.s.c; C <= caRange.e.c; C++) {
+    const addr = XLSX.utils.encode_cell({r:4, c:C});
+    if (!caSheet[addr]) continue;
+    caSheet[addr].s = { font:{bold:true}, fill:{fgColor:{rgb:'1A3C5E'}}, font:{color:{rgb:'FFFFFF'},bold:true} };
+  }
+  caSheet['!cols']=[{wch:4},{wch:25},{wch:6},{wch:28},{wch:35},{wch:45},{wch:20},{wch:14},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, caSheet, 'Corrective Actions');
+
+  XLSX.writeFile(wb,'LittleBangkok_BOH_Audit'+(ds?'_'+ds:'')+os+'.xlsx');
+  showToast('✔ Excel downloaded!','#2e7d32');
+}
+
+async function exportPDF(){
+  if(typeof window.jspdf==='undefined'){alert('PDF library not loaded.');return;}
+  const{jsPDF}=window.jspdf;
+  const auditor=document.getElementById('auditor').value||'Not specified';
+  const outlet=document.getElementById('outlet').value||'Not specified';
+  const auditDate=document.getElementById('audit-date').value||'Not specified';
+    const{total,maxTotal,secScores}=calcScores();
+  const pct=maxTotal>0?Math.round(total/maxTotal*100):0;
+  const gr=getGrade(pct);
+  const prog=document.getElementById('pdf-progress');
+  const bar=document.getElementById('pdf-bar');
+  const lbl=document.getElementById('pdf-lbl');
+  prog.classList.add('open');
+  function sp(p,msg){bar.style.width=p+'%';lbl.textContent=msg;}
+  function hRgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+  await new Promise(r=>setTimeout(r,50));
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,ML=12,CW=186;let y=0;
+  function ap(){doc.addPage();y=12;}
+  function cy(n){if(y+n>287)ap();}
+  function sf(sz,st,c){doc.setFontSize(sz);doc.setFont('helvetica',st||'normal');doc.setTextColor(...(c||[30,30,30]));}
+  function fr(x,fy,w,h,r,g,b){doc.setFillColor(r,g,b);doc.rect(x,fy,w,h,'F');}
+  sp(5,'Building cover...');await new Promise(r=>setTimeout(r,10));
+  fr(0,0,W,40,...hRgb('#bf360c'));
+  sf(18,'bold',[255,255,255]);doc.text('Little Bangkok',ML,16);
+  sf(11,'normal',[180,210,255]);doc.text('Back of House — Internal Monthly Audit Report',ML,24);
+  sf(9,'normal',[150,190,255]);doc.text('Dubai Municipality Compliance Framework',ML,31);
+  y=50;
+  fr(ML,y,CW,24,...hRgb(gr.fill));
+  sf(26,'bold',[255,255,255]);doc.text(gr.g,ML+8,y+19);
+  sf(13,'bold',[255,255,255]);doc.text('Grade '+gr.g+' — '+gr.label,ML+22,y+11);
+  sf(9,'normal',[255,255,255]);doc.text(pct+'% Compliance   |   '+total+' / '+maxTotal+' points'+(maxTotal<ORIG_MAX?' (excl. N/A)':''),ML+22,y+22);
+  y+=30;
+  const info=[['Auditor',auditor],['Outlet / Branch',outlet],['Audit Date',auditDate]];
+  info.forEach(([lb,vl],i)=>{
+    const ix=ML+(i%2)*(CW/2+2),iy=y+Math.floor(i/2)*12;
+    fr(ix,iy,CW/2-2,12,245,245,245);
+    sf(8,'bold',[120,120,120]);doc.text(lb.toUpperCase(),ix+3,iy+5);
+    sf(10,'normal',[30,30,30]);doc.text(String(vl),ix+3,iy+10);
+  });
+  y+=30;
+  sf(9,'bold',[30,30,30]);doc.text('Section Summary',ML,y);y+=6;
+  fr(ML,y,CW,7,50,50,50);
+  sf(8,'bold',[255,255,255]);doc.text('Section',ML+2,y+5);doc.text('Score',ML+CW-42,y+5);doc.text('Max',ML+CW-28,y+5);doc.text('%',ML+CW-12,y+5);
+  y+=7;
+  SECTIONS.forEach((s,si)=>{
+    const ss=secScores[s.id];const sp2=ss.max>0?Math.round(ss.earned/ss.max*100):0;
+    fr(ML,y,CW,6,...(si%2===0?[255,255,255]:[248,248,248]));
+    sf(8,'normal',[30,30,30]);doc.text((si+1)+'. '+s.title.substring(0,38),ML+2,y+5);
+    doc.text(''+ss.earned,ML+CW-42,y+5);doc.text(''+ss.max,ML+CW-28,y+5);
+    const sc=sp2>=91?[30,120,30]:sp2>=71?[180,80,0]:[180,30,30];
+    sf(8,'bold',sc);doc.text(sp2+'%',ML+CW-12,y+4);y+=6;
+  });
+  fr(ML,y,CW,8,30,30,30);
+  sf(9,'bold',[255,255,255]);doc.text('TOTAL: '+total+' / '+maxTotal+'  ('+pct+'%)  Grade: '+gr.g,ML+2,y+5.5);y+=12;
+  const fails=[];
+  SECTIONS.forEach(s=>s.items.forEach(it=>{const k=s.id+'_'+it.n;if(state[k].status==='fail')fails.push({section:s.title,item:it,data:state[k]});}));
+  if(fails.length){
+    cy(12);sf(9,'bold',[180,30,30]);doc.text('Failed Items Requiring Corrective Action ('+fails.length+')',ML,y);y+=6;
+    fails.forEach(fi=>{
+      cy(14);fr(ML,y,3,10,180,30,30);fr(ML+3,y,CW-3,10,255,235,235);
+      sf(8,'bold',[120,0,0]);doc.text(fi.section+' — '+fi.item.label,ML+6,y+4);
+      sf(7,'normal',[160,40,40]);const cl=doc.splitTextToSize(fi.data.comment||'No comment',CW-10);doc.text(cl[0],ML+6,y+8);
+      if(fi.data.photos.length){sf(7,'normal',[80,80,200]);doc.text('📷 '+fi.data.photos.length+' photo(s)',ML+CW-28,y+8);}
+      y+=9;
+    });
+  }
+  for(let si=0;si<SECTIONS.length;si++){
+    const s=SECTIONS[si];
+    sp(10+Math.round(si/SECTIONS.length*80),'Section '+(si+1)+'/'+SECTIONS.length+'...');
+    await new Promise(r=>setTimeout(r,10));
+    ap();
+    fr(0,0,W,12,...hRgb('#bf360c'));
+    sf(9,'bold',[255,255,255]);doc.text('Section '+(si+1)+': '+s.title,ML,8);
+    const ss=secScores[s.id];const sp2=ss.max>0?Math.round(ss.earned/ss.max*100):0;
+    doc.text('Score: '+ss.earned+'/'+ss.max+' ('+sp2+'%)',W-14-40,8);
+    y=16;
+    for(const it of s.items){
+      const k=s.id+'_'+it.n;const st=state[k];
+      const sLabel=st.status==='pass'?'PASS':st.status==='fail'?'FAIL':st.status==='na'?'N/A':'—';
+      const sColor=st.status==='pass'?[30,120,30]:st.status==='fail'?[180,30,30]:[100,100,100];
+      const rowBg=st.status==='pass'?[240,255,240]:st.status==='fail'?[255,240,240]:[250,250,250];
+      const hasC=st.comment&&st.comment.trim();
+      const cLines=hasC?doc.splitTextToSize(st.comment,CW-30):[];
+      const dL=doc.splitTextToSize(it.desc,CW-40);
+      const dShow=dL.slice(0,3);
+      const descH=dShow.length*4;
+      const pH=st.photos.length>0?Math.ceil(st.photos.length/4)*38+4:0;
+      const iH=6+descH+(hasC?cLines.length*4+3:0)+pH+4;
+      cy(iH+2);
+      fr(ML,y,CW,iH,...rowBg);
+      doc.setFillColor(...sColor);doc.rect(ML,y,16,iH,'F');
+      sf(7,'bold',[255,255,255]);doc.text(sLabel,ML+1.5,y+iH/2+2.5);
+      sf(8,'bold',[20,20,20]);doc.text(it.n+'. '+it.label,ML+19,y+5);
+      sf(7,'normal',[80,80,80]);doc.text(dShow,ML+19,y+10);
+      sf(7,'bold',[100,100,100]);doc.text('Max: '+it.score+'pt'+(it.score>1?'s':''),ML+CW-14,y+5);
+      let iy=y+10+descH+2;
+      if(hasC){sf(7,'normal',[60,60,160]);doc.text('Comment: ',ML+19,iy);sf(7,'normal',[40,40,40]);doc.text(cLines,ML+40,iy);iy+=cLines.length*4+2;}
+      if(st.photos.length>0){
+        sf(7,'bold',[40,40,180]);doc.text('Photos ('+st.photos.length+'):',ML+19,iy+4);iy+=6;
+        const pw=34,ph=32,gap=2;let px=ML+19;
+        for(let pi=0;pi<st.photos.length;pi++){
+          if(pi>0&&pi%4===0){px=ML+19;iy+=ph+gap;}
+          try{doc.addImage(st.photos[pi],'JPEG',px,iy,pw,ph,'','FAST');}catch(e){fr(px,iy,pw,ph,200,200,200);}
+          px+=pw+gap;
+        }
+        iy+=ph+4;
+      }
+      y+=iH+1;
+    }
+    cy(8);fr(ML,y,CW,7,235,235,235);
+    sf(8,'bold',[60,60,60]);doc.text('Section Total: '+ss.earned+' / '+ss.max+'  ('+sp2+'%)',ML+2,y+4.5);y+=8;
+  }
+  sp(95,'Adding page numbers...');await new Promise(r=>setTimeout(r,10));
+  const pages=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i);sf(7,'normal',[180,180,180]);
+    doc.text('Little Bangkok BOH Audit  |  Page '+i+' of '+pages+'  |  '+auditor+'  |  '+auditDate,W/2,292,{align:'center'});
+  }
+  const ds=(auditDate||'').replace(/-/g,'');
+  const os=outlet!=='Not specified'?'_'+outlet.replace(/\s+/g,'_'):'';
+  doc.save('LittleBangkok_BOH_Audit'+(ds?'_'+ds:'')+os+'.pdf');
+  prog.classList.remove('open');bar.style.width='0%';
+  showToast('✔ PDF downloaded with all photos!','#b71c1c');
+}
+
+/* ── SAVE / LOAD ─────────────────────────────────────────── */
+function saveKey(){
+  const o = (document.getElementById('outlet')||{value:''}).value || 'none';
+  return 'audit_draft_' + (TEMPLATE_KEY||'x') + '_' + o.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+}
+
+function saveAudit(){
+  const payload={
+    state: state,
+    auditor: document.getElementById('auditor').value,
+    outlet: (document.getElementById('outlet')||document.getElementById('location')||{value:''}).value,
+    date: document.getElementById('audit-date').value,
+    
+    savedAt: new Date().toISOString()
+  };
+  // Photos are already base64 in state — save all
+  try{
+    localStorage.setItem(saveKey(), JSON.stringify(payload));
+    const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    showToast('✔ Audit saved at '+t+' — data will be here when you reopen this file!','#283593');
+    document.getElementById('last-saved-label').textContent='Last saved: '+t;
+  } catch(e){
+    showToast('⚠ Could not save — file may be too large (too many photos). Try removing some photos.','#c62828');
+  }
+}
+
+function loadAudit(){
+  try{
+    const raw=localStorage.getItem(saveKey());
+    if(!raw) return;
+    const payload=JSON.parse(raw);
+    // Restore form fields
+    if(payload.auditor) document.getElementById('auditor').value=payload.auditor;
+    const outletEl=document.getElementById('outlet')||document.getElementById('location');
+    if(outletEl&&payload.outlet) outletEl.value=payload.outlet;
+    if(payload.date) document.getElementById('audit-date').value=payload.date;
+    
+    // Restore state
+    if(payload.state){
+      Object.keys(payload.state).forEach(k=>{
+        if(state[k]!==undefined){
+          state[k].status = payload.state[k].status||null;
+          state[k].comment = payload.state[k].comment||'';
+          state[k].photos = payload.state[k].photos||[];
+          state[k].correctiveAction = payload.state[k].correctiveAction||'';
+          state[k].deadline = payload.state[k].deadline||'';
+          state[k].responsible = payload.state[k].responsible||'';
+        }
+      });
+    }
+    // Re-render all cards
+    SECTIONS.forEach(s=>s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;
+      if(state[k]&&state[k].status!==null){
+        setStatus(s.id,it.n,state[k].status);
+      }
+      if(state[k]&&state[k].comment){
+        const inp=document.querySelector('#card-'+k+' .comment-input');
+        if(inp) inp.value=state[k].comment;
+      }
+      if(state[k]&&state[k].correctiveAction){
+        const ca=document.querySelector('#corrective-row-'+k+' .corrective-input');
+        if(ca) ca.value=state[k].correctiveAction;
+      }
+      if(state[k]&&state[k].deadline){
+        const dl=document.getElementById('deadline-'+k);
+        if(dl) dl.value=state[k].deadline;
+      }
+      if(state[k]&&state[k].responsible){
+        const rs=document.querySelector('#deadline-row-'+k+' .responsible-input');
+        if(rs) rs.value=state[k].responsible;
+      }
+      if(state[k]&&state[k].photos&&state[k].photos.length>0){
+        renderThumbs(s.id,it.n);
+      }
+    }));
+    updateScoreBar();
+    const t=new Date(payload.savedAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('last-saved-label').textContent='Restored: '+t;
+    showToast('✔ Previous audit restored!','#2e7d32');
+  } catch(e){
+    console.log('No saved data or load error:', e);
+  }
+}
+
+function clearSave(){
+  if(!confirm('Are you sure you want to clear all saved data and start fresh?')) return;
+  localStorage.removeItem(saveKey());
+  location.reload();
+}
+
+
+// ── Submit audit to shared dashboard ─────────────────────────────────────────
+function submitAuditToDashboard() {
+  const {total, maxTotal} = calcScores();
+  const pct = maxTotal > 0 ? Math.round((total / maxTotal) * 100) : 0;
+  const auditor  = document.getElementById('auditor')?.value || '—';
+  const outlet   = (document.getElementById('outlet') || document.getElementById('location') || {value:''}).value || ''; if(!outlet){ showToast('⚠ Please select an outlet before submitting!','#c62828'); return; }
+  const auditDate= document.getElementById('audit-date')?.value || new Date().toISOString().split('T')[0];
+    const title    = document.title || '';
+  const auditType= (TEMPLATES[TEMPLATE_KEY] && TEMPLATES[TEMPLATE_KEY].meta.auditType) || 'BOH';
+  const outletKey= outlet.trim().toLowerCase().replace(/\s+/g,'_');
+
+  try {
+    const db = JSON.parse(localStorage.getItem('KIC_SHARED_DB_V2') || '{"submissions":[],"audits":[]}');
+    if (!db.audits) db.audits = [];
+
+    // Remove old audit for same outlet+type
+    db.audits = db.audits.filter(a => !(a.outlet === outlet && a.auditType === auditType));
+
+    db.audits.push({
+      outlet,
+      auditType,
+      score: pct,
+      rawScore: total,
+      maxScore: maxTotal,
+      auditor,
+      auditDate,
+      submittedAt: new Date().toISOString()
+    });
+
+    localStorage.setItem('KIC_SHARED_DB_V2', JSON.stringify(db));
+    // Collect photos keyed by section+item for inline display
+    const photos = {};
+    SECTIONS.forEach(s=>s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;
+      if(state[k].photos && state[k].photos.length>0){
+        state[k].photos.forEach((url,pi)=>{
+          photos['_'+s.id+'_'+it.n+'_'+pi] = url;
+        });
+      }
+    }));
+    
+    // Collect corrective actions for failed items
+    const correctiveActions = [];
+    SECTIONS.forEach(s=>s.items.forEach(it=>{
+      const k=s.id+'_'+it.n;
+      if(state[k].status==='fail'){
+        correctiveActions.push({
+          section: s.title, item: it.n, criteria: it.label,
+          observation: state[k].comment||'',
+          correctiveAction: state[k].correctiveAction||'',
+          responsible: state[k].responsible||'',
+          deadline: state[k].deadline||'',
+        });
+      }
+    }));
+    // Collect full section breakdown
+    const sectionBreakdown = [];
+    SECTIONS.forEach(s=>{
+      const secItems = [];
+      let secEarned=0, secMax=0;
+      s.items.forEach(it=>{
+        const k=s.id+'_'+it.n;
+        const st=state[k];
+        if(st.status!=='na') secMax+=it.score;
+        if(st.status==='pass') secEarned+=it.score;
+        secItems.push({
+          n: it.n,
+          label: it.label,
+          desc: it.desc,
+          maxScore: it.score,
+          status: st.status||'',
+          comment: st.comment||'',
+          correctiveAction: st.correctiveAction||'',
+          responsible: st.responsible||'',
+          deadline: st.deadline||'',
+          photos: st.photos||[],
+        });
+      });
+      sectionBreakdown.push({
+        id: s.id,
+        title: s.title,
+        earned: secEarned,
+        max: secMax,
+        items: secItems
+      });
+    });
+    // Push photos separately to Firebase, store keys in items
+    async function pushWithPhotos() {
+      const auditKey = outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
+
+      // Store photos separately — strip from sectionBreakdown to keep record small
+      const photoUploads = [];
+      for (const sec of sectionBreakdown) {
+        for (const it of sec.items) {
+          if (it.photos && it.photos.length > 0) {
+            const photoKeys = [];
+            for (let pi = 0; pi < it.photos.length; pi++) {
+              const compressed = await compressPhoto(it.photos[pi], 600, 0.65);
+              const photoKey = auditKey + '_' + sec.id + '_' + it.n + '_' + pi;
+              photoUploads.push({key: photoKey, data: compressed});
+              photoKeys.push(photoKey);
+            }
+            it.photoKeys = photoKeys; // store references
+            it.photos = [];           // don't embed in main record
+          }
+        }
+      }
+
+      // Push main audit record (no embedded photos — keeps it small)
+      pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});
+
+      // Push each photo separately
+      photoUploads.forEach(({key, data}) => {
+        try {
+          _db.ref('auditPhotos/' + key).set(data).catch(e => console.warn('Photo upload failed:', key, e));
+        } catch(e) { console.warn('Photo push error:', e); }
+      });
+    }
+    pushWithPhotos();
+    showToast('✅ Audit submitted! Score: ' + pct + '% — KIC dashboard updated', '#2e7d32');
+    console.log('Audit submitted to Firebase:', {outlet, auditType, score:pct});
+  } catch(e) {
+    showToast('⚠ Could not submit to dashboard: ' + e.message, '#c62828');
+  }
+}
+
+/* ── BOOT ─────────────────────────────────────────────────── */
+if(!document.getElementById('audit-date').value){
+  document.getElementById('audit-date').valueAsDate=new Date();
+}
+document.getElementById('sections-container').innerHTML =
+  '<div style="padding:2rem;text-align:center;color:#888;font-size:13px;">Loading audits...</div>';
+
+loadTemplates().then(function(){
+  const n = Object.keys(TEMPLATES).length;
+  if(!n){
+    document.getElementById('sections-container').innerHTML =
+      '<div style="padding:2rem;text-align:center;color:#c62828;font-size:13px;">'
+      + 'No audit templates found in Firebase.<br>Import audit-templates.json first.</div>';
+    document.getElementById('audit-select').innerHTML = '<option value="">No audits found</option>';
+    return;
+  }
+  const last = localStorage.getItem('audit_last_template');
+  if(last && TEMPLATES[last]){
+    document.getElementById('audit-select').value = last;
+    selectTemplate(last);
+  } else {
+    selectTemplate('');
+  }
+}).catch(function(e){
+  document.getElementById('sections-container').innerHTML =
+    '<div style="padding:2rem;text-align:center;color:#c62828;font-size:13px;">'
+    + 'Could not reach Firebase.<br>Check your connection and reload.</div>';
+  console.warn('Template load failed:', e);
+});
+</script>
+</body>
+</html>

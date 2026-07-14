@@ -1,0 +1,5493 @@
+{
+ "auditTemplates": {
+  "lb-boh": {
+   "meta": {
+    "name": "Little Bangkok — BOH Audit",
+    "brand": "Little Bangkok",
+    "auditType": "BOH",
+    "outlets": [
+     "LB DSO",
+     "LB Tower",
+     "LB Hamra",
+     "LB JLT",
+     "LB OM",
+     "LB DHE",
+     "LB MTC"
+    ],
+    "scoreMode": "passfail",
+    "maxScore": 190,
+    "version": 1,
+    "active": true
+   },
+   "sections": {
+    "s1": {
+     "title": "General Operational Compliance",
+     "order": 1
+    },
+    "s2": {
+     "title": "Food Safety Compliance",
+     "order": 2
+    },
+    "s3": {
+     "title": "Appetizer, Salad & Dim Sum Section",
+     "order": 3
+    },
+    "s4": {
+     "title": "Product Preparation Zones",
+     "order": 4
+    },
+    "s5": {
+     "title": "Hot Food Preparation Area",
+     "order": 5
+    },
+    "s6": {
+     "title": "Final & Call-Out Section",
+     "order": 6
+    },
+    "s7": {
+     "title": "Storeroom or Pantry Area",
+     "order": 7
+    },
+    "s8": {
+     "title": "Stewarding Area",
+     "order": 8
+    },
+    "s9": {
+     "title": "Facilities Department",
+     "order": 9
+    }
+   },
+   "items": {
+    "i_bbdc3bcf30": {
+     "section": "s1",
+     "order": 1,
+     "label": "Chef Uniform & Grooming",
+     "desc": "Staff wear clean, properly fitted uniforms with bandana over a hairnet, stain-free aprons, neatly trimmed fingernails, well-groomed hair and beard, and appropriate chef shoes.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_faf42d6fa7": {
+     "section": "s1",
+     "order": 2,
+     "label": "Team Briefing",
+     "desc": "A pre-shift briefing was conducted, and all key information was communicated clearly to the team.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_75c51f04ec": {
+     "section": "s1",
+     "order": 3,
+     "label": "Schedule",
+     "desc": "The staff schedule is updated, clearly displayed, and fully followed, with no instances of lateness recorded.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6a5e9b4aa8": {
+     "section": "s1",
+     "order": 4,
+     "label": "Dispensers",
+     "desc": "Hand soap and tissue dispensers are clean, properly maintained, and adequately filled.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c1930aac4b": {
+     "section": "s1",
+     "order": 5,
+     "label": "Kitchen Printer",
+     "desc": "The kitchen printer is clean, functioning properly, and producing clear, readable printouts.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_fff96d8f60": {
+     "section": "s1",
+     "order": 6,
+     "label": "Garbage Bins",
+     "desc": "All garbage bins are clean, properly lined, and in good condition, with interiors cleaned and sanitized regularly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_45edcd38e0": {
+     "section": "s1",
+     "order": 7,
+     "label": "Ice Machine",
+     "desc": "The ice machine is clean and free from slime, producing ice properly, with a clean scooper in its designated location. Cleaning checklist updated and water filter changed on schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_41bd4d4ba1": {
+     "section": "s1",
+     "order": 8,
+     "label": "Cleanliness",
+     "desc": "The overall area including floors, walls, doors, ceilings, and the receiving area is clean, well-maintained, and free from dirt and debris.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b44d15835d": {
+     "section": "s1",
+     "order": 9,
+     "label": "Forms & Records",
+     "desc": "All required forms and checklists including wastage logs, staff-food consumption records, and manual temperature monitoring sheets are completed accurately and kept easily accessible.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b7f8a667ce": {
+     "section": "s1",
+     "order": 10,
+     "label": "Unauthorized Items",
+     "desc": "No unauthorized items are present within the area, and all spaces are free from personal belongings or non-operational materials.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_fc44aa12b6": {
+     "section": "s1",
+     "order": 11,
+     "label": "Oil Usage",
+     "desc": "Oil-quality test strips are properly tracked, and all available strips are within their valid expiry dates.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_00286fc258": {
+     "section": "s1",
+     "order": 12,
+     "label": "Gas Safety & Induction",
+     "desc": "All gas valves are verified to be turned off during closing. Induction units are switched off after use and left in proper operating condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ab017aaa74": {
+     "section": "s1",
+     "order": 13,
+     "label": "Upright Chiller & Freezer",
+     "desc": "The upright chiller and freezer are clean, operating at correct temperatures, well-organized, properly logged, and free from expired or improperly labeled products. All stored items are covered or wrapped appropriately.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_faf6be7f45": {
+     "section": "s1",
+     "order": 14,
+     "label": "Walk-In Chiller & Freezer",
+     "desc": "The walk-in chiller and freezer are clean, operating at correct temperatures, well-organized, and properly logged. All products are clearly labeled with accurate expiry dates, free from expired items, and stored covered or wrapped as required.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e78db06457": {
+     "section": "s1",
+     "order": 15,
+     "label": "FoodWatch",
+     "desc": "The FoodWatch checklist is fully completed, with all required fields accurately filled, verified, and submitted within the designated timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_be54533ca9": {
+     "section": "s1",
+     "order": 16,
+     "label": "Pests",
+     "desc": "There are no signs of insects or cockroaches within the premises, whether dead or alive.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_789038b8fa": {
+     "section": "s1",
+     "order": 17,
+     "label": "Operation",
+     "desc": "The floor is dry, and all section and preparation areas remain clean, free from spills, and properly maintained at all times, including during peak hours.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5d742a808d": {
+     "section": "s2",
+     "order": 1,
+     "label": "FIFO & FEFO",
+     "desc": "FIFO and FEFO practices are followed at all times, with products rotated correctly and older stock consistently used first.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_aca8840754": {
+     "section": "s2",
+     "order": 2,
+     "label": "Handwashing",
+     "desc": "Staff wash their hands at all required moments: arriving for duty, before food preparation, after smoking, handling waste, touching raw food, and after any contaminating activity.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ba030dfd2d": {
+     "section": "s2",
+     "order": 3,
+     "label": "Glove Use",
+     "desc": "Staff wear gloves on both hands when handling food and change them often to avoid contamination. Wearing only one glove is not allowed.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8e2b46493c": {
+     "section": "s2",
+     "order": 4,
+     "label": "Thermometers & Weighing Scales",
+     "desc": "Thermometers and weighing scales are clean, in use, and accurately calibrated.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_96d840e2aa": {
+     "section": "s2",
+     "order": 5,
+     "label": "Thawing",
+     "desc": "Frozen items are thawed properly, either inside the chiller or under a continuous flow of cold running water.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b37367c9c8": {
+     "section": "s2",
+     "order": 6,
+     "label": "Temperature Control",
+     "desc": "Chillers are maintained at temperatures not exceeding 5C, and freezers are kept at temperatures not warmer than -18C. All readings are checked and recorded as required.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2b771fe627": {
+     "section": "s2",
+     "order": 7,
+     "label": "Cooking Temperature",
+     "desc": "Food is cooked to a core temperature of 75C for at least 60 seconds to meet food safety standards.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e48870aa97": {
+     "section": "s2",
+     "order": 8,
+     "label": "Cross-Contamination Control",
+     "desc": "Cross-contamination is effectively prevented by keeping raw and ready-to-eat items fully separated at every stage of storage, preparation, and handling.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0f316a18a2": {
+     "section": "s3",
+     "order": 1,
+     "label": "Layout & Schematics",
+     "desc": "Schematics are being followed correctly, and all sections are arranged according to the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_eddcd2e314": {
+     "section": "s3",
+     "order": 2,
+     "label": "Work Areas & Surfaces",
+     "desc": "Work areas and surfaces are clean, organized, free from dirt and grease, and sanitized using the required procedures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e3a4bc4dab": {
+     "section": "s3",
+     "order": 3,
+     "label": "Undercounter Chiller/Freezer",
+     "desc": "Temperature is correct and the unit is functioning properly. Gasket is clean and in good condition. Items are organized and properly segregated, with high-risk and low-risk products stored separately.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_486679ab10": {
+     "section": "s3",
+     "order": 4,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menu specifications are present, up to date, and consistently followed during preparation and service.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3d087636b2": {
+     "section": "s3",
+     "order": 5,
+     "label": "Product Quality & Labelling",
+     "desc": "No expired, spoiled, or unpresentable items stored in the undercounter chiller. All products are fresh, within date, correctly labeled, and properly wrapped. No containers stored without an expiration label.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_79c3bb39c6": {
+     "section": "s3",
+     "order": 6,
+     "label": "Pest-Free Section",
+     "desc": "The Appetizer, Salad, and Dim Sum section is free from any insects, including cockroaches and fruit flies, and maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b6bfc95a54": {
+     "section": "s3",
+     "order": 7,
+     "label": "Steamer Machine",
+     "desc": "The steamer machine water is clean, clear, and free from any visible dirt, residue, or contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_608f0a1f66": {
+     "section": "s4",
+     "order": 1,
+     "label": "Utensils & Chopping Boards",
+     "desc": "All required utensils are available, clean, and in good condition. Chopping boards are stored properly in the designated rack in accordance with food safety standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cd5cd08f52": {
+     "section": "s4",
+     "order": 2,
+     "label": "Sinks",
+     "desc": "Sinks are clean, free from food debris, and maintained in a hygienic condition at all times. No items stored under the sink except approved cleaning chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a3ed2fcb56": {
+     "section": "s4",
+     "order": 3,
+     "label": "Vegetable Cut Specifications",
+     "desc": "Vegetable cut specifications are followed consistently, with all cuts prepared according to the approved standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3e7d458407": {
+     "section": "s4",
+     "order": 4,
+     "label": "Raw Meat & Seafood Segregation",
+     "desc": "Raw meat and seafood are properly segregated at all stages of storage and preparation, ensuring strict separation to prevent cross-contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_43862794eb": {
+     "section": "s4",
+     "order": 5,
+     "label": "Pest-Free Prep Zone",
+     "desc": "The Production Preparation Zone is free from any insects, including cockroaches and fruit flies, and maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_08ef69f8a0": {
+     "section": "s4",
+     "order": 6,
+     "label": "Post-Washing Clean-Up",
+     "desc": "After washing items, the preparation area is cleaned immediately, with no remaining debris, and the area is kept organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e7ffca49ed": {
+     "section": "s5",
+     "order": 1,
+     "label": "Station Layout & Schematics",
+     "desc": "Schematics are followed correctly in the fryer, wok, and griller section, with all equipment arranged in accordance with the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bae9f005f9": {
+     "section": "s5",
+     "order": 2,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menu specifications are present, updated, and consistently followed during preparation and service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e013121d11": {
+     "section": "s5",
+     "order": 3,
+     "label": "Utensils & Fryer Tools",
+     "desc": "All required utensils are available, clean, and in good condition. Fryer baskets are free from debris, and all related tools are stored properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_669770fefb": {
+     "section": "s5",
+     "order": 4,
+     "label": "Fryers & Griddle Condition",
+     "desc": "Fryers and the griddle are clean, free from grease buildup, set to correct operating temperatures, and maintained in good working condition. Fryer oil is drained and cleaned properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_32e45a24bc": {
+     "section": "s5",
+     "order": 5,
+     "label": "Wok Unit Condition",
+     "desc": "The wok unit (gas or induction) is clean, fully functional, and well maintained to ensure safe and efficient operation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1ca8397ef7": {
+     "section": "s5",
+     "order": 6,
+     "label": "Work Area Cleanliness",
+     "desc": "Work areas and surfaces are clean, organized, and free from dirt and grease. All required sanitizing sprays are available and proper sanitizing procedures are correctly followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_feda22698c": {
+     "section": "s5",
+     "order": 7,
+     "label": "Undercounter Chiller & Freezer",
+     "desc": "GN containers are clean, organized, properly covered, and labeled with accurate expiry dates, with no containers stored without an expiration label. Gaskets are clean and maintained in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ac9b983a55": {
+     "section": "s5",
+     "order": 8,
+     "label": "Used Cooking Oil Disposal",
+     "desc": "Used cooking oil is disposed of properly, with all oil fully transferred to the designated container during closing procedures. The designated oil container is clean and clearly labeled.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_fdf01930cf": {
+     "section": "s5",
+     "order": 9,
+     "label": "Product Quality & Expiry Control",
+     "desc": "No items that are off, expired, unpresentable, or spoiled are present. All seasoning and sauces are properly labeled with accurate expiry dates.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_94639505f7": {
+     "section": "s5",
+     "order": 10,
+     "label": "Fire Suppression System",
+     "desc": "The fire suppression system is active, and all rubber valves are present and properly covering the fire sprinkler components as required.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7185360e16": {
+     "section": "s5",
+     "order": 11,
+     "label": "Exhaust System Condition",
+     "desc": "The exhaust system is in good condition, with hood lights, extraction, and fresh-air functions operating optimally.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_13c35ec3d2": {
+     "section": "s5",
+     "order": 12,
+     "label": "Pest-Free Hot Area",
+     "desc": "The Fryer, Wok, and Grill area is free from any insects, including cockroaches and fruit flies, and maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_33fd09c25e": {
+     "section": "s5",
+     "order": 13,
+     "label": "Boiler Machine Condition",
+     "desc": "The boiler machine is functioning properly, the water is clean, and the boiler baskets are clean, free from damage, and maintained in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_99c457de91": {
+     "section": "s6",
+     "order": 1,
+     "label": "Schematics Compliance",
+     "desc": "Schematics are being followed correctly, and the final section and call-out area are arranged in accordance with the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0bcb08acf9": {
+     "section": "s6",
+     "order": 2,
+     "label": "Menu Specification Compliance",
+     "desc": "In the final section and call-out area, dine-in and takeaway menu specifications are present, updated, and consistently followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_388dc49ca9": {
+     "section": "s6",
+     "order": 3,
+     "label": "Heating Lamps Condition",
+     "desc": "Heating lamps are functioning properly, clean, and well maintained to ensure safe and effective holding conditions.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c663a889ed": {
+     "section": "s6",
+     "order": 4,
+     "label": "Workstation Cleanliness",
+     "desc": "Work surfaces are clean, organized, free from dirt and grease, and all required sanitizing sprays and procedures are correctly followed.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_884d4ad844": {
+     "section": "s6",
+     "order": 5,
+     "label": "Ice Bath Management",
+     "desc": "Ice baths are present and properly maintained for all cooked foods, sauces, and garnishes that require rapid cooling.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0649b0fba9": {
+     "section": "s6",
+     "order": 6,
+     "label": "Tasting Spoon Management",
+     "desc": "Tasting spoons are readily available, clean, and used appropriately in accordance with hygiene and food-safety practices.",
+     "weight": 2,
+     "allowNA": true,
+     "active": true
+    },
+    "i_db9f78fa5b": {
+     "section": "s6",
+     "order": 7,
+     "label": "Undercounter Drawer Chiller/Freezer",
+     "desc": "GN containers are clean, organized, properly covered, and labeled with accurate expiry dates. The gasket is clean, intact, and maintained in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_659eabe179": {
+     "section": "s6",
+     "order": 8,
+     "label": "Pest-Free Final Section",
+     "desc": "The Final and Call Section is free from any insects, including cockroaches and fruit flies, and maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_374f2b4cd2": {
+     "section": "s6",
+     "order": 9,
+     "label": "Rice Cooker & Microwave",
+     "desc": "Rice cookers and the microwave are clean, well maintained, properly used, and kept closed during operation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_51ee2a2cda": {
+     "section": "s6",
+     "order": 10,
+     "label": "Product Quality & Storage",
+     "desc": "No items that are off, expired, unpresentable, or spoiled are present in the chiller, freezer, or the final section area.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c896bc632b": {
+     "section": "s7",
+     "order": 1,
+     "label": "Upright Chiller/Freezer & Cheese Freezer",
+     "desc": "The upright double-door chiller/freezer and cheese freezer are functioning properly, operating at the correct temperature, and all items are organized and stored with accurate expiry labels. No unlabeled products present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d60a2075de": {
+     "section": "s7",
+     "order": 2,
+     "label": "Equipment Maintenance & Cleanliness",
+     "desc": "All storage equipment including shelves, racks, crates, and trolleys is clean, rust-free, and in good condition, with no broken, unstable, or damaged components.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_325265a1d9": {
+     "section": "s7",
+     "order": 3,
+     "label": "Dry Goods Organization",
+     "desc": "All dried items are organized and properly arranged in the designated shelving area, with no expired products present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_13c03d0673": {
+     "section": "s7",
+     "order": 4,
+     "label": "Pest-Proofing & Prevention",
+     "desc": "Storeroom and pantry areas are free from pest activity, with all pest-control devices properly placed, clean, and within their service dates.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7ba2d6d1d5": {
+     "section": "s7",
+     "order": 5,
+     "label": "Packaging Integrity",
+     "desc": "All products are stored in clean, intact packaging with no signs of damage, swelling, leakage, or contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2cdff1a9dc": {
+     "section": "s7",
+     "order": 6,
+     "label": "Crate & Container Cleanliness",
+     "desc": "All storage crates, bins, and containers are clean, free from residue, and in good condition with no cracks or contamination risks.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4e5fb3d6a0": {
+     "section": "s7",
+     "order": 7,
+     "label": "Moisture & Leak Prevention",
+     "desc": "No signs of moisture, leaks, or water damage are present on floors, walls, or ceilings. All products are protected from potential water exposure.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5de42490c6": {
+     "section": "s7",
+     "order": 8,
+     "label": "Waste & Carton Removal",
+     "desc": "No empty cartons, packaging materials, or waste are stored in the area; all waste is removed promptly to prevent pest attraction.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1b4d45cef3": {
+     "section": "s7",
+     "order": 9,
+     "label": "Handling of Opened Products",
+     "desc": "Opened products are sealed properly, labeled with opening dates, and stored in designated areas to maintain quality and safety.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1d60163228": {
+     "section": "s8",
+     "order": 1,
+     "label": "Dishwashing Machine Condition",
+     "desc": "The dishwashing machine is clean, well maintained, and in full functioning condition, operating according to required performance and sanitation standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d69f988580": {
+     "section": "s8",
+     "order": 2,
+     "label": "Cleaning Chemicals & Supplies",
+     "desc": "Cleaning chemicals and supplies are complete, readily available, properly organized, and used according to approved specifications and safety procedures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3328d6a033": {
+     "section": "s8",
+     "order": 3,
+     "label": "Cleaning Tools Storage & Usage",
+     "desc": "Cleaning tools such as mops, wipers, and brushes are correctly stored and properly used with the appropriate cleaning chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_747e7baab1": {
+     "section": "s8",
+     "order": 4,
+     "label": "Sink Area Cleanliness",
+     "desc": "The sink area is clean, organized, and free from any bad odor, except for normal food smells during peak hours.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_29b1080b3e": {
+     "section": "s8",
+     "order": 5,
+     "label": "Dim Sum Basket Cleaning",
+     "desc": "Dim sum baskets are fully soaked in water with the correct chemical, cleaned thoroughly, arranged properly after soaking, and free from damage or food debris.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1d8ca2220c": {
+     "section": "s8",
+     "order": 6,
+     "label": "Waste Bin Condition",
+     "desc": "Waste bins are clean, properly lined, and not overflowing at any time.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_10a1bf5ea2": {
+     "section": "s8",
+     "order": 7,
+     "label": "Post-Washing Inspection & Storage",
+     "desc": "Items are inspected to ensure they are properly cleaned, fully sanitized, and neatly stacked in the designated storage area after washing.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3ff45cf10c": {
+     "section": "s8",
+     "order": 8,
+     "label": "Grease Dosing System Condition",
+     "desc": "The grease dosing system is clean, well maintained, and functioning effectively according to operational requirements.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_56c5c99690": {
+     "section": "s8",
+     "order": 9,
+     "label": "General Area Cleanliness",
+     "desc": "The general area is clean, including floors and walls, with no dirt, debris, insects, or pests present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_68f16b0771": {
+     "section": "s9",
+     "order": 1,
+     "label": "Lighting Condition",
+     "desc": "All lighting fixtures are fully functional with no busted or flickering bulbs. Any issues identified are promptly reported to Maintenance.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_04f1ea3311": {
+     "section": "s9",
+     "order": 2,
+     "label": "Drainage System Condition",
+     "desc": "All floor drains are clean, free-flowing, and equipped with proper covers. No foul odors, blockages, or standing water are present.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d5c229ac38": {
+     "section": "s9",
+     "order": 3,
+     "label": "Fire Safety Equipment",
+     "desc": "Fire extinguishers, fire blankets, and emergency equipment are accessible, within service dates, and free from obstruction.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cf46540292": {
+     "section": "s9",
+     "order": 4,
+     "label": "Insect Killer Unit Condition",
+     "desc": "The insect killer unit is clean, free from insect buildup, with no busted bulbs, fully functional, and operating as required.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_249c51b86a": {
+     "section": "s9",
+     "order": 5,
+     "label": "Electrical Safety",
+     "desc": "Electrical outlets, switches, and panels are intact, properly covered, and free from burn marks or exposed wiring. No equipment is plugged into damaged sockets.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7962a80063": {
+     "section": "s9",
+     "order": 6,
+     "label": "Water Supply & Plumbing",
+     "desc": "Water supply is stable, with no leaks, drips, or malfunctioning faucets. Plumbing fixtures are clean and in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_41b9a4c7cd": {
+     "section": "s9",
+     "order": 7,
+     "label": "Floor Condition & Safety",
+     "desc": "Floors are clean, dry, and free from cracks, uneven surfaces, or slip hazards. Any damage is reported immediately for repair.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c81b17134e": {
+     "section": "s9",
+     "order": 8,
+     "label": "Equipment Functionality & Maintenance",
+     "desc": "All equipment in the area is functioning properly, free from damage, and maintained according to scheduled preventive maintenance plans.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_929b54b1c2": {
+     "section": "s9",
+     "order": 9,
+     "label": "Wastewater & Grease Management",
+     "desc": "Grease traps, grease dosing systems, and wastewater lines are clean, functioning properly, and serviced according to schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_94695a86fc": {
+     "section": "s9",
+     "order": 10,
+     "label": "Ventilation System Operation",
+     "desc": "The exhaust systems, fresh-air units, and air-conditioning are fully operational during service hours and properly switched off during closing.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    }
+   }
+  },
+  "lb-foh": {
+   "meta": {
+    "name": "Little Bangkok — FOH Audit",
+    "brand": "Little Bangkok",
+    "auditType": "FOH",
+    "outlets": [
+     "LB DSO",
+     "LB Tower",
+     "LB Hamra",
+     "LB JLT",
+     "LB OM",
+     "LB DHE",
+     "LB MTC"
+    ],
+    "scoreMode": "passfail",
+    "maxScore": 155,
+    "version": 1,
+    "active": true
+   },
+   "sections": {
+    "s1": {
+     "title": "Operational Documentation",
+     "order": 1
+    },
+    "s2": {
+     "title": "FOH Food Safety & Hygiene",
+     "order": 2
+    },
+    "s3": {
+     "title": "Sequence of Service",
+     "order": 3
+    },
+    "s4": {
+     "title": "Retail Display",
+     "order": 4
+    },
+    "s5": {
+     "title": "Food Runner & Delivery Station",
+     "order": 5
+    },
+    "s6": {
+     "title": "Ambience & Interior",
+     "order": 6
+    },
+    "s7": {
+     "title": "Bar Area",
+     "order": 7
+    },
+    "s8": {
+     "title": "Outdoor Premises",
+     "order": 8
+    },
+    "s9": {
+     "title": "Guest Washrooms",
+     "order": 9
+    },
+    "s10": {
+     "title": "Valet Attendant",
+     "order": 10
+    },
+    "s11": {
+     "title": "Back-Office Area",
+     "order": 11
+    }
+   },
+   "items": {
+    "i_c2160f077f": {
+     "section": "s1",
+     "order": 1,
+     "label": "Municipality Files",
+     "desc": "Trade licenses, certificates, and DM documents properly maintained, updated, and organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6e3ac6bda0": {
+     "section": "s1",
+     "order": 2,
+     "label": "Grease Trap",
+     "desc": "Valid cleaning contract; grease trap service records for past 3 months complete and filed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_dc16b5f111": {
+     "section": "s1",
+     "order": 3,
+     "label": "Pest Control",
+     "desc": "Valid pest control contract; treatment records for past 3 months filed and up to date.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_94fe39664c": {
+     "section": "s1",
+     "order": 4,
+     "label": "Exhaust / Duct Cleaning",
+     "desc": "Cleaning contract valid; all service records maintained and organized per schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0f4226b8d6": {
+     "section": "s1",
+     "order": 5,
+     "label": "OHC",
+     "desc": "Occupational Health Cards for all staff available and up to date. Expired certs reported to HR.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_72bda07da9": {
+     "section": "s1",
+     "order": 6,
+     "label": "Basic Food Hygiene",
+     "desc": "BFH certificates for all staff properly filed. Expired certs reported to HR.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5830fe2d49": {
+     "section": "s1",
+     "order": 7,
+     "label": "PIC",
+     "desc": "PIC certificates for all KIC and OIC available and filed in DM documentation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7c74424279": {
+     "section": "s1",
+     "order": 8,
+     "label": "CFP Documents",
+     "desc": "Halal, HACCP, Food Analysis, and Transport Permit certificates available and up to date.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6ea179e931": {
+     "section": "s1",
+     "order": 9,
+     "label": "Temperature Logs",
+     "desc": "Kitchen and bar temperature logs updated per checklist timeframe; retained for 3 months.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2a7a3fb495": {
+     "section": "s1",
+     "order": 10,
+     "label": "Financial Audit",
+     "desc": "Float and petty cash reconciled against EOD reports; reimbursed within 1-2 weeks.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8971179c72": {
+     "section": "s1",
+     "order": 11,
+     "label": "Tips",
+     "desc": "Daily and monthly credit-card tips tracked, documented, signed, verified by OIC and KIC.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_feff89459e": {
+     "section": "s1",
+     "order": 12,
+     "label": "Forms",
+     "desc": "Wastage monitoring, breakages, and cooling logs properly completed and accessible.",
+     "weight": 2,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5fb97b1695": {
+     "section": "s1",
+     "order": 13,
+     "label": "Inventories",
+     "desc": "IT assets and SOE items accounted for and regularly updated. Damaged items reported.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f3b4d1637a": {
+     "section": "s1",
+     "order": 14,
+     "label": "Foodwatch Checklists",
+     "desc": "Fully completed, verified, and submitted within designated timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6eef8ed8a0": {
+     "section": "s1",
+     "order": 15,
+     "label": "Training Files / Doomsday Kit",
+     "desc": "Training files documented; server pads, stamps available and known by staff.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e4944d8c68": {
+     "section": "s2",
+     "order": 1,
+     "label": "Personal Hygiene & Uniform",
+     "desc": "Staff comply with DM hygiene requirements: nails, hair, uniform, shoes, wear light makeup.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2c7aeddbef": {
+     "section": "s2",
+     "order": 2,
+     "label": "Handwashing Practices",
+     "desc": "Handwashing performed upon arrival and at all required moments during service.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2e9d196c5e": {
+     "section": "s2",
+     "order": 3,
+     "label": "Bar Entry Hygiene",
+     "desc": "Staff entering bar wear gloves and hairnet/bandana. Hair fully controlled.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e53e40df83": {
+     "section": "s2",
+     "order": 4,
+     "label": "Stock Rotation (FIFO/FEFO)",
+     "desc": "FIFO and FEFO consistently applied; products arranged by prep/expiry date.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ad4031d34a": {
+     "section": "s2",
+     "order": 5,
+     "label": "Undercounter Chillers & Freezers",
+     "desc": "Good working condition; correct temp range; logs updated; no expired stock.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d9cd3a9018": {
+     "section": "s2",
+     "order": 6,
+     "label": "Allergen-Sensitive Guest Handling",
+     "desc": "Staff ask about allergies, communicate to kitchen, and guide guests on safe menu choices.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cb1b009768": {
+     "section": "s3",
+     "order": 1,
+     "label": "Guest Greeting & Assistance",
+     "desc": "All guests greeted promptly on arrival and acknowledged when leaving.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d3c99589ba": {
+     "section": "s3",
+     "order": 2,
+     "label": "Menu Presentation",
+     "desc": "Staff open menu for guests and introduce beverage options first.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_57124bfc8d": {
+     "section": "s3",
+     "order": 3,
+     "label": "Promotion & Offer Communication",
+     "desc": "Promotions communicated proactively with terms explained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_75b1118d03": {
+     "section": "s3",
+     "order": 4,
+     "label": "Staff Introduction & Order-Taking",
+     "desc": "Staff introduce themselves, record orders, and repeat back to guest.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cf8b8dfff3": {
+     "section": "s3",
+     "order": 5,
+     "label": "Upselling / Suggestive Selling",
+     "desc": "Add-ons, upgrades, and refills recommended naturally and consistently.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b04e309e5b": {
+     "section": "s3",
+     "order": 6,
+     "label": "360-Degree Awareness",
+     "desc": "Staff proactively observe surroundings and anticipate guest needs.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f5bd37f70e": {
+     "section": "s3",
+     "order": 7,
+     "label": "Table Setup Standards",
+     "desc": "Table fully set before any food is served.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3d1a086e06": {
+     "section": "s3",
+     "order": 8,
+     "label": "Food Delivery & Acknowledgment",
+     "desc": "Dish name mentioned, special requests highlighted, guests wished to enjoy.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a6861ff2d9": {
+     "section": "s3",
+     "order": 9,
+     "label": "OIC Guest Satisfaction Check",
+     "desc": "OIC visits each table; feedback addressed promptly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_dd81fdc52e": {
+     "section": "s3",
+     "order": 10,
+     "label": "Table Maintenance",
+     "desc": "Tables kept clean and organized throughout the dining experience.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c8d6d9643c": {
+     "section": "s3",
+     "order": 11,
+     "label": "Dessert & Hot Beverage Offering",
+     "desc": "Foam-board dessert menu presented; dessert, tea, and coffee offered proactively.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1621050919": {
+     "section": "s3",
+     "order": 12,
+     "label": "Post-Meal Amenities",
+     "desc": "Toothpicks, candies, and wet wipes provided after the meal.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f970aa9191": {
+     "section": "s3",
+     "order": 13,
+     "label": "Membership Card",
+     "desc": "Staff inquire about LBKK membership and encourage sign-up with benefits explained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_54bf9635f9": {
+     "section": "s3",
+     "order": 14,
+     "label": "Bill Presentation & Guest Engagement",
+     "desc": "Bill presented promptly; Qlub mentioned; Google review encouraged.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_110151fdb0": {
+     "section": "s3",
+     "order": 15,
+     "label": "Guest Farewell Standards",
+     "desc": "Guests thanked sincerely and warmly invited to return.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_88ebbd1f82": {
+     "section": "s4",
+     "order": 1,
+     "label": "Display Presentation",
+     "desc": "Items arranged neatly, labels visible, no damaged or expired items on display.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_470bd27572": {
+     "section": "s4",
+     "order": 2,
+     "label": "Cleanliness & Organization",
+     "desc": "Retail area clean, dust-free, clutter-free; shelves and display stands well-maintained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_03a2681af0": {
+     "section": "s4",
+     "order": 3,
+     "label": "Stock Levels & Replenishment",
+     "desc": "Items fully stocked; low-stock replenished promptly; out-of-stock prevented.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1cedff96d9": {
+     "section": "s4",
+     "order": 4,
+     "label": "Pricing & Labeling Accuracy",
+     "desc": "Clear, accurate, professionally placed price tags. No handwritten or damaged labels.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_51a82de17b": {
+     "section": "s4",
+     "order": 5,
+     "label": "Product Rotation (FIFO)",
+     "desc": "Older items at front; newer at back; expired/near-expiry items removed immediately.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8150368954": {
+     "section": "s5",
+     "order": 1,
+     "label": "Shelves, Baskets & Containers",
+     "desc": "Clean and free from dust, dirt, and food residue.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cc6c75d6ef": {
+     "section": "s5",
+     "order": 2,
+     "label": "Serving Utensils Stock",
+     "desc": "Serving spoons and underliners sufficient, clean, and properly organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4a68a01d98": {
+     "section": "s5",
+     "order": 3,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menus present, updated, clean, and properly followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_82cc344ebd": {
+     "section": "s5",
+     "order": 4,
+     "label": "Packing Materials",
+     "desc": "Proper quantity of packaging materials maintained and neatly arranged.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_92f9738edc": {
+     "section": "s5",
+     "order": 5,
+     "label": "Stickers & Marking Materials",
+     "desc": "Stickers, highlighters, and markers available in sufficient quantity and organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d35331fc63": {
+     "section": "s5",
+     "order": 6,
+     "label": "Printer & Zebra Printer",
+     "desc": "Printers clean, maintained, backup rolls stocked; print quality clear and smudge-free.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_658794651c": {
+     "section": "s5",
+     "order": 7,
+     "label": "Delivery Ticket & Bag Marking",
+     "desc": "Delivery ticket highlighted; each bag marked with total bag count.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ce7631972d": {
+     "section": "s6",
+     "order": 1,
+     "label": "Lighting Standards",
+     "desc": "All fixtures operational; no busted or malfunctioning lights.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_94196a33dd": {
+     "section": "s6",
+     "order": 2,
+     "label": "Ambience Control",
+     "desc": "Music at appropriate volume; AC comfortable; perfume system functioning.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_07976fce10": {
+     "section": "s6",
+     "order": 3,
+     "label": "Cooling Systems",
+     "desc": "Air coolers operational and clean; air curtain functions properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_deb9cfbb1a": {
+     "section": "s6",
+     "order": 4,
+     "label": "Dining Area Setup",
+     "desc": "Tables and chairs clean, aligned, set with tissue holders, candle lights, tent cards, Qlub devices.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_96c1511660": {
+     "section": "s6",
+     "order": 5,
+     "label": "Floors, Walls, Doors & Glass",
+     "desc": "All surfaces clean, well-maintained, and free from food debris.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_41c82ec1e8": {
+     "section": "s6",
+     "order": 6,
+     "label": "Artwork, TVs & Decor",
+     "desc": "Clean, undamaged, properly aligned; all TVs functional.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_634f6ff3ae": {
+     "section": "s6",
+     "order": 7,
+     "label": "Pest Control Standards",
+     "desc": "Fly glue traps and insect killers cleaned; bulbs functional; area free from pests.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_16ae42f2c7": {
+     "section": "s6",
+     "order": 8,
+     "label": "Fake Food Display",
+     "desc": "Clean, dust-free, properly aligned with tags; spotlight correctly focused.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d17569d0e7": {
+     "section": "s6",
+     "order": 9,
+     "label": "Cleaning Materials",
+     "desc": "Available, correctly stored, used properly with appropriate tools and chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0107c99f8c": {
+     "section": "s6",
+     "order": 10,
+     "label": "Baby Chair Hygiene",
+     "desc": "Clean, sanitized, and free from visible food debris.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b0beeb21d8": {
+     "section": "s6",
+     "order": 11,
+     "label": "Sidestation Cabinet",
+     "desc": "Clean, well-organized, and maintained in tidy condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_77fdfe5849": {
+     "section": "s6",
+     "order": 12,
+     "label": "Stocks",
+     "desc": "Sufficient SOE and condiments; all sets cleaned, refilled, and ready; storage organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f5a9ff35be": {
+     "section": "s6",
+     "order": 13,
+     "label": "Trays",
+     "desc": "Individual trays clean and properly arranged; tray jacks correctly positioned.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_24c9d9c0e3": {
+     "section": "s6",
+     "order": 14,
+     "label": "POS & Tablets",
+     "desc": "Clean, fully functional, and free from damage.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0b9720f986": {
+     "section": "s6",
+     "order": 15,
+     "label": "Menu & Promotional Materials",
+     "desc": "Clean, undamaged, and guest-ready at all times.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_927518dd29": {
+     "section": "s7",
+     "order": 1,
+     "label": "Work Area, Surfaces & Walls",
+     "desc": "Clean and well-maintained; free from dirt, stickiness, and grease.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2dbb3d62a1": {
+     "section": "s7",
+     "order": 2,
+     "label": "Bar Sink, Floor & Trash Bin",
+     "desc": "Clean, odor-free, properly maintained; bar mats washed regularly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ac4de3db0b": {
+     "section": "s7",
+     "order": 3,
+     "label": "Coffee Machine & Grinder",
+     "desc": "Coffee machine and grinder clean, functioning; group head and portafilter cleaned daily.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b6248d894a": {
+     "section": "s7",
+     "order": 4,
+     "label": "Blender Station",
+     "desc": "Blender and sound box clean, functional, and sound box used consistently.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_84bec9d6f4": {
+     "section": "s7",
+     "order": 5,
+     "label": "Ice Crusher / Bingsu Machine",
+     "desc": "Clean and free from slime or buildup; sanitized scoopers hygienically stored.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8161c6c3f9": {
+     "section": "s7",
+     "order": 6,
+     "label": "Pest-Free Bar Area",
+     "desc": "Bar area free from cockroaches, fruit flies, and houseflies.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8978112e17": {
+     "section": "s7",
+     "order": 7,
+     "label": "Bar Kits & Tools",
+     "desc": "Knives, chopping boards, bar kits clean, sanitized, and hygienically stored.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_be9545a4c1": {
+     "section": "s7",
+     "order": 8,
+     "label": "SOE Items",
+     "desc": "Cups, teapots, and glasses clean, sufficient, and properly stored.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ac8ad2a68f": {
+     "section": "s7",
+     "order": 9,
+     "label": "Wiping Cloths",
+     "desc": "Sufficient quantity; clean, odor-free, and well organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1bbb98a71d": {
+     "section": "s7",
+     "order": 10,
+     "label": "Bar Juice Pourers",
+     "desc": "Clean, sanitized, correctly labeled, and in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_11e632c54f": {
+     "section": "s7",
+     "order": 11,
+     "label": "Fresh Fruits",
+     "desc": "No spoilage; sufficient backup stock; properly covered and labeled with expiry date.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_dc100e89d0": {
+     "section": "s7",
+     "order": 12,
+     "label": "Cheat Sheets",
+     "desc": "Available, updated, and clearly displayed for staff reference.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_07b2ea1dbb": {
+     "section": "s7",
+     "order": 13,
+     "label": "Drink Specifications",
+     "desc": "Dine-in and takeaway drink menus present, updated, and strictly followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_231f066099": {
+     "section": "s7",
+     "order": 14,
+     "label": "General / Dry Items",
+     "desc": "Clean, adequately stocked, properly arranged, and free from expired products.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_18f7e1c8b3": {
+     "section": "s8",
+     "order": 1,
+     "label": "Exterior General",
+     "desc": "Overall cleanliness of exterior areas, glass windows, and main entrance door maintained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_14e33ca32d": {
+     "section": "s8",
+     "order": 2,
+     "label": "Disposable Fly Trap",
+     "desc": "Correctly positioned, regularly monitored, and kept out of sight from dine-in guests.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3b35a9a771": {
+     "section": "s8",
+     "order": 3,
+     "label": "Tables, Chairs & Cushions",
+     "desc": "Tables neatly set; chairs clean and undamaged; cushions clean and stain-free.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d6ed3c9d65": {
+     "section": "s8",
+     "order": 4,
+     "label": "Outdoor Side Station",
+     "desc": "Clean, well-organized, and adequately stocked.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_271ec74a6f": {
+     "section": "s8",
+     "order": 5,
+     "label": "Fencing, Plants & Vase",
+     "desc": "Fencing intact; plants watered and trimmed; fairy lights functional.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_aaeed9274c": {
+     "section": "s8",
+     "order": 6,
+     "label": "Signage & Lighting",
+     "desc": "Signage clean and illuminated at night; lighting failures reported and followed up.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0bc1f6475b": {
+     "section": "s8",
+     "order": 7,
+     "label": "Flooring",
+     "desc": "Floors clean and free from trash, cigarette butts, and litter.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b7836470c5": {
+     "section": "s8",
+     "order": 8,
+     "label": "Umbrellas / Sunshade Cloths",
+     "desc": "Properly positioned, clean, and in good condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bbc9f0d444": {
+     "section": "s8",
+     "order": 9,
+     "label": "Air Coolers / Heaters",
+     "desc": "Correctly positioned, clean, and in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_142899937e": {
+     "section": "s8",
+     "order": 10,
+     "label": "Posters / Foamboards Stand",
+     "desc": "Neatly positioned and kept clean.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5e0ebfac3b": {
+     "section": "s9",
+     "order": 1,
+     "label": "Smell",
+     "desc": "No foul odor; air fresheners filled and placed in correct areas.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_fd9b52a67f": {
+     "section": "s9",
+     "order": 2,
+     "label": "Soap, Sanitizer & Tissue Dispensers",
+     "desc": "Dispensers clean, filled, and functioning with all sensors operational.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c7433fbc84": {
+     "section": "s9",
+     "order": 3,
+     "label": "Washroom Checklist",
+     "desc": "Cleaning schedule strictly followed and completed on an hourly basis.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6a8f973a4e": {
+     "section": "s9",
+     "order": 4,
+     "label": "Washbasins & Mirrors",
+     "desc": "Foamy hand soap available; mirrors clean, streak-free, and smudge-free.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_00a4510644": {
+     "section": "s9",
+     "order": 5,
+     "label": "Garbage Bins",
+     "desc": "Sensors functioning; bins clean, lined, and emptied regularly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cad4cb8980": {
+     "section": "s9",
+     "order": 6,
+     "label": "Toilet Bowl",
+     "desc": "Clean, stain-free, odor-free, and equipped with functioning flush.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_141d93d2c5": {
+     "section": "s9",
+     "order": 7,
+     "label": "Lighting & Locks",
+     "desc": "All lighting operational; door locks fully functional.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a2a3413267": {
+     "section": "s9",
+     "order": 8,
+     "label": "Cleaning Supplies",
+     "desc": "Cleaning chemicals and supplies complete and readily available.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1c5a51eb2c": {
+     "section": "s9",
+     "order": 9,
+     "label": "Cleanliness",
+     "desc": "Floors, walls, ceilings, bidets, doors, and displays clean; free from pests.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_48d0753510": {
+     "section": "s10",
+     "order": 1,
+     "label": "Grooming",
+     "desc": "Staff adhere to scheduled timings and present themselves properly groomed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_debd06180a": {
+     "section": "s10",
+     "order": 2,
+     "label": "Stub",
+     "desc": "Parking stub provided promptly during vehicle handover.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_14c8b47d81": {
+     "section": "s10",
+     "order": 3,
+     "label": "Inspection",
+     "desc": "Vehicle inspected before driving to allocated parking space.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f83bae27a7": {
+     "section": "s10",
+     "order": 4,
+     "label": "Surroundings",
+     "desc": "Area free from trash; floor clean and well-maintained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e3b1ae5bb3": {
+     "section": "s11",
+     "order": 1,
+     "label": "Parking Cards / Keys",
+     "desc": "Parking cards complete, properly logged, and tracked. OIC has assigned set of keys.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2baab8d45c": {
+     "section": "s11",
+     "order": 2,
+     "label": "Noticeboard",
+     "desc": "Regularly updated with sales targets, 86 items, upsell focus, staff allocations.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_49b1302f25": {
+     "section": "s11",
+     "order": 3,
+     "label": "Team Briefing",
+     "desc": "Briefing carried out before shift covering updates, assignments, and priorities.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2e28e703e9": {
+     "section": "s11",
+     "order": 4,
+     "label": "Office & Staff Locker Area",
+     "desc": "Office clean and tidy; staff lockers clean, arranged, and securely locked.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_28283c1dde": {
+     "section": "s11",
+     "order": 5,
+     "label": "Headset Usage",
+     "desc": "OIC consistently wears headset throughout shift.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_105e2e9cbc": {
+     "section": "s11",
+     "order": 6,
+     "label": "First Aid Kit",
+     "desc": "Clean, complete, and fully stocked with required items.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    }
+   }
+  },
+  "sb-boh": {
+   "meta": {
+    "name": "Superbowl — BOH Audit",
+    "brand": "Superbowl",
+    "auditType": "BOH",
+    "outlets": [
+     "SB Deira",
+     "SB DG"
+    ],
+    "scoreMode": "passfail",
+    "maxScore": 190,
+    "version": 1,
+    "active": true
+   },
+   "sections": {
+    "s1": {
+     "title": "General Operational Compliance",
+     "order": 1
+    },
+    "s2": {
+     "title": "Food Safety Compliance",
+     "order": 2
+    },
+    "s3": {
+     "title": "Maki, Call-Out & Dim Sum Section",
+     "order": 3
+    },
+    "s4": {
+     "title": "Product Preparation Zones",
+     "order": 4
+    },
+    "s5": {
+     "title": "Hot Food Preparation Area (Fryer & Wok)",
+     "order": 5
+    },
+    "s6": {
+     "title": "Final Section",
+     "order": 6
+    },
+    "s7": {
+     "title": "Storeroom or Pantry Area",
+     "order": 7
+    },
+    "s8": {
+     "title": "Stewarding Area",
+     "order": 8
+    },
+    "s9": {
+     "title": "Facilities Department",
+     "order": 9
+    }
+   },
+   "items": {
+    "i_c3ebd4137e": {
+     "section": "s1",
+     "order": 1,
+     "label": "Chef Uniform & Grooming",
+     "desc": "Staff were observed wearing clean, properly fitted uniforms with a bandana over a hairnet, stain-free aprons, neatly trimmed fingernails, well-groomed hair and beard, and appropriate chef shoes.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3cb58ac662": {
+     "section": "s1",
+     "order": 2,
+     "label": "Team Briefing",
+     "desc": "A pre-shift briefing was conducted, and all key information was communicated clearly to the team.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e81eb3786a": {
+     "section": "s1",
+     "order": 3,
+     "label": "Schedule",
+     "desc": "The staff schedule is updated, clearly displayed, and fully followed, with no instances of lateness recorded.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_01b00b26ab": {
+     "section": "s1",
+     "order": 4,
+     "label": "Dispensers",
+     "desc": "Hand soap and tissue dispensers are clean, properly maintained, and adequately filled.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_23000cc3e1": {
+     "section": "s1",
+     "order": 5,
+     "label": "Kitchen Printer",
+     "desc": "The kitchen printer is clean, functioning properly, and producing clear, readable printouts.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_693e72935e": {
+     "section": "s1",
+     "order": 6,
+     "label": "Garbage Bins",
+     "desc": "All garbage bins are clean, properly lined, and in good condition, with interiors cleaned and sanitized regularly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f283bcbbf3": {
+     "section": "s1",
+     "order": 7,
+     "label": "Ice Machine",
+     "desc": "The ice machine is clean and free from slime, producing ice properly, with a clean scooper stored in its designated location. The cleaning checklist is updated and maintained as required, and the water filter has been changed according to schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5f656b4491": {
+     "section": "s1",
+     "order": 8,
+     "label": "Cleanliness",
+     "desc": "The overall area including floors, walls, doors, ceilings, and the receiving area is clean, well-maintained, and free from dirt and debris.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_edeaaf0e81": {
+     "section": "s1",
+     "order": 9,
+     "label": "Forms & Records",
+     "desc": "All required forms and checklists including wastage logs, staff-food consumption records, and manual temperature monitoring sheets are completed accurately, updated on time, and kept easily accessible for verification.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e40fbb991b": {
+     "section": "s1",
+     "order": 10,
+     "label": "Unauthorized Items",
+     "desc": "No unauthorized items are present within the area, and all spaces are free from personal belongings or non-operational materials.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1f5707cd54": {
+     "section": "s1",
+     "order": 11,
+     "label": "Oil Usage",
+     "desc": "Oil-quality test strips are properly tracked, and all available strips are within their valid expiry dates.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c54c4c435d": {
+     "section": "s1",
+     "order": 12,
+     "label": "Gas Safety & Induction",
+     "desc": "All gas valves are verified to be turned off during closing, ensuring the safe shutdown of equipment. Induction units are switched off after use and left in proper operating condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d075c76e01": {
+     "section": "s1",
+     "order": 13,
+     "label": "Upright Chiller & Freezer",
+     "desc": "The upright chiller and freezer are clean, operating at the correct temperatures, well-organized, properly logged, and free from expired or improperly labeled products. All stored items are covered or wrapped appropriately.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_27b829397f": {
+     "section": "s1",
+     "order": 14,
+     "label": "Walk-In Chiller & Freezer",
+     "desc": "The walk-in chiller and freezer are clean, operating at the correct temperatures, well-organized, and properly logged. All products are clearly labeled with accurate expiry dates, free from expired items, and stored covered or wrapped as required.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_51b162fbc3": {
+     "section": "s1",
+     "order": 15,
+     "label": "FoodWatch",
+     "desc": "The FoodWatch checklist is fully completed, with all required fields accurately filled, verified, and submitted within the designated timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_45d312e5f7": {
+     "section": "s1",
+     "order": 16,
+     "label": "Pests",
+     "desc": "There are no signs of insects or cockroaches within the premises, whether dead or alive.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_39e7ad8554": {
+     "section": "s1",
+     "order": 17,
+     "label": "Operation",
+     "desc": "The floor is dry, and all section and preparation areas remain clean, free from spills, and properly maintained at all times, including during peak hours.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cdca3eaea1": {
+     "section": "s2",
+     "order": 1,
+     "label": "FIFO & FEFO",
+     "desc": "FIFO and FEFO practices are followed at all times, with products rotated correctly and older stock consistently used first.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d3f8b2784e": {
+     "section": "s2",
+     "order": 2,
+     "label": "Handwashing",
+     "desc": "Staff wash their hands at all required moments, including when arriving for duty, before starting any food preparation, after smoking, after handling waste, after touching raw food, and after any activity that may contaminate hands.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_57e5c7fdf7": {
+     "section": "s2",
+     "order": 3,
+     "label": "Glove Use",
+     "desc": "Staff wear gloves on both hands when handling food and change them often to avoid contamination. Gloves must be replaced after touching anything that is not clean or food-related. Wearing only one glove is not allowed.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5351a0f32c": {
+     "section": "s2",
+     "order": 4,
+     "label": "Thermometers & Weighing Scales",
+     "desc": "Thermometers and weighing scales are clean, in use, and accurately calibrated.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b4cf35a02e": {
+     "section": "s2",
+     "order": 5,
+     "label": "Thawing",
+     "desc": "Frozen items are thawed properly, either inside the chiller or under a continuous flow of cold running water.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6e8fd9b835": {
+     "section": "s2",
+     "order": 6,
+     "label": "Temperature Control",
+     "desc": "Chillers are maintained at temperatures not exceeding 5C, and freezers are kept at temperatures not warmer than -18C. All readings are checked and recorded as required.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_65ae8b52ed": {
+     "section": "s2",
+     "order": 7,
+     "label": "Cooking Temperature",
+     "desc": "Food is cooked to a core temperature of 75C for at least 60 seconds to meet food safety standards.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1ead7f1059": {
+     "section": "s2",
+     "order": 8,
+     "label": "Cross-Contamination Control",
+     "desc": "Cross-contamination is effectively prevented by keeping raw and ready-to-eat items fully separated at every stage of storage, preparation, and handling.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bafe28d310": {
+     "section": "s3",
+     "order": 1,
+     "label": "Layout & Schematics",
+     "desc": "Schematics are being followed correctly, and all sections are arranged according to the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a713fc0d00": {
+     "section": "s3",
+     "order": 2,
+     "label": "Work Areas & Surfaces",
+     "desc": "Work areas and surfaces are clean, organized, free from dirt and grease, and sanitized using the required procedures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e023c1707f": {
+     "section": "s3",
+     "order": 3,
+     "label": "Undercounter Chiller/Freezer",
+     "desc": "Temperature is correct and the unit is functioning properly. The gasket is clean and in good condition. Items are organized and properly segregated, with high-risk and low-risk products stored separately.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3bad2b2f4b": {
+     "section": "s3",
+     "order": 4,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menu specifications are present, up to date, and consistently followed during preparation and service.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3850925525": {
+     "section": "s3",
+     "order": 5,
+     "label": "Product Quality & Labelling",
+     "desc": "No expired, spoiled, or unpresentable items are stored in the undercounter chiller drawer. All products are fresh, within date, correctly labeled, and properly wrapped. No containers are stored without an expiration label.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_73d67af468": {
+     "section": "s3",
+     "order": 6,
+     "label": "Pest-Free Section",
+     "desc": "The Maki, Call-Out, and Dim Sum section is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1debfcbb63": {
+     "section": "s3",
+     "order": 7,
+     "label": "Steamer Machine",
+     "desc": "The steamer machine water is clean, clear, and free from any visible dirt, residue, or contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_77b6b8ef8b": {
+     "section": "s4",
+     "order": 1,
+     "label": "Utensils & Chopping Boards",
+     "desc": "All required utensils are available, clean, and in good condition. Chopping boards are stored properly in the designated rack in accordance with food safety standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bc000e07b6": {
+     "section": "s4",
+     "order": 2,
+     "label": "Sinks",
+     "desc": "Sinks are clean, free from food debris, and maintained in a hygienic condition at all times. No items are stored under the sink except approved cleaning chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e1358ed546": {
+     "section": "s4",
+     "order": 3,
+     "label": "Vegetable Cut Specifications",
+     "desc": "Vegetable cut specifications are followed consistently, with all cuts prepared according to the approved standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3d9853e22f": {
+     "section": "s4",
+     "order": 4,
+     "label": "Raw Meat & Seafood Segregation",
+     "desc": "Raw meat and seafood are properly segregated at all stages of storage and preparation, ensuring strict separation to prevent cross-contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5db5f17f09": {
+     "section": "s4",
+     "order": 5,
+     "label": "Pest-Free Prep Zone",
+     "desc": "The Production Preparation Zone is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8ac06a32c9": {
+     "section": "s4",
+     "order": 6,
+     "label": "Post-Washing Clean-Up",
+     "desc": "After washing items, the preparation area is cleaned immediately, with no remaining debris, and the area is kept organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d697b04927": {
+     "section": "s5",
+     "order": 1,
+     "label": "Station Layout & Schematics",
+     "desc": "Schematics are followed correctly in the fryer and wok section, with all equipment and items arranged in accordance with the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_086beae7a5": {
+     "section": "s5",
+     "order": 2,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menu specifications are present, updated, and consistently followed during preparation and service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_52db90eed8": {
+     "section": "s5",
+     "order": 3,
+     "label": "Utensils & Fryer Tools",
+     "desc": "All required utensils are available, clean, and in good condition. Fryer baskets are free from debris, and all related tools are stored properly in accordance with approved standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6ffdbb4339": {
+     "section": "s5",
+     "order": 4,
+     "label": "Fryers & Griddle Condition",
+     "desc": "Fryers and the griddle are clean, free from grease buildup, set to the correct operating temperatures, and maintained in good working condition. Fryer oil is drained and cleaned properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ac76636872": {
+     "section": "s5",
+     "order": 5,
+     "label": "Wok Unit Condition",
+     "desc": "The wok unit (gas or induction) is clean, fully functional, and well maintained to ensure safe and efficient operation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b34e32ef81": {
+     "section": "s5",
+     "order": 6,
+     "label": "Work Area Cleanliness & Organization",
+     "desc": "Work areas and surfaces are clean, organized, and free from dirt and grease. All required sanitizing sprays are available, and proper sanitizing procedures are correctly followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e8b2ee5c67": {
+     "section": "s5",
+     "order": 7,
+     "label": "Undercounter / Double-Door Chiller & Freezer",
+     "desc": "GN containers are clean, organized, properly covered, and labeled with accurate expiry dates, with no containers stored without an expiration label. Gaskets are clean and maintained in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4c502a0aeb": {
+     "section": "s5",
+     "order": 8,
+     "label": "Used Cooking Oil Disposal",
+     "desc": "Used cooking oil is disposed of properly, with all oil fully transferred to the designated container during closing procedures. The designated oil container is clean and clearly labeled.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6ee69986f8": {
+     "section": "s5",
+     "order": 9,
+     "label": "Product Quality & Expiry Control",
+     "desc": "No items that are off, expired, unpresentable, or spoiled are present. All seasoning and sauces are properly labeled with accurate expiry dates.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_946f45e4d8": {
+     "section": "s5",
+     "order": 10,
+     "label": "Fire Suppression System",
+     "desc": "The fire suppression system is active, and all rubber valves are present and properly covering the fire sprinkler components as required.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c3272ef4c0": {
+     "section": "s5",
+     "order": 11,
+     "label": "Exhaust System Condition",
+     "desc": "The exhaust system is in good condition, with hood lights, extraction, and fresh-air functions operating optimally.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8ee3e95a87": {
+     "section": "s5",
+     "order": 12,
+     "label": "Pest-Free Fryer & Wok Area",
+     "desc": "The Fryer and Wok area is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3f70c80817": {
+     "section": "s5",
+     "order": 13,
+     "label": "Boiler Machine Condition",
+     "desc": "The boiler machine is functioning properly, the water is clean, and the boiler baskets are clean, free from damage, and maintained in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_48b0202ef9": {
+     "section": "s6",
+     "order": 1,
+     "label": "Schematics Compliance",
+     "desc": "Schematics are being followed correctly, and the final section is arranged in accordance with the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1d058ccd10": {
+     "section": "s6",
+     "order": 2,
+     "label": "Menu Specification Compliance",
+     "desc": "In the final section, dine-in and takeaway menu specifications are present, updated, and consistently followed during preparation and service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_691fec8718": {
+     "section": "s6",
+     "order": 3,
+     "label": "Heating Lamps Condition",
+     "desc": "Heating lamps are functioning properly, clean, and well maintained to ensure safe and effective holding conditions.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3f2489bfb1": {
+     "section": "s6",
+     "order": 4,
+     "label": "Workstation Cleanliness & Layout",
+     "desc": "In the final section, work surfaces are clean, organized, free from dirt and grease, and all required sanitizing sprays and procedures are correctly followed.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0a07cc96cf": {
+     "section": "s6",
+     "order": 5,
+     "label": "Ice Bath Management",
+     "desc": "Ice baths are present and properly maintained for all cooked foods, sauces, and garnishes that require rapid cooling.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c07c729a06": {
+     "section": "s6",
+     "order": 6,
+     "label": "Tasting Spoon Management",
+     "desc": "Tasting spoons are readily available, clean, and used appropriately in accordance with hygiene and food-safety practices.",
+     "weight": 2,
+     "allowNA": true,
+     "active": true
+    },
+    "i_032e2bfd47": {
+     "section": "s6",
+     "order": 7,
+     "label": "Undercounter Drawer Chiller/Freezer",
+     "desc": "GN containers are clean, organized, properly covered, and labeled with accurate expiry dates, with no containers stored without an expiry label. The gasket is clean, intact, and maintained in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f79d998b46": {
+     "section": "s6",
+     "order": 8,
+     "label": "Pest-Free Final Section",
+     "desc": "The Final section is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e6601cd8ff": {
+     "section": "s6",
+     "order": 9,
+     "label": "Rice Cooker & Microwave Condition",
+     "desc": "Rice cookers and the microwave are clean, well maintained, properly used, and kept closed during operation to ensure safe and efficient food handling.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c74e4ce42d": {
+     "section": "s6",
+     "order": 10,
+     "label": "Product Quality & Storage",
+     "desc": "No items that are off, expired, unpresentable, or spoiled are present in the chiller, freezer, or the final section area.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a44f968320": {
+     "section": "s7",
+     "order": 1,
+     "label": "Upright Chiller/Freezer & Cheese Freezer",
+     "desc": "The upright double-door chiller/freezer and cheese freezer are functioning properly, operating at the correct temperature, and all items are organized and stored with accurate expiry labels. All items in crate baskets are labeled, with no unlabeled products present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a52543030a": {
+     "section": "s7",
+     "order": 2,
+     "label": "Equipment Maintenance & Cleanliness",
+     "desc": "All storage equipment including shelves, racks, crates, and trolleys is clean, rust-free, and in good condition, with no broken, unstable, or damaged components.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_32af149b23": {
+     "section": "s7",
+     "order": 3,
+     "label": "Dry Goods Organization",
+     "desc": "All dried items are organized and properly arranged in the designated shelving area, with no expired products present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2244f2856d": {
+     "section": "s7",
+     "order": 4,
+     "label": "Pest-Proofing & Prevention",
+     "desc": "Storeroom and pantry areas are free from pest activity, with all pest-control devices properly placed, clean, and within their service dates.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1747023317": {
+     "section": "s7",
+     "order": 5,
+     "label": "Packaging Integrity",
+     "desc": "All products are stored in clean, intact packaging with no signs of damage, swelling, leakage, or contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d4b47dce5d": {
+     "section": "s7",
+     "order": 6,
+     "label": "Crate & Container Cleanliness",
+     "desc": "All storage crates, bins, and containers are clean, free from residue, and in good condition with no cracks or contamination risks.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f9a8b022f9": {
+     "section": "s7",
+     "order": 7,
+     "label": "Moisture & Leak Prevention",
+     "desc": "No signs of moisture, leaks, or water damage are present on floors, walls, or ceilings. All products are protected from potential water exposure.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5ba3758b05": {
+     "section": "s7",
+     "order": 8,
+     "label": "Waste & Carton Removal",
+     "desc": "No empty cartons, packaging materials, or waste are stored in the area; all waste is removed promptly to prevent pest attraction.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f431eb3658": {
+     "section": "s7",
+     "order": 9,
+     "label": "Handling of Opened Products",
+     "desc": "Opened products are sealed properly, labeled with opening dates, and stored in designated areas to maintain quality and safety.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_201d6c205f": {
+     "section": "s8",
+     "order": 1,
+     "label": "Dishwashing Machine Condition",
+     "desc": "The dishwashing machine is clean, well maintained, and in full functioning condition, operating according to required performance and sanitation standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_28f9f32b8f": {
+     "section": "s8",
+     "order": 2,
+     "label": "Cleaning Chemicals & Supplies",
+     "desc": "Cleaning chemicals and supplies are complete, readily available, properly organized, and used according to approved specifications and safety procedures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c56fbdd233": {
+     "section": "s8",
+     "order": 3,
+     "label": "Cleaning Tools Storage & Usage",
+     "desc": "Cleaning tools such as mops, wipers, and brushes are correctly stored and properly used with the appropriate cleaning chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cde2f72e73": {
+     "section": "s8",
+     "order": 4,
+     "label": "Sink Area Cleanliness",
+     "desc": "The sink area is clean, organized, and free from any bad odor, except for normal food smells during peak hours.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ead649b1f8": {
+     "section": "s8",
+     "order": 5,
+     "label": "Dim Sum Basket Cleaning",
+     "desc": "Dim sum baskets are fully soaked in water with the correct chemical, cleaned thoroughly, arranged properly after soaking, and free from damage or food debris.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_89072f1cf0": {
+     "section": "s8",
+     "order": 6,
+     "label": "Waste Bin Condition",
+     "desc": "Waste bins are clean, properly lined, and not overflowing at any time.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b6c34f0d9c": {
+     "section": "s8",
+     "order": 7,
+     "label": "Post-Washing Inspection & Storage",
+     "desc": "Items are inspected to ensure they are properly cleaned, fully sanitized, and neatly stacked in the designated storage area after washing.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8e49a0eb19": {
+     "section": "s8",
+     "order": 8,
+     "label": "Grease Dosing System Condition",
+     "desc": "The grease dosing system is clean, well maintained, and functioning effectively according to operational requirements.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_aea2b7528a": {
+     "section": "s8",
+     "order": 9,
+     "label": "General Area Cleanliness",
+     "desc": "The general area is clean, including floors and walls, with no dirt, debris, insects, or pests present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_737b42a636": {
+     "section": "s9",
+     "order": 1,
+     "label": "Lighting Condition",
+     "desc": "All lighting fixtures are fully functional with no busted or flickering bulbs. Any issues identified are promptly reported to Maintenance.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1a1e4b649b": {
+     "section": "s9",
+     "order": 2,
+     "label": "Drainage System Condition",
+     "desc": "All floor drains are clean, free-flowing, and equipped with proper covers. No foul odors, blockages, or standing water are present.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ddba42edd8": {
+     "section": "s9",
+     "order": 3,
+     "label": "Fire Safety Equipment",
+     "desc": "Fire extinguishers, fire blankets, and emergency equipment are accessible, within service dates, and free from obstruction.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d44da6a1b9": {
+     "section": "s9",
+     "order": 4,
+     "label": "Insect Killer Unit Condition",
+     "desc": "The insect killer unit is clean, free from insect buildup, with no busted bulbs, fully functional, and operating as required.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_51f6f252c8": {
+     "section": "s9",
+     "order": 5,
+     "label": "Electrical Safety",
+     "desc": "Electrical outlets, switches, and panels are intact, properly covered, and free from burn marks or exposed wiring. No equipment is plugged into damaged sockets.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5c973387c0": {
+     "section": "s9",
+     "order": 6,
+     "label": "Water Supply & Plumbing",
+     "desc": "Water supply is stable, with no leaks, drips, or malfunctioning faucets. Plumbing fixtures are clean and in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_846c494d96": {
+     "section": "s9",
+     "order": 7,
+     "label": "Floor Condition & Safety",
+     "desc": "Floors are clean, dry, and free from cracks, uneven surfaces, or slip hazards. Any damage is reported immediately for repair.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9a06cc1512": {
+     "section": "s9",
+     "order": 8,
+     "label": "Equipment Functionality & Maintenance",
+     "desc": "All equipment in the area is functioning properly, free from damage, and maintained according to scheduled preventive maintenance plans.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4f20049d65": {
+     "section": "s9",
+     "order": 9,
+     "label": "Wastewater & Grease Management",
+     "desc": "Grease traps, grease dosing systems, and wastewater lines are clean, functioning properly, and serviced according to schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bf0ce08070": {
+     "section": "s9",
+     "order": 10,
+     "label": "Ventilation System Operation",
+     "desc": "The exhaust systems, fresh-air units, and air-conditioning are fully operational during service hours and properly switched off during closing.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    }
+   }
+  },
+  "sb-foh": {
+   "meta": {
+    "name": "Superbowl — FOH Audit",
+    "brand": "Superbowl",
+    "auditType": "FOH",
+    "outlets": [
+     "SB Deira",
+     "SB DG"
+    ],
+    "scoreMode": "passfail",
+    "maxScore": 140,
+    "version": 1,
+    "active": true
+   },
+   "sections": {
+    "s1": {
+     "title": "Operational Documentation",
+     "order": 1
+    },
+    "s2": {
+     "title": "FOH Food Safety & Hygiene",
+     "order": 2
+    },
+    "s3": {
+     "title": "Sequence of Service",
+     "order": 3
+    },
+    "s4": {
+     "title": "Retail Display Standard",
+     "order": 4
+    },
+    "s5": {
+     "title": "Food Runner & Delivery Station",
+     "order": 5
+    },
+    "s6": {
+     "title": "Ambience & Interior",
+     "order": 6
+    },
+    "s7": {
+     "title": "Bar Area",
+     "order": 7
+    },
+    "s8": {
+     "title": "Outdoor Premises",
+     "order": 8
+    },
+    "s9": {
+     "title": "Self-Service Station",
+     "order": 9
+    },
+    "s10": {
+     "title": "Back-Office Area",
+     "order": 10
+    }
+   },
+   "items": {
+    "i_23c23f13b8": {
+     "section": "s1",
+     "order": 1,
+     "label": "Municipality Files",
+     "desc": "All trade licenses, certificates, and related regulatory documents required by Dubai Municipality are properly maintained, updated, and organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ffe14964b3": {
+     "section": "s1",
+     "order": 2,
+     "label": "Grease Trap",
+     "desc": "The establishment maintains a valid cleaning contract and ensures all grease trap service records for the past three months are complete, current, and properly filed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5c821f7d51": {
+     "section": "s1",
+     "order": 3,
+     "label": "Pest Control",
+     "desc": "The establishment maintains a valid pest control contract and ensures all treatment records for the past three months are complete, current, and properly filed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b8f597778e": {
+     "section": "s1",
+     "order": 4,
+     "label": "Exhaust / Duct Cleaning",
+     "desc": "The cleaning contract is valid and up to date, and all service records are properly maintained, documented, and organized to ensure regular and thorough cleaning as per the agreed schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_27c91ef983": {
+     "section": "s1",
+     "order": 5,
+     "label": "OHC",
+     "desc": "Occupational Health Cards for all staff members working on the premises, including support staff, are available and up to date. Any expired certificates have been reported to HR or communicated via email.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b7c2ba5246": {
+     "section": "s1",
+     "order": 6,
+     "label": "Basic Food Hygiene",
+     "desc": "Basic Food Hygiene certificates for all staff members working on the premises, including support staff, are available and properly filed for presentation during inspections. Expired certificates reported to HR.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b5721579e2": {
+     "section": "s1",
+     "order": 7,
+     "label": "PIC",
+     "desc": "PIC certificates for all KIC and OIC are available and properly filed within the Dubai Municipality documentation files.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_296857b98a": {
+     "section": "s1",
+     "order": 8,
+     "label": "CFP Documents",
+     "desc": "Certificates for Halal, HACCP, Food Analysis, and Transport Permits are available, properly filed, and up to date.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_af8f4f7322": {
+     "section": "s1",
+     "order": 9,
+     "label": "Temperature Logs",
+     "desc": "The kitchen and bar manual temperature logs are updated in accordance with the required checklist timeframe. All files are properly maintained and retained for up to three months.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f9e2a3427b": {
+     "section": "s1",
+     "order": 10,
+     "label": "Financial Audit",
+     "desc": "Float and petty cash are accurately recorded, reconciled against End-of-Day (EOD) reports, and reimbursed within the standard 1-2 week timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c5d88aef34": {
+     "section": "s1",
+     "order": 11,
+     "label": "Tips",
+     "desc": "Daily tips and monthly credit-card tips are properly tracked, documented, signed, and individually verified by the OIC and KIC, with all records securely kept in the file folder.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_68620732ac": {
+     "section": "s1",
+     "order": 12,
+     "label": "Forms",
+     "desc": "All forms and checklists including wastage monitoring, breakages, and cooling logs are properly completed, up to date, and easily accessible.",
+     "weight": 2,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3b1016e319": {
+     "section": "s1",
+     "order": 13,
+     "label": "Inventories",
+     "desc": "IT electronic assets and SOE items are properly accounted for and regularly updated. Any damaged items are reported via email for documentation and follow-up.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_929313260b": {
+     "section": "s1",
+     "order": 14,
+     "label": "Foodwatch Checklists",
+     "desc": "Foodwatch checklists must be fully completed, with all required fields accurately filled, verified, and submitted within the designated timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_166330dee6": {
+     "section": "s1",
+     "order": 15,
+     "label": "Training Files / Doomsday Kit",
+     "desc": "Training files for all staff are properly documented and kept up to date. Server pads, manual check sheets, Paid/Cash/TRN stamps are readily available. Staff are aware of the kit location.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0d644e57cf": {
+     "section": "s2",
+     "order": 1,
+     "label": "Personal Hygiene & Uniform",
+     "desc": "Staff consistently comply with Dubai Municipality personal hygiene requirements. Fingernails clean and short, hair neat and controlled, no body odor. Makeup minimal and professional. Uniforms clean, properly ironed, and worn correctly. Footwear clean, closed-toe, and in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7c462d778a": {
+     "section": "s2",
+     "order": 2,
+     "label": "Handwashing Practices",
+     "desc": "Handwashing is performed consistently, with staff washing their hands immediately upon arriving at the restaurant and at all required moments during service.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_01efab9dd0": {
+     "section": "s2",
+     "order": 3,
+     "label": "Bar Entry Hygiene",
+     "desc": "Staff entering the bar area wear the required protective items, including gloves and a hairnet or bandana, ensuring that hair is fully controlled and no risk of contamination is present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_80e9036316": {
+     "section": "s2",
+     "order": 4,
+     "label": "Stock Rotation (FIFO/FEFO)",
+     "desc": "FIFO and FEFO procedures are consistently applied, with all products arranged and used according to their preparation and expiry dates. Stock is rotated correctly and older items are prioritized.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_332b0fde01": {
+     "section": "s2",
+     "order": 5,
+     "label": "Undercounter Chillers & Freezers",
+     "desc": "Maintained in good working condition, with door gaskets clean, intact, and free from damage. All units operate within the required temperature range. Temperature logs accurately completed and up to date. Items properly labeled and free from expired products.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_584b0c0ebc": {
+     "section": "s2",
+     "order": 6,
+     "label": "Allergen-Sensitive Guest Handling",
+     "desc": "Staff proactively inquire about any food allergies or dietary restrictions when taking orders. All allergen information is communicated clearly to the kitchen, and staff ensure guests with allergies receive accurate guidance and safe menu recommendations.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_01f1b51153": {
+     "section": "s3",
+     "order": 1,
+     "label": "Greeting & Ushering the Guest",
+     "desc": "Staff provide a prompt and sincere greeting and courteously usher guests to their seats. Asking about a reservation is not required unless the OIC has informed the team that a reservation is expected.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1827e92897": {
+     "section": "s3",
+     "order": 2,
+     "label": "QR Menu & Introduction Name",
+     "desc": "Staff present the QR menu, introduce themselves, inform guests of the cashless policy, and assist with scanning. Wi-Fi details are provided upon request. Once the guest accesses the menu, staff introduce the Unlimited Promo and add-ons.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ae5c843289": {
+     "section": "s3",
+     "order": 3,
+     "label": "Call Button & Call Button Watch",
+     "desc": "Staff explain the call button to guests and respond promptly when pressed, with the nearest team member attending within one minute. Staff greet the guest politely, provide assistance, reset the notification afterward, and wear the call button watch throughout the shift.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c8c63025e4": {
+     "section": "s3",
+     "order": 4,
+     "label": "Unlimited Promo Procedure",
+     "desc": "If the guest chooses the Unlimited Promo, staff politely direct them to review the terms and conditions on the tent card. Staff explain that the timer is used as a reminder for informing guests about the final round of orders. Guests are informed that the promo is valid for 2 hours.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c6bcf3d208": {
+     "section": "s3",
+     "order": 5,
+     "label": "Self-Service Station Introduction",
+     "desc": "Staff introduce the self-service station to guests and clearly inform them of its purpose and available items.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_457befc326": {
+     "section": "s3",
+     "order": 6,
+     "label": "Order Slip Presentation",
+     "desc": "Staff politely provide the order slip, explain how to mark selections, check for discount vouchers when guests choose a la carte, and assist with any questions while the slip is being filled out.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_74765d2df1": {
+     "section": "s3",
+     "order": 7,
+     "label": "Upselling / Suggestive Selling",
+     "desc": "Upselling and suggestive-selling techniques are consistently applied, with staff confidently recommending suitable add-ons, upgrades, and refill options. Delivered naturally and appropriately.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a36886786d": {
+     "section": "s3",
+     "order": 8,
+     "label": "360-Degree Awareness & Responsiveness",
+     "desc": "Staff demonstrate full 360-degree awareness on the floor, proactively observing surroundings and responding promptly to guests needs. Team members anticipate requirements without waiting to be called.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9f34c06533": {
+     "section": "s3",
+     "order": 9,
+     "label": "Table Setup Standards",
+     "desc": "Table setup is completed by staff before any food is served, ensuring that all required items are in place and the dining experience begins with a clean, organized, and fully prepared table setting.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_03765e744d": {
+     "section": "s3",
+     "order": 10,
+     "label": "Food Delivery & Guest Acknowledgment",
+     "desc": "Servers or food runners clearly mention the dish name and highlight any special requests or modifications when serving the order. Staff extend a courteous wish for guests to enjoy their meal.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d6393949c7": {
+     "section": "s3",
+     "order": 11,
+     "label": "OIC Guest Satisfaction Check",
+     "desc": "The OIC visits each table to assess guest satisfaction, ensuring that both the food quality and the service experience meet expected standards. Any feedback is acknowledged professionally and addressed promptly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_455bd4b354": {
+     "section": "s3",
+     "order": 12,
+     "label": "Table Maintenance",
+     "desc": "Staff consistently maintain tables throughout the dining experience, ensuring they remain clean, organized, and free of unnecessary items. Table upkeep is performed proactively.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3232578350": {
+     "section": "s3",
+     "order": 13,
+     "label": "Dessert & Coffee Offering",
+     "desc": "Staff offer dessert and coffee to the guest.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4627944c34": {
+     "section": "s3",
+     "order": 14,
+     "label": "Post-Meal Amenities",
+     "desc": "Staff provide toothpicks, an appropriate number of candies, and wet wipes to guests after the meal, ensuring a clean, courteous, and complete end-of-service experience.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_554d82b48f": {
+     "section": "s3",
+     "order": 15,
+     "label": "Membership Card",
+     "desc": "Staff consistently inquire whether guests are registered for the SB membership card and, when they are not, encourage sign-up while clearly explaining the benefits and value of the program.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6602cbd2b2": {
+     "section": "s3",
+     "order": 16,
+     "label": "Bill Presentation & Guest Engagement",
+     "desc": "Staff present the bill promptly and professionally, inform guests about Qlub as a payment option, and courteously encourage them to share their experience through a Google review.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_40903125f1": {
+     "section": "s3",
+     "order": 17,
+     "label": "Guest Farewell Standards",
+     "desc": "Staff thank the guests sincerely and offer a warm, genuine invitation to visit again, ensuring the dining experience ends on a positive and memorable note.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_69ccab0b40": {
+     "section": "s4",
+     "order": 1,
+     "label": "Display Presentation",
+     "desc": "Retail items are arranged neatly and attractively, with products facing forward, labels visible, and no damaged or expired items on display.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d52cd9356f": {
+     "section": "s4",
+     "order": 2,
+     "label": "Cleanliness & Organization",
+     "desc": "The retail area is kept clean, dust-free, and clutter-free at all times. Shelves, racks, and display stands are well-maintained and free from unnecessary items.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_96100ac3dc": {
+     "section": "s4",
+     "order": 3,
+     "label": "Stock Levels & Replenishment",
+     "desc": "Retail items are fully stocked in accordance with the display guidelines. Low-stock items are replenished promptly, and out-of-stock situations are prevented through proactive and regular monitoring.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d92be7fcb6": {
+     "section": "s4",
+     "order": 4,
+     "label": "Pricing & Labeling Accuracy",
+     "desc": "All items have clear, accurate, and professionally placed price tags. No handwritten or damaged labels are used, and promotional signage is updated as required.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5b764b05ac": {
+     "section": "s4",
+     "order": 5,
+     "label": "Product Rotation (FIFO)",
+     "desc": "Stock rotation follows FIFO principles, ensuring older items are placed at the front and newer items at the back. Expired or near-expiry items are removed immediately.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_653579f608": {
+     "section": "s5",
+     "order": 1,
+     "label": "Shelves, Baskets & Containers",
+     "desc": "Shelves, baskets, and containers are clean and free from dust, dirt, and any food residue, ensuring proper hygiene and organized storage.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1b3cdc2fba": {
+     "section": "s5",
+     "order": 2,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menus are present, updated, clean, and properly followed according to current menu guidelines.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_917f713bf8": {
+     "section": "s5",
+     "order": 3,
+     "label": "Packing Materials",
+     "desc": "Proper quantity of packaging materials is maintained at all times, neatly arranged, and organized systematically to support efficient order preparation and dispatch.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c0fa0c5ba4": {
+     "section": "s5",
+     "order": 4,
+     "label": "Stickers & Marking Materials",
+     "desc": "All stickers are available in sufficient quantity, along with highlighters and markers, and are neatly organized for efficient order labeling and dispatch.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8f26afa921": {
+     "section": "s5",
+     "order": 5,
+     "label": "Printer & Zebra Printer Stickers",
+     "desc": "Printers and Zebra printers are clean, properly maintained, and stocked with ample backup rolls. Print quality is clear, consistent, readable, and free from smudging or fading.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7b4d6f6574": {
+     "section": "s5",
+     "order": 6,
+     "label": "Delivery Ticket & Bag Marking",
+     "desc": "The delivery ticket is properly highlighted, and each delivery bag is clearly marked with the total number of bags to ensure accurate dispatch and easy identification.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f9125130c6": {
+     "section": "s6",
+     "order": 1,
+     "label": "Lighting Standards",
+     "desc": "Lighting is adequate throughout the area, with all fixtures fully operational and no busted or malfunctioning lights, ensuring a bright, safe, and visually consistent environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_21d4aa4714": {
+     "section": "s6",
+     "order": 2,
+     "label": "Ambience Control",
+     "desc": "Music volume is maintained at an appropriate level, the AC provides a comfortable and consistent temperature, and the perfume system functions properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9c16e890a4": {
+     "section": "s6",
+     "order": 3,
+     "label": "Cooling Systems",
+     "desc": "Air coolers are fully operational and clean, and the air curtain functions properly, ensuring effective cooling and a comfortable and controlled store environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d60e45b7d8": {
+     "section": "s6",
+     "order": 4,
+     "label": "Dining Area Setup",
+     "desc": "Tables and chairs are clean, neatly arranged, properly aligned, and fully set with cutleries holder, tissue, tent cards, and Qlub devices. All furniture is stable and wobble-free. The side trolley is fully and correctly set up.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_41ac8fc14f": {
+     "section": "s6",
+     "order": 5,
+     "label": "Floors, Walls, Doors & Glass Panel",
+     "desc": "Floors, walls, doors, and glass panels are clean, well-maintained, and free from any food debris, ensuring a hygienic and visually presentable environment throughout the store.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2283c96996": {
+     "section": "s6",
+     "order": 6,
+     "label": "Artwork, TVs & Decor",
+     "desc": "Artwork, TVs, and decor items are clean, free from dirt and damage, and properly aligned. All TVs are fully functional, ensuring a neat, well-presented, and visually appealing store environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c015c7ea9e": {
+     "section": "s6",
+     "order": 7,
+     "label": "Pest Control Standards",
+     "desc": "Fly glue traps and insect killers are cleaned regularly, and all bulbs are checked to ensure they are fully functional. The area remains free from cockroaches and other insects, including fruit flies and houseflies.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_027b8307b0": {
+     "section": "s6",
+     "order": 8,
+     "label": "Cleaning Materials",
+     "desc": "Cleaning materials are available, correctly stored, kept clean, and used properly with the appropriate tools and chemicals, ensuring safe and effective cleaning practices.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_98aafef2f1": {
+     "section": "s6",
+     "order": 9,
+     "label": "Baby Chair Hygiene",
+     "desc": "The baby chair is clean, fully sanitized, and free from any visible food debris, ensuring safe and hygienic use for guests.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6f07d5951b": {
+     "section": "s6",
+     "order": 10,
+     "label": "Sidestation Cabinet",
+     "desc": "Sidestation cabinets are clean, well-organized, and maintained in a tidy condition to support efficient service operations.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4b2ec74d50": {
+     "section": "s6",
+     "order": 11,
+     "label": "Stocks",
+     "desc": "There is sufficient stock of SOE and condiments, with all sets cleaned, refilled, and ready for use. Storage areas are clean, well-organized, and maintained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ef5cab688a": {
+     "section": "s6",
+     "order": 12,
+     "label": "Trays",
+     "desc": "Individual trays are clean and properly arranged, with tray jacks correctly positioned to support smooth and efficient service flow.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_21a5359afd": {
+     "section": "s6",
+     "order": 13,
+     "label": "POS & Tablets",
+     "desc": "POS terminals and tablets are clean, fully functional, and free from any signs of damage, ensuring smooth and uninterrupted service operations.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c510fb0fbb": {
+     "section": "s6",
+     "order": 14,
+     "label": "Service Clearance Trolley",
+     "desc": "The service clearance trolley is kept clean, well-maintained, free from damage, and consistently used by the service staff.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_17dff717cb": {
+     "section": "s6",
+     "order": 15,
+     "label": "Menu & Promotional Materials",
+     "desc": "Menus and promotional menu materials are clean, free from damage, and well-maintained, ensuring a professional and guest-ready presentation at all times.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_068488bb3d": {
+     "section": "s7",
+     "order": 1,
+     "label": "Work Area, Surfaces & Walls",
+     "desc": "Clean and well-maintained; free from dirt, stickiness, and grease; sanitizing procedures properly applied.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_70b1a847e9": {
+     "section": "s7",
+     "order": 2,
+     "label": "Bar Sink, Floor & Trash Bin",
+     "desc": "Clean, odor-free, and properly maintained. Bar mats washed regularly. Floor remains free of stored items.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_044d4440b0": {
+     "section": "s7",
+     "order": 3,
+     "label": "Coffee Machine",
+     "desc": "Clean, functioning properly, with group head and portafilter inspected and cleaned each day.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a6b9dec7fb": {
+     "section": "s7",
+     "order": 4,
+     "label": "Soft Serve Ice Cream Machine",
+     "desc": "The machine is functional, clean, and free from residue or dried product. Ice cream cones are refilled regularly and stored in a clean, hygienic manner according to the required sanitizing and replenishment standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b854f05958": {
+     "section": "s7",
+     "order": 5,
+     "label": "Pest-Free Bar Area",
+     "desc": "The bar area is free from any signs of pests, including cockroaches, fruit flies, and houseflies, ensuring a hygienic and compliant environment.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cd03f19b65": {
+     "section": "s7",
+     "order": 6,
+     "label": "Bar Kits & Tools",
+     "desc": "Knives, chopping boards, bar kits, and all related tools are clean, sanitized, properly used, and stored in an organized and hygienic manner.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9adc5533ae": {
+     "section": "s7",
+     "order": 7,
+     "label": "SOE Items",
+     "desc": "All SOE items, including cups, teapots, and glasses, are clean, sufficient in quantity, and properly stored in an organized and hygienic manner.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e454127980": {
+     "section": "s7",
+     "order": 8,
+     "label": "Wiping Cloths",
+     "desc": "Wiping cloths are sufficient in quantity, clean, odor-free, and well organized for safe and efficient use.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_60693db065": {
+     "section": "s7",
+     "order": 9,
+     "label": "Bar Juice Pourers",
+     "desc": "Bar juice pourers are clean, sanitized, correctly labeled with the product name, and in good working condition, ensuring safe and efficient beverage preparation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_88d343c256": {
+     "section": "s7",
+     "order": 10,
+     "label": "Cheat Sheets",
+     "desc": "Cheat sheets are available, updated, and clearly displayed for staff reference.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5e0f2cb518": {
+     "section": "s7",
+     "order": 11,
+     "label": "Drink Specifications",
+     "desc": "Dine-in and takeaway drink menus are present, updated, and strictly followed, ensuring all beverages are prepared according to the correct specifications.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5efe91527c": {
+     "section": "s7",
+     "order": 12,
+     "label": "General / Dry Items",
+     "desc": "General and dry items are clean, adequately stocked, properly arranged, and free from any expired products.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_170f68313d": {
+     "section": "s8",
+     "order": 1,
+     "label": "Exterior General",
+     "desc": "The overall cleanliness of the exterior areas, including glass windows and the main entrance door, is maintained according to standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4731954ab2": {
+     "section": "s8",
+     "order": 2,
+     "label": "Disposable Fly Trap",
+     "desc": "Disposable fly traps are correctly positioned in designated areas, regularly monitored, and kept out of sight from dine-in guests.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8ebdffb493": {
+     "section": "s8",
+     "order": 3,
+     "label": "Tables, Chairs & Cushions",
+     "desc": "Tables are neatly arranged with a complete setup including tent cards, ashtrays, lights, and Qlub devices, and are stable and wobble-free. Chairs are clean and undamaged. Cushions are clean, stain-free, and without tears.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d0528e3b73": {
+     "section": "s8",
+     "order": 4,
+     "label": "Outdoor Side Station",
+     "desc": "The outdoor side station is clean, well-organized, and adequately stocked for operational needs, with all items neatly arranged and maintained according to standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_802dca6885": {
+     "section": "s8",
+     "order": 5,
+     "label": "Fencing, Plants & Vase",
+     "desc": "Fencing is clean, intact, and free from any damage. Plants are properly watered, trimmed, and well-maintained, with vases kept clean and presentable. All fairy lights and spotlights are functional and clean.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_63a8a1adb7": {
+     "section": "s8",
+     "order": 6,
+     "label": "Signage & Lighting",
+     "desc": "Signage is clean and fully illuminated at night, with any lighting failures promptly reported and followed up until resolved.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_62a09cfee1": {
+     "section": "s8",
+     "order": 7,
+     "label": "Flooring",
+     "desc": "Floors are clean, well-maintained, and free from debris such as trash, cigarette butts, and any other litter.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d2807b1138": {
+     "section": "s8",
+     "order": 8,
+     "label": "Umbrellas / Sunshade Cloths",
+     "desc": "Umbrellas and sunshade cloths are properly positioned, clean, and maintained in good condition, with no visible damage.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a4481af750": {
+     "section": "s8",
+     "order": 9,
+     "label": "Air Coolers / Heaters",
+     "desc": "Air coolers and heaters are correctly positioned, clean, and maintained in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2db1a50953": {
+     "section": "s8",
+     "order": 10,
+     "label": "Posters / Foamboards Stand",
+     "desc": "Posters and foamboards are neatly positioned and kept clean, ensuring a tidy and professional presentation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_033b9336bf": {
+     "section": "s9",
+     "order": 1,
+     "label": "Station Presentation & Readiness",
+     "desc": "The station is clean, tidy, fully stocked, neatly arranged for easy guest access, and all juice dispensers and the soft-serve ice cream machine are functional, clean, and hygienic.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f3e8b72362": {
+     "section": "s9",
+     "order": 2,
+     "label": "Replenishment During Service",
+     "desc": "The station is monitored regularly throughout the shift, items are refilled promptly when levels are low (plates, soft drinks, toppings, dessert, water, cones, etc.), and surfaces are wiped frequently to maintain cleanliness and prevent spills or clutter.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0c209413ef": {
+     "section": "s9",
+     "order": 3,
+     "label": "Pest-Free Condition",
+     "desc": "The self-service area is free from insects, cockroaches, and fruit flies.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_68436ae48f": {
+     "section": "s9",
+     "order": 4,
+     "label": "OIC Monitoring",
+     "desc": "The OIC monitors the self-service station throughout the shift and punches the refill items whenever replenishment is needed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1acd68326d": {
+     "section": "s10",
+     "order": 1,
+     "label": "Outlet Keys",
+     "desc": "Each Outlet In-Charge (OIC) maintains their own assigned set of keys.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8a5dc60379": {
+     "section": "s10",
+     "order": 2,
+     "label": "Noticeboard",
+     "desc": "Notice boards are regularly updated with relevant operational information, including sales targets, 86 items, upsell focus items, staff allocations, and other essential updates.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a49f19ada6": {
+     "section": "s10",
+     "order": 3,
+     "label": "Team Briefing",
+     "desc": "Team briefing is carried out before the shift, covering updates, assignments, operational priorities, and any key points required for smooth service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b94f5fe963": {
+     "section": "s10",
+     "order": 4,
+     "label": "Office",
+     "desc": "The office area is clean, neatly arranged, and free from unnecessary items or clutter. Staff personal belongings are kept safely inside the office cabinet and not placed around the workspace.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ddcf210569": {
+     "section": "s10",
+     "order": 5,
+     "label": "First Aid Kit",
+     "desc": "The first aid kit is clean, complete, and fully stocked with required items, including blue bandages, burn cream or ointment, bandages, and other essential supplies.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    }
+   }
+  },
+  "trd-boh": {
+   "meta": {
+    "name": "The Red Door — BOH Audit",
+    "brand": "The Red Door",
+    "auditType": "BOH",
+    "outlets": [
+     "The Red Door"
+    ],
+    "scoreMode": "passfail",
+    "maxScore": 175,
+    "version": 1,
+    "active": true
+   },
+   "sections": {
+    "s1": {
+     "title": "General Operational Compliance",
+     "order": 1
+    },
+    "s2": {
+     "title": "Food Safety Compliance",
+     "order": 2
+    },
+    "s3": {
+     "title": "Cold Section & Pizza Station",
+     "order": 3
+    },
+    "s4": {
+     "title": "Product Preparation Zones",
+     "order": 4
+    },
+    "s5": {
+     "title": "Hot Food Preparation Area",
+     "order": 5
+    },
+    "s6": {
+     "title": "Pass & Dessert",
+     "order": 6
+    },
+    "s7": {
+     "title": "Storeroom or Pantry Area",
+     "order": 7
+    },
+    "s8": {
+     "title": "Stewarding Area",
+     "order": 8
+    },
+    "s9": {
+     "title": "Facilities Department",
+     "order": 9
+    }
+   },
+   "items": {
+    "i_cd5c3d4441": {
+     "section": "s1",
+     "order": 1,
+     "label": "Chef Uniform & Grooming",
+     "desc": "Staff were observed wearing clean, properly fitted uniforms with a bandana over a hairnet, stain-free aprons, neatly trimmed fingernails, well-groomed hair and beard, and appropriate chef shoes.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_20ae08f4d4": {
+     "section": "s1",
+     "order": 2,
+     "label": "Team Briefing",
+     "desc": "A pre-shift briefing was conducted, and all key information was communicated clearly to the team.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_fa298895bf": {
+     "section": "s1",
+     "order": 3,
+     "label": "Schedule",
+     "desc": "The staff schedule is updated, clearly displayed, and fully followed, with no instances of lateness recorded.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a61b088d0a": {
+     "section": "s1",
+     "order": 4,
+     "label": "Dispensers",
+     "desc": "Hand soap and tissue dispensers are clean, properly maintained, and adequately filled.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_dcb779679d": {
+     "section": "s1",
+     "order": 5,
+     "label": "Kitchen Printer",
+     "desc": "The kitchen printer is clean, functioning properly, and producing clear, readable printouts.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_516e81479d": {
+     "section": "s1",
+     "order": 6,
+     "label": "Garbage Bins",
+     "desc": "All garbage bins are clean, properly lined, and in good condition, with interiors cleaned and sanitized regularly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_140f97afbd": {
+     "section": "s1",
+     "order": 7,
+     "label": "Ice Machine",
+     "desc": "The ice machine is clean and free from slime, producing ice properly, with a clean scooper stored in its designated location. The cleaning checklist is updated and maintained as required, and the water filter has been changed according to schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4608d91ed1": {
+     "section": "s1",
+     "order": 8,
+     "label": "Cleanliness",
+     "desc": "The overall area including floors, walls, doors, ceilings, and the receiving area is clean, well-maintained, and free from dirt and debris.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e3f761ede6": {
+     "section": "s1",
+     "order": 9,
+     "label": "Forms & Records",
+     "desc": "All required forms and checklists including wastage logs, staff-food consumption records, and manual temperature monitoring sheets are completed accurately, updated on time, and kept easily accessible for verification.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c19e51a9b9": {
+     "section": "s1",
+     "order": 10,
+     "label": "Unauthorized Items",
+     "desc": "No unauthorized items are present within the area, and all spaces are free from personal belongings or non-operational materials.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8929d2b104": {
+     "section": "s1",
+     "order": 11,
+     "label": "Oil Usage",
+     "desc": "Oil-quality test strips are properly tracked, and all available strips are within their valid expiry dates.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c279c7bc3e": {
+     "section": "s1",
+     "order": 12,
+     "label": "Gas Safety & Induction",
+     "desc": "All gas valves are verified to be turned off during closing, ensuring the safe shutdown of equipment. Induction units are switched off after use and left in proper operating condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_23885a5588": {
+     "section": "s1",
+     "order": 13,
+     "label": "Upright Chiller & Freezer",
+     "desc": "The upright chiller and freezer are clean, operating at the correct temperatures, well-organized, properly logged, and free from expired or improperly labeled products. All stored items are covered or wrapped appropriately.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f2f51b1ec4": {
+     "section": "s1",
+     "order": 14,
+     "label": "Walk-In Chiller & Freezer",
+     "desc": "The walk-in chiller and freezer are clean, operating at the correct temperatures, well-organized, and properly logged. All products are clearly labeled with accurate expiry dates, free from expired items, and stored covered or wrapped as required.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_387c0df583": {
+     "section": "s1",
+     "order": 15,
+     "label": "FoodWatch",
+     "desc": "The FoodWatch checklist is fully completed, with all required fields accurately filled, verified, and submitted within the designated timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5e7d0d2bbc": {
+     "section": "s1",
+     "order": 16,
+     "label": "Pests",
+     "desc": "There are no signs of insects or cockroaches within the premises, whether dead or alive.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9ef2ff4d00": {
+     "section": "s1",
+     "order": 17,
+     "label": "Operation",
+     "desc": "The floor is dry, and all section and preparation areas remain clean, free from spills, and properly maintained at all times, including during peak hours.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_57560746b5": {
+     "section": "s2",
+     "order": 1,
+     "label": "FIFO & FEFO",
+     "desc": "FIFO and FEFO practices are followed at all times, with products rotated correctly and older stock consistently used first.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6aa8bf0b5e": {
+     "section": "s2",
+     "order": 2,
+     "label": "Handwashing",
+     "desc": "Staff wash their hands at all required moments, including when arriving for duty, before starting any food preparation, after smoking, after handling waste, after touching raw food, and after any activity that may contaminate hands.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d48f0586d2": {
+     "section": "s2",
+     "order": 3,
+     "label": "Glove Use",
+     "desc": "Staff wear gloves on both hands when handling food and change them often to avoid contamination. Gloves must be replaced after touching anything that is not clean or food-related. Wearing only one glove is not allowed.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_445c4bd3ef": {
+     "section": "s2",
+     "order": 4,
+     "label": "Thermometers & Weighing Scales",
+     "desc": "Thermometers and weighing scales are clean, in use, and accurately calibrated.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_35698c53f3": {
+     "section": "s2",
+     "order": 5,
+     "label": "Thawing",
+     "desc": "Frozen items are thawed properly, either inside the chiller or under a continuous flow of cold running water.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7abcb27416": {
+     "section": "s2",
+     "order": 6,
+     "label": "Temperature Control",
+     "desc": "Chillers are maintained at temperatures not exceeding 5C, and freezers are kept at temperatures not warmer than -18C. All readings are checked and recorded as required.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_439538c6e6": {
+     "section": "s2",
+     "order": 7,
+     "label": "Cooking Temperature",
+     "desc": "Food is cooked to a core temperature of 75C for at least 60 seconds to meet food safety standards.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ae7dd50bfc": {
+     "section": "s2",
+     "order": 8,
+     "label": "Cross-Contamination Control",
+     "desc": "Cross-contamination is effectively prevented by keeping raw and ready-to-eat items fully separated at every stage of storage, preparation, and handling. Controls are in place and followed consistently throughout the facility.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d3421c09f8": {
+     "section": "s3",
+     "order": 1,
+     "label": "Layout & Schematics",
+     "desc": "Schematics are being followed correctly, and all sections are arranged according to the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_77bc1ffc79": {
+     "section": "s3",
+     "order": 2,
+     "label": "Work Areas & Surfaces",
+     "desc": "Work areas and surfaces are clean, organized, free from dirt and grease, and sanitized using the required procedures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ce4a3f1299": {
+     "section": "s3",
+     "order": 3,
+     "label": "Undercounter Chiller/Freezer",
+     "desc": "Temperature is correct and the unit is functioning properly. The gasket is clean and in good condition. Items are organized and properly segregated, with high-risk and low-risk products stored separately.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c012fd32a3": {
+     "section": "s3",
+     "order": 4,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menu specifications are present, up to date, and consistently followed during preparation and service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c265ace2eb": {
+     "section": "s3",
+     "order": 5,
+     "label": "Product Quality & Labelling",
+     "desc": "No expired, spoiled, or unpresentable items are stored in the undercounter chiller drawer. All products are fresh, within date, correctly labeled, and properly wrapped. No containers are stored without an expiration label.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6b22fe1ea8": {
+     "section": "s3",
+     "order": 6,
+     "label": "Pizza Oven",
+     "desc": "The pizza oven is clean, free of grease, free of debris, maintained at the correct temperature, and functioning properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d0cf4c8b7a": {
+     "section": "s3",
+     "order": 7,
+     "label": "Rational Oven, Microwave & Toaster",
+     "desc": "The rational oven, microwave, and toaster are clean, functioning properly, and free from any food debris.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f1f20c328b": {
+     "section": "s4",
+     "order": 1,
+     "label": "Utensils & Chopping Boards",
+     "desc": "All required utensils are available, clean, and in good condition. Chopping boards are stored properly in the designated rack in accordance with food safety standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b5818f991e": {
+     "section": "s4",
+     "order": 2,
+     "label": "Sinks",
+     "desc": "Sinks are clean, free from food debris, and maintained in a hygienic condition at all times. No items are stored under the sink except approved cleaning chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f08ccc8272": {
+     "section": "s4",
+     "order": 3,
+     "label": "Vegetable Cut Specifications",
+     "desc": "Vegetable cut specifications are followed consistently, with all cuts prepared according to the approved standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c3081d9fc2": {
+     "section": "s4",
+     "order": 4,
+     "label": "Raw Meat & Seafood Segregation",
+     "desc": "Raw meat and seafood are properly segregated at all stages of storage and preparation, ensuring strict separation to prevent cross-contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_60219a2eea": {
+     "section": "s4",
+     "order": 5,
+     "label": "Pest-Free Prep Zone",
+     "desc": "The Production Preparation Zone is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_70fe6cc956": {
+     "section": "s4",
+     "order": 6,
+     "label": "Post-Washing Clean-Up",
+     "desc": "After washing items, the preparation area is cleaned immediately, with no remaining debris, and the area is kept organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4a922dc283": {
+     "section": "s5",
+     "order": 1,
+     "label": "Station Layout & Schematics",
+     "desc": "Schematics are followed correctly in the fryer, flat top, and pan section, with all equipment and items arranged in accordance with the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b0bf55a680": {
+     "section": "s5",
+     "order": 2,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menu specifications are present, updated, and consistently followed during preparation and service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_634116fe50": {
+     "section": "s5",
+     "order": 3,
+     "label": "Utensils & Fryer Tools",
+     "desc": "All required utensils are available, clean, and in good condition. Fryer baskets are free from debris, and all related tools are stored properly in accordance with approved standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a49bd42082": {
+     "section": "s5",
+     "order": 4,
+     "label": "Fryers, Flat Top & Pan Section",
+     "desc": "The fryers, flat top, and pan section are clean, properly set, and maintained in a ready-to-use condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1c288c9ad3": {
+     "section": "s5",
+     "order": 5,
+     "label": "Work Area Cleanliness & Organization",
+     "desc": "Work areas and surfaces are clean, organized, and free from dirt and grease. All required sanitizing sprays are available, and proper sanitizing procedures are correctly followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b52ba87878": {
+     "section": "s5",
+     "order": 6,
+     "label": "Undercounter / Double-Door Chiller & Freezer",
+     "desc": "GN containers are clean, organized, properly covered, and labeled with accurate expiry dates, with no containers stored without an expiration label. Gaskets are clean and maintained in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_589325afe5": {
+     "section": "s5",
+     "order": 7,
+     "label": "Used Cooking Oil Disposal",
+     "desc": "Used cooking oil is disposed of properly, with all oil fully transferred to the designated container during closing procedures. The designated oil container is clean and clearly labeled with the correct expiry.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_15875976f5": {
+     "section": "s5",
+     "order": 8,
+     "label": "Product Quality & Expiry Control",
+     "desc": "No items that are off, expired, unpresentable, or spoiled are present. All seasoning and sauces are properly labeled with accurate expiry dates.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5f39e0fad6": {
+     "section": "s5",
+     "order": 9,
+     "label": "Fire Suppression System",
+     "desc": "The fire suppression system is active, and all rubber valves are present and properly covering the fire sprinkler components as required.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_32c9fecce2": {
+     "section": "s5",
+     "order": 10,
+     "label": "Exhaust System Condition",
+     "desc": "The exhaust system is in good condition, with hood lights, extraction, and fresh-air functions operating optimally.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f08b31d2ad": {
+     "section": "s5",
+     "order": 11,
+     "label": "Pest-Free Hot Area",
+     "desc": "The Fryers, Flat Top & Pan area is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f50704971b": {
+     "section": "s5",
+     "order": 12,
+     "label": "Rice Cookers",
+     "desc": "Rice cookers are clean, well-maintained, properly used, and kept closed during operation.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_73694aade1": {
+     "section": "s5",
+     "order": 13,
+     "label": "Boiler Machine Condition",
+     "desc": "The boiler machine is functioning properly, the water is clean, and the boiler baskets are clean, free from damage, and maintained in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ba4018068f": {
+     "section": "s6",
+     "order": 1,
+     "label": "Schematics Compliance",
+     "desc": "Schematics are being followed correctly, and the pass and dessert area are arranged in accordance with the approved standard layout.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bc9063cb2b": {
+     "section": "s6",
+     "order": 2,
+     "label": "Menu Specification Compliance",
+     "desc": "In the pass and dessert area, dine-in and takeaway menu specifications are present, updated, and consistently followed during preparation and service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_b6944983f0": {
+     "section": "s6",
+     "order": 3,
+     "label": "Heating Lamps Condition",
+     "desc": "Heating lamps are functioning properly, clean, and well maintained to ensure safe and effective holding conditions.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_86c3cab9a3": {
+     "section": "s6",
+     "order": 4,
+     "label": "Workstation Cleanliness & Layout",
+     "desc": "In the pass and dessert area, work surfaces are clean, organized, free from dirt and grease, and all required sanitizing sprays and procedures are correctly followed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_89a28615c8": {
+     "section": "s6",
+     "order": 5,
+     "label": "Ice Bath Management",
+     "desc": "Ice baths are present and properly maintained for all cooked foods, sauces, and garnishes that require rapid cooling.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a27b952427": {
+     "section": "s6",
+     "order": 6,
+     "label": "Tasting Spoon Management",
+     "desc": "Tasting spoons are readily available, clean, and used appropriately in accordance with hygiene and food-safety practices.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8118994ab8": {
+     "section": "s6",
+     "order": 7,
+     "label": "Undercounter Drawer Chiller/Freezer",
+     "desc": "GN containers are clean, organized, properly covered, and labeled with accurate expiry dates, with no containers stored without an expiry label. The gasket is clean, intact, and maintained in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3bc1115dc1": {
+     "section": "s6",
+     "order": 8,
+     "label": "Pest-Free Pass & Dessert",
+     "desc": "The Pass & Dessert section is free from any insects, including cockroaches and fruit flies, and is maintained in a clean and hygienic condition at all times.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_020e31115b": {
+     "section": "s6",
+     "order": 9,
+     "label": "Product Quality & Storage",
+     "desc": "No items that are off, expired, unpresentable, or spoiled are present in the chiller, freezer, or the pass and dessert area.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8f711339dd": {
+     "section": "s7",
+     "order": 1,
+     "label": "Upright Chiller/Freezer & Cheese Freezer",
+     "desc": "The upright double-door chiller/freezer and cheese freezer are functioning properly, operating at the correct temperature, and all items are organized and stored with accurate expiry labels. All items in crate baskets are labeled, with no unlabeled products present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c26ca0b3c4": {
+     "section": "s7",
+     "order": 2,
+     "label": "Equipment Maintenance & Cleanliness",
+     "desc": "All storage equipment including shelves, racks, crates, and trolleys is clean, rust-free, and in good condition, with no broken, unstable, or damaged components.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ee349a63a8": {
+     "section": "s7",
+     "order": 3,
+     "label": "Dry Goods Organization",
+     "desc": "All dried items are organized and properly arranged in the designated shelving area, with no expired products present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1c7a1b2083": {
+     "section": "s7",
+     "order": 4,
+     "label": "Pest-Proofing & Prevention",
+     "desc": "Storeroom and pantry areas are free from pest activity, with all pest-control devices (glue boards, traps, etc.) properly placed, clean, and within their service dates.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e510e15fff": {
+     "section": "s7",
+     "order": 5,
+     "label": "Packaging Integrity",
+     "desc": "All products are stored in clean, intact packaging with no signs of damage, swelling, leakage, or contamination.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_063b43a1d2": {
+     "section": "s7",
+     "order": 6,
+     "label": "Crate & Container Cleanliness",
+     "desc": "All storage crates, bins, and containers are clean, free from residue, and in good condition with no cracks or contamination risks.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_702843eeee": {
+     "section": "s7",
+     "order": 7,
+     "label": "Moisture & Leak Prevention",
+     "desc": "No signs of moisture, leaks, or water damage are present on floors, walls, or ceilings. All products are protected from potential water exposure.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_657b52ffbe": {
+     "section": "s7",
+     "order": 8,
+     "label": "Waste & Carton Removal",
+     "desc": "No empty cartons, packaging materials, or waste are stored in the area; all waste is removed promptly to prevent pest attraction.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5829e0ba9a": {
+     "section": "s7",
+     "order": 9,
+     "label": "Handling of Opened Products",
+     "desc": "Opened products are sealed properly, labeled with opening dates, and stored in designated areas to maintain quality and safety.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_d74ee74acb": {
+     "section": "s8",
+     "order": 1,
+     "label": "Dishwashing Machine Condition",
+     "desc": "The dishwashing machine is clean, well maintained, and in full functioning condition, operating according to required performance and sanitation standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e238f42520": {
+     "section": "s8",
+     "order": 2,
+     "label": "Cleaning Chemicals & Supplies",
+     "desc": "Cleaning chemicals and supplies are complete, readily available, properly organized, and used according to approved specifications and safety procedures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_eebbc6e5c0": {
+     "section": "s8",
+     "order": 3,
+     "label": "Cleaning Tools Storage & Usage",
+     "desc": "Cleaning tools such as mops, wipers, and brushes are correctly stored and properly used with the appropriate cleaning chemicals.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_734969a26c": {
+     "section": "s8",
+     "order": 4,
+     "label": "Sink Area Cleanliness",
+     "desc": "The sink area is clean, organized, and free from any bad odor, except for normal food smells during peak hours.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9c8b6e7f98": {
+     "section": "s8",
+     "order": 5,
+     "label": "Waste Bin Condition",
+     "desc": "Waste bins are clean, properly lined, and not overflowing at any time.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_967eb6a25e": {
+     "section": "s8",
+     "order": 6,
+     "label": "Post-Washing Inspection & Storage",
+     "desc": "Items are inspected to ensure they are properly cleaned, fully sanitized, and neatly stacked in the designated storage area after washing.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f54570e96a": {
+     "section": "s8",
+     "order": 7,
+     "label": "Grease Dosing System Condition",
+     "desc": "The grease dosing system is clean, well maintained, and functioning effectively according to operational requirements.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_baad910230": {
+     "section": "s8",
+     "order": 8,
+     "label": "General Area Cleanliness",
+     "desc": "The general area is clean, including floors and walls, with no dirt, debris, insects, or pests present.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2e19db77aa": {
+     "section": "s9",
+     "order": 1,
+     "label": "Lighting Condition",
+     "desc": "All lighting fixtures are fully functional with no busted or flickering bulbs. Any issues identified are promptly reported to Maintenance.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e088d45827": {
+     "section": "s9",
+     "order": 2,
+     "label": "Drainage System Condition",
+     "desc": "All floor drains are clean, free-flowing, and equipped with proper covers. No foul odors, blockages, or standing water are present.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_815fd89eaa": {
+     "section": "s9",
+     "order": 3,
+     "label": "Fire Safety Equipment",
+     "desc": "Fire extinguishers, fire blankets, and emergency equipment are accessible, within service dates, and free from obstruction.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_50b460009e": {
+     "section": "s9",
+     "order": 4,
+     "label": "Insect Killer Unit Condition",
+     "desc": "The insect killer unit is clean, free from insect buildup, with no busted bulbs, fully functional, and operating as required to support effective pest-control measures.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7f7353ea22": {
+     "section": "s9",
+     "order": 5,
+     "label": "Electrical Safety",
+     "desc": "Electrical outlets, switches, and panels are intact, properly covered, and free from burn marks or exposed wiring. No equipment is plugged into damaged sockets.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9411f779c7": {
+     "section": "s9",
+     "order": 6,
+     "label": "Water Supply & Plumbing",
+     "desc": "Water supply is stable, with no leaks, drips, or malfunctioning faucets. Plumbing fixtures are clean and in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2ab2a7df12": {
+     "section": "s9",
+     "order": 7,
+     "label": "Floor Condition & Safety",
+     "desc": "Floors are clean, dry, and free from cracks, uneven surfaces, or slip hazards. Any damage is reported immediately for repair.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_00bb7a85b7": {
+     "section": "s9",
+     "order": 8,
+     "label": "Equipment Functionality & Maintenance",
+     "desc": "All equipment in the area is functioning properly, free from damage, and maintained according to scheduled preventive maintenance plans.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9ea291d04a": {
+     "section": "s9",
+     "order": 9,
+     "label": "Wastewater & Grease Management",
+     "desc": "Grease traps, grease dosing systems, and wastewater lines are clean, functioning properly, and serviced according to schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_dd7a7347bd": {
+     "section": "s9",
+     "order": 10,
+     "label": "Ventilation System Operation",
+     "desc": "The exhaust systems, fresh-air units, and air-conditioning are fully operational during service hours and properly switched off during closing, ensuring correct ventilation control and energy efficiency.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    }
+   }
+  },
+  "trd-foh": {
+   "meta": {
+    "name": "The Red Door — FOH Audit",
+    "brand": "The Red Door",
+    "auditType": "FOH",
+    "outlets": [
+     "The Red Door"
+    ],
+    "scoreMode": "passfail",
+    "maxScore": 155,
+    "version": 1,
+    "active": true
+   },
+   "sections": {
+    "s1": {
+     "title": "Operational Documentation",
+     "order": 1
+    },
+    "s2": {
+     "title": "FOH Food Safety & Hygiene",
+     "order": 2
+    },
+    "s3": {
+     "title": "Sequence of Service",
+     "order": 3
+    },
+    "s4": {
+     "title": "Back-Office & Office Area",
+     "order": 4
+    },
+    "s5": {
+     "title": "Food Runner & Delivery Station",
+     "order": 5
+    },
+    "s6": {
+     "title": "Ambience & Interior",
+     "order": 6
+    },
+    "s7": {
+     "title": "Bar Area",
+     "order": 7
+    },
+    "s8": {
+     "title": "Outdoor Premises",
+     "order": 8
+    },
+    "s9": {
+     "title": "Guest Washrooms",
+     "order": 9
+    }
+   },
+   "items": {
+    "i_604908619a": {
+     "section": "s1",
+     "order": 1,
+     "label": "Municipality Files",
+     "desc": "All trade licenses, certificates, and related regulatory documents required by Dubai Municipality are properly maintained, updated, and organized.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8fbb938ca7": {
+     "section": "s1",
+     "order": 2,
+     "label": "Grease Trap",
+     "desc": "The establishment maintains a valid cleaning contract and ensures all grease trap service records for the past three months are complete, current, and properly filed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bbfea7eca9": {
+     "section": "s1",
+     "order": 3,
+     "label": "Pest Control",
+     "desc": "The establishment maintains a valid pest control contract and ensures all treatment records for the past three months are complete, current, and properly filed.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2f48e4f3c7": {
+     "section": "s1",
+     "order": 4,
+     "label": "Exhaust / Duct Cleaning",
+     "desc": "The cleaning contract is valid and up to date, and all service records are properly maintained, documented, and organized to ensure regular and thorough cleaning as per the agreed schedule.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c9158ee5e1": {
+     "section": "s1",
+     "order": 5,
+     "label": "OHC",
+     "desc": "Occupational Health Cards for all staff members, including support staff, are available and up to date. Any expired certificates have been reported to HR or communicated via email.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9b52124535": {
+     "section": "s1",
+     "order": 6,
+     "label": "Basic Food Hygiene",
+     "desc": "Basic Food Hygiene certificates for all staff members, including support staff, are available and properly filed for presentation during inspections. Expired certificates reported to HR.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2036ccf02f": {
+     "section": "s1",
+     "order": 7,
+     "label": "PIC",
+     "desc": "PIC certificates for all KIC and OIC are available and properly filed within the Dubai Municipality documentation files.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f4cb6a1793": {
+     "section": "s1",
+     "order": 8,
+     "label": "CFP Documents",
+     "desc": "Certificates for Halal, HACCP, Food Analysis, and Transport Permits are available, properly filed, and up to date.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_29b864098e": {
+     "section": "s1",
+     "order": 9,
+     "label": "Temperature Logs",
+     "desc": "Kitchen and bar manual temperature logs are updated in accordance with the required checklist timeframe. All files are properly maintained and retained for up to three months.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_15d277cc18": {
+     "section": "s1",
+     "order": 10,
+     "label": "Financial Audit",
+     "desc": "Float and petty cash are accurately recorded, reconciled against End-of-Day (EOD) reports, and reimbursed within the standard 1-2 week timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_27059950ee": {
+     "section": "s1",
+     "order": 11,
+     "label": "Tips",
+     "desc": "Daily tips and monthly credit-card tips are properly tracked, documented, signed, and individually verified by the OIC and KIC, with all records securely kept in the file folder.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6ff1adebd3": {
+     "section": "s1",
+     "order": 12,
+     "label": "Forms",
+     "desc": "All forms and checklists including wastage monitoring, breakages, and cooling logs are properly completed, up to date, and easily accessible.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_17c27f78b7": {
+     "section": "s1",
+     "order": 13,
+     "label": "Inventories",
+     "desc": "IT electronic assets and SOE items are properly accounted for and regularly updated. Any damaged items are reported via email for documentation and follow-up.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5684fb49ec": {
+     "section": "s1",
+     "order": 14,
+     "label": "Foodwatch Checklists",
+     "desc": "Foodwatch checklists must be fully completed, with all required fields accurately filled, verified, and submitted within the designated timeframe.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8bdb155fa9": {
+     "section": "s1",
+     "order": 15,
+     "label": "Training Files / Doomsday Kit",
+     "desc": "Training files for all staff are properly documented and kept up to date. Server pads, manual check sheets, Paid/Cash/TRN stamps are readily available. Staff are aware of the kit location.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_639da147e5": {
+     "section": "s2",
+     "order": 1,
+     "label": "Personal Hygiene & Uniform",
+     "desc": "Staff consistently comply with Dubai Municipality personal hygiene requirements. Fingernails clean and short, hair neat and controlled, no body odor. Makeup minimal and professional. Uniforms clean, properly ironed, and worn correctly. Footwear clean, closed-toe, and in good condition.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3ae50f8438": {
+     "section": "s2",
+     "order": 2,
+     "label": "Handwashing Practices",
+     "desc": "Handwashing is performed consistently, with staff washing their hands immediately upon arriving at the restaurant and at all required moments during service.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2efcf1a8aa": {
+     "section": "s2",
+     "order": 3,
+     "label": "Bar Entry Hygiene",
+     "desc": "Staff entering the bar area wear the required protective items, including gloves and a hairnet or bandana, ensuring that hair is fully controlled and no risk of contamination is present.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8faaa45ce4": {
+     "section": "s2",
+     "order": 4,
+     "label": "Stock Rotation (FIFO/FEFO)",
+     "desc": "FIFO and FEFO procedures are consistently applied, with all products arranged and used according to their preparation and expiry dates. Stock is rotated correctly and older items are prioritized.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a5027a4bb6": {
+     "section": "s2",
+     "order": 5,
+     "label": "Undercounter Chillers & Freezers",
+     "desc": "Maintained in good working condition, with door gaskets clean, intact, and free from damage. All units operate within the required temperature range. Temperature logs accurately completed and up to date. Items properly labeled and free from expired products.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bc93c76870": {
+     "section": "s2",
+     "order": 6,
+     "label": "Allergen-Sensitive Guest Handling",
+     "desc": "Staff proactively inquire about any food allergies or dietary restrictions when taking orders. All allergen information is communicated clearly to the kitchen, and staff ensure guests with allergies receive accurate guidance and safe menu recommendations.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_488ecb6113": {
+     "section": "s3",
+     "order": 1,
+     "label": "Guest Greeting & Assistance",
+     "desc": "All guests are greeted promptly upon arrival, acknowledged courteously when they leave, and assisted appropriately at their table throughout their visit.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7b270bc55e": {
+     "section": "s3",
+     "order": 2,
+     "label": "Menu Presentation",
+     "desc": "When presenting the menu, staff open it for the guest and introduce the beverage options first, ensuring a professional and consistent service approach.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_874f31cf61": {
+     "section": "s3",
+     "order": 3,
+     "label": "Promotion & Offer Communication",
+     "desc": "Promotions and offers are communicated proactively, with staff informing guests of the daily or ongoing campaigns and clearly explaining the relevant terms and conditions.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3384059f91": {
+     "section": "s3",
+     "order": 4,
+     "label": "Staff Introduction & Order-Taking",
+     "desc": "Staff consistently introduce themselves at each table when taking orders. All orders are recorded accurately using a server pad or tablet, and the full order is repeated clearly to the guest to confirm accuracy.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c3e55ac22b": {
+     "section": "s3",
+     "order": 5,
+     "label": "Upselling / Suggestive Selling",
+     "desc": "Upselling and suggestive-selling techniques are consistently applied, with staff confidently recommending suitable add-ons, upgrades, and refill options. Delivered naturally and appropriately.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1b21f9ae80": {
+     "section": "s3",
+     "order": 6,
+     "label": "360-Degree Awareness & Responsiveness",
+     "desc": "Staff demonstrate full 360-degree awareness on the floor, proactively observing surroundings and responding promptly to guests needs. Team members anticipate requirements without waiting to be called.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f489c18abb": {
+     "section": "s3",
+     "order": 7,
+     "label": "Table Setup Standards",
+     "desc": "Table setup is completed by staff before any food is served, ensuring that all required items are in place and the dining experience begins with a clean, organized, and fully prepared table setting.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_bdb15dcab5": {
+     "section": "s3",
+     "order": 8,
+     "label": "Food Delivery & Guest Acknowledgment",
+     "desc": "Servers or food runners clearly mention the dish name and highlight any special requests or modifications when serving the order. Staff extend a courteous wish for guests to enjoy their meal.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4091eae5f4": {
+     "section": "s3",
+     "order": 9,
+     "label": "OIC Guest Satisfaction Check",
+     "desc": "The OIC visits each table to assess guest satisfaction, ensuring that both the food quality and the service experience meet expected standards. Any feedback is acknowledged professionally and addressed promptly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2c0d23233e": {
+     "section": "s3",
+     "order": 10,
+     "label": "Table Maintenance",
+     "desc": "Staff consistently maintain tables throughout the dining experience, ensuring they remain clean, organized, and free of unnecessary items. Table upkeep is performed proactively.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0401c16e18": {
+     "section": "s3",
+     "order": 11,
+     "label": "Dessert & Hot Drink Suggestion",
+     "desc": "Staff suggest desserts or hot drinks and present the dessert menu to the guest.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_247fa442b9": {
+     "section": "s3",
+     "order": 12,
+     "label": "Post-Meal Amenities",
+     "desc": "Staff provide toothpicks, an appropriate number of candies, and wet wipes to guests after the meal, ensuring a clean, courteous, and complete end-of-service experience.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ec607f4fea": {
+     "section": "s3",
+     "order": 13,
+     "label": "Membership Card",
+     "desc": "Staff consistently inquire whether guests are registered for the TRD membership card and, when they are not, encourage sign-up while clearly explaining the benefits and value of the program.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_43732b0a5f": {
+     "section": "s3",
+     "order": 14,
+     "label": "Bill Presentation & Guest Engagement",
+     "desc": "Staff present the bill promptly and professionally, inform guests about Qlub as a payment option, and courteously encourage them to share their experience through a Google review.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f5a285f67b": {
+     "section": "s3",
+     "order": 15,
+     "label": "Guest Farewell Standards",
+     "desc": "Staff thank the guests sincerely and offer a warm, genuine invitation to visit again, ensuring the dining experience ends on a positive and memorable note.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c87193afa2": {
+     "section": "s4",
+     "order": 1,
+     "label": "Noticeboard",
+     "desc": "Notice boards are regularly updated with relevant operational information, including sales targets, 86 items, upsell focus items, staff allocations, and other essential updates.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_75ab49f35e": {
+     "section": "s4",
+     "order": 2,
+     "label": "Team Briefing",
+     "desc": "Team briefing is carried out before the shift, covering updates, assignments, operational priorities, and any key points required for smooth service.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2c6e265307": {
+     "section": "s4",
+     "order": 3,
+     "label": "Office & Staff Locker Area",
+     "desc": "The office area is clean, neatly arranged, and free from unnecessary items or clutter. Staff lockers are clean, properly arranged, and securely locked at all times.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9211dca3fc": {
+     "section": "s4",
+     "order": 4,
+     "label": "First Aid Kit",
+     "desc": "The first aid kit is clean, complete, and fully stocked with required items, including blue bandages, burn cream or ointment, bandages, and other essential supplies.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_19995645de": {
+     "section": "s5",
+     "order": 1,
+     "label": "Shelves, Baskets & Containers",
+     "desc": "Shelves, baskets, and containers are clean and free from dust, dirt, and any food residue, ensuring proper hygiene and organized storage.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_147fddda3a": {
+     "section": "s5",
+     "order": 2,
+     "label": "Serving Utensils Stock",
+     "desc": "Serving spoons and underliners are available in sufficient quantity, clean, and properly organized to support smooth service operations.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_49bcac6182": {
+     "section": "s5",
+     "order": 3,
+     "label": "Menu Specifications",
+     "desc": "Dine-in and takeaway menus are present, updated, clean, and properly followed according to current menu guidelines.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f7bed0ca6c": {
+     "section": "s5",
+     "order": 4,
+     "label": "Packing Materials",
+     "desc": "Proper quantity of packaging materials is maintained at all times, neatly arranged, and organized systematically to support efficient order preparation and dispatch.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cf28a42702": {
+     "section": "s5",
+     "order": 5,
+     "label": "Stickers & Marking Materials",
+     "desc": "All stickers are available in sufficient quantity, along with highlighters and markers, and are neatly organized for efficient order labeling and dispatch.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_14dd34f670": {
+     "section": "s5",
+     "order": 6,
+     "label": "KDS, Monitor & Zebra Printer",
+     "desc": "The KDS is fully charged, the monitor is operational, and the Zebra printer is functioning properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_24b4c7bf36": {
+     "section": "s5",
+     "order": 7,
+     "label": "Delivery Ticket & Bag Marking",
+     "desc": "The delivery ticket is properly highlighted, and each delivery bag is clearly marked with the total number of bags to ensure accurate dispatch and easy identification.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4accf96882": {
+     "section": "s6",
+     "order": 1,
+     "label": "Lighting Standards",
+     "desc": "Lighting is adequate throughout the area, with all fixtures fully operational and no busted or malfunctioning lights, ensuring a bright, safe, and visually consistent environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a1e81e47c0": {
+     "section": "s6",
+     "order": 2,
+     "label": "Ambience Control",
+     "desc": "Music volume is maintained at an appropriate level, the AC provides a comfortable and consistent temperature, and the perfume system functions properly.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_5b705fc266": {
+     "section": "s6",
+     "order": 3,
+     "label": "Cooling Systems",
+     "desc": "Air coolers are fully operational and clean, and the air curtain functions properly, ensuring effective cooling and a comfortable and controlled store environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_51fdfebd42": {
+     "section": "s6",
+     "order": 4,
+     "label": "Dining Area Setup",
+     "desc": "Tables and chairs are clean, neatly arranged, properly aligned, and fully set with tissue holders, candle lights or lamps, tent cards, and Qlub devices. All furniture remains stable and wobble-free.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6aa042e959": {
+     "section": "s6",
+     "order": 5,
+     "label": "Floors, Walls, Doors & Glass Panel",
+     "desc": "Floors, walls, doors, and glass panels are clean, well-maintained, and free from any food debris, ensuring a hygienic and visually presentable environment throughout the store.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_900ea85e07": {
+     "section": "s6",
+     "order": 6,
+     "label": "Artwork, TVs & Decor",
+     "desc": "Artwork, TVs, and decor items are clean, free from dirt and damage, and properly aligned. All TVs are fully functional, ensuring a neat, well-presented, and visually appealing store environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_00957560fe": {
+     "section": "s6",
+     "order": 7,
+     "label": "Pest Control Standards",
+     "desc": "Fly glue traps and insect killers are cleaned regularly, and all bulbs are checked to ensure they are fully functional. The area remains free from cockroaches and other insects, including fruit flies and houseflies.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c49fe54b9c": {
+     "section": "s6",
+     "order": 8,
+     "label": "Indoor Plant",
+     "desc": "Indoor plants are clean, free from dust, properly positioned, and maintained in good condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1704086c61": {
+     "section": "s6",
+     "order": 9,
+     "label": "Cleaning Materials",
+     "desc": "Cleaning materials are available, correctly stored, kept clean, and used properly with the appropriate tools and chemicals, ensuring safe and effective cleaning practices.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_a8dcb2f80d": {
+     "section": "s6",
+     "order": 10,
+     "label": "Baby Chair Hygiene",
+     "desc": "The baby chair is clean, fully sanitized, and free from any visible food debris, ensuring safe and hygienic use for guests.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0553cae5d2": {
+     "section": "s6",
+     "order": 11,
+     "label": "Sidestation Cabinet",
+     "desc": "Sidestation cabinets are clean, well-organized, and maintained in a tidy condition to support efficient service operations.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_564870dd68": {
+     "section": "s6",
+     "order": 12,
+     "label": "Stocks",
+     "desc": "There is sufficient stock of SOE and condiments, with all sets cleaned, refilled, and ready for use. Storage areas are clean, well-organized, and maintained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c2301b873d": {
+     "section": "s6",
+     "order": 13,
+     "label": "Trays",
+     "desc": "Individual trays are clean and properly arranged, with tray jacks correctly positioned to support smooth and efficient service flow.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c89f5ce49e": {
+     "section": "s6",
+     "order": 14,
+     "label": "POS & Tablets",
+     "desc": "POS terminals and tablets are clean, fully functional, and free from any signs of damage, ensuring smooth and uninterrupted service operations.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1fb1e03c44": {
+     "section": "s6",
+     "order": 15,
+     "label": "Book Shelves",
+     "desc": "Book shelves are clean, books are neatly arranged, and games are organized without clutter or scattered items.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ba2178605f": {
+     "section": "s6",
+     "order": 16,
+     "label": "Menu & Promotional Materials",
+     "desc": "Menus and promotional menu materials are clean, free from damage, and well-maintained, ensuring a professional and guest-ready presentation at all times.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9f5b7b41c0": {
+     "section": "s7",
+     "order": 1,
+     "label": "Work Area, Surfaces & Walls",
+     "desc": "Clean and well-maintained; free from dirt, stickiness, and grease; sanitizing procedures properly applied.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9e5758b99b": {
+     "section": "s7",
+     "order": 2,
+     "label": "Bar Sink, Floor & Trash Bin",
+     "desc": "Clean, odor-free, and properly maintained. Bar mats washed regularly. Floor remains free of stored items.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_03bfeb9aac": {
+     "section": "s7",
+     "order": 3,
+     "label": "Coffee Machine & Grinder",
+     "desc": "The coffee machine and grinder are clean, functioning properly, and the group head and portafilter are inspected and cleaned daily.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2181ff2c13": {
+     "section": "s7",
+     "order": 4,
+     "label": "Blender",
+     "desc": "Blenders are clean, fully functional, and maintained in proper working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_f46a92f524": {
+     "section": "s7",
+     "order": 5,
+     "label": "Ice Crusher / Sealed Juice Machine / Juice Maker",
+     "desc": "The ice crusher, sealed juice machine, and juice maker are clean, fully functional, and maintained in proper working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0263f7c5c5": {
+     "section": "s7",
+     "order": 6,
+     "label": "Pest-Free Bar Area",
+     "desc": "The bar area is free from any signs of pests, including cockroaches, fruit flies, and houseflies, ensuring a hygienic and compliant environment.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_e37c31fa78": {
+     "section": "s7",
+     "order": 7,
+     "label": "Bar Kits & Tools",
+     "desc": "Knives, chopping boards, bar kits, and all related tools are clean, sanitized, properly used, and stored in an organized and hygienic manner.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7f9c53116e": {
+     "section": "s7",
+     "order": 8,
+     "label": "SOE Items",
+     "desc": "All SOE items, including cups, teapots, and glasses, are clean, sufficient in quantity, and properly stored in an organized and hygienic manner.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_0409df31c3": {
+     "section": "s7",
+     "order": 9,
+     "label": "Wiping Cloths",
+     "desc": "Wiping cloths are sufficient in quantity, clean, odor-free, and well organized for safe and efficient use.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_76ebb924d6": {
+     "section": "s7",
+     "order": 10,
+     "label": "Bar Juice Pourers & Bottle Squeezers",
+     "desc": "Bar juice pourers and bottle squeezers are clean, sanitized, correctly labeled with the product name, and in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4d46b815d2": {
+     "section": "s7",
+     "order": 11,
+     "label": "Fresh Fruits",
+     "desc": "Fresh fruits show no signs of spoilage or poor presentation, and sufficient backup stock is maintained at all times. All fruits are properly covered and clearly labeled with the correct expiry date.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6478531718": {
+     "section": "s7",
+     "order": 12,
+     "label": "Cheat Sheets",
+     "desc": "Cheat sheets are available, updated, and clearly displayed for staff reference.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_39a27544ef": {
+     "section": "s7",
+     "order": 13,
+     "label": "Drink Specifications",
+     "desc": "Dine-in and takeaway drink menus are present, updated, and strictly followed, ensuring all beverages are prepared according to the correct specifications.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_11347a993d": {
+     "section": "s7",
+     "order": 14,
+     "label": "Fresh Fruit Display",
+     "desc": "The fresh fruit display is neatly arranged, clean, and free from brushes, tools, or any foreign objects.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_22fd32c61b": {
+     "section": "s7",
+     "order": 15,
+     "label": "Pastry Station",
+     "desc": "The pastry station is clean, well-organized, fully tagged, and all products are stored according to guidelines.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_6150bfeedb": {
+     "section": "s7",
+     "order": 16,
+     "label": "General / Dry Items",
+     "desc": "General and dry items are clean, adequately stocked, properly arranged, and free from any expired products.",
+     "weight": 3,
+     "allowNA": true,
+     "active": true
+    },
+    "i_feef47d406": {
+     "section": "s8",
+     "order": 1,
+     "label": "Exterior General",
+     "desc": "The overall cleanliness of the exterior areas, including glass windows and the main entrance door, is maintained according to standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_629445dbf6": {
+     "section": "s8",
+     "order": 2,
+     "label": "Disposable Fly Trap",
+     "desc": "Disposable fly traps are correctly positioned in designated areas, regularly monitored, and kept out of sight from dine-in guests.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_26f44acb00": {
+     "section": "s8",
+     "order": 3,
+     "label": "Tables, Chairs & Cushions",
+     "desc": "Tables are neatly arranged with a complete setup including tent cards, ashtrays, lights, and Qlub devices, and are stable and wobble-free. Chairs are clean and undamaged. Cushions are clean, stain-free, and without tears.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_ce09799260": {
+     "section": "s8",
+     "order": 4,
+     "label": "Outdoor Side Station",
+     "desc": "The outdoor side station is clean, well-organized, and adequately stocked for operational needs, with all items neatly arranged and maintained according to standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1b0bd6dae8": {
+     "section": "s8",
+     "order": 5,
+     "label": "Fencing, Plants & Vase",
+     "desc": "Fencing is clean, intact, and free from any damage. Plants are properly watered, trimmed, and well-maintained, with vases kept clean and presentable. All fairy lights and spotlights are functional and clean.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_4099952496": {
+     "section": "s8",
+     "order": 6,
+     "label": "Signage & Lighting",
+     "desc": "Signage is clean and fully illuminated at night, with any lighting failures promptly reported and followed up until resolved.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8780bad6d0": {
+     "section": "s8",
+     "order": 7,
+     "label": "Flooring",
+     "desc": "Floors are clean, well-maintained, and free from debris such as trash, cigarette butts, and any other litter.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_43ec8317d5": {
+     "section": "s8",
+     "order": 8,
+     "label": "Umbrellas / Sunshade Cloths",
+     "desc": "Umbrellas and sunshade cloths are properly positioned, clean, and maintained in good condition, with no visible damage.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_7890c376f0": {
+     "section": "s8",
+     "order": 9,
+     "label": "Air Coolers / Heaters",
+     "desc": "Air coolers and heaters are correctly positioned, clean, and maintained in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2be5d93d5a": {
+     "section": "s8",
+     "order": 10,
+     "label": "Parking Signs",
+     "desc": "Parking signs are stored in the designated area, clean, and properly arranged.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_fd7d3e8da7": {
+     "section": "s8",
+     "order": 11,
+     "label": "Stand TV & Speaker (Delivery Biker Area)",
+     "desc": "The stand TV and speaker for the delivery biker area are functioning properly and kept clean.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_82397c9c29": {
+     "section": "s8",
+     "order": 12,
+     "label": "Biker Waiting Area",
+     "desc": "The biker waiting area is clean, free of cigarette butts, and the bench chair is maintained in good condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_9580b7466e": {
+     "section": "s8",
+     "order": 13,
+     "label": "Garbage Room",
+     "desc": "The garbage room is clean, free from overflowing waste, with timely collection by the community garbage truck, and maintained without any unnecessary odors.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_1beb957163": {
+     "section": "s8",
+     "order": 14,
+     "label": "Parking Area",
+     "desc": "The parking area is clean, safe, and maintained in accordance with operational standards.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c5c7af15c6": {
+     "section": "s8",
+     "order": 15,
+     "label": "Posters & Wooden Signage Chalkboards",
+     "desc": "Posters and wooden signage chalkboards are neatly positioned, clean, and maintained in a professional manner, with chalkboards fully updated at all times.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_59a992583d": {
+     "section": "s9",
+     "order": 1,
+     "label": "Smell",
+     "desc": "No foul odor is present; air fresheners are filled and placed in the correct areas to maintain a pleasant and hygienic environment.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c8912fbc2d": {
+     "section": "s9",
+     "order": 2,
+     "label": "Soap, Sanitizer & Tissue Box",
+     "desc": "Soap dispensers, sanitizer bottles, and tissue boxes are clean, filled, and functioning properly, with all sensors operating as intended.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_8b8be3a94a": {
+     "section": "s9",
+     "order": 3,
+     "label": "Washroom Checklist",
+     "desc": "The washroom cleaning schedule is strictly followed and completed on an hourly basis.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2e24b68520": {
+     "section": "s9",
+     "order": 4,
+     "label": "Washbasins & Mirrors",
+     "desc": "Hand soap is foamy and available, and mirrors are clean, streak-free, and free from smudges.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_11df5e6cf3": {
+     "section": "s9",
+     "order": 5,
+     "label": "Garbage Bins",
+     "desc": "Sensors are functioning properly, and bins are clean, lined with bags, and emptied regularly to maintain hygiene and prevent odor.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3781aed7d4": {
+     "section": "s9",
+     "order": 6,
+     "label": "Toilet Bowl",
+     "desc": "Toilet bowl is clean, stain-free, odor-free, and equipped with a fully functioning flush.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_2f2562811b": {
+     "section": "s9",
+     "order": 7,
+     "label": "Lighting & Locks",
+     "desc": "All lighting is operational with no busted bulbs, and door locks are fully functional to ensure safety and privacy.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_cddb502bd3": {
+     "section": "s9",
+     "order": 8,
+     "label": "Cleaning Supplies",
+     "desc": "Cleaning chemicals and supplies are complete, sufficient, and readily available for use.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_3a48d4a7a0": {
+     "section": "s9",
+     "order": 9,
+     "label": "Portable Baby Changing Table",
+     "desc": "The portable baby changing table with wheels is clean, stable, and properly positioned, with all parts in good working condition.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_c555d19fe2": {
+     "section": "s9",
+     "order": 10,
+     "label": "Handwash Area",
+     "desc": "The handwash area is clean, with the mirror, sanitizer, soap, and tissue properly placed and maintained.",
+     "weight": 1,
+     "allowNA": true,
+     "active": true
+    },
+    "i_08f20f321a": {
+     "section": "s9",
+     "order": 11,
+     "label": "Cleanliness",
+     "desc": "The general area including floors, walls, ceilings, bidets, doors, and displays is clean, well-maintained, and free from pests or insects.",
+     "weight": 5,
+     "allowNA": true,
+     "active": true
+    }
+   }
+  }
+ }
+}
