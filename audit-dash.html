@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="20260715030000">
+<meta name="app-version" content="20260715040000">
 <title>Culex Audit Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -184,15 +184,18 @@ tr.clk{cursor:pointer}
   <!-- OVERVIEW -->
   <div id="pane-ov">
     <div class="ro hide" id="ro">View only &mdash; audits are conducted by Admin</div>
-    <div class="bar">
-      <select id="f-brand" onchange="renderOverview()"><option value="">All brands</option></select>
-      <select id="f-type" onchange="renderOverview()">
-        <option value="">All types</option><option>BOH</option><option>FOH</option>
-      </select>
-      <a class="newbtn hide" id="newbtn" href="audit.html">+ New Audit</a>
-      <a class="newbtn hide" id="practbtn" href="audit.html?practice=1" style="background:#6a1b9a">+ Practice Audit</a>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <h3 style="font-size:16px;color:#1B3A6B;font-weight:700;margin:0">Internal Audit Results</h3>
+      <div class="bar" style="margin:0">
+        <select id="f-month" onchange="renderOverview()"><option value="">All months</option></select>
+        <select id="f-type" onchange="renderOverview()">
+          <option value="">BOH + FOH</option><option>BOH</option><option>FOH</option>
+        </select>
+        <select id="f-brand" onchange="renderOverview()"><option value="">All outlets</option></select>
+        <a class="newbtn hide" id="newbtn" href="audit.html">+ New Audit</a>
+        <a class="newbtn hide" id="practbtn" href="audit.html?practice=1" style="background:#6a1b9a">+ Practice Audit</a>
+      </div>
     </div>
-
     <div class="grid" id="cards" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><div class="empty">Loading...</div></div>
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
@@ -389,12 +392,26 @@ function loadAudits(){
             : o.indexOf('Red') > -1 ? 'The Red Door' : 'Other';
       brands[b] = 1;
     }
-    var sel = document.getElementById('f-brand');
-    var cur = sel.value;
-    sel.innerHTML = '<option value="">All brands</option>'
-      + Object.keys(brands).sort().map(function(b){
-          return '<option>' + b + '</option>'; }).join('');
-    sel.value = cur;
+    var outs = {}, mons = {};
+    for(var k2 in AUDITS){
+      var au = AUDITS[k2];
+      if(au.outlet) outs[au.outlet] = 1;
+      if(au.auditDate) mons[au.auditDate.substring(0,7)] = 1;
+    }
+    var so = document.getElementById('f-brand'), cur = so.value;
+    so.innerHTML = '<option value="">All outlets</option>'
+      + Object.keys(outs).sort().map(function(o){ return '<option>' + o + '</option>'; }).join('');
+    so.value = cur;
+
+    var MN = ['January','February','March','April','May','June','July',
+              'August','September','October','November','December'];
+    var sm = document.getElementById('f-month'), curm = sm.value;
+    sm.innerHTML = '<option value="">All months</option>'
+      + Object.keys(mons).sort().reverse().map(function(m){
+          var p = m.split('-');
+          return '<option value="' + m + '">' + MN[parseInt(p[1],10)-1] + ' ' + p[0] + '</option>';
+        }).join('');
+    sm.value = curm;
     renderOverview();
   }, function(e){
     document.getElementById('cards').innerHTML =
@@ -413,12 +430,14 @@ function brandOf(o){
 function renderOverview(){
   var fb = document.getElementById('f-brand').value;
   var ft = document.getElementById('f-type').value;
+  var fm = (document.getElementById('f-month')||{value:''}).value;
 
   var list = [];
   for(var k in AUDITS){
     var a = AUDITS[k];
-    if(fb && brandOf(a.outlet) !== fb) continue;
+    if(fb && a.outlet !== fb) continue;
     if(ft && a.auditType !== ft) continue;
+    if(fm && (a.auditDate||'').substring(0,7) !== fm) continue;
     list.push(a);
   }
   list.sort(function(x,y){
@@ -451,8 +470,8 @@ function renderOverview(){
 
   document.getElementById('cards').innerHTML =
       statCard('Total audits', list.length, boh.length + ' BOH \u00b7 ' + foh.length + ' FOH')
-    + statCard('BOH avg',     (bA===null?'\u2014':bA+'%'), gtxt(bA), gcol(bA))
-    + statCard('FOH avg',     (fA===null?'\u2014':fA+'%'), gtxt(fA), gcol(fA))
+    + statCard('\uD83D\uDD0D BOH avg',  (bA===null?'\u2014':bA+'%'), gtxt(bA), gcol(bA))
+    + statCard('\uD83D\uDD25 FOH avg',  (fA===null?'\u2014':fA+'%'), gtxt(fA), gcol(fA))
     + statCard('Overall avg', (oA===null?'\u2014':oA+'%'), gtxt(oA), gcol(oA));
 
   var rows = list.map(function(a){
@@ -724,189 +743,210 @@ function rptPDF(){
   if(!RPT) return;
   if(typeof window.jspdf === 'undefined'){ toast('PDF library not loaded.', true); return; }
   var a = RPT.a, PH = PHOTOS[RPT.key] || {};
-  var secs = a.sectionBreakdown;
+  var secs = a.sectionBreakdown || [];
   var jsPDF = window.jspdf.jsPDF;
   var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  var W = 210, ML = 12, CW = 186, y = 0;
+  var W = 210, ML = 14, CW = 182, y = 0;
   var pct = Number(a.score)||0, gr = getGrade(pct);
-  var gen = new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  var gen = new Date().toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',
+              hour:'2-digit',minute:'2-digit'}).replace(',','');
+
+  var NAVY=[27,58,107], GOLD=[191,153,10], GREEN=[27,127,59], RED=[198,40,40], GREY=[138,153,179];
 
   function sf(sz,st,c){ doc.setFontSize(sz); doc.setFont('helvetica',st||'normal'); doc.setTextColor(c[0],c[1],c[2]); }
-  function fr(x,fy,w,h,r,g,b){ doc.setFillColor(r,g,b); doc.rect(x,fy,w,h,'F'); }
+  function fr(x,fy,w,h,c){ doc.setFillColor(c[0],c[1],c[2]); doc.rect(x,fy,w,h,'F'); }
+  function scol(p){ return p>=91?GREEN : p>=81?GOLD : p>=71?[216,67,21] : RED; }
   function pageHead(){
-    sf(11,'bold',[27,58,107]);
-    doc.text(a.outlet + ' - ' + a.auditType + ' Full Audit Detail', ML, 12);
-    sf(7,'normal',[140,140,140]);
-    doc.text('Culex Hospitality Operations | Dubai Municipality Compliance', ML, 17);
-    doc.text('Generated: ' + gen, W-ML, 17, {align:'right'});
-    doc.setDrawColor(225,228,235); doc.setLineWidth(0.3); doc.line(ML, 19, W-ML, 19);
+    fr(0,0,W,16,NAVY);
+    sf(10,'bold',[255,255,255]);
+    doc.text(a.outlet + ' - ' + a.auditType + ' Full Audit Detail', ML, 10);
+    sf(7,'normal',[157,180,214]);
+    doc.text(a.auditDate || '', W-ML, 10, {align:'right'});
   }
-  function ap(){ doc.addPage(); pageHead(); y = 26; }
-  function cy(n){ if(y+n > 280) ap(); }
+  function ap(){ doc.addPage(); pageHead(); y = 24; }
+  function cy(n){ if(y+n > 278) ap(); }
   function stamp(){
     var n = doc.internal.getNumberOfPages();
     for(var i=1;i<=n;i++){
       doc.setPage(i);
-      doc.setDrawColor(235,238,243); doc.setLineWidth(0.3); doc.line(ML, 286, W-ML, 286);
-      sf(6.5,'normal',[175,180,190]);
-      doc.text('Culex Hospitality Operations - Internal Audit Report - Confidential', ML, 291);
-      doc.text('Page ' + i + ' of ' + n, W-ML, 291, {align:'right'});
+      doc.setDrawColor(232,236,243); doc.setLineWidth(0.3); doc.line(ML, 285, W-ML, 285);
+      sf(7,'normal',[168,176,190]);
+      doc.text('Culex Hospitality Operations - Internal Audit Report - Confidential', ML, 290);
+      doc.text('Page ' + i + ' of ' + n, W-ML, 290, {align:'right'});
     }
   }
   function fn(){
     var d = (a.auditDate||'').split('-');
     var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var ds = d.length===3 ? d[2]+'_'+M[parseInt(d[1],10)-1]+'_'+d[0] : 'report';
-    return ds + '_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_Audit_Report.pdf';
+    var ds = d.length===3 ? d[2]+'_'+M[parseInt(d[1],10)-1]+'_'+d[0] : 'Report';
+    return ds + '_' + a.outlet.replace(/\s+/g,'_') + '_' + a.auditType + '_Monthly_Audit_Report.pdf';
   }
 
-  /* COVER */
-  sf(15,'bold',[27,58,107]);
+  /* ══ HEADER BAND ══ */
+  fr(0, 0, W, 34, NAVY);
+  sf(19,'bold',[255,255,255]);
   doc.text(a.outlet + ' - ' + a.auditType + ' Audit Report', ML, 15);
-  sf(7,'normal',[140,140,140]);
-  doc.text('Culex Hospitality Operations | Dubai Municipality Compliance', ML, 21);
-  doc.text('Generated: ' + gen, W-ML, 21, {align:'right'});
-  doc.setDrawColor(225,228,235); doc.line(ML, 24, W-ML, 24);
+  sf(8.5,'normal',[157,180,214]);
+  doc.text('Culex Hospitality Operations  |  Dubai Municipality Compliance', ML, 24);
+  doc.text('Generated: ' + gen, W-ML, 24, {align:'right'});
 
-  y = 32;
-  [['Outlet',a.outlet],['Type',a.auditType],['Auditor',a.auditor||'-'],['Date',a.auditDate||'-']]
+  /* ══ META BOX ══ */
+  y = 42;
+  fr(ML, y, CW, 20, [244,241,235]);
+  [['Outlet:',a.outlet],['Type:',a.auditType],['Auditor:',a.auditor||'-'],['Date:',a.auditDate||'-']]
   .forEach(function(p,i){
-    var x = ML + i*(CW/4);
-    sf(7,'bold',[150,155,165]); doc.text(p[0].toUpperCase(), x, y);
-    sf(9,'bold',[45,50,60]);    doc.text(String(p[1]).substring(0,22), x, y+5);
+    var x = ML + 4 + i*(CW/4);
+    sf(9,'bold',[45,50,60]);    doc.text(p[0], x, y+7);
+    sf(9,'normal',[70,78,90]);  doc.text(String(p[1]).substring(0,20), x, y+14);
   });
-  y += 14;
+  y += 27;
 
-  var c = hRgb(gr.fill);
-  fr(ML, y, CW, 22, c[0],c[1],c[2]);
-  sf(20,'bold',[255,255,255]); doc.text(pct + '%', ML+6, y+14);
-  sf(11,'bold',[255,255,255]); doc.text('Grade ' + gr.g + ' - ' + gr.label, ML+34, y+9);
-  sf(9,'normal',[255,255,255]);
-  doc.text((a.rawScore||0) + '/' + (a.maxScore||0) + ' Points Scored', ML+34, y+17);
-  y += 30;
+  /* ══ THREE BIG CARDS ══ */
+  var gc = scol(pct);
+  var cw3 = (CW - 12) / 3;
+  fr(ML, y, cw3, 30, gc);
+  sf(21,'bold',[255,255,255]); doc.text(pct+'%', ML+cw3/2, y+14, {align:'center'});
+  sf(8.5,'bold',[255,255,255]); doc.text('Grade '+gr.g+' - '+gr.label, ML+cw3/2, y+23, {align:'center'});
 
-  if(!secs || !secs.length){
-    fr(ML, y, CW, 26, 255,246,229);
-    doc.setDrawColor(255,217,138); doc.setLineWidth(0.4); doc.rect(ML, y, CW, 26);
-    sf(9,'bold',[122,89,0]);
-    doc.text('No detailed breakdown available for this audit', ML+5, y+8);
-    sf(7.5,'normal',[122,89,0]);
-    doc.text(doc.splitTextToSize('This audit was restored from a summary backup, so the item-by-item '
-      + 'detail (which checks passed or failed, corrective actions and photos) was not preserved. '
-      + 'Audits submitted from now on include the full report.', CW-10), ML+5, y+14);
-    stamp(); doc.save(fn()); toast('PDF exported'); return;
-  }
+  var x2 = ML + cw3 + 6;
+  fr(x2, y, cw3, 30, [238,243,251]);
+  sf(17,'bold',NAVY); doc.text((a.rawScore||0)+'/'+(a.maxScore||0), x2+cw3/2, y+14, {align:'center'});
+  sf(8,'normal',[110,120,140]); doc.text('Points Scored', x2+cw3/2, y+23, {align:'center'});
 
   var nP=0,nF=0,nN=0,nT=0;
   secs.forEach(function(s){ (s.items||[]).forEach(function(it){
     nT++;
     if(it.status==='pass') nP++; else if(it.status==='fail') nF++; else if(it.status==='na') nN++;
   }); });
-  [[nF,'Actions',[198,40,40]],[nP,'Passed',[27,127,59]],[nF,'Failed',[198,40,40]],
-   [nN,'N/A',[130,135,145]],[nT,'Total',[45,50,60]]].forEach(function(st,i){
-    var bw = CW/5 - 2, x = ML + i*(CW/5);
-    fr(x, y, bw, 16, 246,248,252);
-    sf(13,'bold',st[2]); doc.text(String(st[0]), x+bw/2, y+8, {align:'center'});
-    sf(6.5,'bold',[140,145,155]); doc.text(st[1].toUpperCase(), x+bw/2, y+13, {align:'center'});
-  });
-  y += 24;
 
-  sf(9,'bold',[27,58,107]); doc.text('SECTION SUMMARY', ML, y); y += 6;
-  fr(ML, y, CW, 7, 27,58,107);
-  sf(7.5,'bold',[255,255,255]);
-  doc.text('Section', ML+3, y+4.8);
-  doc.text('Earned', ML+CW-46, y+4.8, {align:'right'});
-  doc.text('Max',    ML+CW-26, y+4.8, {align:'right'});
-  doc.text('Score',  ML+CW-3,  y+4.8, {align:'right'});
-  y += 7;
+  var x3 = x2 + cw3 + 6;
+  fr(x3, y, cw3, 30, [253,242,222]);
+  sf(17,'bold',[199,119,0]); doc.text(String(nF), x3+cw3/2, y+14, {align:'center'});
+  sf(8,'normal',[110,120,140]); doc.text('Actions', x3+cw3/2, y+23, {align:'center'});
+  y += 36;
+
+  /* ══ COUNT STRIP ══ */
+  fr(ML, y, CW, 18, [244,247,252]);
+  [[nP,'Passed',GREEN],[nF,'Failed',RED],[nN,'N/A',GREY],[nT,'Total',GOLD]].forEach(function(p,i){
+    var x = ML + (CW/4)*i + CW/8;
+    sf(12,'bold',p[2]);            doc.text(String(p[0]), x, y+8, {align:'center'});
+    sf(7,'normal',[130,140,158]);  doc.text(p[1], x, y+14, {align:'center'});
+  });
+  y += 26;
+
+  if(!secs.length){
+    fr(ML, y, CW, 26, [255,246,229]);
+    sf(9,'bold',[122,89,0]);
+    doc.text('No detailed breakdown available for this audit', ML+5, y+8);
+    sf(7.5,'normal',[122,89,0]);
+    doc.text(doc.splitTextToSize('This audit was restored from a summary backup, so the '
+      + 'item-by-item detail was not preserved. Audits submitted from now on include the '
+      + 'full report.', CW-10), ML+5, y+14);
+    stamp(); doc.save(fn()); toast('PDF exported'); return;
+  }
+
+  /* ══ SECTION SUMMARY ══ */
+  fr(ML, y, CW, 11, NAVY);
+  sf(10,'bold',[255,255,255]);
+  doc.text('SECTION SUMMARY', ML+5, y+7.3);
+  y += 11;
+
+  fr(ML, y, CW, 8, [244,247,252]);
+  sf(7.5,'bold',[100,110,128]);
+  doc.text('Section', ML+5, y+5.4);
+  doc.text('Earned', ML+CW-78, y+5.4, {align:'right'});
+  doc.text('Max',    ML+CW-60, y+5.4, {align:'right'});
+  doc.text('Score',  ML+CW-42, y+5.4, {align:'right'});
+  y += 8;
+
   secs.forEach(function(s,i){
-    cy(8);
+    cy(10);
     var sp = s.max>0 ? Math.round(s.earned/s.max*100) : 0;
-    var zb = (i%2) ? [248,250,253] : [255,255,255];
-    fr(ML, y, CW, 6.5, zb[0],zb[1],zb[2]);
-    sf(7.5,'normal',[45,50,60]);
-    doc.text((i+1)+'. '+String(s.title).substring(0,44), ML+3, y+4.5);
-    doc.text(String(s.earned), ML+CW-46, y+4.5, {align:'right'});
-    doc.text(String(s.max),    ML+CW-26, y+4.5, {align:'right'});
-    var sc = sp>=91?[27,127,59] : sp>=71?[199,119,0] : [198,40,40];
-    sf(7.5,'bold',sc); doc.text(sp+'%', ML+CW-3, y+4.5, {align:'right'});
-    y += 6.5;
+    var sc = scol(sp);
+    if(i%2) fr(ML, y, CW, 9, [250,251,253]);
+    fr(ML, y, 2, 9, sc);
+    sf(8,'normal',[45,50,60]);
+    doc.text((i+1)+'. '+String(s.title).substring(0,40), ML+6, y+6);
+    sf(8,'bold',sc); doc.text(String(s.earned), ML+CW-78, y+6, {align:'right'});
+    sf(8,'normal',[110,120,140]); doc.text(String(s.max), ML+CW-60, y+6, {align:'right'});
+    sf(8,'bold',sc); doc.text(sp+'%', ML+CW-42, y+6, {align:'right'});
+    fr(ML+CW-36, y+3.4, 34, 2.6, [225,228,235]);
+    fr(ML+CW-36, y+3.4, 34*sp/100, 2.6, sc);
+    y += 9;
   });
-  fr(ML, y, CW, 8, 27,58,107);
-  sf(8,'bold',[255,255,255]);
-  doc.text('TOTAL', ML+3, y+5.5);
-  doc.text((a.rawScore||0)+'', ML+CW-46, y+5.5, {align:'right'});
-  doc.text((a.maxScore||0)+'', ML+CW-26, y+5.5, {align:'right'});
-  doc.text(pct+'%', ML+CW-3, y+5.5, {align:'right'});
+  fr(ML, y, CW, 10, NAVY);
+  sf(9,'bold',[255,255,255]);
+  doc.text('TOTAL', ML+5, y+6.6);
+  doc.text(String(a.rawScore||0), ML+CW-78, y+6.6, {align:'right'});
+  doc.text(String(a.maxScore||0), ML+CW-60, y+6.6, {align:'right'});
+  doc.text(pct+'%', ML+CW-42, y+6.6, {align:'right'});
 
-  /* DETAIL */
+  /* ══ DETAIL ══ */
   ap();
-  sf(10,'bold',[27,58,107]);
-  doc.text('FULL AUDIT REPORT - SECTION BY SECTION', ML, y); y += 8;
+  sf(11,'bold',NAVY);
+  doc.text('FULL AUDIT REPORT - SECTION BY SECTION', ML, y); y += 9;
 
   secs.forEach(function(s, si){
     var sp = s.max>0 ? Math.round(s.earned/s.max*100) : 0;
-    var sc = sp>=91?[27,127,59] : sp>=71?[199,119,0] : [198,40,40];
-    cy(18);
-    var hb = sp>=71 ? [255,250,230] : [253,236,236];
-    fr(ML, y, CW, 9, hb[0],hb[1],hb[2]);
-    sf(9,'bold',[45,50,60]); doc.text((si+1)+'. '+s.title, ML+3, y+6);
-    sf(9,'bold',sc); doc.text(s.earned+'/'+s.max+' pts  ('+sp+'%)', ML+CW-3, y+6, {align:'right'});
-    fr(ML, y+9, CW, 2, 225,228,235);
-    fr(ML, y+9, CW*sp/100, 2, sc[0],sc[1],sc[2]);
-    y += 15;
+    var sc = scol(sp);
+    cy(20);
+    fr(ML, y, CW, 10, sp>=81 ? [255,250,235] : [253,238,238]);
+    fr(ML, y, 2.2, 10, sc);
+    sf(10,'bold',[35,40,50]); doc.text((si+1)+'. '+s.title, ML+6, y+6.6);
+    sf(9,'bold',sc); doc.text(s.earned+'/'+s.max+' pts  ('+sp+'%)', ML+CW-4, y+6.6, {align:'right'});
+    fr(ML, y+10, CW, 2.4, [232,236,243]);
+    fr(ML, y+10, CW*sp/100, 2.4, sc);
+    y += 17;
 
     (s.items||[]).forEach(function(it){
       var st = it.status||'';
       var lbl = st==='pass'?'PASS' : st==='fail'?'FAIL' : st==='na'?'N/A' : '-';
-      var col = st==='pass'?[27,127,59] : st==='fail'?[198,40,40] : [140,145,155];
-      var bg  = st==='pass'?[247,252,248] : st==='fail'?[253,240,240] : [250,250,250];
-      var dL = doc.splitTextToSize(String(it.desc||''), CW-46);
-      var cL = it.comment ? doc.splitTextToSize('Note: '+it.comment, CW-46) : [];
+      var col = st==='pass'?GREEN : st==='fail'?RED : GREY;
+      var bg  = st==='pass'?[246,252,247] : st==='fail'?[253,240,240] : [250,251,253];
+      var dL = doc.splitTextToSize(String(it.desc||''), CW-48);
+      var cL = it.comment ? doc.splitTextToSize(it.comment, CW-48) : [];
       var aL = it.correctiveAction
         ? doc.splitTextToSize('Corrective: '+it.correctiveAction
             + (it.responsible?'  -  '+it.responsible:'')
-            + (it.deadline?'  (by '+it.deadline+')':''), CW-46) : [];
+            + (it.deadline?'  (by '+it.deadline+')':''), CW-48) : [];
       var sn = String(it.n).replace(/[.#$\[\]]/g,'_');
-      var pk = Object.keys(PH).filter(function(k){
-        return k.indexOf('_'+s.id+'_'+sn+'_') > -1;
-      });
-      var pH = pk.length ? Math.ceil(pk.length/4)*32 + 3 : 0;
-      var iH = 11 + dL.length*3.4 + cL.length*3.4 + aL.length*3.4 + pH + 4;
+      var pk = Object.keys(PH).filter(function(k){ return k.indexOf('_'+s.id+'_'+sn+'_') > -1; });
+      var pH = pk.length ? Math.ceil(pk.length/4)*34 + 3 : 0;
+      var iH = 13 + dL.length*3.5 + (cL.length?cL.length*3.5+2:0) + (aL.length?aL.length*3.5+2:0) + pH + 4;
 
       cy(iH+3);
-      fr(ML, y, CW, iH, bg[0],bg[1],bg[2]);
-      if(st==='fail') fr(ML, y, 1.6, iH, 198,40,40);
+      fr(ML, y, CW, iH, bg);
+      if(st==='fail') fr(ML, y, 2, iH, RED);
 
-      sf(7,'normal',[165,170,180]); doc.text(String(it.n)+'.', ML+5, y+6);
-      sf(9,'bold',[35,40,50]);      doc.text(String(it.label||''), ML+12, y+6);
-      sf(8,'bold',col);             doc.text(lbl, ML+CW-4, y+5, {align:'right'});
-      sf(7,'normal',[130,135,145]);
+      sf(7.5,'normal',[170,178,192]); doc.text(String(it.n)+'.', ML+5, y+7);
+      sf(9.5,'bold',[30,36,46]);      doc.text(String(it.label||''), ML+12, y+7);
+      sf(8.5,'bold',col);             doc.text(lbl, ML+CW-5, y+6, {align:'right'});
+      sf(7.5,'normal',[130,140,158]);
       doc.text(st==='na' ? 'N/A' : (st==='pass'?(it.maxScore||0):0)+'/'+(it.maxScore||0),
-               ML+CW-4, y+9.5, {align:'right'});
-      sf(6.5,'normal',[150,155,165]);
-      doc.text('Max: '+(it.maxScore||0)+' pt'+((it.maxScore||0)>1?'s':''), ML+12, y+10);
+               ML+CW-5, y+11, {align:'right'});
+      sf(7,'normal',[150,158,172]);
+      doc.text('Max: '+(it.maxScore||0)+' pt'+((it.maxScore||0)>1?'s':''), ML+12, y+11.5);
 
-      var iy = y + 14;
-      sf(7,'italic',[110,118,130]); doc.text(dL, ML+12, iy); iy += dL.length*3.4;
-      if(cL.length){ sf(7,'normal',[80,86,96]); doc.text(cL, ML+12, iy+1.5); iy += cL.length*3.4 + 1.5; }
-      if(aL.length){ sf(7,'bold',[198,40,40]);  doc.text(aL, ML+12, iy+1.5); iy += aL.length*3.4 + 1.5; }
+      var iy = y + 16;
+      sf(7.5,'italic',[115,124,138]); doc.text(dL, ML+12, iy); iy += dL.length*3.5;
+      if(cL.length){ sf(7.5,'normal',[70,78,92]); doc.text(cL, ML+12, iy+2); iy += cL.length*3.5 + 2; }
+      if(aL.length){ sf(7.5,'bold',RED);          doc.text(aL, ML+12, iy+2); iy += aL.length*3.5 + 2; }
 
       if(pk.length){
-        var px = ML+12, pw = 30, ph = 29;
+        var px = ML+12, pw = 32, ph = 31;
         for(var pi=0; pi<pk.length; pi++){
-          if(pi>0 && pi%4===0){ px = ML+12; iy += ph+2; }
+          if(pi>0 && pi%4===0){ px = ML+12; iy += ph+3; }
           try{ doc.addImage(PH[pk[pi]], 'JPEG', px, iy+2, pw, ph, '', 'FAST'); }
-          catch(e){ fr(px, iy+2, pw, ph, 225,228,235); }
-          px += pw+2;
+          catch(e){ fr(px, iy+2, pw, ph, [232,236,243]); }
+          px += pw+3;
         }
       }
       y += iH + 2;
     });
-    y += 3;
+    y += 4;
   });
 
-  /* CORRECTIVE ACTIONS */
+  /* ══ CORRECTIVE ACTIONS ══ */
   var fails = [];
   secs.forEach(function(s){
     (s.items||[]).forEach(function(it){
@@ -916,23 +956,25 @@ function rptPDF(){
   });
   if(fails.length){
     ap();
-    sf(11,'bold',[198,40,40]);
-    doc.text('CORRECTIVE ACTIONS SUMMARY (' + fails.length + ')', ML, y); y += 9;
+    fr(ML, y-6, CW, 11, RED);
+    sf(10,'bold',[255,255,255]);
+    doc.text('CORRECTIVE ACTIONS SUMMARY (' + fails.length + ')', ML+5, y+1.3);
+    y += 12;
     fails.forEach(function(f){
-      var aL2 = f.act ? doc.splitTextToSize(f.act, CW-10) : [];
-      var h = 12 + aL2.length*3.6;
-      cy(h+2);
-      fr(ML, y, CW, h, 253,240,240);
-      fr(ML, y, 1.6, h, 198,40,40);
-      sf(7,'bold',[150,60,60]);  doc.text(f.sec + ' - Item ' + f.n, ML+5, y+5);
-      sf(9,'bold',[35,40,50]);   doc.text(String(f.label||''), ML+5, y+10);
-      if(aL2.length){ sf(7,'normal',[110,60,60]); doc.text(aL2, ML+5, y+14); }
+      var aL2 = f.act ? doc.splitTextToSize(f.act, CW-12) : [];
+      var h = 13 + aL2.length*3.7;
+      cy(h+3);
+      fr(ML, y, CW, h, [253,240,240]);
+      fr(ML, y, 2, h, RED);
+      sf(7,'bold',[160,70,70]);  doc.text(f.sec + ' - Item ' + f.n, ML+6, y+5.5);
+      sf(9.5,'bold',[30,36,46]); doc.text(String(f.label||''), ML+6, y+11);
+      if(aL2.length){ sf(7.5,'normal',[120,70,70]); doc.text(aL2, ML+6, y+15.5); }
       if(f.resp || f.dl){
-        sf(6.5,'bold',[150,60,60]);
+        sf(7,'bold',[160,70,70]);
         doc.text((f.resp?'Responsible: '+f.resp:'') + (f.dl?'   Deadline: '+f.dl:''),
-                 ML+CW-4, y+5, {align:'right'});
+                 ML+CW-5, y+5.5, {align:'right'});
       }
-      y += h + 2.5;
+      y += h + 3;
     });
   }
 
