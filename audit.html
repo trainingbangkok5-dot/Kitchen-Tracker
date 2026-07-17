@@ -957,23 +957,36 @@ function submitAuditToDashboard() {
     async function pushWithPhotos() {
       const auditKey = (PRACTICE?'PRACTICE_':'') + outlet.replace(/[^a-zA-Z0-9]/g,'_')+'_'+auditType+'_'+(auditDate||'').replace(/[^a-zA-Z0-9]/g,'_');
 
-      // Store photos separately — strip from sectionBreakdown to keep record small
+      // Store photos separately — strip from sectionBreakdown to keep record small.
+      // IMPORTANT: wipe any old photo slots for this exact audit key first, so a
+      // photo that was deleted before re-submitting cannot survive in Firebase.
       const photoUploads = [];
+      const clearKeys = [];
       for (const sec of sectionBreakdown) {
         for (const it of sec.items) {
+          // clear up to 10 possible old slots for every item (cheap, safe)
+          for (let old = 0; old < 10; old++) {
+            clearKeys.push(auditKey + '_' + sec.id + '_' + it.n + '_' + old);
+          }
+          const photoKeys = [];
           if (it.photos && it.photos.length > 0) {
-            const photoKeys = [];
             for (let pi = 0; pi < it.photos.length; pi++) {
               const compressed = await compressPhoto(it.photos[pi], 600, 0.65);
               const photoKey = auditKey + '_' + sec.id + '_' + it.n + '_' + pi;
               photoUploads.push({key: photoKey, data: compressed});
               photoKeys.push(photoKey);
             }
-            it.photoKeys = photoKeys; // store references
-            it.photos = [];           // don't embed in main record
           }
+          it.photoKeys = photoKeys; // authoritative list (empty if none)
+          it.photos = [];           // don't embed in main record
         }
       }
+      // Delete every old slot first (null = remove), then write current photos.
+      try {
+        const wipe = {};
+        clearKeys.forEach(k => { wipe['auditPhotos/' + k] = null; });
+        await _db.ref().update(wipe);
+      } catch(e) { console.warn('Old photo cleanup failed:', e); }
 
       // Push main audit record (no embedded photos — keeps it small)
       pushAuditToFirebase({outlet, auditType, score:pct, rawScore:total, maxScore:maxTotal, auditor, auditDate, submittedAt:new Date().toISOString(), correctiveActions, sectionBreakdown, outletKey: outlet.replace(/\s+/g,'_').toLowerCase()});

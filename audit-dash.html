@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="app-version" content="20260715050000">
+<meta name="app-version" content="20260715060000">
 <title>Culex Audit Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -598,22 +598,19 @@ function streamPhotos(key, a){
       var box = document.getElementById('ph_' + sec.id + '_' + sn);
       if(!box) return;
 
+      // Trust ONLY photoKeys — the authoritative list saved with the audit.
+      // No slot-guessing, so deleted photos can never reappear.
       var keys = [], seen = {};
       (it.photoKeys || []).forEach(function(k){
-        k = String(k).replace(/[.#$\[\]]/g,'_');
+        k = String(k);
         if(!seen[k]){ seen[k] = 1; keys.push(k); }
       });
-      for(var i=0;i<5;i++){
-        var k2 = key + '_' + sec.id + '_' + sn + '_' + i;
-        if(!seen[k2]){ seen[k2] = 1; keys.push(k2); }
-      }
+      if(!keys.length) return;
 
-      var urls = {};
       keys.forEach(function(k){
         db.ref('auditPhotos/' + k).once('value').then(function(sn2){
           var url = sn2.val();
-          if(!url || urls[url]) return;
-          urls[url] = 1;
+          if(!url) return;
           if(!PHOTOS[key]) PHOTOS[key] = {};
           PHOTOS[key][k] = url;
           var img = document.createElement('img');
